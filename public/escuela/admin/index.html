@@ -375,6 +375,12 @@
 
     const ADMIN_EMAILS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
 
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
     const CURSOS = [
         { id: 'pluton',       nombre: 'Seminario Plutón' },
         { id: 'introduccion', nombre: 'Introducción' },
@@ -492,15 +498,15 @@
                 <div class="user-info">
                     <div class="info-field">
                         <label>Email</label>
-                        <span style="color:var(--primary)">${email}</span>
+                        <span style="color:var(--primary)">${escapeHtml(email)}</span>
                     </div>
                     <div class="info-field">
                         <label>Nombre</label>
-                        <input type="text" id="edit-nombre" value="${data.nombre || ''}" placeholder="Nombre del alumno">
+                        <input type="text" id="edit-nombre" value="${escapeHtml(data.nombre || '')}" placeholder="Nombre del alumno" maxlength="100">
                     </div>
                     <div class="info-field">
                         <label>Cohorte</label>
-                        <input type="text" id="edit-cohorte" value="${data.cohorte || '2026'}" placeholder="2026">
+                        <input type="text" id="edit-cohorte" value="${escapeHtml(data.cohorte || '2026')}" placeholder="2026">
                     </div>
                     ${fechaStr}
                 </div>
@@ -579,12 +585,12 @@
 
             const rows = usuarios.map(u => `
                 <tr>
-                    <td>${u.email}</td>
-                    <td>${u.nombre || '<span style="color:#555">—</span>'}</td>
-                    <td>${(u.cursos || []).map(c => `<span class="tag tag-curso">${c}</span>`).join('')}</td>
-                    <td>${u.cohorte || '—'}</td>
+                    <td>${escapeHtml(u.email)}</td>
+                    <td>${u.nombre ? escapeHtml(u.nombre) : '<span style="color:#555">—</span>'}</td>
+                    <td>${(u.cursos || []).map(c => `<span class="tag tag-curso">${escapeHtml(c)}</span>`).join('')}</td>
+                    <td>${u.cohorte ? escapeHtml(u.cohorte) : '—'}</td>
                     <td>
-                        <button class="btn-table btn-edit-user" data-email="${u.email}">
+                        <button class="btn-table btn-edit-user" data-email="${escapeHtml(u.email)}">
                             <i class="fa-solid fa-pen"></i> Editar
                         </button>
                     </td>

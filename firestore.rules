@@ -21,10 +21,26 @@ service cloud.firestore {
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
         request.auth.token.email == email
       );
-      allow write: if request.auth != null && (
+
+      // Un usuario puede crear su propio documento al registrarse, pero sin
+      // poder otorgarse cursos y con un nombre validado (string, <=100 chars).
+      allow create: if request.auth != null && (
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
-        request.auth.token.email == email
+        (
+          request.auth.token.email == email &&
+          request.resource.data.cursos == [] &&
+          request.resource.data.cohorte is string &&
+          (!('nombre' in request.resource.data) || (
+            request.resource.data.nombre is string &&
+            request.resource.data.nombre.size() <= 100
+          ))
+        )
       );
+
+      // Solo lxs admins pueden modificar cursos/cohorte/nombre de un usuario
+      // ya existente (no hay ningún flujo de autoedición en el sitio).
+      allow update, delete: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
 
     match /pagos_procesados/{id} {
