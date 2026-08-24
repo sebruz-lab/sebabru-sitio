@@ -52,7 +52,13 @@ service cloud.firestore {
     }
 
     match /codigos_descuento/{codigo} {
-      allow read: if true;
+      // Lectura de un código puntual (ya conocido) sigue siendo publica, la
+      // usa la pagina de checkout para validar el cupon que escribe el usuario.
+      // Listar la coleccion completa (y asi enumerar todos los codigos) queda
+      // restringido a admins.
+      allow get: if true;
+      allow list: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
       allow write: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
@@ -64,7 +70,9 @@ service cloud.firestore {
     }
 
     match /pedidos/{id} {
-      allow write: if true;
+      // Solo se escribe desde la Cloud Function guardarPedido (Admin SDK,
+      // no pasa por estas reglas). Ningun cliente deberia escribir directo.
+      allow write: if false;
       allow read: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }

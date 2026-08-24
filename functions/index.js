@@ -28,6 +28,34 @@ function ensureInit() {
   _db = getFirestore('cursos');
 }
 
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Limpia texto libre que viene del cliente antes de usarlo en el asunto de
+// un email (evita inyeccion de headers via \r\n) o de guardarlo en Firestore.
+function sanitizeTexto(str, maxLen) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[\r\n]+/g, ' ').trim().slice(0, maxLen);
+}
+
+const ALLOWED_ORIGINS = [
+  'https://sebabru.com',
+  'https://sebabru-e5563.web.app',
+  'https://sebabru-e5563.firebaseapp.com',
+];
+
+function setCors(req, res, methods) {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  }
+  res.set('Access-Control-Allow-Methods', methods);
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 async function validarCodigo(codigo, cursoId) {
   if (!codigo) return null;
   const snap = await _db.collection('codigos_descuento').doc(codigo.toUpperCase()).get();
@@ -105,9 +133,7 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
 // crearPago: MercadoPago
 // -------------------------------------------------------
 exports.crearPago = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCors(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: { status: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
@@ -127,7 +153,8 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
   }
 
   const userEmail = decodedToken.email;
-  const { cursoId, cursoNombre, codigoDescuento } = req.body.data || {};
+  const { cursoId, codigoDescuento } = req.body.data || {};
+  const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
 
   const preciosBase = PRECIOS[cursoId];
   if (!cursoId || !cursoNombre || !preciosBase) {
@@ -279,10 +306,12 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
+  const nombreSeguro = escapeHtml(nombreCurso);
+  const emailSeguro = escapeHtml(userEmail);
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #222;">
       <h2 style="color: #249b95;">¡Gracias por tu compra!</h2>
-      <p>Tu pago fue acreditado. Ya tenés acceso a <strong>${nombreCurso}</strong>.</p>
+      <p>Tu pago fue acreditado. Ya tenés acceso a <strong>${nombreSeguro}</strong>.</p>
       <p style="text-align: center; margin: 30px 0;">
         <a href="${cursoUrl}"
            style="background:#249b95; color:white; padding:14px 28px; border-radius:6px;
@@ -304,8 +333,8 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
       <div style="font-family: 'Courier New', Courier, monospace; font-size:0.78em; color:#999; line-height:2;">
         COMPROBANTE DE ACCESO<br>
         ────────────────────────────<br>
-        Curso &nbsp;&nbsp;: ${nombreCurso}<br>
-        Usuario : ${userEmail}<br>
+        Curso &nbsp;&nbsp;: ${nombreSeguro}<br>
+        Usuario : ${emailSeguro}<br>
         Fecha &nbsp;&nbsp;: ${fecha}<br>
         ────────────────────────────
       </div>
@@ -317,9 +346,7 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
 // verificarPagoMP: verifica pago aprobado y activa acceso
 // -------------------------------------------------------
 exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -381,9 +408,7 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
 // crearPagoPaypal
 // -------------------------------------------------------
 exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: { status: 'METHOD_NOT_ALLOWED' } });
 
@@ -402,7 +427,8 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
   }
 
   const userEmail = decodedToken.email.toLowerCase().trim();
-  const { cursoId, cursoNombre, codigoDescuento } = req.body.data || {};
+  const { cursoId, codigoDescuento } = req.body.data || {};
+  const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
 
   const preciosBase = PRECIOS[cursoId];
   if (!cursoId || !cursoNombre || !preciosBase) {
@@ -463,9 +489,7 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
 // crearPagoLibro: MercadoPago sin autenticación (libro)
 // -------------------------------------------------------
 exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  setCors(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -505,16 +529,17 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
 // guardarPedido: Guarda datos de envío del libro
 // -------------------------------------------------------
 exports.guardarPedido = functions.https.onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  setCors(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   ensureInit();
 
-  const { nombre, esquina, email, metodo } = req.body || {};
+  const nombre = sanitizeTexto(req.body?.nombre, 200);
+  const esquina = sanitizeTexto(req.body?.esquina, 300);
+  const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  const metodo = sanitizeTexto(req.body?.metodo, 50) || 'desconocido';
 
   if (!nombre || !esquina || !email) {
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
@@ -526,8 +551,8 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
     await _db.collection('pedidos').doc(pedidoId).set({
       nombre,
       esquina,
-      email: email.toLowerCase().trim(),
-      metodo: metodo || 'desconocido',
+      email,
+      metodo,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -544,10 +569,10 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
           <h2 style="color:#249b95;">Nuevo pedido: Luna Negra</h2>
           <table style="width:100%;border-collapse:collapse;margin-top:16px;">
-            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:160px;">Nombre (DNI)</td><td style="padding:10px;border-bottom:1px solid #eee;">${nombre}</td></tr>
-            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Esquina de casa</td><td style="padding:10px;border-bottom:1px solid #eee;">${esquina}</td></tr>
-            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Email</td><td style="padding:10px;border-bottom:1px solid #eee;">${email}</td></tr>
-            <tr><td style="padding:10px;color:#888;">Método de pago</td><td style="padding:10px;">${metodo}</td></tr>
+            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:160px;">Nombre (DNI)</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(nombre)}</td></tr>
+            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Esquina de casa</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(esquina)}</td></tr>
+            <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Email</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(email)}</td></tr>
+            <tr><td style="padding:10px;color:#888;">Método de pago</td><td style="padding:10px;">${escapeHtml(metodo)}</td></tr>
           </table>
           <p style="color:#aaa;font-size:0.82em;margin-top:20px;">ID: ${pedidoId}</p>
         </div>
@@ -634,7 +659,7 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       to: userEmail,
       bcc: 'espaciointeriorastrologia@gmail.com',
       subject: `Tu acceso al curso: ${cursoNombre}`,
-      html: emailHtml(cursoNombre, inviteUrl, userEmail)
+      html: emailAccesoHtml(cursoNombre, inviteUrl, userEmail)
     });
 
     functions.logger.info('Email PayPal enviado', { userEmail, cursoId, invToken });
