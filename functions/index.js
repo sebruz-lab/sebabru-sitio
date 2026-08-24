@@ -56,6 +56,33 @@ function setCors(req, res, methods) {
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+
+// Limite simple por IP en una ventana fija, guardado en Firestore.
+// No es a prueba de balas (alguien con muchas IPs lo esquiva) pero frena
+// el caso real mas probable: un script en loop pegandole a un endpoint
+// sin login desde una sola conexion.
+async function checkRateLimit(nombreFuncion, req, maxRequests) {
+  const ipCruda = (req.headers['x-forwarded-for'] || req.ip || 'unknown').split(',')[0].trim();
+  const key = `${nombreFuncion}_${ipCruda}`.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 200);
+  const ref = _db.collection('rate_limits').doc(key);
+
+  return _db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const ahora = Date.now();
+
+    if (!snap.exists || (ahora - snap.data().windowStart) > RATE_LIMIT_WINDOW_MS) {
+      tx.set(ref, { windowStart: ahora, count: 1 });
+      return true;
+    }
+
+    if (snap.data().count >= maxRequests) return false;
+
+    tx.update(ref, { count: admin.firestore.FieldValue.increment(1) });
+    return true;
+  });
+}
+
 async function validarCodigo(codigo, cursoId) {
   if (!codigo) return null;
   const snap = await _db.collection('codigos_descuento').doc(codigo.toUpperCase()).get();
@@ -496,6 +523,10 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  if (!(await checkRateLimit('crearPagoLibro', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados intentos. Probá de nuevo en unos minutos.' });
+  }
+
   try {
     const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
     const preference = new Preference(mpClient);
@@ -535,6 +566,10 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   ensureInit();
+
+  if (!(await checkRateLimit('guardarPedido', req, 5))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
 
   const nombre = sanitizeTexto(req.body?.nombre, 200);
   const esquina = sanitizeTexto(req.body?.esquina, 300);

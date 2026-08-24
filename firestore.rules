@@ -51,6 +51,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /rate_limits/{id} {
+      allow read, write: if false;
+    }
+
     match /codigos_descuento/{codigo} {
       // Lectura de un código puntual (ya conocido) sigue siendo publica, la
       // usa la pagina de checkout para validar el cupon que escribe el usuario.
