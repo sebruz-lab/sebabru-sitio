@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Contenidos Cinemáticos</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. VARIABLES Y BASE
+           ========================================= */
+        :root {
+            --bg-base: #07070a;
+            --bg-surface: #10101a;
+            --primary-color: #3bc2bc;
+            --text-light: #e0e6ed;
+            --text-dark: #9ba4b5;
+            --spotify-color: #1DB954;
+            --youtube-color: #FF0000;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-dark);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h2 {
+            color: var(--text-light);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-wrap: balance;
+            line-height: 1.1;
+        }
+
+        h3 {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            margin: 0 0 15px 0;
+            line-height: 1.3;
+        }
+
+        p { margin-top: 0; margin-bottom: 15px; }
+
+        /* =========================================
+           2. EFECTO SCROLL SHRINK (ADAPTADO)
+           ========================================= */
+        .efecto-shrink-container {
+            height: 200vh;
+            position: relative;
+            background-color: var(--bg-base);
+        }
+
+        .efecto-shrink-sticky {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* El contenedor que se va a achicar (Ahora aloja los carruseles) */
+        .efecto-visual {
+            width: 100%;
+            max-width: 500px;
+            z-index: 2;
+            transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
+            /* Sombra premium para despegarlo del fondo */
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-radius: 16px;
+        }
+
+        .efecto-texto {
+            position: absolute;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
+            max-width: 500px;
+            z-index: 1;
+            text-align: left;
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .efecto-texto::-webkit-scrollbar { display: none; }
+
+        /* ANIMACIÓN AL SCROLLEAR */
+        /* --- PC --- */
+        .efecto-shrink-container.scrolled .efecto-visual {
+            transform: scale(0.65) translateX(-35vw); 
+        }
+
+        .efecto-shrink-container.scrolled .efecto-texto {
+            opacity: 1;
+            transform: translateX(15vw); 
+        }
+
+        /* --- Celular --- */
+        @media (max-width: 768px) {
+            .efecto-shrink-container.scrolled .efecto-visual {
+                transform: scale(0.6) translateY(-25vh); 
+            }
+            
+            .efecto-shrink-container.scrolled .efecto-texto {
+                opacity: 1;
+                transform: translateY(20vh); 
+                width: 90%;
+                max-height: 50vh;
+            }
+        }
+
+        /* =========================================
+           3. CARRUSELES Y TARJETAS
+           ========================================= */
+        .carrusel-horizontal {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            border-radius: 16px;
+        }
+        .carrusel-horizontal::-webkit-scrollbar { display: none; }
+
+        .tarjeta-carrusel {
+            flex: 0 0 100%; /* Cada tarjeta ocupa el 100% del contenedor visual */
+            background-color: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            scroll-snap-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .imagen-luna {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background-color: #222;
+        }
+
+        .contenido-tarjeta {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .btn-luna {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 30px;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .btn-luna:hover { background-color: var(--primary-color); color: #000; }
+
+        /* Etiquetas plataformas */
+        .etiqueta-plataforma {
+            padding: 12px 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .etiqueta-spotify { background-color: var(--spotify-color); }
+        .etiqueta-youtube { background-color: var(--youtube-color); }
+        .iframe-container { background-color: var(--bg-surface); }
+
+        /* =========================================
+           4. BOTONES SUTILES Y DETALLES TEXTO
+           ========================================= */
+        .grupo-botones-sutiles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn-sutil {
+            display: inline-block;
+            padding: 12px 28px;
+            background-color: transparent;
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .btn-sutil:hover {
+            background-color: var(--primary-color);
+            color: #000;
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(59, 194, 188, 0.3);
+        }
+
+        .cita-destacada {
+            font-style: italic;
+            border-left: 2px solid var(--primary-color);
+            padding-left: 15px;
+            margin: 20px 0;
+            color: var(--text-light);
+            font-size: 1.05rem;
+        }
+    </style>
+</head>
+<body>
+
+    <section class="efecto-shrink-container" id="seccion-lunas">
+        <div class="efecto-shrink-sticky">
+            
+            <div class="efecto-visual">
+                <div class="carrusel-horizontal">
+                    <article class="tarjeta-carrusel">
+                        <img src="img/nueva.jpg" alt="Luna Nueva" class="imagen-luna">
+                        <div class="contenido-tarjeta">
+                            <h3>Luna Nueva</h3>
+                            <a href="https://sebabru.com/lunanueva" class="btn-luna">Leer Informe</a>
+                        </div>
+                    </article>
+                    <article class="tarjeta-carrusel">
+                        <img src="img/llena.jpg" alt="Luna Llena" class="imagen-luna">
+                        <div class="contenido-tarjeta">
+                            <h3>Luna Llena</h3>
+                            <a href="https://sebabru.com/lunallena" class="btn-luna">Leer Informe</a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+            
+            <div class="efecto-texto">
+                <h2>Informes de Lunas</h2>
+                <p>Cada lunación elaboro un informe que publico en Instagram, en la comunidad y también lo subo a esta página. Accedé a él de la forma que más quieras.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="efecto-shrink-container" id="seccion-podcast">
+        <div class="efecto-shrink-sticky">
+            
+            <div class="efecto-visual">
+                <div class="carrusel-horizontal">
+                    
+                    <article class="tarjeta-carrusel">
+                        <div class="etiqueta-plataforma etiqueta-spotify">
+                            <span>Spotify Podcast</span>
+                            <span style="opacity: 0.5;">Deslizá -></span>
+                        </div>
+                        <div class="iframe-container">
+                            <iframe style="border-radius:0 0 12px 12px; display:block;" src="https://open.spotify.com/embed/show/3pUBeAtMJw2WY3ykB82Tw3/video?utm_source=generator" width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                        </div>
+                    </article>
+
+                    <article class="tarjeta-carrusel">
+                        <div class="etiqueta-plataforma etiqueta-youtube">
+                            <span>YouTube Video</span>
+                            <span style="opacity: 0.5;"><- Deslizá</span>
+                        </div>
+                        <div class="iframe-container">
+                            <iframe style="border-radius:0 0 12px 12px; display:block;" width="100%" height="352" src="https://www.youtube.com/embed/videoseries?si=toy1NWiMo_YG71Ow&list=PLxMY1XMl9aPWFsQtElx1EZcAoPyMCEYby" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        </div>
+                    </article>
+
+                </div>
+            </div>
+            
+            <div class="efecto-texto">
+                <h2>Kit astrológico para habitar la tierra</h2>
+                <p>Los acontecimientos celestes pueden ser el ruido que enturbia nuestra vida o la melodía que nos permite improvisar. En este podcast semanal voy a intentar describir el cielo para invitarte a mirar de otro modo lo que te pasa.</p>
+                <p>Si todo sale bien, además del análisis de tránsitos semanales haré algún que otro contenido más imperecedero para acompañarte en los días de la vida.</p>
+                
+                <blockquote class="cita-destacada">
+                    "Improvisar es unirse al mundo, confundirse con él."<br>
+                    <span style="font-size: 0.9rem; opacity: 0.7;">— Deleuze y Guattari.</span>
+                </blockquote>
+
+                <div class="grupo-botones-sutiles">
+                    <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3?si=1c6cfcdda2704c49" target="_blank" class="btn-sutil">Escuchar en Spotify</a>
+                    <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" class="btn-sutil">Canal de YouTube</a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section style="padding: 60px 20px; max-width: 1200px; margin: 0 auto;">
+        
+        <div class="embedsocial-hashtag" data-ref="cfa922b978fe2dd2a13a9a46341ba7bab8cd9dcb"> 
+            <a class="feed-powered-by-es feed-powered-by-es-slider-img es-widget-branding" href="https://embedsocial.com/instagram-widget/" target="_blank" title="Instagram widget" > 
+                <img src="https://embedsocial.com/cdn/icon/embedsocial-logo.webp" alt="EmbedSocial"> 
+                <div class="es-widget-branding-text">Instagram widget</div> 
+            </a> 
+        </div> 
+        <script> 
+            (function(d, s, id) { 
+                var js; 
+                if (d.getElementById(id)) {return;} 
+                js = d.createElement(s); 
+                js.id = id; 
+                js.src = "https://embedsocial.com/cdn/ht.js"; 
+                d.getElementsByTagName("head")[0].appendChild(js); 
+            }(document, "script", "EmbedSocialHashtagScript")); 
+        </script>
+
+    </section>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const seccionesShrink = document.querySelectorAll('.efecto-shrink-container');
+            
+            seccionesShrink.forEach(seccion => {
+                const posicionTop = seccion.getBoundingClientRect().top;
+                
+                if (posicionTop <= 0) {
+                    seccion.classList.add('scrolled');
+                } else {
+                    seccion.classList.remove('scrolled');
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

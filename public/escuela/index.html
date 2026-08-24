@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escuela Online | Seba Bru</title>
+    
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="escuela.css?v=2">
+    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="bg-escuela">
+
+    <header class="school-header">
+    <h1>FORMACIONES</h1>
+    
+    <div style="display: flex; gap: 10px; justify-content: center; margin: 10px 0;">
+        <button id="btn-login" style="display:none; background: #249b95; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.8rem;">
+            <i class="fa-solid fa-user"></i> INGRESAR
+        </button>
+        <button id="btn-logout" style="display:none; background: rgba(170,20,20,0.18); color: rgba(255,130,130,0.9); border: 1px solid rgba(200,40,40,0.3); backdrop-filter: blur(8px); padding: 8px 15px; border-radius: 5px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.8rem;">
+            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+        </button>
+    </div>
+
+    <h3 style="text-align: center; font-size: 0.95rem; font-weight: 400; opacity: 0.7; margin: 0 0 10px;">Selecciona tu formación para ingresar al aula</h3>
+    <a href="../index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Volver a la web principal</a>
+</header>
+
+    <main class="courses-container">
+
+        <a href="#" class="course-card curso-lock" data-url="planetas/index.html">
+            <div class="card-image">
+                <img src="img/planetas.webp" alt="Planetas y Luminarias">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Planetas y Luminarias</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="saturnoluna/index.html">
+            <div class="card-image">
+                <img src="img/saturno.webp" alt="Saturno y la Luna">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Saturno y la Luna</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="escucha/index.html">
+            <div class="card-image">
+                <img src="img/escucha.jpg" alt="Escucha Astrologica">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Escucha Astrologica</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="introduccion/index.html">
+            <div class="card-image">
+                <img src="img/introduccion.jpg" alt="Introducción">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Introducción al Lenguaje Astrológico</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="lectura/index.html">
+            <div class="card-image">
+                <img src="img/lectura.jpg" alt="Curso Lectura">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Lectura e Interpretación</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="revo/index.html">
+            <div class="card-image">
+                <img src="img/revo.webp" alt="Revoluciones Solares">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Revoluciones Solares</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="lunanegra/index.html">
+            <div class="card-image">
+                <img src="img/lunanegra.webp" alt="Luna Negra">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Luna Negra</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="pluton/index.html">
+            <div class="card-image">
+                <img src="img/pluton.jpg" alt="Seminario Plutón">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Seminario Plutón</h3>
+        </a>
+
+        <a href="cosito/index.html" class="course-card curso-lock" data-url="cosito/index.html">
+            <div class="card-image">
+                <img src="img/cosito.webp" alt="¿Qué es ese cosito?" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>¿Qué es ese cosito?</h3>
+        </a>
+
+        <a href="abierta/" class="course-card">
+            <div class="card-image">
+                <img src="img/abierta.webp" alt="Formación Abierta">
+                <div class="overlay">
+                    <i class="fa-solid fa-door-open"></i> INGRESAR
+                </div>
+            </div>
+            <h3>Formación Abierta</h3>
+        </a>
+
+        <a href="#" class="course-card curso-lock" data-url="transitos/index.html">
+            <div class="card-image">
+                <img src="img/transitos.jpg" alt="Curso Tránsitos">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i>  INGRESAR
+                </div>
+            </div>
+            <h3>Tránsitos</h3>
+        </a>
+
+
+    </main>
+
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-box">
+            <button id="close-modal" class="close-btn">&times;</button>
+            <div class="google-auth-container" style="margin-bottom: 20px; text-align: center;">
+    <button id="btn-google" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; color: #444; border: 1px solid #ddd; padding: 10px; border-radius: 5px; cursor: pointer; font-family: sans-serif; font-weight: bold; transition: 0.3s;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+        CONTINUAR CON GOOGLE
+    </button>
+    <h3 style="margin: 15px 0; color: #888; font-size: 0.8rem;">— O BIEN —</h3>
+</div>
+            <div id="seccion-login">
+                <h2>Ingresar</h2>
+                <form id="login-form">
+                    <input type="email" id="email-login" placeholder="Tu Email" required>
+                    <input type="password" id="pass-login" placeholder="Contraseña" required>
+                    <button type="submit" class="btn-login">ENTRAR</button>
+                </form>
+                <p style="margin-top:10px; font-size: 0.9em;">
+                    ¿No tienes cuenta? <a href="#" id="ir-a-registro">Regístrate aquí</a>
+                </p>
+            </div>
+
+            <div id="seccion-registro" style="display:none;">
+                <h2>Crear Cuenta</h2>
+                <p>Regístrate para acceder a la escuela.</p>
+                <form id="registro-form">
+                    <input type="email" id="email-registro" placeholder="Tu Email" required>
+                    <input type="password" id="pass-registro" placeholder="Crea una contraseña" required>
+                    <button type="submit" class="btn-login" style="background-color: #4CAF50;">CREAR CUENTA</button>
+                </form>
+                <p style="margin-top:10px; font-size: 0.9em;">
+                    ¿Ya tienes cuenta? <a href="#" id="ir-a-login">Ingresa aquí</a>
+                </p>
+            </div>
+
+            <p class="error-msg" id="login-error" style="display:none; color:red; margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <script type="module">
+      import { app } from './firebase.js';
+      console.log("Firebase cargado:", app);
+    </script>
+
+    <script type="module" src="escuela.js"></script>
+</body>
+</html>

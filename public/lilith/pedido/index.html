@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos de envío | Luna Negra</title>
+    <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #3bc2bc;
+            --gold: #f0c516;
+            --bg: #07070a;
+            --surface: rgba(30, 34, 48, 0.9);
+            --border: rgba(255,255,255,0.1);
+            --text: #e0e6ed;
+            --muted: #8892a0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Montserrat', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            max-width: 480px;
+            width: 100%;
+        }
+        .screen.visible { display: flex; }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+        }
+
+        .card h2 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .card .subtitle {
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+
+        .metodo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(59,194,188,0.1);
+            border: 1px solid rgba(59,194,188,0.3);
+            color: var(--primary);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .transfer-nota {
+            background: rgba(240,197,22,0.07);
+            border: 1px solid rgba(240,197,22,0.3);
+            color: #c9a610;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            line-height: 1.65;
+            margin-bottom: 20px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .form-hint {
+            font-size: 0.76rem;
+            color: var(--muted);
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        .error-msg {
+            background: rgba(220,80,80,0.12);
+            border: 1px solid #e05555;
+            color: #f08080;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 13px 28px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-decoration: none;
+            width: 100%;
+            transition: opacity 0.2s;
+            font-family: inherit;
+            margin-top: 8px;
+        }
+        .btn:hover:not(:disabled) { opacity: 0.85; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-back {
+            background: rgba(255,255,255,0.07);
+            color: var(--text);
+            border: 1px solid var(--border);
+            margin-top: 14px;
+        }
+
+        .success-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 18px;
+            text-align: center;
+            display: block;
+        }
+        .card.center { text-align: center; }
+        .card.center h2 { text-align: center; margin-bottom: 10px; }
+        .card.center .subtitle { text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- FORMULARIO -->
+    <div class="screen visible" id="screen-form">
+        <div class="card">
+            <h2>Datos de envío</h2>
+            <p class="subtitle">Completá tus datos para que podamos coordinar el envío de tu ejemplar de <em>Luna Negra</em>.</p>
+
+            <div class="metodo-badge" id="metodo-badge">
+                <i class="fas fa-circle-check"></i>
+                <span id="metodo-texto">Pago recibido</span>
+            </div>
+
+            <div id="transfer-nota" class="transfer-nota" style="display:none;">
+                <i class="fas fa-circle-info"></i> Recordá enviar el comprobante de transferencia a
+                <strong>sebruz@gmail.com</strong> o por WhatsApp al <strong>+54 9 3544 559877</strong>.
+            </div>
+
+            <div id="error-msg" class="error-msg"></div>
+
+            <div class="form-group">
+                <label for="inp-nombre">Nombre y apellido (como figura en el DNI)</label>
+                <input type="text" id="inp-nombre" placeholder="Ej: María González" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label for="inp-esquina">Esquina de tu casa</label>
+                <input type="text" id="inp-esquina" placeholder="Ej: Rivadavia y Corrientes">
+                <p class="form-hint">Esto nos ayuda a encontrar la sucursal de correo más cercana a tu domicilio.</p>
+            </div>
+            <div class="form-group">
+                <label for="inp-email">Email para notificaciones</label>
+                <input type="email" id="inp-email" placeholder="tu@email.com" autocomplete="email">
+            </div>
+
+            <button class="btn btn-primary" id="btn-enviar">
+                <i class="fas fa-paper-plane"></i> Enviar datos
+            </button>
+        </div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div class="screen" id="screen-exito">
+        <div class="card center">
+            <span class="success-icon"><i class="fas fa-circle-check"></i></span>
+            <h2>¡Listo!</h2>
+            <p class="subtitle">
+                Recibimos tus datos. Pronto nos contactaremos para coordinar el envío de tu ejemplar de <em>Luna Negra</em>.
+            </p>
+            <a href="/lilith/" class="btn btn-back">
+                <i class="fas fa-arrow-left"></i> Volver a la página del libro
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const metodo = params.get('metodo') || '';
+
+        if (metodo === 'mp') {
+            document.getElementById('metodo-texto').textContent = 'Pago con Mercado Pago recibido';
+        } else if (metodo === 'transferencia') {
+            document.getElementById('metodo-texto').textContent = 'Transferencia bancaria';
+            document.getElementById('transfer-nota').style.display = 'block';
+        } else {
+            document.getElementById('metodo-badge').style.display = 'none';
+        }
+
+        document.getElementById('btn-enviar').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-enviar');
+            const errorMsg = document.getElementById('error-msg');
+            const nombre  = document.getElementById('inp-nombre').value.trim();
+            const esquina = document.getElementById('inp-esquina').value.trim();
+            const email   = document.getElementById('inp-email').value.trim();
+
+            errorMsg.style.display = 'none';
+
+            if (!nombre || !esquina || !email) {
+                errorMsg.textContent = 'Por favor completá todos los campos.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            if (!email.includes('@')) {
+                errorMsg.textContent = 'Ingresá un email válido.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            try {
+                const res = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/guardarPedido', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, esquina, email, metodo })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+                    document.getElementById('screen-exito').classList.add('visible');
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar datos';
+                errorMsg.textContent = 'Ocurrió un error. Intentá de nuevo o escribinos a sebruz@gmail.com.';
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        document.getElementById('inp-email').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('btn-enviar').click();
+        });
+    </script>
+</body>
+</html>

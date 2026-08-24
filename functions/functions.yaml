@@ -1,0 +1,51 @@
+endpoints:
+  activarInvitacion:
+    platform: gcfv1
+    callableTrigger: {}
+    entryPoint: activarInvitacion
+    region:
+    - us-central1
+  crearPago:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: crearPago
+    region:
+    - us-central1
+  mpWebhook:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: mpWebhook
+    region:
+    - us-central1
+  crearPagoPaypal:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: crearPagoPaypal
+    region:
+    - us-central1
+  exitoPaypal:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: exitoPaypal
+    region:
+    - us-central1
+  crearPagoLibro:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: crearPagoLibro
+    region:
+    - us-central1
+  guardarPedido:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: guardarPedido
+    region:
+    - us-central1
+  verificarPagoMP:
+    platform: gcfv1
+    httpsTrigger: {}
+    entryPoint: verificarPagoMP
+    region:
+    - us-central1
+specVersion: v1alpha1
+requiredAPIs: []

@@ -1,0 +1,844 @@
+/* --- CONFIGURACIÓN GENERAL Y VARIABLES --- */
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #249b95;
+    --secondary-color: #f0c516;
+    --dark-color: #242c3f;
+    --light-color: #cccac3;
+    --consultas-color: #9C89B8;
+    --contenido-color: #E14D7B;
+    --text-light: #f4f4f4;
+    --text-dark: #333;
+}
+
+@font-face { font-family: 'Segoe'; src: url('fonts/segoeui.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Segoe'; src: url('fonts/segoeuib.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Segoe'; src: url('fonts/segoeuii.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lemon Milk'; src: url('fonts/LEMONMILK-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lemon Milk'; src: url('fonts/LEMONMILK-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lemon Milk'; src: url('fonts/LEMONMILK-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+
+/* --- NUEVA ESTRUCTURA PARALLAX --- */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background-color: #FAFAFA; /* Fondo gris claro general */
+}
+
+/* --- AÑADIR ESTAS REGLAS --- */
+
+/* El contenedor del fondo fijo */
+#fixed-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: -1; /* Lo envía detrás de todo */
+    background-image: url('../img/imagen-fondo.jpg'); /* Tu imagen de fondo principal */
+    background-size: cover;
+    background-position: center center;
+    will-change: transform; /* Le avisa al navegador que lo vamos a animar */
+}
+
+/* El envoltorio de todo el contenido que se desplaza */
+#content-wrapper {
+    position: relative;
+    z-index: 1; /* Se asegura que esté por encima del fondo */
+    background-color: #FAFAFA; /* El color de fondo de tu sitio que tapa la imagen */
+    overflow: hidden; /* Buena práctica para contener márgenes */
+}
+
+.content-wrapper {
+    position: relative;
+    z-index: 2; /* El contenido siempre por delante */
+}
+
+/* --- SECCIÓN "CALADA" O HUECO --- */
+.parallax-divider {
+    padding: 120px 20px;
+    text-align: center;
+    background-color: transparent; /* <-- Clave para ver el fondo principal */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* --- LA MAGIA PARA ROMPER EL CONTENEDOR --- */
+    width: 100vw; /* Ancho = 100% del ancho de la ventana (viewport) */
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw; /* Tira el borde izquierdo hasta el borde de la pantalla */
+    margin-right: -50vw;/* Tira el borde derecho hasta el borde de la pantalla */
+}
+.parallax-astronautas {
+    background-image: url('../img/astronautas.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* Esto sí funciona bien para fondos secundarios */
+}
+
+/* Modifica la regla existente de .parallax-title */
+.parallax-title {
+    font-family: 'Lemon Milk', sans-serif;
+    color: white;
+    font-size: 3.5em;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+
+    /* --- NUEVAS REGLAS para el título --- */
+    max-width: 900px; /* Ajusta este valor al ancho que quieras para el texto, ej. 900px, 800px */
+    margin: 0 auto; /* Centra el título horizontalmente dentro del espacio disponible */
+    box-sizing: border-box; /* Asegura que cualquier padding futuro no agregue ancho extra */
+
+    /* Importante: Elimina cualquier padding lateral que hayas agregado directamente aquí en la última sugerencia,
+        ya que el parallax-divider ya tiene padding. */
+    /* Por ejemplo, si tenías 'padding: 0 20px;', quítalo de aquí */
+}
+
+/* --- OPCIÓN 1: SUTIL Y ELEGANTE --- */
+/* --- OPCIÓN 2: MODERNO Y SUAVE --- */
+/* --- OPCIÓN 3: CREATIVO Y VISUAL --- */
+.fade-in-element {
+    opacity: 0.5;
+    filter: blur(2px); /* Empieza desenfocado */
+    transform: scale(1.03); /* Un leve efecto de zoom hacia atrás */
+    transition: all 0.9s ease-out;
+}
+.fade-in-element.is-visible {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+}
+
+.centered-button-container {
+    text-align: center;
+}
+
+/* --- ESTILOS DE BASE --- */
+body {
+    font-family: 'Segoe', sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+.main-header {
+    padding: 2rem 1rem;
+    text-align: center;
+}
+.main-header h1 {
+    font-family: 'Lemon Milk', sans-serif;
+    font-weight: 500;
+    color: var(--dark-color);
+    font-size: 2.5em;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+}
+h2 {
+    font-family: 'Lemon Milk', sans-serif;
+    font-weight: 400;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 2em;
+}
+h3, h4, h5, h6 {
+    font-family: 'Lemon Milk', sans-serif;
+    font-weight: 300;
+}
+p {
+    text-align: justify;
+    text-align-last: left;
+}
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* --- BLOQUES DE NAVEGACIÓN INICIALES --- */
+.main-sections {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 60px;
+}
+.section-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    background-color: #FAFAFA;
+    color: var(--dark-color);
+    border: none;
+    transition: transform 0.3s ease;
+}
+.section-block:hover{transform:translateY(-5px);text-decoration:none}.section-block .icon{font-size:2.2em;margin-bottom:10px}.section-block h3{font-family:'Lemon Milk',sans-serif;font-weight:300;color:var(--dark-color);margin:0;font-size:1.1em}.block-formaciones .icon{color:var(--primary-color)}.block-contenido .icon{color:var(--contenido-color)}.block-consultas .icon{color:var(--consultas-color)}.block-quienes-somos .icon{color:var(--secondary-color)}.layout-wrapper{display:flex;gap:40px;align-items:center;position:relative;z-index:2}.layout-wrapper.layout-media-right{flex-direction:row-reverse}.media-column,.text-column{flex:1;min-width:0}.static-image{width:auto;max-width:80%;max-height:50vh;display:block;margin:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);transition:transform .3s ease,box-shadow .3s ease}.static-image:hover{transform:scale(1.03);box-shadow:0 8px 20px rgba(0,0,0,.15)}
+.layout-wrapper-special{display:grid;grid-template-columns:repeat(2,1fr);gap:30px;text-align:center}.special-column{display:flex;flex-direction:column;align-items:center;justify-content:center}.btn-content-inline,.btn-whatsapp{display:inline-block;padding:10px 20px;border-radius:5px;text-decoration:none;font-weight:600;margin-top:15px;color:var(--text-light)}.btn-content-inline{background-color:var(--contenido-color)}.btn-whatsapp{background-color:#25d366}.section-formaciones h2,.section-formaciones h3,.section-formaciones h4{color:var(--primary-color)}.section-consultas h2,.section-consultas h3,.section-consultas h4{color:var(--consultas-color)}.section-contenido h2,.section-contenido h3{color:var(--contenido-color)}.section-quienes-somos h2,.section-quienes-somos h3,.section-quienes-somos h4{color:var(--secondary-color)}
+.carousel-container {
+ position: absolute; /* ¡Cambio clave: ahora se posiciona absolutamente! */
+    top: 55%;           /* Mueve el borde superior al 50% de la altura del padre */
+    left: 20%;          /* Mueve el borde izquierdo al 50% del ancho del padre */
+    transform: translate(-50%, -50%); /* ¡La magia! Lo mueve hacia atrás la mitad de su propio ancho y alto, centrándolo. */
+
+    width: 100%;        /* Ocupa el 100% del ancho del padre */
+    max-width: 350px;   /* **IMPORTANTE:** Definí un ancho máximo para el carrusel para que no sea enorme */
+    
+    /* Eliminamos estas alturas fijas/mínimas, ya que el 'transform' y el 'aspect-ratio' lo manejarán: */
+    /* height: 100%; */
+    /* min-height: 550px; */
+
+    overflow: hidden;
+    border-radius: 2px;
+    /* margin: auto; Ya no es necesario con position absolute y transform */
+
+    aspect-ratio: 4 / 5; /* Esto es genial para mantener la proporción. Ajusta si tus imágenes son diferentes. */
+
+    
+}
+.carousel-track{display:flex;height:100%;transition:transform .5s ease-in-out}.carousel-item{flex-shrink:0;width:100%;height:100%}.carousel-item img{width:100%;height:100%;object-fit:cover}.carousel-button{position:absolute;top:50%;transform:translateY(-50%);background-color:rgba(0,0,0,.5);color:#fff;border:none;cursor:pointer;z-index:10;border-radius:50%;width:45px;height:45px;display:flex;justify-content:center;align-items:center;transition:background-color .3s}.carousel-button:hover{background-color:rgba(0,0,0,.8)}.carousel-button.prev{left:10px}.carousel-button.next{right:10px}.hamburger-menu{position:fixed;top:20px;right:20px;z-index:1000}.menu-toggle{display:none}.menu-button{display:flex;flex-direction:column;justify-content:space-around;width:30px;height:25px;cursor:pointer}.menu-button .bar{width:100%;height:3px;background-color:var(--dark-color);border-radius:2px;transition:all .3s ease}.menu-toggle:checked+.menu-button .bar:nth-child(1){transform:translateY(11px) rotate(45deg)}.menu-toggle:checked+.menu-button .bar:nth-child(2){opacity:0}.menu-toggle:checked+.menu-button .bar:nth-child(3){transform:translateY(-11px) rotate(-45deg)}.menu-list{list-style:none;padding:0;margin:0;position:absolute;top:40px;right:0;background-color:rgba(36,44,63,.95);border-radius:5px;box-shadow:0 5px 15px rgba(0,0,0,.2);width:200px;transform:scaleY(0);transform-origin:top;transition:transform .3s ease-out;opacity:0;pointer-events:none}.menu-toggle:checked~.menu-list{transform:scaleY(1);opacity:1;pointer-events:auto}.menu-list li{padding:10px 20px;border-bottom:1px solid hsla(0,0%,100%,.1)}.menu-list li:last-child{border-bottom:none}.menu-list li a{color:var(--text-light);font-family:'Lemon Milk',sans-serif;font-weight:400;transition:color .2s ease}.menu-list li a:hover{color:var(--secondary-color);text-decoration:none}iframe{max-width:100%;border-radius:8px;border:1px solid #eee}.main-footer{background-color:var(--dark-color);color:var(--primary-color);padding:30px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:15px}.main-footer a{color:var(--primary-color);transition:opacity .3s}.main-footer a:hover{opacity:.8}.social-links{margin:15px 0}.social-links a{margin:0 10px;font-size:1.5em}
+
+/* --- ESTRUCTURA DE SECCIONES (2 COLUMNAS) --- */
+.section-container {
+    max-width: 80%; /* <-- AÑADE ESTO. Hace la caja más angosta. Prueba 90% o 85% */
+    margin-left: auto;   /* <-- AÑADE ESTO. Centra la caja horizontalmente. */
+    margin-right: auto;  /* <-- AÑADE ESTO. Centra la caja horizontalmente. */
+    padding: 80px;
+    margin-bottom: 50px;
+    position: relative;
+    background-color: #FAFAFA; /* Fondo sólido para tapar la capa parallax */
+    border-radius: 8px;
+}
+
+/* --- ESTILOS RESPONSIVOS (PARA PANTALLAS PEQUEÑAS - HASTA 768px) --- */
+/* --- INICIO DE ESTILOS RESPONSIVOS --- */
+/* --- INICIO DE ESTILOS RESPONSIVOS CORREGIDOS --- */
+@media (max-width: 768px) {
+    /* --- 1. AJUSTES GENERALES PARA MÓVIL --- */
+    main {
+        padding: 20px 15px; /* Menos padding lateral en móvil */
+    }
+
+    .main-header h1 {
+        font-size: 1.8em;
+    }
+
+    .main-sections {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+
+    }
+
+    .house-button {
+        padding: 10px 5px;
+        font-size: 0.9em;
+    }
+
+    /* --- 2. SOLUCIÓN AL ANCHO EXCESIVO --- */
+    .section-container {
+        /* Hacemos que la caja ocupe casi todo el ancho, eliminando el 70% del escritorio */
+        max-width: 100%; 
+        width: 100%;
+        padding: 20px 15px; /* Reducimos el padding para móvil */
+    }
+    /* --- 4. SOLUCIÓN A LA ALTURA DE LA CAJA DE TEXTO (VERSIÓN REFORZADA) --- */
+.section-container .text-column .subsection {
+    max-height: 45vh; /* Límite de altura (30% de la pantalla del móvil) */
+    overflow-y: auto; /* Permite el scroll si el contenido se pasa */
+    position: relative; /* Mantenemos esto por el ícono de scroll */
+}
+
+    /* --- 3. SOLUCIÓN AL PARALLAX EN MÓVIL --- */
+    .parallax-divider {
+        /* Desactivamos el parallax de CSS que da problemas en móvil */
+        background-attachment: scroll !important; 
+        background-size: cover;
+        padding: 80px 20px;
+        min-height: 40vh;
+    }
+
+    /* Hacemos que el fondo principal fijo se oculte en móvil para mejor rendimiento
+       y para evitar conflictos visuales. */
+    #fixed-background {
+        display: none;
+    }
+    
+    /* Le devolvemos el color de fondo al wrapper para que no sea transparente */
+    #content-wrapper {
+        background-color: #FAFAFA;
+    }
+
+    /* --- 4. SOLUCIÓN A LA ALTURA DE LA CAJA DE TEXTO --- */
+    .subsection {
+        /* Tu regla era correcta, la mantenemos. Limita la altura y permite scroll interno. */
+        max-height: 30vh; /* Puedes ajustar este valor (ej. 30vh, 50vh) */
+        overflow-y: auto;
+        position: relative; 
+    }
+
+    /* --- 5. AJUSTES DE LAYOUT PARA APILAR ELEMENTOS --- */
+    .layout-wrapper {
+        flex-direction: column !important; /* Apila imagen y texto */
+        gap: 20px;
+    }
+
+    .media-column {
+        order: 1; /* Imagen primero */
+        width: 100%; /* Ocupa todo el ancho */
+        max-width: 80%; /* Hacemos la imagen un poco más pequeña que el contenedor */
+        margin: 0 auto; /* La centramos */
+    }
+
+    .text-column {
+        order: 2; /* Texto después */
+        width: 100%;
+        
+    }
+
+    .static-image {
+        width: 100%;
+        height: auto;
+    }
+
+    .layout-wrapper-special {
+        grid-template-columns: 1fr; /* Apila los widgets de Spotify/Youtube */
+    }
+
+    .parallax-title {
+        font-size: 2.5em; /* Título más pequeño en móvil */
+   
+}
+/* --- AJUSTE PARA EL CARRUSEL EN MÓVIL --- */
+.carousel-container {
+        position: relative; /* ¡Esto lo vuelve a posicionar de forma relativa! */
+        top: auto;          /* Anula el 'top: 50%' del escritorio */
+        left: auto;         /* Anula el 'left: 50%' del escritorio */
+        transform: none;    /* Anula el 'transform: translate(-50%, -50%)' del escritorio */
+
+        width: 100%;        /* Asegura que ocupe el ancho de su columna */
+        min-height: auto;   /* Anula la altura mínima de 550px */
+        height: auto;       /* Permite que la altura se ajuste al contenido */
+        aspect-ratio: 4 / 5; /* Esto está ok, mantiene una forma más vertical para móviles */
+}
+
+.carousel-item, .carousel-item img {
+    height: 100%; /* Asegura que tanto el item como la imagen llenen el nuevo contenedor */
+    object-fit: cover; /* Mantiene la proporción de la imagen sin deformarla */
+}
+}
+/* --- FIN DE ESTILOS RESPONSIVOS CORREGIDOS --- */
+
+
+
+/* --- SECCIÓN PARALLAX "VENTANA" --- */
+/* --- ESTILO GLOBAL PARA TODAS LAS SECCIONES PARALLAX --- */
+
+.parallax-divider {
+    /* Ajustamos el padding y la altura para que se adapte al contenido */
+    padding: 60px 20px;
+    height: auto;
+
+    /* Propiedades del efecto parallax y fondo */
+    background-color: transparent;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    /* Usamos Flexbox para centrar y apilar el contenido verticalmente */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Le damos un espacio entre el título y el contenido que le sigue */
+.parallax-divider .parallax-title {
+    margin-bottom: 20px;
+}
+
+.parallax-title {
+    font-family: 'Lemon Milk', sans-serif;
+    color: white;
+    font-size: 3.5em;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+}
+.parallax-fondo-default {
+    background-image: url('../img/imagen-fondo.jpg');
+}
+/* --- ESTILO ESPECÍFICO PARA LOS BOTONES DE CASA --- */
+.house-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 10px;
+    border-radius: 8px;
+    text-align: center;
+
+    /* Cambios clave: Fondo blanco y texto oscuro */
+    background-color: #ffffff; /* Fondo blanco puro */
+    color: #249b95; /* Texto oscuro para contraste */
+    text-decoration: none;
+
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    /* Sombreado para el "reborde" - Muy sutil */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), /* Sombra suave y pequeña debajo */
+                0 0 0 1px rgba(0, 0, 0, 0.05); /* Reborde muy fino y casi transparente */
+                /* Puedes ajustar el '0.05' para que sea más o menos visible */
+
+    font-family: 'Lemon Milk', sans-serif;
+    font-weight: 300;
+    font-size: 1.1em;
+}
+
+/* Estilos al pasar el ratón (hover) */
+.house-button:hover {
+    transform: translateY(-3px); /* Se eleva un poco al pasar el ratón */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), /* Sombra un poco más pronunciada al pasar el ratón */
+                0 0 0 2px rgba(0, 0, 0, 0.1); /* Reborde un poco más visible al pasar el ratón */
+    background-color: var(--light-color); /* Opcional: Un ligero cambio de color al blanco más claro */
+    color: #249b95; /* Mantiene el color del texto oscuro */
+}
+
+/* Asegurarse que el h3 dentro del botón también herede los colores */
+.house-button h3 {
+    color: #249b95;
+    margin: 0;
+    font-size: 1em;
+}
+
+/* Si tenías estilos de icono para .section-block .icon, asegúrate de que sean oscuros
+    o ajusta si quieres que sobresalgan con un color diferente */
+.house-button .icon { /* Si usas íconos en estos botones, asegúrate de su color */
+    color: var(--dark-color); /* Opcional: Si quieres un color específico para el ícono */
+}
+
+/* --- ESTILOS RESPONSIVOS PARA BOTONES DE CASA (dentro de @media (max-width: 768px)) --- */
+@media (max-width: 768px) {
+    .main-sections {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .house-button {
+        padding: 10px 5px;
+        font-size: 0.9em;
+    }
+}
+/* --- Estilos específicos para el botón "Leer texto completo" en Luna Llena --- */
+.btn-full-text {
+    /* Esto sobreescribe el 'display: inline-block' de .btn-content-inline solo para este botón */
+    display: block;
+    /* Centra el botón al darle un ancho automático y márgenes automáticos */
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    /* Si quieres que tenga el margen superior que ya tenía, puedes poner: */
+    /* margin-top: 15px; */
+}
+/* --- ESTILO ESPECÍFICO PARA LAS SECCIONES DE TEXTO DE LAS CASAS (NUEVO) --- */
+.narrow-text-section {
+    /* Define el ancho máximo para la caja de texto */
+    max-width: 600px; /* Puedes ajustar este valor: 700px, 900px, etc. */
+    margin-left: auto; /* Centra la caja horizontalmente */
+    margin-right: auto; /* Centra la caja horizontalmente */
+
+    /* Aseguramos que el padding interno se mantenga, o ajustamos si es necesario */
+    padding: 40px 20px; /* Mantén el padding original de .section-container o ajusta */
+}
+
+/* Color de texto para los párrafos dentro de estas secciones */
+.narrow-text-section p {
+    color: #000000; /* Negro puro. Puedes usar 'var(--dark-color)' si prefieres tu gris azulado muy oscuro. */
+    text-align: justify; /* Asegura que el texto no se justifique dentro de la caja estrecha */
+    text-align-last: left; /* Asegura que la última línea también se alinee a la izquierda */
+}
+
+
+/*
+================================================================================
+* INICIO DE LA MODIFICACIÓN DE BOTONES DE SECCIÓN (Versión Final) *
+================================================================================
+*/
+
+/* 1. ESTILOS BASE PARA TODOS LOS BOTONES USANDO UN SELECTOR MÁS ESPECÍFICO */
+a.section-block {
+    background-color: transparent;
+    padding: 45px 30px;
+    transition: transform 0.2s ease-in-out;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+
+a.section-block .icon {
+    display: none;
+}
+
+a.section-block h3 {
+    font-size: 1.2em;
+    position: relative;
+    z-index: 2;
+    transition: color 0.2s ease-in-out;
+}
+
+a.section-block:hover {
+    transform: scale(1.05);
+}
+
+
+/* 2. ASIGNACIÓN DE IMAGEN A CADA BOTÓN CON LA RUTA CONFIRMADA */
+
+a.block-formaciones {
+    /* Reemplazamos el .webp por el código SVG directamente */
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g opacity=".42"><g><path d="M35.363,173.285c-.134,0-.245-.106-.25-.241l-1.144-31.066c-.005-.138.103-.254.241-.259.134.016.254.103.259.241l1.144,31.066c.005.138-.103.254-.241.259h-.009Z" stroke="%23249b95" stroke-width="2"/><line x1="34.22" y1="141.968" x2="35.363" y2="173.035" stroke="%23249b95" stroke-width="2"/><path d="M34.22,141.075c-.034,0-.067-.007-.101-.021-.126-.056-.184-.203-.128-.33l36.4-82.913c.056-.127.202-.183.329-.128.126.056.184.203.128.33l-36.4,82.913c-.041.094-.133.149-.229.149Z" stroke="%23249b95" stroke-width="2"/><line x1="34.22" y1="140.825" x2="70.62" y2="57.912" stroke="%23249b95" stroke-width="2"/><path d="M136.117,93.245c-.04,0-.08-.009-.118-.03l-65.497-35.083c-.122-.065-.167-.216-.103-.338.065-.122.216-.169.339-.102l65.497,35.083c.122.065.167.216.103.338-.045.084-.132.132-.221.132Z" stroke="%23249b95" stroke-width="2"/><line x1="70.62" y1="57.912" x2="136.117" y2="92.995" stroke="%23249b95" stroke-width="2"/><path d="M136.117,92.826c-.012,0-.024,0-.037-.003-.136-.02-.23-.147-.21-.284l5.148-34.664c.02-.136.136-.232.284-.21.136.02.23.147.21.284l-5.148,34.664c-.019.124-.125.213-.247.213Z" stroke="%23249b95" stroke-width="2"/><line x1="141.266" y1="57.912" x2="136.117" y2="92.576" stroke="%23249b95" stroke-width="2"/><path d="M167.112,62.34c-.013,0-.026,0-.04-.003l-25.847-4.178c-.136-.022-.229-.15-.207-.287.022-.136.146-.229.287-.207l25.847,4.178c.136.022.229.15.207.287-.021.123-.126.21-.247.21Z" stroke="%23249b95" stroke-width="2"/><line x1="141.266" y1="57.912" x2="167.112" y2="62.09" stroke="%23249b95" stroke-width="2"/><path d="M136.117,93.245c-.064,0-.128-.024-.177-.073-.098-.098-.098-.256,0-.354l30.995-30.905c.099-.097.257-.097.354,0,.098.098.098.256,0,.354l-30.995,30.905c-.049.048-.113.073-.177.073Z" stroke="%23249b95" stroke-width="2"/><line x1="167.112" y1="62.09" x2="136.117" y2="92.995" stroke="%23249b95" stroke-width="2"/><path d="M141.266,58.162c-.103,0-.199-.064-.235-.167l-11.375-32.09c-.047-.13.021-.273.151-.319.135-.049.273.022.319.152l11.375,32.09c.047.13-.021.273-.151.319-.028.01-.057.014-.084.014Z" stroke="%23249b95" stroke-width="2"/><line x1="129.891" y1="25.822" x2="141.266" y2="57.912" stroke="%23249b95" stroke-width="2"/><path d="M98.879,37.926c-.101,0-.195-.061-.233-.161-.05-.129.016-.273.145-.323l31.012-11.854c.129-.052.272.016.322.144.05.129-.016.273-.145.323l-31.012,11.854c-.029.011-.06.017-.089.017Z" stroke="%23249b95" stroke-width="2"/><line x1="98.879" y1="37.676" x2="129.891" y2="25.822" stroke="%23249b95" stroke-width="2"/><path d="M98.879,37.926c-.025,0-.051-.004-.076-.012l-16.554-5.269c-.131-.042-.204-.183-.162-.314.042-.132.181-.204.314-.163l16.554,5.269c.131.042.204.183.162.314-.034.106-.132.174-.238.174Z" stroke="%23249b95" stroke-width="2"/><line x1="82.325" y1="32.408" x2="98.879" y2="37.676" stroke="%23249b95" stroke-width="2"/><path d="M62.718,42.955c-.09,0-.177-.049-.222-.134-.063-.122-.017-.273.105-.337l19.607-10.297c.123-.065.273-.017.338.105.063.122.017.273-.105.337l-19.607,10.297c-.037.02-.077.029-.116.029Z" stroke="%23249b95" stroke-width="2"/><line x1="62.718" y1="42.705" x2="82.325" y2="32.408" stroke="%23249b95" stroke-width="2"/><path d="M70.62,58.162c-.09,0-.178-.049-.222-.135l-7.902-15.207c-.063-.123-.017-.273.106-.337.122-.064.273-.017.337.106l7.902,15.207c.063.123.017.273-.106.337-.037.02-.076.028-.115.028Z" stroke="%23249b95" stroke-width="2"/><line x1="62.718" y1="42.705" x2="70.62" y2="57.912" stroke="%23249b95" stroke-width="2"/><path d="M70.62,58.162c-.078,0-.154-.036-.203-.104-.08-.112-.055-.269.058-.349l28.259-20.236c.111-.081.268-.055.349.058.08.112.055.269-.058.349l-28.259,20.236c-.044.032-.095.047-.146.047Z" stroke="%23249b95" stroke-width="2"/><line x1="70.62" y1="57.912" x2="98.879" y2="37.676" stroke="%23249b95" stroke-width="2"/></g></g></svg>');
+}
+a.block-formaciones:hover h3 {
+    color: var(--primary-color);
+}
+
+a.block-contenido {
+    /* Reemplazamos el .webp por el código SVG directamente */
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g opacity=".42"><g><path d="M90.054,45.888c-.042,0-.084-.01-.123-.032l-38.467-21.773c-.12-.068-.163-.221-.095-.341.069-.122.221-.163.341-.095l38.467,21.773c.12.068.163.221.095.341-.046.082-.131.127-.218.127Z" stroke="%23e14d7b" stroke-width="2"/><line x1="51.587" y1="23.865" x2="90.054" y2="45.638" stroke="%23e14d7b" stroke-width="2"/><path d="M121.099,196.187c-.047,0-.094-.013-.136-.04l-60.997-39.34c-.116-.075-.15-.229-.075-.346.075-.116.231-.149.345-.074l60.998,39.34c.116.075.15.229.075.346-.048.074-.128.114-.21.114Z" stroke="%23e14d7b" stroke-width="2"/><line x1="60.101" y1="156.597" x2="121.099" y2="195.937" stroke="%23e14d7b" stroke-width="2"/><path d="M133.499,92.754c-.067,0-.134-.027-.183-.08l-43.445-46.866c-.094-.101-.088-.259.013-.353.1-.094.26-.088.353.013l43.445,46.866c.094.101.088.259-.013.353-.048.045-.109.067-.17.067Z" stroke="%23e14d7b" stroke-width="2"/><line x1="90.054" y1="45.638" x2="133.499" y2="92.504" stroke="%23e14d7b" stroke-width="2"/><path d="M60.102,155.448c-.007,0-.013,0-.02,0-.138-.011-.241-.131-.229-.269l3.569-45.585c.011-.138.135-.243.269-.229.138.011.241.131.229.269l-3.569,45.585c-.01.131-.12.23-.249.23Z" stroke="%23e14d7b" stroke-width="2"/><line x1="63.67" y1="109.612" x2="60.101" y2="155.198" stroke="%23e14d7b" stroke-width="2"/><path d="M92.477,126.683c-.042,0-.085-.011-.124-.033l-28.807-16.476c-.12-.068-.162-.221-.093-.341.068-.121.221-.162.341-.093l28.807,16.476c.12.068.162.221.093.341-.046.081-.13.126-.217.126Z" stroke="%23e14d7b" stroke-width="2"/><line x1="63.67" y1="109.957" x2="92.476" y2="126.433" stroke="%23e14d7b" stroke-width="2"/><path d="M158.063,137.355c-.087,0-.173-.046-.219-.128l-24.564-44.223c-.067-.121-.023-.273.097-.34.12-.065.273-.024.34.097l24.564,44.223c.067.121.023.273-.097.34-.039.021-.08.031-.122.031Z" stroke="%23e14d7b" stroke-width="2"/><line x1="133.499" y1="92.883" x2="158.063" y2="137.105" stroke="%23e14d7b" stroke-width="2"/><path d="M184.611,118.042c-.007,0-.014,0-.021,0l-13.909-1.135c-.137-.011-.24-.132-.229-.27.011-.137.128-.235.27-.229l13.909,1.135c.137.011.24.132.229.27-.011.13-.12.229-.249.229Z" stroke="%23e14d7b" stroke-width="2"/><line x1="170.701" y1="116.657" x2="184.611" y2="117.792" stroke="%23e14d7b" stroke-width="2"/><path d="M168.825,116.643c-.048,0-.096-.014-.139-.042l-35.326-23.51c-.115-.076-.146-.231-.069-.347s.231-.146.347-.069l35.326,23.51c.115.076.146.231.069.347-.048.072-.127.111-.208.111Z" stroke="%23e14d7b" stroke-width="2"/><line x1="133.499" y1="92.883" x2="168.825" y2="116.393" stroke="%23e14d7b" stroke-width="2"/><path d="M139.441,166.959c-.058,0-.116-.02-.163-.06l-46.964-40.276c-.105-.09-.117-.248-.027-.353.091-.104.249-.116.353-.027l46.964,40.276c.105.09.117.248.027.353-.05.058-.12.087-.19.087Z" stroke="%23e14d7b" stroke-width="2"/><line x1="92.476" y1="126.433" x2="139.441" y2="166.709" stroke="%23e14d7b" stroke-width="2"/><path d="M63.67,109.862c-.093,0-.182-.052-.225-.141l-21.584-44.451c-.06-.125-.008-.274.116-.334.125-.06.274-.008.334.116l21.584,44.451c.06.125.008.274-.116.334-.035.017-.073.025-.109.025Z" stroke="%23e14d7b" stroke-width="2"/><line x1="42.086" y1="65.161" x2="63.67" y2="109.612" stroke="%23e14d7b" stroke-width="2"/><path d="M23.871,80.707c-.071,0-.142-.03-.191-.089-.089-.105-.075-.263.031-.352l18.215-15.295c.105-.09.264-.076.352.031.089.105.075.263-.031.352l-18.215,15.295c-.047.04-.104.059-.161.059Z" stroke="%23e14d7b" stroke-width="2"/><line x1="42.086" y1="65.161" x2="23.871" y2="80.457" stroke="%23e14d7b" stroke-width="2"/><path d="M42.086,65.412c-.06,0-.12-.021-.167-.064l-14.786-13.327c-.103-.092-.111-.25-.018-.353.093-.102.25-.111.353-.018l14.786,13.327c.103.092.111.25.018.353-.049.055-.117.083-.186.083Z" stroke="%23e14d7b" stroke-width="2"/><line x1="27.3" y1="51.834" x2="42.086" y2="65.161" stroke="%23e14d7b" stroke-width="2"/><path d="M42.085,65.412c-.117,0-.222-.083-.245-.202-.026-.135.062-.267.198-.293l18.015-3.515c.135-.025.267.062.293.198s-.062.267-.198.293l-18.015,3.515c-.016.003-.032.004-.048.004Z" stroke="%23e14d7b" stroke-width="2"/><line x1="42.086" y1="65.161" x2="60.101" y2="61.647" stroke="%23e14d7b" stroke-width="2"/><path d="M61.232,61.079c-.089,0-.176-.048-.221-.133-.064-.122-.018-.273.104-.338l28.821-15.191c.12-.064.273-.018.338.104.064.122.018.273-.104.338l-28.821,15.191c-.037.02-.077.029-.117.029Z" stroke="%23e14d7b" stroke-width="2"/><line x1="61.232" y1="60.829" x2="90.054" y2="45.638" stroke="%23e14d7b" stroke-width="2"/><path d="M90.054,45.888c-.075,0-.149-.034-.198-.097-.084-.109-.064-.267.045-.351l34.737-26.772c.11-.084.266-.063.351.045.084.109.064.267-.045.351l-34.737,26.772c-.046.035-.1.052-.153.052Z" stroke="%23e14d7b" stroke-width="2"/><line x1="124.791" y1="18.865" x2="90.054" y2="45.638" stroke="%23e14d7b" stroke-width="2"/></g></g></svg>');
+}
+a.block-contenido:hover h3 {
+    color: var(--contenido-color);
+}
+
+a.block-consultas {
+    /* Reemplazamos el .webp por el código SVG directamente */
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g opacity=".42"><g><path d="M55.977,160.728c-.12,0-.227-.087-.247-.21l-4.436-27.043c-.022-.136.07-.265.207-.287.141-.024.264.071.287.207l4.436,27.043c.022.136-.07.265-.207.287-.014.002-.027.003-.04.003Z" stroke="%239c89b8" stroke-width="2"/><line x1="55.977" y1="160.478" x2="51.541" y2="133.435" stroke="%239c89b8" stroke-width="2"/><path d="M50.899,134.213c-.116,0-.22-.081-.244-.198l-4.943-23.358c-.029-.135.058-.268.192-.296.143-.032.269.059.296.192l4.943,23.358c.029.135-.058.268-.192.296-.018.004-.035.006-.052.006Z" stroke="%239c89b8" stroke-width="2"/><line x1="50.9" y1="133.963" x2="45.956" y2="110.605" stroke="%239c89b8" stroke-width="2"/><path d="M45.791,110.653c-.119,0-.225-.085-.246-.206l-4.017-22.756c-.024-.136.066-.266.202-.289.149-.029.266.066.29.203l4.017,22.754c.024.137-.066.267-.202.29-.016.003-.03.004-.044.004Z" stroke="%239c89b8" stroke-width="2"/><line x1="45.791" y1="110.404" x2="41.775" y2="87.648" stroke="%239c89b8" stroke-width="2"/><path d="M55.977,160.728c-.042,0-.084-.011-.123-.032-.12-.067-.162-.22-.095-.341l11.117-19.757c.068-.121.22-.161.341-.095.12.067.162.22.095.341l-11.117,19.757c-.046.081-.131.127-.218.127Z" stroke="%239c89b8" stroke-width="2"/><line x1="55.977" y1="160.478" x2="67.094" y2="140.72" stroke="%239c89b8" stroke-width="2"/><path d="M67.094,140.971c-.043,0-.087-.011-.126-.034-.119-.069-.159-.223-.09-.342l14.182-24.264c.07-.121.224-.161.342-.09.119.069.159.223.09.342l-14.182,24.264c-.047.08-.13.124-.216.124Z" stroke="%239c89b8" stroke-width="2"/><line x1="67.094" y1="140.72" x2="81.276" y2="116.457" stroke="%239c89b8" stroke-width="2"/><path d="M81.275,116.707c-.083,0-.165-.042-.212-.117-.073-.117-.038-.271.079-.345l11.138-6.96c.119-.075.272-.036.345.08.073.117.038.271-.081.344l-11.138,6.96c-.042.026-.087.038-.132.038Z" stroke="%239c89b8" stroke-width="2"/><line x1="81.276" y1="116.457" x2="92.413" y2="109.497" stroke="%239c89b8" stroke-width="2"/><path d="M92.413,109.747c-.075,0-.149-.034-.199-.099-.083-.11-.062-.267.048-.351l39.389-29.927c.109-.083.266-.062.351.048.083.11.062.267-.048.351l-39.389,29.927c-.045.034-.099.051-.151.051Z" stroke="%239c89b8" stroke-width="2"/><line x1="92.413" y1="109.497" x2="131.802" y2="79.57" stroke="%239c89b8" stroke-width="2"/><path d="M131.802,79.82c-.093,0-.183-.053-.226-.142-.06-.125-.007-.274.117-.334l15.286-7.328c.127-.06.274-.006.334.117.06.125.007.274-.117.334l-15.286,7.328c-.035.017-.072.024-.108.024Z" stroke="%239c89b8" stroke-width="2"/><line x1="131.802" y1="79.57" x2="147.088" y2="72.242" stroke="%239c89b8" stroke-width="2"/><path d="M147.088,72.492c-.022,0-.046-.003-.069-.01-.133-.038-.209-.177-.171-.31l3.774-13.144c.037-.132.173-.212.31-.171.133.038.209.177.171.31l-3.774,13.144c-.031.109-.132.181-.24.181Z" stroke="%239c89b8" stroke-width="2"/><line x1="147.088" y1="72.242" x2="150.862" y2="59.098" stroke="%239c89b8" stroke-width="2"/><path d="M160.898,84.613c-.058,0-.116-.02-.163-.061l-13.287-11.486c-.104-.091-.116-.248-.026-.353.091-.104.249-.117.353-.026l13.287,11.486c.104.091.116.248.026.353-.05.058-.119.087-.189.087Z" stroke="%239c89b8" stroke-width="2"/><line x1="147.611" y1="72.877" x2="160.898" y2="84.363" stroke="%239c89b8" stroke-width="2"/><path d="M160.898,84.613c-.086,0-.169-.044-.216-.124-.069-.119-.029-.271.09-.342l14.81-8.675c.116-.07.271-.031.342.09.069.119.029.271-.09.342l-14.81,8.675c-.039.023-.083.034-.126.034Z" stroke="%239c89b8" stroke-width="2"/><line x1="160.898" y1="84.363" x2="175.708" y2="75.688" stroke="%239c89b8" stroke-width="2"/><path d="M175.708,75.938c-.1,0-.194-.061-.232-.159l-7.248-18.522c-.051-.128.013-.273.142-.323.126-.05.273.013.323.142l7.248,18.522c.051.128-.013.273-.142.323-.029.012-.061.018-.091.018Z" stroke="%239c89b8" stroke-width="2"/><line x1="175.708" y1="75.688" x2="168.46" y2="57.166" stroke="%239c89b8" stroke-width="2"/><path d="M151.285,58.679c-.13,0-.239-.101-.249-.231-.011-.138.093-.258.23-.268l17.175-1.263c.15-.029.258.094.268.23.011.138-.093.258-.23.268l-17.175,1.263c-.007,0-.013,0-.019,0Z" stroke="%239c89b8" stroke-width="2"/><line x1="151.286" y1="58.429" x2="168.46" y2="57.166" stroke="%239c89b8" stroke-width="2"/><path d="M168.46,57.416c-.041,0-.083-.01-.121-.031-.121-.066-.164-.219-.098-.34l7.934-14.353c.067-.12.22-.165.34-.098.121.066.164.219.098.34l-7.934,14.353c-.046.082-.131.129-.219.129Z" stroke="%239c89b8" stroke-width="2"/><line x1="168.46" y1="57.166" x2="176.394" y2="42.813" stroke="%239c89b8" stroke-width="2"/></g></g></svg>');
+}
+a.block-consultas:hover h3 {
+    color: var(--consultas-color);
+}
+
+a.block-bios {
+    /* Reemplazamos el .webp por el código SVG directamente */
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g opacity=".42"><g><path d="M12.235,117.35c-.086,0-.171-.045-.217-.126-.069-.119-.027-.272.092-.341l27.446-15.739c.119-.068.272-.028.341.093.069.119.027.272-.092.341l-27.446,15.739c-.04.022-.082.033-.125.033Z" stroke="%23f0c516" stroke-width="2"/><line x1="12.235" y1="117.1" x2="39.681" y2="101.361" stroke="%23f0c516" stroke-width="2"/><path d="M39.682,102.432c-.084,0-.166-.042-.213-.118-.073-.117-.037-.271.081-.344l9.118-5.674c.119-.075.272-.036.345.08.073.117.037.271-.081.344l-9.118,5.674c-.042.026-.087.038-.132.038Z" stroke="%23f0c516" stroke-width="2"/><line x1="39.681" y1="102.181" x2="48.799" y2="96.508" stroke="%23f0c516" stroke-width="2"/><path d="M48.799,96.758c-.031,0-.062-.006-.093-.018-.128-.052-.19-.197-.139-.325l9.802-24.452c.051-.128.195-.188.325-.14.128.052.19.197.139.325l-9.802,24.452c-.039.098-.133.157-.232.157Z" stroke="%23f0c516" stroke-width="2"/><line x1="48.799" y1="96.508" x2="58.601" y2="72.056" stroke="%23f0c516" stroke-width="2"/><path d="M58.602,71.11c-.063,0-.127-.024-.176-.072l-17.279-17.097c-.098-.097-.099-.256-.002-.354.097-.099.255-.099.354-.002l17.279,17.097c.098.097.099.256.002.354-.049.05-.113.074-.178.074Z" stroke="%23f0c516" stroke-width="2"/><line x1="58.601" y1="70.86" x2="41.322" y2="53.764" stroke="%23f0c516" stroke-width="2"/><path d="M41.322,54.014c-.133,0-.243-.104-.25-.238-.007-.138.1-.255.237-.262l49.968-2.426c.161,0,.255.101.262.238s-.1.255-.237.262l-49.968,2.426h-.012Z" stroke="%23f0c516" stroke-width="2"/><line x1="41.322" y1="53.764" x2="91.29" y2="51.337" stroke="%23f0c516" stroke-width="2"/><path d="M98.206,56.44c-.05,0-.1-.015-.144-.045l-6.916-4.853c-.113-.08-.141-.235-.061-.349.08-.113.236-.14.348-.062l6.916,4.853c.113.08.141.235.061.349-.049.069-.126.106-.205.106Z" stroke="%23f0c516" stroke-width="2"/><line x1="91.29" y1="51.337" x2="98.205" y2="56.19" stroke="%23f0c516" stroke-width="2"/><path d="M100.632,64.227c-.106,0-.205-.068-.239-.176l-2.426-7.786c-.041-.132.033-.271.165-.312.132-.039.272.032.313.164l2.426,7.786c.041.132-.033.271-.165.312-.024.008-.05.012-.074.012Z" stroke="%23f0c516" stroke-width="2"/><line x1="98.205" y1="56.19" x2="100.632" y2="63.976" stroke="%23f0c516" stroke-width="2"/><path d="M118.28,69.879c-.025,0-.051-.004-.076-.012l-17.648-5.652c-.131-.042-.204-.183-.162-.314.042-.132.184-.202.314-.162l17.648,5.652c.131.042.204.183.162.314-.034.106-.132.174-.238.174Z" stroke="%23f0c516" stroke-width="2"/><line x1="100.632" y1="63.976" x2="118.28" y2="69.629" stroke="%23f0c516" stroke-width="2"/><path d="M92.567,91.079c-.072,0-.144-.031-.193-.091-.088-.106-.073-.265.034-.353l25.713-21.2c.106-.088.264-.072.352.034.088.106.073.265-.034.353l-25.713,21.2c-.047.038-.103.057-.159.057Z" stroke="%23f0c516" stroke-width="2"/><line x1="118.28" y1="69.629" x2="92.567" y2="90.829" stroke="%23f0c516" stroke-width="2"/><path d="M88.864,119.775c-.011,0-.021,0-.033-.002-.137-.018-.233-.144-.216-.28l3.703-28.696c.018-.137.138-.231.28-.216.137.018.233.144.216.28l-3.703,28.696c-.017.126-.124.218-.248.218Z" stroke="%23f0c516" stroke-width="2"/><line x1="92.567" y1="90.829" x2="88.864" y2="119.526" stroke="%23f0c516" stroke-width="2"/><path d="M139.434,108.723c-.088,0-.174-.047-.22-.131l-21.154-38.844c-.066-.121-.021-.272.1-.339.121-.065.273-.022.339.101l21.154,38.844c.066.121.021.272-.1.339-.038.021-.079.03-.12.03Z" stroke="%23f0c516" stroke-width="2"/><line x1="118.28" y1="69.629" x2="139.434" y2="108.473" stroke="%23f0c516" stroke-width="2"/><path d="M169.889,145.195c-.07,0-.141-.029-.19-.088l-31.139-36.473c-.09-.104-.078-.263.028-.353.105-.088.263-.078.352.028l31.139,36.473c.09.104.078-.263-.028.353-.047.04-.104.06-.162.06Z" stroke="%23f0c516" stroke-width="2"/><line x1="138.75" y1="108.473" x2="169.889" y2="144.946" stroke="%23f0c516" stroke-width="2"/><path d="M173.536,150.849c-.082,0-.162-.04-.21-.114l-3.647-5.653c-.075-.116-.042-.271.074-.346.117-.074.271-.042.346.074l3.647,5.653c.075.116.042.271-.074.346-.042.027-.089.04-.136.04Z" stroke="%23f0c516" stroke-width="2"/><line x1="169.889" y1="144.946" x2="173.536" y2="150.599" stroke="%23f0c516" stroke-width="2"/></g></g></svg>');
+}
+a.block-bios:hover h3 {
+    color: var(--secondary-color);
+}
+
+/*
+================================================================================
+* FIN DE LA MODIFICACIÓN DE BOTONES DE SECCIÓN *
+================================================================================
+*//* --- NUEVA SECCIÓN PARALLAX (PARA OTRA IMAGEN) --- */
+.parallax-divider-nueva-seccion {
+    background-image: url('img/tu-nueva-imagen.jpg'); /* ¡Aquí pones la ruta de tu nueva imagen! */
+    /* El resto de propiedades de fondo y tamaño se heredan de .parallax-divider */
+    /* si tienen el mismo valor, no necesitas repetirlas aquí. */
+    /* Pero si quieres un alto diferente, puedes sobrescribirlo: */
+    /* height: 250px;  En el html poné esto:  <div class="parallax-divider parallax-divider-nueva-seccion">
+             <h2 class="parallax-title">Tu Nuevo Título Aquí</h2>
+     </div>*/
+}
+.centered-button-container {
+    /* 1. Activa Flexbox para alinear los elementos internos */
+    display: flex;
+
+    /* 2. Los alinea en una misma fila */
+    flex-direction: row;
+
+    /* 3. Los centra horizontalmente como grupo */
+    justify-content: center;
+
+    /* 4. Asegura que pasen a la línea de abajo en pantallas pequeñas */
+    flex-wrap: wrap;
+
+    /* 5. Crea un espacio de separación entre los botones */
+    gap: 20px;
+}
+
+@keyframes brillo {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+
+}
+@keyframes flotar {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px); /* Sube 8px */
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+@keyframes respirar {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.04); /* Se agranda un 4% */
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+/* Aplicamos la animación a las imágenes cuando su contenedor es visible */
+.fade-in-element.is-visible .static-image {
+    animation: respirar 8s ease-in-out infinite;
+}
+.subsection {
+    overflow-y: auto;
+    max-height: 70vh;
+    padding: 15px;
+    background: transparent;
+    border-radius: 4px;
+    border: none;
+    /* --- INICIO DE CAMBIOS PARA SVG --- */
+    position: relative; /* ¡Esto es crucial para que el ::after se posicione correctamente! */
+    z-index: 1; /* Asegura que la subsection esté por encima si hay otros elementos */
+    /* --- FIN DE CAMBIOS PARA SVG --- */
+}
+/*
+============================================================
+* ESTILO FINAL: OCULTAR BARRAS DE SCROLL *
+============================================================
+*/
+
+/* --- Para Chrome, Safari, Edge --- */
+/* Oculta completamente el elemento de la barra de scroll */
+.subsection::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- Para Firefox --- */
+/* La forma estándar de ocultar la barra en Firefox */
+.subsection {
+    scrollbar-width: none;
+}
+.subsection::after {
+    content: '';
+    position: absolute;
+    bottom: 0px; /* Lo bajamos un poco más, casi al final */
+    left: 0%;
+    transform: translateZ(100%);
+
+    /* --- CAMBIOS CLAVE EN TAMAÑO --- */
+    width: 100%; /* Sigue ocupando el ancho completo del contenedor para centrado */
+    height: 80px; /* ¡Duplicamos la altura! De 40px a 80px */
+
+    /* Usamos tu SVG, pero sin rotación */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3e%3cpolyline points='44.034 153.2 100.702 177.17 154.404 153.638' fill='none' stroke='%23242c3f' stroke-miterlimit='10' stroke-width='4'/%3e%3c/svg%3e");
+
+    background-size: contain; /* Asegura que el SVG quepa en la nueva altura sin recortarse */
+    background-repeat: no-repeat;
+    background-position: center; /* Centramos el SVG dentro de su espacio */
+
+    opacity: 0.5; /* Sigue con la opacidad inicial */
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 10; /* Le damos un z-index más alto para asegurar visibilidad sobre el texto */
+
+    /* Animación de flotación */
+    animation: flotar 3s ease-in-out infinite;
+}
+.subsection.scrolling::after {
+    opacity: 0;
+    transform: translateX(-150%); /* Se mueve 150% de su propio ancho a la izquierda, además del centrado */
+    z-index: 0
+}
+/* El contenedor que reserva el espacio */
+.widget-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+
+    /* --- La clave está aquí --- */
+    /* Para un cuadrado (1:1), usa 100%. */
+    /* Para un rectángulo 4:3, usa 75% (3 / 4 * 100). */
+    /* Ajusta este valor según la forma de tu galería. */
+    padding-bottom: 100%;
+}
+
+/* El iframe que se posiciona dentro del contenedor */
+.widget-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+/* --- ADAPTACIONES PARA LA PÁGINA DEL LIBRO --- */
+
+/* Estilos para el contenedor de la oferta y los botones de pago */
+.purchase-box {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px solid var(--light-color);
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra sutil para destacarlo */
+}
+
+/* Contenedor para los detalles bancarios y el mensaje de copia */
+.bank-details-box {
+    background-color: var(--light-color); /* Un fondo más claro para los datos sensibles */
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 15px;
+    font-size: 0.95em;
+}
+
+/* Estilo del botón de Copiar (CBU/Alias) */
+.copy-btn {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Segoe', sans-serif;
+    font-size: 0.8em;
+    transition: background-color 0.3s;
+    margin-left: 10px;
+}
+
+.copy-btn:hover {
+    background-color: var(--dark-color);
+}
+
+/* Estilo para el contenedor del formulario de envío */
+#shipping-form-container {
+    padding: 20px;
+    border: 1px solid var(--light-color);
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+/* Inputs del Formulario */
+#purchase-form input[type="text"],
+#purchase-form input[type="email"],
+#purchase-form input[type="tel"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Segoe', sans-serif;
+    box-sizing: border-box; /* Asegura que el padding no afecte el ancho total */
+}
+
+.shipping-option label {
+    font-weight: 400;
+}
+
+/* --- SECCIONES PARALLAX ESPECÍFICAS --- */
+
+/* Fondo de la reseña (LN2) */
+.parallax-book-hero {
+    /* Aquí definimos la imagen LN2 */
+    background-image: url('img/LN2.jpg'); 
+    /* Podemos hacerla un poco más alta para que luzca el efecto */
+    min-height: 50vh; 
+}
+
+/* Fondo de la entrega (LN3) */
+.parallax-delivery-info {
+    /* Aquí definimos la imagen LN3 */
+    background-image: url('img/LN3.jpg'); 
+    min-height: 40vh;
+}
+
+/* Estilo para los párrafos dentro de la sección Parallax (para que se lean bien) */
+.parallax-delivery-info p {
+    max-width: 800px;
+    margin: 20px auto 0;
+    padding: 0 15px;
+    text-align: center;
+}
+
+/* --- RESPONSIVE FIXES (Asegurando que se vean bien en móvil) --- */
+@media (max-width: 768px) {
+    .book-hero .text-column {
+        /* Aseguramos que la cabecera no tenga margen lateral extra */
+        padding: 0;
+    }
+    
+    /* El contenedor del formulario de envío lo hacemos más estrecho */
+    .media-column, .text-column {
+        min-width: 100%;
+    }
+    
+    .purchase-box, #shipping-form-container {
+        padding: 15px;
+    }
+}
+/* --- ESTILOS PARA LA VENTANA MODAL DEL PDF --- */
+
+/* Ajuste del ancho de la ventana modal */
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; 
+    padding: 20px 20px 10px 20px; /* Reducimos el padding vertical del content, el lateral lo maneja el contenedor del iframe */
+    border: 1px solid #888;
+    width: 90%; 
+    max-width: 950px; /* Hacemos la modal ligeramente más ancha para incluir padding */
+    border-radius: 8px;
+    position: relative;
+    animation: fadeIn 0.5s;
+}
+
+/* Nuevo contenedor para agregar padding lateral al Iframe */
+.modal-iframe-container {
+    /* Aquí se define el padding lateral para "encoger" visualmente el Iframe */
+    padding: 20px 60px; 
+    background-color: #fefefe;
+}
+
+/* Estilo para el iframe */
+#pdf-iframe {
+    min-height: 500px; 
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* --- AJUSTES EN SECCIONES PARALLAX --- */
+
+/* Fondo de la reseña (LN2) */
+.parallax-book-hero {
+    /* Asegúrate de tener la imagen LN2 */
+    background-image: url('img/LN2.jpeg'); 
+    min-height: 50vh; 
+}
+
+/* Fondo de la entrega (LN3) */
+.parallax-delivery-info {
+    /* Asegúrate de tener la imagen LN3 */
+    background-image: url('img/LN3.jpeg'); 
+    min-height: 30vh;
+    
+}
+
+/* --- RESPONSIVE FIXES PARA LA MODAL --- */
+@media (max-width: 768px) {
+    .modal-iframe-container {
+        padding: 5px; /* Reducimos el padding en móvil */
+    }
+}

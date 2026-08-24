@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formación Abierta | Seba Bru</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../escuela.css">
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .school-header {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding-top: 40px;
+        }
+        .school-header h1 { color: #ffffff !important; }
+        .school-header h3 { font-style: normal !important; text-transform: uppercase !important; }
+        .school-header h2 { text-transform: uppercase !important; }
+        .school-header h5 { text-align: center !important; text-transform: none !important; font-weight: 400; font-size: 0.85rem; opacity: 0.55; margin: 6px auto 10px; max-width: 400px; line-height: 1.8; }
+        .back-link { color: var(--primary-color, #3bc2bc) !important; }
+
+        #btn-logout {
+            background: rgba(170,20,20,0.18) !important;
+            color: rgba(255,130,130,0.9) !important;
+            border: 1px solid rgba(200,40,40,0.3) !important;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Grid de cursos */
+        .abierta-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px 40px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+        @media (min-width: 720px) {
+            .abierta-wrapper { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1080px) {
+            .abierta-wrapper { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .curso-bloque { display: flex; flex-direction: column; }
+
+        /* Afiche del curso */
+        .curso-poster {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            display: block;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+        }
+        .curso-poster img {
+            width: 100%;
+            display: block;
+        }
+        .curso-poster .poster-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .curso-poster:hover .poster-overlay { opacity: 1; }
+        .poster-overlay .icono-acceso {
+            font-size: 2.5rem;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .poster-lock {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        .poster-lock.desbloqueado { background: rgba(36,155,149,0.8); }
+
+        .curso-titulo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            margin: 0 0 6px;
+            color: #f0f0f0;
+        }
+        .curso-descripcion {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 16px;
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .btn-acceder {
+            display: block;
+            background: #249b95;
+            color: white;
+            text-align: center;
+            padding: 13px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: opacity 0.2s;
+        }
+        .btn-acceder:hover { opacity: 0.85; }
+
+        .comprar-section { margin-top: 4px; }
+
+        details.comprar-main {
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        details.comprar-main > summary {
+            padding: 14px 18px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            list-style: none;
+            user-select: none;
+            background: rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+        details.comprar-main > summary::-webkit-details-marker { display: none; }
+        details.comprar-main > summary:hover { background: rgba(255,255,255,0.09); }
+        details.comprar-main[open] > summary { background: rgba(255,255,255,0.08); }
+
+        .summary-left { display: flex; align-items: center; gap: 10px; }
+        .summary-chevron {
+            font-size: 0.7rem;
+            opacity: 0.5;
+            transition: transform 0.25s;
+        }
+        details.comprar-main[open] .summary-chevron { transform: rotate(180deg); }
+
+        .comprar-body {
+            padding: 18px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .precio-mp {
+            font-size: 1.5rem;
+            font-family: 'Outfit', sans-serif;
+            color: #f0f0f0;
+            margin-bottom: 16px;
+        }
+        .precio-mp span { font-size: 0.85rem; color: #888; }
+
+        .btn-mp {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #009ee3;
+            color: white;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-mp:hover { opacity: 0.88; }
+        .btn-mp:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .login-aviso {
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .login-aviso a { color: #249b95; cursor: pointer; }
+
+        .precio-transferencia {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .precio-final { font-size: 1.5rem; font-family: 'Outfit', sans-serif; color: #6dd5cf; }
+        .precio-original { font-size: 0.9rem; color: #666; text-decoration: line-through; }
+        .descuento-tag {
+            font-size: 0.75rem;
+            background: rgba(36,155,149,0.2);
+            color: #6dd5cf;
+            border: 1px solid rgba(36,155,149,0.4);
+            border-radius: 20px;
+            padding: 2px 9px;
+        }
+
+        .datos-bancarios {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-size: 0.83rem;
+            line-height: 2;
+            color: #ccc;
+        }
+        .datos-bancarios strong { color: #f0f0f0; }
+
+        .alias-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            background: rgba(36,155,149,0.08);
+            border: 1px solid rgba(36,155,149,0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+        .alias-valor {
+            flex: 1;
+            font-family: monospace;
+            font-size: 1rem;
+            color: #6dd5cf;
+            letter-spacing: 0.05em;
+        }
+        .btn-copiar-alias {
+            background: rgba(36,155,149,0.2);
+            border: 1px solid rgba(36,155,149,0.4);
+            color: #6dd5cf;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            display: flex; align-items: center; gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-copiar-alias:hover { background: rgba(36,155,149,0.35); }
+
+        .transferencia-nota {
+            margin-top: 14px;
+            font-size: 0.78rem;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        #loading-pago {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            gap: 20px;
+        }
+        #loading-pago.visible { display: flex; }
+        #loading-pago .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: #009ee3;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .codigo-descuento-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .codigo-descuento-row input {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #e0e6ed;
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-size: 0.82rem;
+            font-family: monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .codigo-descuento-row input::placeholder { text-transform: none; letter-spacing: 0; }
+        .codigo-descuento-row input:focus { outline: none; border-color: #249b95; }
+        .btn-codigo {
+            background: rgba(36,155,149,0.15);
+            border: 1px solid rgba(36,155,149,0.4);
+            color: #6dd5cf;
+            padding: 8px 13px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .btn-codigo:hover { background: rgba(36,155,149,0.3); }
+        .codigo-msg {
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: none;
+            flex-basis: 100%;
+        }
+        .codigo-msg.ok    { display: block; background: rgba(36,155,149,0.1);  border: 1px solid rgba(36,155,149,0.3); color: #6dd5cf; }
+        .codigo-msg.error { display: block; background: rgba(220,80,80,0.1);   border: 1px solid rgba(220,80,80,0.3);  color: #f08080; }
+
+        .soporte-footer {
+            text-align: center;
+            padding: 24px 20px 40px;
+            color: #888;
+            font-size: 1rem;
+        }
+        .soporte-footer a { color: #aaa; text-decoration: none; }
+        .soporte-footer a:hover { color: #249b95; }
+        /* ── Slider descripción de curso ── */
+        .slider-wrap {
+            position: relative;
+            margin-bottom: 20px;
+            border-radius: 12px;
+        }
+        .card-slider {
+            display: flex;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            width: 100%;
+            aspect-ratio: 3/4;
+        }
+        .card-slider::-webkit-scrollbar { display: none; }
+        .panel-imagen {
+            flex: 0 0 93%;
+            scroll-snap-align: start;
+            position: relative;
+        }
+        .panel-imagen .curso-poster {
+            display: block;
+            width: 100%;
+            height: 100%;
+            margin-bottom: 0;
+            border-radius: 12px 0 0 12px;
+            box-shadow: none;
+        }
+        .panel-imagen .curso-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px 0 0 12px;
+        }
+        .panel-imagen::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 3%;
+            background: linear-gradient(to right, transparent, rgba(13,13,18,0.9));
+            pointer-events: none;
+        }
+        .panel-desc {
+            flex: 0 0 93%;
+            scroll-snap-align: start;
+            background: #16161e;
+            padding: 20px 18px 16px;
+            overflow: hidden;
+            border-radius: 0 12px 12px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel-desc h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #f0f0f0;
+            line-height: 1.3;
+            flex-shrink: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+        .panel-desc .pd-subtitulo {
+            font-size: 0.78rem;
+            color: #6dd5cf;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .panel-desc .pd-texto {
+            font-size: 0.96rem;
+            color: #999;
+            line-height: 1.72;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.08) transparent;
+        }
+        .panel-desc .pd-texto p + p { margin-top: 9px; }
+        .panel-desc .pd-iconos {
+            font-size: 0.84rem;
+            color: #666;
+            line-height: 1.9;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding-top: 10px;
+            flex-shrink: 0;
+        }
+        .toggle-desc-btn {
+            position: absolute;
+            right: -1px;
+            bottom: 14px;
+            z-index: 10;
+            background: rgba(15,15,20,0.78);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8);
+            height: 30px;
+            padding: 0 10px 0 12px;
+            border-radius: 15px 0 0 15px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            font-size: 0.8rem;
+            transition: background 0.2s;
+            box-shadow: -2px 2px 8px rgba(0,0,0,0.5);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .toggle-desc-btn:hover { background: rgba(36,155,149,0.35); }
+        .toggle-desc-btn .tdb-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.55);
+            font-family: 'Outfit', sans-serif;
+            max-width: 60px;
+            transition: max-width 0.3s ease, opacity 0.25s ease;
+        }
+        .toggle-desc-btn .tdb-icon { transition: transform 0.35s ease; }
+        .toggle-desc-btn.abierto .tdb-label { max-width: 0; opacity: 0; }
+        .toggle-desc-btn.abierto .tdb-icon { transform: rotate(180deg); }
+    </style>
+</head>
+<body class="bg-escuela">
+
+    <div id="loading-pago">
+        <div class="spinner"></div>
+        <p>Preparando tu pago...</p>
+    </div>
+
+    <header class="school-header">
+        <h1>FORMACIÓN ABIERTA</h1>
+        <div style="display:flex; gap:10px; justify-content:center; margin:10px 0;">
+            <button id="btn-login" style="display:none; background:#249b95; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-family:'Outfit',sans-serif; font-size:0.8rem;">
+                <i class="fa-solid fa-user"></i> INGRESAR
+            </button>
+            <button id="btn-logout" style="display:none; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-family:'Outfit',sans-serif; font-size:0.8rem;">
+                <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+            </button>
+        </div>
+        <h3 style="text-align:center; font-size:0.95rem; font-weight:400; opacity:0.7; margin:0 0 6px;">
+            Cuando quieras, como quieras.
+        </h3>
+        <h5>Una serie de cursos de astrología que se adaptan a tu vida.<br>Sin fechas, sin horarios, sin moldes.</h5>
+        <a href="/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Volver al sitio principal</a>
+    </header>
+
+    <main>
+        <div class="abierta-wrapper">
+
+            <!-- ========== LUNA ========== -->
+            <div class="curso-bloque">
+                <div class="slider-wrap">
+                    <div class="card-slider" id="cs-luna">
+                        <div class="panel-imagen">
+                            <a class="curso-poster" id="poster-luna" href="luna/">
+                                <img src="../img/lunaabierta.webp" alt="La Luna en la carta natal">
+                                <div class="poster-overlay">
+                                    <div class="icono-acceso"><i class="fa-solid fa-lock"></i></div>
+                                </div>
+                                <div class="poster-lock" id="poster-lock-luna">
+                                    <i class="fa-solid fa-lock" id="lock-icon-luna"></i>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="panel-desc">
+                            <h3>La Luna en la Carta Natal</h3>
+                            <p class="pd-subtitulo">Autoconocimiento &amp; formación</p>
+                            <div class="pd-texto">
+                                <p>La Luna habla de nuestra forma de conseguir seguridad emocional, de los mecanismos que repetimos para construirla, y del modo en el que podemos dejar de hacerlo.</p>
+                                <p>En este espacio vamos a hacer una recorrida por las doce Lunas del zodiaco, intentando comprender profundamente cada una en al menos tres dimensiones centrales. Por un lado, la Luna implica una reacción emocional, un mecanismo que se gatilla para preservarnos pero que muchas veces nos trae dolores de cabeza e incomodidad — lograr hacer conscientes estos mecanismos trae un profundo alivio. Por otro lado, estudiar esta luminaria nos permite registrar nuestras necesidades emocionales y encontrar los recursos saludables con los que podemos satisfacer esa necesidad, comprendiéndonos amorosamente. Finalmente, también veremos los talentos que implica esa dimensión, las potencias que se despliegan desde ese espacio de intimidad que cada Luna representa.</p>
+                                <p>Estudiar la Luna nos permite comprender cómo vimos a nuestra madre, cómo vivimos nuestra historia, cómo se ordena la memoria. En este punto podemos encontrarnos con cosas propias que reconoceremos de inmediato y que nos permitirán ampliar la mirada sobre lo que fuimos y lo que somos, sobre lo que nos pasó y sobre todo, cómo entendimos lo que nos pasó.</p>
+                                <p>Este taller abre un espacio para darnos cuenta de lo que nos pasa, pero a la vez nos da recursos para registrar a lxs demás en su singular modo de sentirse segurxs y a salvo.</p>
+                            </div>
+                            <div class="pd-iconos">
+                                🕜 13 encuentros de una hora cada uno<br>
+                                🎓 Comprendés mejor tus mecanismos emocionales y los de quienes te rodean<br>
+                                📚 Bibliografía complementaria · acceso permanente
+                            </div>
+                        </div>
+                    </div>
+                    <button class="toggle-desc-btn" data-slider="cs-luna">
+                        <span class="tdb-label">+ info</span>
+                        <i class="fa-solid fa-chevron-right tdb-icon"></i>
+                    </button>
+                </div>
+                <h2 class="curso-titulo">La Luna en la carta natal</h2>
+                <a href="luna/" class="btn-acceder" id="btn-acceder-luna" style="display:none;">
+                    <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                </a>
+                <div class="comprar-section" id="seccion-compra-luna">
+                    <details class="comprar-main">
+                        <summary>
+                            <span class="summary-left"><i class="fa-solid fa-cart-shopping" style="color:#f0c516; font-size:1rem;"></i> ¡Quiero comprarlo!</span>
+                            <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="comprar-body" style="padding:10px 10px 14px;">
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-mp-luna">$60.000 <span>ARS</span></p>
+                                    <button class="btn-mp" id="btn-pagar-mp-luna" disabled>
+                                        <i class="fa-brands fa-cc-mastercard"></i> PAGAR CON MERCADO PAGO
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-mp-luna">Para pagar necesitás <a id="link-login-mp-luna">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
+                                        Transferencia <span id="tag-trans-luna" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <div class="precio-transferencia">
+                                        <span class="precio-final" id="precio-trans-luna">$54.000</span>
+                                        <span class="precio-original">$60.000</span>
+                                        <span class="descuento-tag" id="dtag-trans-luna">−10%</span>
+                                    </div>
+                                    <div class="datos-bancarios">
+                                        <div><strong>Banco:</strong> Galicia</div>
+                                        <div><strong>Titular:</strong> SEBASTIAN MATIAS BRUZZESE</div>
+                                        <div><strong>CTA:</strong> 4034684-5 274-4</div>
+                                        <div><strong>CBU:</strong> 00702746-30004034684549</div>
+                                        <div><strong>CUIL:</strong> 20-30712644-4</div>
+                                    </div>
+                                    <div class="alias-row">
+                                        <span class="alias-valor">Seba.astrologia</span>
+                                        <button class="btn-copiar-alias" id="btn-copiar-alias-luna">
+                                            <i class="fa-solid fa-copy"></i> Copiar alias
+                                        </button>
+                                    </div>
+                                    <div id="info-comprobante-luna" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
+                                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                                            <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
+                                            ¡Alias copiado! Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+                                        </p>
+                                        <a href="https://wa.me/5493544584122?text=Hola%20Seba%2C%20acabo%20de%20hacer%20la%20transferencia%20para%20el%20curso%20La%20Luna%20en%20la%20carta%20natal.%20Te%20mando%20el%20comprobante." target="_blank" rel="noopener noreferrer"
+                                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
+                                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué — enviar comprobante
+                                        </a>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
+                                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-pp-luna">USD 50 <span>dólares</span></p>
+                                    <button class="btn-mp" id="btn-pagar-paypal-luna" style="background:#003087;" disabled>
+                                        <i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-paypal-luna">Para pagar necesitás <a id="link-login-paypal-luna">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <div class="codigo-descuento-row" style="margin-top:10px;">
+                                <input type="text" id="inp-codigo-luna" placeholder="¿Tenés un código de descuento?" maxlength="20">
+                                <button class="btn-codigo" id="btn-codigo-luna">Aplicar</button>
+                                <span class="codigo-msg" id="msg-codigo-luna"></span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- ========== TAROT ========== -->
+            <div class="curso-bloque">
+                <div class="slider-wrap">
+                    <div class="card-slider" id="cs-tarot">
+                        <div class="panel-imagen">
+                            <a class="curso-poster" id="poster-tarot" href="tarot/">
+                                <img src="../img/tarot.webp" alt="Tarot: Arcanos Mayores y Menores">
+                                <div class="poster-overlay">
+                                    <div class="icono-acceso"><i class="fa-solid fa-lock"></i></div>
+                                </div>
+                                <div class="poster-lock" id="poster-lock-tarot">
+                                    <i class="fa-solid fa-lock" id="lock-icon-tarot"></i>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="panel-desc">
+                            <h3>Tarot — Mazo Rider-Waite</h3>
+                            <p class="pd-subtitulo">Arcanos mayores y menores</p>
+                            <div class="pd-texto">
+                                <p>En este taller hacemos un recorrido por los arcanos mayores y menores del mazo Rider-Waite en el que aprenderemos a leer los diferentes símbolos a través de los que las cartas nos hablan.</p>
+                                <p>La intención del taller es habilitar una iniciación a la lectura de las cartas de un modo dinámico y abierto, que nos permita encauzar la intuición y entrelazarla al saber teórico.</p>
+                                <p>Trabajaremos algunos conceptos fundamentales de la cábala y el esoterismo que sostiene el contenido del mazo. El taller incluye un recorrido por los 78 arcanos, y luego una serie de clases prácticas para poner en juego lo aprendido, en las que abordaremos las diferentes tiradas y cómo leer el diálogo entre las cartas.</p>
+                                <p>El tarot trabaja con el inconsciente, pero no solo con el inconsciente de quien pregunta. Hay algo en la tirada que a veces dice lo que va a pasar, y que después efectivamente pasa. Cómo sucede eso, no lo sé. Y esa honestidad frente a lo inexplicable es parte de lo que el tarot enseña: hay un umbral en donde la lógica cede y aparece algo que solo puede ser leído, no explicado.</p>
+                                <p>La intuición, el azar y la imagen se combinan para producir un relato que quien lee la tirada muchas veces no termina de entender, pero que la persona que pregunta reconoce de inmediato. La humildad frente a eso es el principio fundamental de una buena lectura.</p>
+                            </div>
+                            <div class="pd-iconos">
+                                🃏 12 encuentros de dos horas<br>
+                                📚 Materiales complementarios de lectura<br>
+                                🔮 Información viva y práctica
+                            </div>
+                        </div>
+                    </div>
+                    <button class="toggle-desc-btn" data-slider="cs-tarot">
+                        <span class="tdb-label">+ info</span>
+                        <i class="fa-solid fa-chevron-right tdb-icon"></i>
+                    </button>
+                </div>
+                <h2 class="curso-titulo">Tarot: Arcanos Mayores y Menores</h2>
+                <a href="tarot/" class="btn-acceder" id="btn-acceder-tarot" style="display:none;">
+                    <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                </a>
+                <div class="comprar-section" id="seccion-compra-tarot">
+                    <details class="comprar-main">
+                        <summary>
+                            <span class="summary-left"><i class="fa-solid fa-cart-shopping" style="color:#f0c516; font-size:1rem;"></i> ¡Quiero comprarlo!</span>
+                            <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="comprar-body" style="padding:10px 10px 14px;">
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-mp-tarot">$80.000 <span>ARS</span></p>
+                                    <button class="btn-mp" id="btn-pagar-mp-tarot" disabled>
+                                        <i class="fa-brands fa-cc-mastercard"></i> PAGAR CON MERCADO PAGO
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-mp-tarot">Para pagar necesitás <a id="link-login-mp-tarot">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
+                                        Transferencia <span id="tag-trans-tarot" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <div class="precio-transferencia">
+                                        <span class="precio-final" id="precio-trans-tarot">$72.000</span>
+                                        <span class="precio-original">$80.000</span>
+                                        <span class="descuento-tag" id="dtag-trans-tarot">−10%</span>
+                                    </div>
+                                    <div class="datos-bancarios">
+                                        <div><strong>Banco:</strong> Galicia</div>
+                                        <div><strong>Titular:</strong> SEBASTIAN MATIAS BRUZZESE</div>
+                                        <div><strong>CTA:</strong> 4034684-5 274-4</div>
+                                        <div><strong>CBU:</strong> 00702746-30004034684549</div>
+                                        <div><strong>CUIL:</strong> 20-30712644-4</div>
+                                    </div>
+                                    <div class="alias-row">
+                                        <span class="alias-valor">Seba.astrologia</span>
+                                        <button class="btn-copiar-alias" id="btn-copiar-alias-tarot">
+                                            <i class="fa-solid fa-copy"></i> Copiar alias
+                                        </button>
+                                    </div>
+                                    <div id="info-comprobante-tarot" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
+                                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                                            <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
+                                            ¡Alias copiado! Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+                                        </p>
+                                        <a href="https://wa.me/5493544584122?text=Hola%20Seba%2C%20acabo%20de%20hacer%20la%20transferencia%20para%20el%20curso%20de%20Tarot.%20Te%20mando%20el%20comprobante." target="_blank" rel="noopener noreferrer"
+                                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
+                                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué — enviar comprobante
+                                        </a>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
+                                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-pp-tarot">USD 60 <span>dólares</span></p>
+                                    <button class="btn-mp" id="btn-pagar-paypal-tarot" style="background:#003087;" disabled>
+                                        <i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-paypal-tarot">Para pagar necesitás <a id="link-login-paypal-tarot">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <div class="codigo-descuento-row" style="margin-top:10px;">
+                                <input type="text" id="inp-codigo-tarot" placeholder="¿Tenés un código de descuento?" maxlength="20">
+                                <button class="btn-codigo" id="btn-codigo-tarot">Aplicar</button>
+                                <span class="codigo-msg" id="msg-codigo-tarot"></span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- ========== SIGNOS ========== -->
+            <div class="curso-bloque">
+                <a class="curso-poster" id="poster-signos" href="signos/">
+                    <img src="../img/signos.webp" alt="Los Signos del Zodíaco">
+                    <div class="poster-overlay">
+                        <div class="icono-acceso"><i class="fa-solid fa-lock"></i></div>
+                    </div>
+                    <div class="poster-lock" id="poster-lock-signos">
+                        <i class="fa-solid fa-lock" id="lock-icon-signos"></i>
+                    </div>
+                </a>
+                <h2 class="curso-titulo">Los Signos del Zodíaco</h2>
+                <p class="curso-descripcion">Los arquetipos zodiacales.<br>Un recorrido por los 12 signos y sus formas de habitar el mundo.</p>
+                <a href="signos/" class="btn-acceder" id="btn-acceder-signos" style="display:none;">
+                    <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                </a>
+                <div class="comprar-section" id="seccion-compra-signos">
+                    <details class="comprar-main">
+                        <summary>
+                            <span class="summary-left"><i class="fa-solid fa-cart-shopping" style="color:#f0c516; font-size:1rem;"></i> ¡Quiero comprarlo!</span>
+                            <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="comprar-body" style="padding:10px 10px 14px;">
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-mp-signos">$60.000 <span>ARS</span></p>
+                                    <button class="btn-mp" id="btn-pagar-mp-signos" disabled>
+                                        <i class="fa-brands fa-cc-mastercard"></i> PAGAR CON MERCADO PAGO
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-mp-signos">Para pagar necesitás <a id="link-login-mp-signos">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
+                                        Transferencia <span id="tag-trans-signos" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <div class="precio-transferencia">
+                                        <span class="precio-final" id="precio-trans-signos">$54.000</span>
+                                        <span class="precio-original">$60.000</span>
+                                        <span class="descuento-tag" id="dtag-trans-signos">−10%</span>
+                                    </div>
+                                    <div class="datos-bancarios">
+                                        <div><strong>Banco:</strong> Galicia</div>
+                                        <div><strong>Titular:</strong> SEBASTIAN MATIAS BRUZZESE</div>
+                                        <div><strong>CTA:</strong> 4034684-5 274-4</div>
+                                        <div><strong>CBU:</strong> 00702746-30004034684549</div>
+                                        <div><strong>CUIL:</strong> 20-30712644-4</div>
+                                    </div>
+                                    <div class="alias-row">
+                                        <span class="alias-valor">Seba.astrologia</span>
+                                        <button class="btn-copiar-alias" id="btn-copiar-alias-signos">
+                                            <i class="fa-solid fa-copy"></i> Copiar alias
+                                        </button>
+                                    </div>
+                                    <div id="info-comprobante-signos" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
+                                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                                            <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
+                                            ¡Alias copiado! Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+                                        </p>
+                                        <a href="https://wa.me/5493544584122?text=Hola%20Seba%2C%20acabo%20de%20hacer%20la%20transferencia%20para%20el%20curso%20Los%20Signos%20del%20Zod%C3%ADaco.%20Te%20mando%20el%20comprobante." target="_blank" rel="noopener noreferrer"
+                                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
+                                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué — enviar comprobante
+                                        </a>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
+                                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-pp-signos">USD 50 <span>dólares</span></p>
+                                    <button class="btn-mp" id="btn-pagar-paypal-signos" style="background:#003087;" disabled>
+                                        <i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-paypal-signos">Para pagar necesitás <a id="link-login-paypal-signos">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <div class="codigo-descuento-row" style="margin-top:10px;">
+                                <input type="text" id="inp-codigo-signos" placeholder="¿Tenés un código de descuento?" maxlength="20">
+                                <button class="btn-codigo" id="btn-codigo-signos">Aplicar</button>
+                                <span class="codigo-msg" id="msg-codigo-signos"></span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- ========== CASAS ========== -->
+            <div class="curso-bloque">
+                <a class="curso-poster" id="poster-casas" href="casas/">
+                    <img src="../img/casas.webp" alt="Las Casas Astrológicas">
+                    <div class="poster-overlay">
+                        <div class="icono-acceso"><i class="fa-solid fa-lock"></i></div>
+                    </div>
+                    <div class="poster-lock" id="poster-lock-casas">
+                        <i class="fa-solid fa-lock" id="lock-icon-casas"></i>
+                    </div>
+                </a>
+                <h2 class="curso-titulo">Las Casas Astrológicas</h2>
+                <p class="curso-descripcion">El cielo dividido en áreas de vida.<br>Las 12 casas y su rol en la interpretación de la carta natal.</p>
+                <a href="casas/" class="btn-acceder" id="btn-acceder-casas" style="display:none;">
+                    <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                </a>
+                <div class="comprar-section" id="seccion-compra-casas">
+                    <details class="comprar-main">
+                        <summary>
+                            <span class="summary-left"><i class="fa-solid fa-cart-shopping" style="color:#f0c516; font-size:1rem;"></i> ¡Quiero comprarlo!</span>
+                            <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="comprar-body" style="padding:10px 10px 14px;">
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-mp-casas">$60.000 <span>ARS</span></p>
+                                    <button class="btn-mp" id="btn-pagar-mp-casas" disabled>
+                                        <i class="fa-brands fa-cc-mastercard"></i> PAGAR CON MERCADO PAGO
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-mp-casas">Para pagar necesitás <a id="link-login-mp-casas">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
+                                        Transferencia <span id="tag-trans-casas" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <div class="precio-transferencia">
+                                        <span class="precio-final" id="precio-trans-casas">$54.000</span>
+                                        <span class="precio-original">$60.000</span>
+                                        <span class="descuento-tag" id="dtag-trans-casas">−10%</span>
+                                    </div>
+                                    <div class="datos-bancarios">
+                                        <div><strong>Banco:</strong> Galicia</div>
+                                        <div><strong>Titular:</strong> SEBASTIAN MATIAS BRUZZESE</div>
+                                        <div><strong>CTA:</strong> 4034684-5 274-4</div>
+                                        <div><strong>CBU:</strong> 00702746-30004034684549</div>
+                                        <div><strong>CUIL:</strong> 20-30712644-4</div>
+                                    </div>
+                                    <div class="alias-row">
+                                        <span class="alias-valor">Seba.astrologia</span>
+                                        <button class="btn-copiar-alias" id="btn-copiar-alias-casas">
+                                            <i class="fa-solid fa-copy"></i> Copiar alias
+                                        </button>
+                                    </div>
+                                    <div id="info-comprobante-casas" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
+                                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                                            <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
+                                            ¡Alias copiado! Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+                                        </p>
+                                        <a href="https://wa.me/5493544584122?text=Hola%20Seba%2C%20acabo%20de%20hacer%20la%20transferencia%20para%20el%20curso%20Las%20Casas%20Astrol%C3%B3gicas.%20Te%20mando%20el%20comprobante." target="_blank" rel="noopener noreferrer"
+                                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
+                                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué — enviar comprobante
+                                        </a>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
+                                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-pp-casas">USD 50 <span>dólares</span></p>
+                                    <button class="btn-mp" id="btn-pagar-paypal-casas" style="background:#003087;" disabled>
+                                        <i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-paypal-casas">Para pagar necesitás <a id="link-login-paypal-casas">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <div class="codigo-descuento-row" style="margin-top:10px;">
+                                <input type="text" id="inp-codigo-casas" placeholder="¿Tenés un código de descuento?" maxlength="20">
+                                <button class="btn-codigo" id="btn-codigo-casas">Aplicar</button>
+                                <span class="codigo-msg" id="msg-codigo-casas"></span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- ========== PLUTÓN Y LOS NODOS (ON DEMAND) ========== -->
+            <div class="curso-bloque">
+                <div class="slider-wrap">
+                    <div class="card-slider" id="cs-pluton26">
+                        <div class="panel-imagen">
+                            <a class="curso-poster" id="poster-pluton26" href="pluton26/">
+                                <img src="../img/pluton.jpg" alt="Plutón y los Nodos Lunares">
+                                <div class="poster-overlay">
+                                    <div class="icono-acceso"><i class="fa-solid fa-lock"></i></div>
+                                </div>
+                                <div class="poster-lock" id="poster-lock-pluton26">
+                                    <i class="fa-solid fa-lock" id="lock-icon-pluton26"></i>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="panel-desc">
+                            <h3>Plutón y los Nodos Lunares</h3>
+                            <p class="pd-subtitulo">El espíritu se mueve.</p>
+                            <div class="pd-texto">
+                                <p>Plutón es uno de los planetas transpersonales que marca profundamente nuestra experiencia en esta vida. Dentro de nuestra carta natal, señala un punto por donde entramos en contacto con una enorme intensidad desbordante. El potente magnetismo de este punto astrológico puede causarnos un profundo rechazo y una fascinación extraordinaria, pero es muy difícil sentir desinterés. Representa el inconsciente, el vínculo con mi linaje y mi clan y la relación con la muerte y la sexualidad entre muchas otras cosas que abordaremos en este seminario.</p>
+                                <p>Los nodos lunares están en una relación estrecha con los eclipses y señalan en nuestra carta natal un lugar en donde escucharemos una llamada profunda de nuestra alma. Entre Plutón y los nodos, podemos encontrar información valiosa para entender hacia dónde nos convoca a avanzar la fuerza misteriosa de la vida.</p>
+                                <p>Este seminario está destinado a personas con conocimientos básicos de astrología. Al finalizar el curso, entenderás con más profundidad una carta natal y podrás ver dinámicas de transformación que atraviesan a todas las personas.</p>
+                            </div>
+                            <div class="pd-iconos">
+                                🪐 8 clases de dos horas<br>
+                                🎓 Para personas con conocimientos básicos de astrología<br>
+                                📚 Material bibliográfico incluido
+                            </div>
+                        </div>
+                    </div>
+                    <button class="toggle-desc-btn" data-slider="cs-pluton26">
+                        <span class="tdb-label">+ info</span>
+                        <i class="fa-solid fa-chevron-right tdb-icon"></i>
+                    </button>
+                </div>
+                <h2 class="curso-titulo">Plutón y los Nodos Lunares</h2>
+                <a href="pluton26/" class="btn-acceder" id="btn-acceder-pluton26" style="display:none;">
+                    <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                </a>
+                <div class="comprar-section" id="seccion-compra-pluton26">
+                    <details class="comprar-main">
+                        <summary>
+                            <span class="summary-left"><i class="fa-solid fa-cart-shopping" style="color:#f0c516; font-size:1rem;"></i> ¡Quiero comprarlo!</span>
+                            <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="comprar-body" style="padding:10px 10px 14px;">
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-mp-pluton26">$80.000 <span>ARS</span></p>
+                                    <button class="btn-mp" id="btn-pagar-mp-pluton26" disabled>
+                                        <i class="fa-brands fa-cc-mastercard"></i> PAGAR CON MERCADO PAGO
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-mp-pluton26">Para pagar necesitás <a id="link-login-mp-pluton26">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
+                                        Transferencia <span id="tag-trans-pluton26" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <div class="precio-transferencia">
+                                        <span class="precio-final" id="precio-trans-pluton26">$72.000</span>
+                                        <span class="precio-original">$80.000</span>
+                                        <span class="descuento-tag" id="dtag-trans-pluton26">−10%</span>
+                                    </div>
+                                    <div class="datos-bancarios">
+                                        <div><strong>Banco:</strong> Galicia</div>
+                                        <div><strong>Titular:</strong> SEBASTIAN MATIAS BRUZZESE</div>
+                                        <div><strong>CTA:</strong> 4034684-5 274-4</div>
+                                        <div><strong>CBU:</strong> 00702746-30004034684549</div>
+                                        <div><strong>CUIL:</strong> 20-30712644-4</div>
+                                    </div>
+                                    <div class="alias-row">
+                                        <span class="alias-valor">Seba.astrologia</span>
+                                        <button class="btn-copiar-alias" id="btn-copiar-alias-pluton26">
+                                            <i class="fa-solid fa-copy"></i> Copiar alias
+                                        </button>
+                                    </div>
+                                    <div id="info-comprobante-pluton26" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
+                                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                                            <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
+                                            ¡Alias copiado! Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+                                        </p>
+                                        <a href="https://wa.me/5493544584122?text=Hola%20Seba%2C%20acabo%20de%20hacer%20la%20transferencia%20para%20el%20seminario%20Plut%C3%B3n%20y%20los%20Nodos%20Lunares.%20Te%20mando%20el%20comprobante." target="_blank" rel="noopener noreferrer"
+                                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
+                                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué — enviar comprobante
+                                        </a>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="comprar-main">
+                                <summary>
+                                    <span class="summary-left">
+                                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
+                                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="comprar-body">
+                                    <p class="precio-mp" id="precio-pp-pluton26">USD 70 <span>dólares</span></p>
+                                    <button class="btn-mp" id="btn-pagar-paypal-pluton26" style="background:#003087;" disabled>
+                                        <i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL
+                                    </button>
+                                    <p class="login-aviso" id="aviso-login-paypal-pluton26">Para pagar necesitás <a id="link-login-paypal-pluton26">iniciar sesión</a>.</p>
+                                </div>
+                            </details>
+                            <div class="codigo-descuento-row" style="margin-top:10px;">
+                                <input type="text" id="inp-codigo-pluton26" placeholder="¿Tenés un código de descuento?" maxlength="20">
+                                <button class="btn-codigo" id="btn-codigo-pluton26">Aplicar</button>
+                                <span class="codigo-msg" id="msg-codigo-pluton26"></span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+        </div><!-- /abierta-wrapper -->
+
+        <div class="soporte-footer">
+            Soporte técnico: <a href="mailto:sebruz@gmail.com">sebruz@gmail.com</a> &nbsp;·&nbsp; <a href="https://wa.me/5493544584122" target="_blank" rel="noopener noreferrer">+54 9 3544 584122</a>
+        </div>
+    </main>
+
+    <!-- Modal de login -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-box">
+            <button id="close-modal" class="close-btn">&times;</button>
+            <div class="google-auth-container" style="margin-bottom:20px; text-align:center;">
+                <button id="btn-google" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:white; color:#444; border:1px solid #ddd; padding:10px; border-radius:5px; cursor:pointer; font-family:sans-serif; font-weight:bold; transition:0.3s;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+                    CONTINUAR CON GOOGLE
+                </button>
+                <h3 style="margin:15px 0; color:#888; font-size:0.8rem;">— O BIEN —</h3>
+            </div>
+            <div id="seccion-login">
+                <h2>Ingresar</h2>
+                <form id="login-form">
+                    <input type="email" id="email-login" placeholder="Tu Email" required>
+                    <input type="password" id="pass-login" placeholder="Contraseña" required>
+                    <button type="submit" class="btn-login">ENTRAR</button>
+                </form>
+                <p style="margin-top:10px; font-size:0.9em;">
+                    ¿No tenés cuenta? <a href="#" id="ir-a-registro">Registrate aquí</a>
+                </p>
+            </div>
+            <div id="seccion-registro" style="display:none;">
+                <h2>Crear Cuenta</h2>
+                <form id="registro-form">
+                    <input type="email" id="email-registro" placeholder="Tu Email" required>
+                    <input type="password" id="pass-registro" placeholder="Crea una contraseña" required>
+                    <button type="submit" class="btn-login" style="background:#4CAF50;">CREAR CUENTA</button>
+                </form>
+                <p style="margin-top:10px; font-size:0.9em;">
+                    ¿Ya tenés cuenta? <a href="#" id="ir-a-login">Ingresá aquí</a>
+                </p>
+            </div>
+            <p class="error-msg" id="login-error" style="display:none; color:red; margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { app, auth, db } from '../firebase.js';
+        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+        const functions = getFunctions(app);
+        const crearPago = httpsCallable(functions, 'crearPago');
+        let currentUser = null;
+
+        const CURSOS = [
+            { id: 'luna',      nombre: 'La Luna en la carta natal',        precio: 60000, precioUsd: 50 },
+            { id: 'tarot',     nombre: 'Tarot: Arcanos Mayores y Menores', precio: 80000, precioUsd: 60 },
+            { id: 'signos',    nombre: 'Los Signos del Zodíaco',            precio: 60000, precioUsd: 50 },
+            { id: 'casas',     nombre: 'Las Casas Astrológicas',            precio: 60000, precioUsd: 50 },
+            { id: 'pluton26',  nombre: 'Plutón y los Nodos Lunares',        precio: 80000, precioUsd: 70 },
+        ];
+
+        // ---- Auth ----
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            document.getElementById('btn-login').style.display  = user ? 'none' : 'inline-block';
+            document.getElementById('btn-logout').style.display = user ? 'inline-block' : 'none';
+
+            if (user) {
+                CURSOS.forEach(c => {
+                    const mp  = document.getElementById(`aviso-login-mp-${c.id}`);
+                    const pp  = document.getElementById(`aviso-login-paypal-${c.id}`);
+                    if (mp) mp.style.display = 'none';
+                    if (pp) pp.style.display = 'none';
+                    const btnMp  = document.getElementById(`btn-pagar-mp-${c.id}`);
+                    const btnPp  = document.getElementById(`btn-pagar-paypal-${c.id}`);
+                    if (btnMp) btnMp.disabled = false;
+                    if (btnPp) btnPp.disabled = false;
+                });
+
+                try {
+                    const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
+                    const cursos = snap.exists() ? (snap.data().cursos || []) : [];
+                    CURSOS.forEach(c => {
+                        if (cursos.includes(c.id)) {
+                            const comp = document.getElementById(`seccion-compra-${c.id}`);
+                            const acc  = document.getElementById(`btn-acceder-${c.id}`);
+                            const icon = document.getElementById(`lock-icon-${c.id}`);
+                            const lock = document.getElementById(`poster-lock-${c.id}`);
+                            if (comp) comp.style.display = 'none';
+                            if (acc)  acc.style.display  = 'block';
+                            if (icon) icon.className = 'fa-solid fa-circle-check';
+                            if (lock) lock.classList.add('desbloqueado');
+                        }
+                    });
+                } catch (e) { /* sin cursos previos */ }
+
+            } else {
+                CURSOS.forEach(c => {
+                    const mp  = document.getElementById(`aviso-login-mp-${c.id}`);
+                    const pp  = document.getElementById(`aviso-login-paypal-${c.id}`);
+                    if (mp) mp.style.display = 'block';
+                    if (pp) pp.style.display = 'block';
+                    const btnMp  = document.getElementById(`btn-pagar-mp-${c.id}`);
+                    const btnPp  = document.getElementById(`btn-pagar-paypal-${c.id}`);
+                    if (btnMp) btnMp.disabled = true;
+                    if (btnPp) btnPp.disabled = true;
+                });
+            }
+        });
+
+        // ---- Botones header ----
+        document.getElementById('btn-login').addEventListener('click', abrirModal);
+        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+        document.getElementById('close-modal').addEventListener('click', cerrarModal);
+        document.getElementById('login-modal').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
+
+        // Links "iniciar sesión" dentro de los avisos
+        CURSOS.forEach(c => {
+            document.getElementById(`link-login-mp-${c.id}`)?.addEventListener('click', abrirModal);
+            document.getElementById(`link-login-paypal-${c.id}`)?.addEventListener('click', abrirModal);
+        });
+
+        function abrirModal() { document.getElementById('login-modal').classList.add('active'); }
+        function cerrarModal() { document.getElementById('login-modal').classList.remove('active'); }
+
+        document.getElementById('ir-a-registro').addEventListener('click', e => { e.preventDefault(); document.getElementById('seccion-login').style.display='none'; document.getElementById('seccion-registro').style.display='block'; });
+        document.getElementById('ir-a-login').addEventListener('click', e => { e.preventDefault(); document.getElementById('seccion-registro').style.display='none'; document.getElementById('seccion-login').style.display='block'; });
+
+        document.getElementById('login-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try { await signInWithEmailAndPassword(auth, document.getElementById('email-login').value, document.getElementById('pass-login').value); cerrarModal(); }
+            catch { mostrarError('Email o contraseña incorrectos.'); }
+        });
+
+        document.getElementById('registro-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            try { await createUserWithEmailAndPassword(auth, document.getElementById('email-registro').value, document.getElementById('pass-registro').value); cerrarModal(); }
+            catch (err) { mostrarError('No se pudo crear la cuenta. ' + err.message); }
+        });
+
+        document.getElementById('btn-google').addEventListener('click', async () => {
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); cerrarModal(); }
+            catch { mostrarError('No se pudo iniciar con Google.'); }
+        });
+
+        function mostrarError(msg) {
+            const el = document.getElementById('login-error');
+            el.textContent = msg; el.style.display = 'block';
+        }
+
+        // ---- Códigos de descuento ----
+        const codigosAplicados = {}; // { cursoId: { codigo, descuento } }
+
+        CURSOS.forEach(c => {
+            const btnCodigo = document.getElementById(`btn-codigo-${c.id}`);
+            const inpCodigo = document.getElementById(`inp-codigo-${c.id}`);
+            const msgCodigo = document.getElementById(`msg-codigo-${c.id}`);
+
+            async function aplicarCodigo() {
+                const codigo = inpCodigo.value.trim().toUpperCase();
+                msgCodigo.className = 'codigo-msg';
+                if (!codigo) return;
+
+                try {
+                    const snap = await getDoc(doc(db, 'codigos_descuento', codigo));
+                    if (!snap.exists()) {
+                        msgCodigo.textContent = 'Código inválido.';
+                        msgCodigo.className = 'codigo-msg error';
+                        delete codigosAplicados[c.id];
+                        return;
+                    }
+                    const data = snap.data();
+                    if (!data.activo) {
+                        msgCodigo.textContent = 'Este código ya no está activo.';
+                        msgCodigo.className = 'codigo-msg error';
+                        delete codigosAplicados[c.id];
+                        return;
+                    }
+                    if (data.expiraEn && data.expiraEn.toDate() < new Date()) {
+                        msgCodigo.textContent = 'Este código ya expiró.';
+                        msgCodigo.className = 'codigo-msg error';
+                        delete codigosAplicados[c.id];
+                        return;
+                    }
+                    if (data.maxUsos && data.usos >= data.maxUsos) {
+                        msgCodigo.textContent = 'Este código ya alcanzó el límite de usos.';
+                        msgCodigo.className = 'codigo-msg error';
+                        delete codigosAplicados[c.id];
+                        return;
+                    }
+                    if (data.cursos?.length && !data.cursos.includes(c.id)) {
+                        msgCodigo.textContent = 'Este código no aplica a este curso.';
+                        msgCodigo.className = 'codigo-msg error';
+                        delete codigosAplicados[c.id];
+                        return;
+                    }
+                    // Código válido
+                    codigosAplicados[c.id] = { codigo, descuento: data.descuento };
+                    const precioConDesc = Math.round(c.precio * (1 - data.descuento / 100));
+                    const usdConDesc    = (c.precioUsd * (1 - data.descuento / 100)).toFixed(0);
+                    const descTotal     = 10 + data.descuento;
+                    const precioTrans   = Math.round(c.precio * (1 - descTotal / 100));
+
+                    const elMp = document.getElementById(`precio-mp-${c.id}`);
+                    if (elMp) elMp.innerHTML = `$${precioConDesc.toLocaleString('es-AR')} <span>ARS · ${data.descuento}% off</span>`;
+
+                    const elPp = document.getElementById(`precio-pp-${c.id}`);
+                    if (elPp) elPp.innerHTML = `USD ${usdConDesc} <span>dólares · ${data.descuento}% off</span>`;
+
+                    const elTrans = document.getElementById(`precio-trans-${c.id}`);
+                    if (elTrans) elTrans.textContent = `$${precioTrans.toLocaleString('es-AR')}`;
+                    const elDtag = document.getElementById(`dtag-trans-${c.id}`);
+                    if (elDtag) elDtag.textContent = `−${descTotal}%`;
+                    const elTag = document.getElementById(`tag-trans-${c.id}`);
+                    if (elTag) elTag.textContent = `${descTotal}% off`;
+
+                    msgCodigo.textContent = `✓ ${data.descuento}% de descuento aplicado`;
+                    msgCodigo.className = 'codigo-msg ok';
+                } catch (e) {
+                    msgCodigo.textContent = 'Error al verificar el código.';
+                    msgCodigo.className = 'codigo-msg error';
+                }
+            }
+
+            btnCodigo?.addEventListener('click', aplicarCodigo);
+            inpCodigo?.addEventListener('keydown', e => { if (e.key === 'Enter') aplicarCodigo(); });
+        });
+
+        // ---- Pagos MP (loop genérico) ----
+        CURSOS.forEach(c => {
+            document.getElementById(`btn-pagar-mp-${c.id}`)?.addEventListener('click', async () => {
+                if (!currentUser) { abrirModal(); return; }
+                const loading = document.getElementById('loading-pago');
+                loading.querySelector('p').textContent = 'Preparando tu pago...';
+                loading.classList.add('visible');
+                const codigo = codigosAplicados[c.id]?.codigo || null;
+                try {
+                    const result = await crearPago({ cursoId: c.id, cursoNombre: c.nombre, codigoDescuento: codigo });
+                    window.location.href = result.data.init_point;
+                } catch (err) {
+                    loading.classList.remove('visible');
+                    alert('No se pudo iniciar el pago. Por favor intentá de nuevo o escribinos al +54 9 3544 584122.\n' + err.message);
+                }
+            });
+
+            document.getElementById(`btn-pagar-paypal-${c.id}`)?.addEventListener('click', () =>
+                pagarPaypal(c.id, c.nombre, codigosAplicados[c.id]?.codigo || null));
+
+            document.getElementById(`btn-copiar-alias-${c.id}`)?.addEventListener('click', () => {
+                navigator.clipboard.writeText('Seba.astrologia').then(() => {
+                    const btn  = document.getElementById(`btn-copiar-alias-${c.id}`);
+                    const info = document.getElementById(`info-comprobante-${c.id}`);
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+                    if (info) info.style.display = 'block';
+                    setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar alias'; }, 2500);
+                });
+            });
+        });
+
+        // ---- PayPal compartido ----
+        async function pagarPaypal(cursoId, cursoNombre, codigoDescuento) {
+            if (!currentUser) { abrirModal(); return; }
+            const loading = document.getElementById('loading-pago');
+            loading.querySelector('p').textContent = 'Preparando tu pago con PayPal...';
+            loading.classList.add('visible');
+            try {
+                const token = await currentUser.getIdToken();
+                const response = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ data: { cursoId, cursoNombre, codigoDescuento } })
+                });
+                const data = await response.json();
+                if (data.result?.approve_url) {
+                    window.location.href = data.result.approve_url;
+                } else {
+                    throw new Error(data.error?.message || 'No se pudo crear el pago.');
+                }
+            } catch (err) {
+                loading.classList.remove('visible');
+                loading.querySelector('p').textContent = 'Preparando tu pago...';
+                alert('No se pudo iniciar el pago con PayPal. Por favor intentá de nuevo o escribinos al +54 9 3544 584122.\n' + err.message);
+            }
+        }
+
+        // ---- Slider descripción de curso ----
+        document.querySelectorAll('.toggle-desc-btn').forEach(btn => {
+            const slider = document.getElementById(btn.dataset.slider);
+            btn.addEventListener('click', () => {
+                const isOpen = slider.scrollLeft > 20;
+                slider.scrollTo({ left: isOpen ? 0 : slider.scrollWidth, behavior: 'smooth' });
+            });
+            slider.addEventListener('scroll', () => {
+                const isOpen = slider.scrollLeft > slider.clientWidth * 0.3;
+                btn.classList.toggle('abierto', isOpen);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página en Construcción</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        /* CSS adicional para centrar y animar */
+        body, html {
+            height: 100%;
+            background-color: var(--dark-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px;
+        }
+
+        .maintenance-content {
+            padding: 40px;
+            border-radius: 8px;
+            background-color: rgba(146, 162, 199, 0.9); /* Usamos un color oscuro semitransparente de tu paleta */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 1s ease-in-out;
+            max-width: 800px;
+        }
+
+        .maintenance-content .main-header {
+            padding: 0;
+        }
+
+        .maintenance-content .main-header h1 {
+            color: var(--secondary-color);
+            font-size: 3em;
+            margin-bottom: 0.5em;
+        }
+
+        .maintenance-content p {
+            font-size: 1.2em;
+            text-align: center;
+            font-weight: 300;
+        }
+
+        .maintenance-content a.house-button {
+            margin-top: 20px;
+            border: 2px solid var(--primary-color);
+            background-color: transparent;
+            color: var(--primary-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .maintenance-content a.house-button:hover {
+            background-color: var(--primary-color);
+            color: var(--ligth-color);
+            text-decoration: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .maintenance-content .main-header h1 {
+                font-size: 2em;
+            }
+            .maintenance-content p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-content">
+        <header class="main-header">
+            <h1>Página en Construcción</h1>
+        </header>
+        <p>Estamos trabajando para traer algo nuevo. ¡Regresa pronto!</p>
+        <a href="sebabru.com" class="house-button">
+            <h3>Volver al Inicio</h3>
+        </a>
+    </div>
+</body>
+</html>

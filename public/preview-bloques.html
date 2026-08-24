@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Instagram embed</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #07070a;
+    background: linear-gradient(315deg, #07070a 0%, #0b0518 70%, #04131a 80%, #10101a 100%);
+    font-family: 'Outfit', sans-serif;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+}
+
+/* Blobs de fondo */
+.blob-demo {
+    position: fixed; border-radius: 50%;
+    filter: blur(90px); opacity: 0.3;
+    animation: blob 25s infinite alternate cubic-bezier(0.4,0,0.2,1);
+    z-index: 0; pointer-events: none;
+}
+.b1 { width: 50vw; height: 50vw; background: #3bc2bc; top: -10%; left: -10%; }
+.b2 { width: 60vw; height: 60vw; background: #bfaee0; bottom: -20%; right: -10%; animation-delay: -5s; animation-direction: alternate-reverse; }
+@keyframes blob {
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(8vw,12vh) scale(1.1); }
+    100% { transform: translate(-6vw,-8vh) scale(0.95); }
+}
+
+/* Contenedor del embed */
+.ig-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Clip para ocultar footer/comentarios del embed */
+.ig-clip {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    /* Altura fija: muestra imagen + caption, corta antes de los comentarios */
+    max-height: 560px;
+}
+
+/* Fuerza el ancho del blockquote */
+.ig-clip .instagram-media {
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+</style>
+</head>
+<body>
+
+<div class="blob-demo b1"></div>
+<div class="blob-demo b2"></div>
+
+<div class="ig-wrapper">
+    <div class="ig-clip">
+        <blockquote class="instagram-media" data-instgrm-captioned
+            data-instgrm-permalink="https://www.instagram.com/p/DWG_x-ljogb/?utm_source=ig_embed&amp;utm_campaign=loading"
+            data-instgrm-version="14"
+            style="background:#FFF; border:0; margin:0; max-width:100%; min-width:0; padding:0; width:100%;">
+        </blockquote>
+    </div>
+</div>
+
+<script async src="//www.instagram.com/embed.js"></script>
+</body>
+</html>

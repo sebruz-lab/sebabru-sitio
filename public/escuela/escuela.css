@@ -1,0 +1,530 @@
+/* =========================================
+   1. VARIABLES Y FUENTES (MENU ORIGINAL, FONDO OSCURO)
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+
+:root {
+    /* Recuperamos TUS colores originales exactos */
+    --primary-color: #249b95;    /* VERDE SEBA BRU ORIGINAL */
+    --secondary-color: #f0c516;  /* AMARILLO ORIGINAL */
+    --dark-color: #242c3f;       /* AZUL OSCURO ORIGINAL */
+    --light-color: #cccac3;
+    
+    /* Variables para el contenido oscuro */
+    --bg-base: #07070a;          /* Fondo base negro estelar */
+    --bg-surface: rgba(30, 34, 48, 0.6); /* Acrílico para las cajas de clase */
+    --text-on-dark: #e0e6ed;     /* Gris plata claro para lectura en fondo negro */
+    --text-on-light: #ffffff;    /* Blanco puro para dentro del menú verde */
+}
+
+
+
+/* =========================================
+   3. CONFIGURACIÓN GLOBAL
+   ========================================= */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-base); /* FONDO NEGRO */
+    font-family: 'Google Sans', sans-serif;
+    color: var(--text-on-dark); /* Texto claro por defecto */
+    line-height: 1.6;
+}
+
+.intro-box h1 {
+    font-family: 'Outfit', sans-serif !important;
+    color: var(--primary-color);
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+.intro-box p {
+    font-size: 1.1rem;
+    color: #a0aab5;
+    margin-bottom: 40px;
+}
+
+/* =========================================
+   4. ESTRUCTURA DE ESCRITORIO (PC)
+   ========================================= */
+.aula-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+}
+
+/* --- SIDEBAR IZQUIERDO (REVERTIDO A ORIGINAL) --- */
+.sidebar-panel {
+    background-color: var(--primary-color); /* VERDE SÓLIDO ORIGINAL */
+    color: var(--text-on-light); /* TEXTO BLANCO ORIGINAL */
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar-content {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    min-height: 90%;
+}
+
+.sidebar-header h3 {
+    font-family: 'Outfit', sans-serif;
+    color: var(--secondary-color); /* AMARILLO ORIGINAL */
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+.sidebar-header p {
+    margin-top: 0;
+    opacity: 0.9;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.btn-sidebar-main {
+    display: block;
+    background: rgba(0,0,0,0.2);
+    color: var(--text-on-light);
+    padding: 12px;
+    text-align: center;
+    border-radius: 6px;
+    text-decoration: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    margin: 15px 0;
+    transition: 0.3s;
+    border: none;
+}
+.btn-sidebar-main:hover {
+    background: var(--secondary-color);
+    color: var(--dark-color);
+}
+
+.auto-nav ul { list-style: none; padding: 0; margin-top: 20px; }
+.auto-nav li a {
+    display: block;
+    padding: 12px 10px;
+    color: var(--text-on-light); /* LETRAS BLANCAS ORIGINALES */
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: 0.2s;
+    font-size: 0.95rem;
+}
+.auto-nav li a:hover {
+    background: rgba(255,255,255,0.15);
+    padding-left: 15px;
+    color: var(--secondary-color);
+}
+
+/* Clase visitada en el sidebar */
+.auto-nav li a.visitada {
+    color: rgba(255,255,255,0.55);
+}
+.auto-nav li a.visitada::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: var(--secondary-color);
+    font-size: 0.68rem;
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
+.sidebar-footer { margin-top: auto; padding-top: 20px; text-align: center; }
+.sidebar-footer a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
+.sidebar-footer a:hover { color: var(--secondary-color); }
+
+/* --- CONTENIDO PRINCIPAL --- */
+.main-content {
+    padding: 40px 60px;
+    max-width: 900px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CAJA DE CLASE (Glassmorphism para fondo negro) */
+.clase-item {
+    background: var(--bg-surface);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    margin-bottom: 50px;
+    scroll-margin-top: 100px; 
+}
+
+.clase-header h2 {
+    font-family: 'Outfit', sans-serif;
+    color: var(--primary-color);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
+    font-size: 1.6rem;
+    margin-top: 0;
+}
+.num {
+    background: var(--secondary-color);
+    color: var(--dark-color);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+/* VIDEOS */
+.video-container, .aula-video {
+    width: 100% !important;
+    max-width: 100%;
+    aspect-ratio: 16 / 9; 
+    padding-bottom: 0; 
+    height: auto;
+    position: relative;
+    background: #000;
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+}
+
+.aula-video { padding-bottom: 56.25%; height: 0; aspect-ratio: auto; } /* Fallback para aula-video */
+
+.video-container iframe, .aula-video iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0;
+}
+
+/* --- DESPLEGABLE Y PDF --- */
+.material-desplegable summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 15px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
+    list-style: none;
+    color: var(--text-light);
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    align-items: center;
+    transition: background 0.3s;
+}
+.material-desplegable summary:hover { background: rgba(255,255,255,0.05); }
+
+/* Ocultar triángulo nativo del browser */
+.material-desplegable summary::-webkit-details-marker { display: none; }
+.material-desplegable summary::marker { display: none; }
+
+/* Chevron Font Awesome que rota al abrir */
+.material-desplegable summary::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-left: auto;
+    font-size: 0.72rem;
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: transform 0.25s ease, opacity 0.2s;
+}
+.material-desplegable[open] > summary::after {
+    transform: rotate(180deg);
+    opacity: 0.9;
+}
+
+.contenido-desplegable { padding: 20px 0; text-align: left; }
+
+.pdf-wrapper {
+    position: relative;
+    width: 100%;
+    height: 600px; 
+    margin-top: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #111; 
+    border-radius: 8px;
+    overflow: hidden;
+}
+.btn-expandir {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: var(--text-light);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 10;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.btn-expandir:hover { background: var(--primary-color); color: var(--dark-color); border-color: var(--primary-color); }
+.pdf-iframe { width: 100%; height: 100%; border: none; }
+
+.pdf-wrapper.fullscreen-mode {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: 9999; background: black; border: none; border-radius: 0;
+}
+.pdf-wrapper.fullscreen-mode .btn-expandir { background: var(--secondary-color); color: black; border: none; }
+
+.btn-external {
+    display: block !important; 
+    width: fit-content; 
+    margin: 15px auto 0 auto !important; 
+    padding: 12px 25px;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+.btn-external:hover { background-color: var(--dark-color); transform: translateY(-2px); }
+
+/* Estilos para las pestañas de video */
+.video-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+.tab-btn {
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background-color: rgba(0,0,0,0.3);
+    color: var(--text-dark);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.tab-btn.active, .tab-btn:hover { background-color: var(--primary-color); color: var(--text-light); border-color: var(--primary-color); }
+
+
+/* =========================================
+   5. VERSIÓN MÓVIL (MENU REVERTIDO)
+   ========================================= */
+.mobile-header { display: none; }
+
+@media (max-width: 768px) {
+    .aula-layout { display: block; }
+
+    .mobile-header {
+        display: flex; justify-content: space-between; align-items: center;
+        background-color: var(--primary-color); /* VERDE SÓLIDO ORIGINAL */
+        color: white; padding: 0 20px; height: 60px;
+        position: fixed; top: 0; left: 0; width: 100%;
+        z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); box-sizing: border-box;
+    }
+    .mobile-title { font-family: 'Outfit', sans-serif; font-size: 0.9rem; color: white; }
+    .hamburger-btn {
+        background: transparent; border: 1px solid rgba(255,255,255,0.6); color: white;
+        padding: 6px 12px; border-radius: 4px; font-family: 'Outfit', sans-serif;
+        font-size: 0.8rem; cursor: pointer;
+    }
+
+    .sidebar-panel {
+        position: fixed; top: 60px; left: 0; width: 100%; height: 75vh;
+        transform: translateY(-150%); transition: transform 0.4s ease-in-out;
+        box-shadow: none; background-color: var(--primary-color); /* VERDE SÓLIDO ORIGINAL */
+        border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; z-index: 1500;
+        border-right: none;
+    }
+    .sidebar-panel.active { transform: translateY(0); box-shadow: 0 100vh 0 rgba(0,0,0,0.5); z-index: 99999 !important; }
+
+    .main-content { padding: 80px 15px 40px 15px; width: 100%; min-width: 0; box-sizing: border-box; }
+    .intro-box h1 { font-size: 1.8rem; }
+    .pdf-wrapper { height: 400px; }
+    .clase-item { padding: 20px 16px; }
+    .clase-header h2 { font-size: 1.2rem; }
+    .material-desplegable summary { padding: 12px; font-size: 0.88rem; }
+}
+
+/* =========================================
+   6. ESTILOS DE LA GALERÍA (INDEX ESCUELA - ADAPTADO)
+   ========================================= */
+.bg-escuela {
+    background-color: var(--bg-base); /* Fondo Negro */
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+}
+.school-header {
+    text-align: center; padding: 60px 20px 40px; width: 100%;
+    background: transparent;
+    color: white;
+    margin-bottom: 40px;
+}
+.school-header h1 { font-family: 'Outfit', sans-serif; color: white; margin: 0; font-size: 2.5rem; }
+.back-link { display: inline-block; margin-top: 15px; color: white; text-decoration: none; font-size: 0.9rem; font-weight: bold; opacity: 0.8;}
+.back-link:hover { text-decoration: underline; opacity: 1; }
+
+.courses-container {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px; max-width: 1200px; width: 90%; padding-bottom: 60px;
+}
+.course-card {
+    background: var(--bg-surface); /* Acrílico Oscuro */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px; overflow: hidden; text-decoration: none;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative; display: flex; flex-direction: column;
+}
+.course-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
+.card-image { position: relative; width: 100%; padding-top: 125%; overflow: hidden; }
+
+.card-image img, .card-image video {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; transition: transform 0.5s ease; opacity: 0.8;
+}
+.course-card:hover .card-image img, .course-card:hover .card-image video { transform: scale(1.1); opacity: 1; }
+
+.overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(36, 155, 149, 0.85); /* Overlay verde original */
+    display: flex; justify-content: center; align-items: center;
+    color: white; font-family: 'Outfit', sans-serif; font-size: 1.2rem;
+    opacity: 0; transition: opacity 0.3s ease; gap: 8px; z-index: 2;
+}
+.course-card:hover .overlay { opacity: 1; }
+.course-card h3 { text-align: center; padding: 20px; margin: 0; color: var(--text-light); font-family: 'Outfit', sans-serif; font-size: 1rem; }
+
+/* =========================================
+   7. MODAL LOGIN / REGISTRO (ADAPTADO OSCURO)
+   ========================================= */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
+    z-index: 9999; backdrop-filter: blur(5px); 
+}
+.modal-overlay.active { display: flex; }
+
+.modal-box {
+    background: var(--bg-surface);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;
+    position: relative; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    animation: aparecer 0.3s ease-out;
+}
+
+@keyframes aparecer { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2rem; color: rgba(255,255,255,0.5); cursor: pointer; transition: color 0.3s; }
+.close-btn:hover { color: var(--text-light); }
+
+.modal-box h2 { font-family: 'Outfit', sans-serif; color: var(--primary-color); margin-bottom: 10px; }
+.modal-box p { color: var(--text-dark); margin-bottom: 20px; }
+
+form { display: flex; flex-direction: column; gap: 15px; }
+
+input {
+    padding: 12px 15px;
+    background: rgba(0,0,0,0.3);
+    color: var(--text-light);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; font-size: 1rem; font-family: 'Montserrat', sans-serif; outline: none; transition: border-color 0.3s;
+}
+input::placeholder { color: rgba(255,255,255,0.3); }
+input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.5); }
+
+.btn-login {
+    background: var(--primary-color); color: var(--text-light); border: none; padding: 14px;
+    font-family: 'Outfit', sans-serif; cursor: pointer; font-size: 1rem; border-radius: 8px;
+    transition: transform 0.2s, background 0.3s;
+}
+.btn-login:hover { background: var(--dark-color); transform: translateY(-2px); }
+
+.modal-box a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.modal-box a:hover { text-decoration: underline; }
+
+.error-msg { background-color: rgba(198, 40, 40, 0.2); color: #ef9a9a; padding: 10px; border-radius: 6px; font-size: 0.9rem; border: 1px solid rgba(239, 154, 154, 0.3); }
+
+/* =========================================
+   8. AJUSTES FINALES PARA MÓVIL (Galería Adaptada)
+   ========================================= */
+@media (max-width: 768px) {
+    .courses-container { width: 95%; gap: 20px; }
+    .course-card h3 { font-size: 0.9rem; padding: 15px; }
+    .overlay { opacity: 1 !important; background: transparent !important; padding: 0; font-size: 0; top: 15px; right: 15px; }
+    .overlay i { font-size: 1.6rem; color: white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+}
+
+/* =========================================
+   9. SEGURIDAD (SPINNER ADAPTADO)
+   ========================================= */
+#security-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-base); /* Fondo negro de carga */
+    z-index: 99999; display: flex; justify-content: center; align-items: center; flex-direction: column;
+}
+
+.spinner {
+    border: 4px solid rgba(255,255,255,0.1);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%; width: 40px; height: 40px;
+    animation: spin 1s linear infinite; margin-bottom: 15px;
+}
+
+.texto-seguridad { font-family: 'Montserrat', sans-serif; color: var(--text-dark); font-size: 1rem; }
+.error-seguridad { color: #ef9a9a; font-weight: bold; display: none; }
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* =========================================
+   10. CLASES COMPLEMENTARIAS (SIDEBAR)
+   ========================================= */
+.complementarias-nav {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 15px;
+}
+.complementarias-nav details > summary {
+    list-style: none;
+    cursor: pointer;
+    color: var(--secondary-color);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 400;
+}
+.complementarias-nav details > summary::-webkit-details-marker { display: none; }
+.complementarias-nav details > summary::marker { display: none; }
+.complementarias-nav details > summary::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-left: auto;
+    font-size: 0.62rem;
+    opacity: 0.6;
+    transition: transform 0.25s ease;
+}
+.complementarias-nav details[open] > summary::after { transform: rotate(180deg); }
+
+.complementarias-nav ul { list-style: none; padding: 0; margin-top: 6px; }
+.complementarias-nav ul li a {
+    display: block;
+    padding: 10px 10px;
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transition: 0.2s;
+    font-size: 0.88rem;
+    line-height: 1.4;
+}
+.complementarias-nav ul li a:hover {
+    background: rgba(255,255,255,0.15);
+    padding-left: 15px;
+    color: var(--secondary-color);
+}

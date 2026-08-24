@@ -1,0 +1,707 @@
+/* =========================================
+   ESTILOS GLOBALES SECCIÓN SIGNOS (DARK MODE)
+   ========================================= */
+
+/* Colores Base Aries (Ajustados para resaltar sobre fondo oscuro) */
+:root {
+    --aries-primary: #ff4d4d; /* Rojo más brillante/neón para contrastar */
+    --aries-secondary: #ff9d00; /* Naranja encendido */
+    --aries-accent: #ffe033; /* Dorado claro */
+    --aries-bg-light: rgba(178, 34, 34, 0.15); /* Fondo suave translúcido para destacados */
+}
+
+.main-content {
+    padding-top: 20px;
+}
+
+/* --- HEADER DEL SIGNO --- */
+.signo-header {
+    text-align: center;
+    padding: 60px 20px;
+    margin-bottom: 40px;
+    border-radius: 0 0 50px 50px;
+    color: var(--text-light); /* Usamos el blanco de tu style.css */
+    
+    
+}
+/* El Header de Aries ahora usa un gradiente con transparencia para fundirse con el fondo */
+.signo-header.aries-theme {
+    background: linear-gradient(135deg, rgba(204, 51, 51, 0.8) 0%, rgba(139, 0, 0, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(178, 34, 34, 0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.signo-icon-big {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    color: var(--aries-accent);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.4); /* Resplandor dorado */
+}
+
+.signo-header h1 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 400;
+    font-size: 3.5rem;
+    margin: 0;
+    text-transform: uppercase;
+}
+.signo-header h4 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 300;
+    font-size: 1rem;
+    margin: 0;
+    text-align: center;
+}
+.signo-header .subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+/* --- SECCIÓN INSTAGRAM --- */
+.instagram-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+/* --- SECCIÓN DESPLEGABLES (Accordions) --- */
+.desplegables-section {
+    max-width: 1000px;
+   margin: 80px auto; /* Centrado perfecto: arriba/abajo 80px, costados automático */
+    padding: 0 20px;   /* Un poquito de aire para que en tablets no toque los bordes */
+    text-align: center;
+    width: 100%;       /* Asegura que ocupe el ancho disponible */
+    box-sizing: border-box;
+    text-align: center
+}
+
+.section-introText {
+    text-align: center;
+    color: var(--text-dark); /* Gris plata claro del style.css */
+    max-width: 600px;
+    margin: 0 auto 40px auto;
+    text-align: center;
+}
+
+/* =========================================
+   GRILLA DE COLUMNAS
+   ========================================= */
+
+.desplegables-grid {
+    display: grid;
+    gap: 15px; 
+    width: 100%;
+    align-items: start;
+}
+
+@media (min-width: 768px) {
+    .planetas-grid, .casas-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 767px) {
+    .planetas-grid, .casas-grid { grid-template-columns: repeat(1, 1fr); }
+}
+
+/* =========================================
+   ESTILO DE LOS ACORDEONES (GLASSMORPHISM)
+   ========================================= */
+
+/* Estilo base del item <details> */
+.desplegable-item {
+    /* Fondo acrílico oscuro */
+    background-color: rgba(30, 34, 48, 0.5); 
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    
+    border-radius: 15px;
+    overflow: hidden; 
+    transition: all 0.3s ease;
+    
+    /* Borde sutil brillante */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.desplegable-item:hover {
+    background-color: rgba(45, 52, 75, 0.6);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Cuando está abierto ocupa todo el ancho y se ilumina con el color del signo */
+.desplegable-item[open] {
+    grid-column: 1 / -1; 
+    background-color: rgba(30, 34, 48, 0.8);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 
+                0 0 20px rgba(255, 77, 77, 0.15); /* Resplandor rojo tenue */
+    border-color: rgba(255, 77, 77, 0.3); /* Borde rojo tenue */
+}
+
+/* Estilo del <summary> (el botón cabecera) */
+.desplegable-item summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    cursor: pointer;
+    list-style: none; 
+    user-select: none;
+}
+.desplegable-item summary::-webkit-details-marker { display: none; }
+
+/* Contenido dentro del summary */
+.summary-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* --- ÍCONOS (SVG e Iniciales) --- */
+.icon-initial {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Color inicial del SVG en reposo */
+.icon-initial svg {
+    fill: var(--text-dark); /* Empieza siendo gris clarito */
+    width: 48%;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.icon-planet, .icon-house {
+    width: 0px;
+    height: 0px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    background-color: rgba(255,255,255,0.05); /* Circulito tenue */
+    color: var(--text-dark);
+}
+
+.icon-house {
+    font-family: 'Lemon Milk', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+/* Títulos en summary */
+.desplegable-item summary h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-light); /* Blanco */
+    transition: color 0.3s ease;
+}
+
+/* Caret (flechita) */
+.caret {
+    font-size: 1rem;
+    color: var(--text-dark);
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.desplegable-item[open] summary .caret {
+    transform: rotate(180deg);
+}
+
+/* CONTENIDO DESPLEGADO */
+.desplegable-content {
+    padding: 0 25px 25px 25px;
+    border-top: 1px solid rgba(255,255,255,0.05); /* Separador sutil */
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.desplegable-content p {
+    color: var(--text-dark); /* Gris plata claro */
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+/* Estilo Visualización (Caja destacada adentro del texto) */
+.visualizacion {
+    background-color: var(--aries-bg-light); /* Fondo rojo muy translúcido */
+    border-left: 4px solid var(--aries-primary); /* Borde rojo vivo */
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+.visualizacion p { margin: 0; color: var(--text-light); }
+
+/* --- TEMATIZACIÓN ARIES ACTIVA (HOVER Y OPEN) --- */
+
+/* Cuando pasas el mouse o abrís, el SVG, el texto y la flecha se prenden fuego */
+.desplegable-item.aries-theme:hover summary .icon-initial svg,
+.desplegable-item.aries-theme[open] summary .icon-initial svg {
+    fill: var(--aries-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(255, 77, 77, 0.5)); /* Resplandor al ícono */
+}
+
+.desplegable-item.aries-theme:hover summary h3,
+.desplegable-item.aries-theme[open] summary h3 {
+    color: var(--aries-primary);
+    text-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+}
+
+.desplegable-item.aries-theme:hover summary .caret,
+.desplegable-item.aries-theme[open] summary .caret {
+    color: var(--aries-primary);
+}
+
+/* Ajustes especiales íconos si usás las iniciales viejas en lugar de SVG */
+.desplegable-item.aries-theme:hover summary .icon-planet,
+.desplegable-item.aries-theme:hover summary .icon-house,
+.desplegable-item.aries-theme[open] summary .icon-planet,
+.desplegable-item.aries-theme[open] summary .icon-house {
+    background-color: var(--aries-primary);
+    color: white;
+    box-shadow: 0 4px 10px rgba(255, 77, 77, 0.3);
+}
+
+.black-moon { color: var(--text-dark); } 
+.desplegable-item.aries-theme:hover .black-moon,
+.desplegable-item.aries-theme[open] .black-moon { color: white; } 
+
+/* Separador de sección */
+.separa-seccion {
+    text-align: center;
+    font-size: 2rem;
+    margin: 60px 0;
+    position: relative;
+    color: var(--text-dark);
+}
+.separa-seccion::before, .separa-seccion::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background-color: rgba(255,255,255,0.1); /* Línea blanca muy tenue */
+}
+.separa-seccion::before { left: 10%; }
+.separa-seccion::after { right: 10%; }
+.separa-seccion.aries-theme i { 
+    color: var(--aries-secondary); 
+    text-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
+}
+
+/* =========================================
+   AJUSTES MÓVIL
+   ========================================= */
+@media (max-width: 768px) {
+    .signo-header { padding: 40px 15px; }
+    .signo-header h1 { font-size: 2.5rem; }
+    .signo-icon-big { font-size: 3rem; }
+
+    .summary-content { gap: 10px; }
+    .icon-planet, .icon-house { width: 40px; height: 40px; font-size: 1.2rem; }
+    .icon-house { font-size: 1.5rem; }
+    .desplegable-item summary h3 { font-size: 1.1rem; }
+    .desplegable-content { padding: 0 15px 15px 15px; }
+}
+
+/* =========================================
+   TAURO THEME
+   ========================================= */
+:root {
+    --tauro-primary: #249b95;
+    --tauro-bg-light: rgba(36, 155, 149, 0.12);
+}
+
+.signo-header.tauro-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+/* Subtítulos del artículo */
+.tauro-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--tauro-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+
+.tauro-titulo:first-child { margin-top: 0; }
+
+/* Tauro: hover/open en acordeones */
+.desplegable-item.tauro-theme:hover summary .icon-initial svg,
+.desplegable-item.tauro-theme[open] summary .icon-initial svg {
+    fill: var(--tauro-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(36, 155, 149, 0.5));
+}
+
+.desplegable-item.tauro-theme:hover summary h3,
+.desplegable-item.tauro-theme[open] summary h3 {
+    color: var(--tauro-primary);
+    text-shadow: 0 0 10px rgba(36, 155, 149, 0.3);
+}
+
+.desplegable-item.tauro-theme:hover summary .caret,
+.desplegable-item.tauro-theme[open] summary .caret {
+    color: var(--tauro-primary);
+}
+
+.desplegable-item.tauro-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(36, 155, 149, 0.15);
+    border-color: rgba(36, 155, 149, 0.3);
+}
+
+.visualizacion.tauro {
+    background-color: var(--tauro-bg-light);
+    border-left: 4px solid var(--tauro-primary);
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+
+.visualizacion.tauro p { margin: 0; color: var(--text-light); }
+
+.separa-seccion.tauro-theme i {
+    color: var(--tauro-primary);
+    text-shadow: 0 0 15px rgba(36, 155, 149, 0.4);
+}
+
+/* =========================================
+   GÉMINIS THEME
+   ========================================= */
+:root {
+    --geminis-primary: #f0c516;
+    --geminis-bg-light: rgba(240, 197, 22, 0.12);
+}
+
+.signo-header.geminis-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.geminis-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--geminis-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.geminis-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.geminis-theme:hover summary .icon-initial svg,
+.desplegable-item.geminis-theme[open] summary .icon-initial svg {
+    fill: var(--geminis-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(240, 197, 22, 0.5));
+}
+.desplegable-item.geminis-theme:hover summary h3,
+.desplegable-item.geminis-theme[open] summary h3 {
+    color: var(--geminis-primary);
+    text-shadow: 0 0 10px rgba(240, 197, 22, 0.3);
+}
+.desplegable-item.geminis-theme:hover summary .caret,
+.desplegable-item.geminis-theme[open] summary .caret {
+    color: var(--geminis-primary);
+}
+.desplegable-item.geminis-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(240, 197, 22, 0.15);
+    border-color: rgba(240, 197, 22, 0.3);
+}
+
+.visualizacion.geminis {
+    background-color: var(--geminis-bg-light);
+    border-left: 4px solid var(--geminis-primary);
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+.visualizacion.geminis p { margin: 0; color: var(--text-light); }
+
+.separa-seccion.geminis-theme i {
+    color: var(--geminis-primary);
+    text-shadow: 0 0 15px rgba(240, 197, 22, 0.4);
+}
+
+/* =========================================
+   CÁNCER THEME
+   ========================================= */
+:root {
+    --cancer-primary: #242c3f;
+    --cancer-bg-light: rgba(36, 44, 63, 0.12);
+}
+
+.signo-header.cancer-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.cancer-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--cancer-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.cancer-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.cancer-theme:hover summary .icon-initial svg,
+.desplegable-item.cancer-theme[open] summary .icon-initial svg {
+    fill: var(--cancer-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(36, 44, 63, 0.5));
+}
+.desplegable-item.cancer-theme:hover summary h3,
+.desplegable-item.cancer-theme[open] summary h3 {
+    color: var(--cancer-primary);
+    text-shadow: 0 0 10px rgba(36, 44, 63, 0.3);
+}
+.desplegable-item.cancer-theme:hover summary .caret,
+.desplegable-item.cancer-theme[open] summary .caret {
+    color: var(--cancer-primary);
+}
+.desplegable-item.cancer-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(36, 44, 63, 0.15);
+    border-color: rgba(36, 44, 63, 0.3);
+}
+
+/* =========================================
+   LEO THEME
+   ========================================= */
+:root {
+    --leo-primary: #ff4d4d;
+    --leo-secondary: #ff9d00;
+    --leo-bg-light: rgba(178, 34, 34, 0.15);
+}
+
+.signo-header.leo-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.leo-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--leo-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.leo-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.leo-theme:hover summary .icon-initial svg,
+.desplegable-item.leo-theme[open] summary .icon-initial svg {
+    fill: var(--leo-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(255, 77, 77, 0.5));
+}
+.desplegable-item.leo-theme:hover summary h3,
+.desplegable-item.leo-theme[open] summary h3 {
+    color: var(--leo-primary);
+    text-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+}
+.desplegable-item.leo-theme:hover summary .caret,
+.desplegable-item.leo-theme[open] summary .caret {
+    color: var(--leo-primary);
+}
+.desplegable-item.leo-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(255, 77, 77, 0.15);
+    border-color: rgba(255, 77, 77, 0.3);
+}
+
+.visualizacion.leo {
+    background-color: var(--leo-bg-light);
+    border-left: 4px solid var(--leo-primary);
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+.visualizacion.leo p { margin: 0; color: var(--text-light); }
+
+.separa-seccion.leo-theme i {
+    color: var(--leo-secondary);
+    text-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
+}
+
+/* =========================================
+   VIRGO THEME
+   ========================================= */
+:root {
+    --virgo-primary: #249b95;
+    --virgo-bg-light: rgba(36, 155, 149, 0.12);
+}
+
+.signo-header.virgo-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.virgo-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--virgo-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.virgo-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.virgo-theme:hover summary .icon-initial svg,
+.desplegable-item.virgo-theme[open] summary .icon-initial svg {
+    fill: var(--virgo-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(36, 155, 149, 0.5));
+}
+.desplegable-item.virgo-theme:hover summary h3,
+.desplegable-item.virgo-theme[open] summary h3 {
+    color: var(--virgo-primary);
+    text-shadow: 0 0 10px rgba(36, 155, 149, 0.3);
+}
+.desplegable-item.virgo-theme:hover summary .caret,
+.desplegable-item.virgo-theme[open] summary .caret {
+    color: var(--virgo-primary);
+}
+.desplegable-item.virgo-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(36, 155, 149, 0.15);
+    border-color: rgba(36, 155, 149, 0.3);
+}
+
+.visualizacion.virgo {
+    background-color: var(--virgo-bg-light);
+    border-left: 4px solid var(--virgo-primary);
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+.visualizacion.virgo p { margin: 0; color: var(--text-light); }
+
+.separa-seccion.virgo-theme i {
+    color: var(--virgo-primary);
+    text-shadow: 0 0 15px rgba(36, 155, 149, 0.4);
+}
+
+/* =========================================
+   GRILLA ÍNDICE DE SIGNOS (/signos/)
+   ========================================= */
+.signos-index-header {
+    text-align: center;
+    padding: 60px 20px 20px;
+    color: var(--text-light);
+}
+.signos-index-header h1 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 400;
+    font-size: 3rem;
+    margin: 0;
+    text-transform: uppercase;
+}
+.signos-index-header p {
+    color: var(--text-dark);
+    max-width: 500px;
+    margin: 15px auto 0;
+}
+
+.signos-index-grid {
+    max-width: 900px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+.signo-card {
+    background-color: rgba(30, 34, 48, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    padding: 30px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.signo-card .signo-card-symbol {
+    font-size: 2.8rem;
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+
+.signo-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 400;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+.signo-card:hover {
+    background-color: rgba(45, 52, 75, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+}
+
+.signo-card.aries-theme:hover .signo-card-symbol,
+.signo-card.aries-theme:hover h3 { color: var(--aries-primary); }
+.signo-card.aries-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
+
+.signo-card.tauro-theme:hover .signo-card-symbol,
+.signo-card.tauro-theme:hover h3 { color: var(--tauro-primary); }
+.signo-card.tauro-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 155, 149, 0.5); }
+
+.signo-card.geminis-theme:hover .signo-card-symbol,
+.signo-card.geminis-theme:hover h3 { color: var(--geminis-primary); }
+.signo-card.geminis-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(240, 197, 22, 0.5); }
+
+.signo-card.cancer-theme:hover .signo-card-symbol,
+.signo-card.cancer-theme:hover h3 { color: var(--cancer-primary); }
+.signo-card.cancer-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 44, 63, 0.5); }
+
+.signo-card.leo-theme:hover .signo-card-symbol,
+.signo-card.leo-theme:hover h3 { color: var(--leo-primary); }
+.signo-card.leo-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
+
+.signo-card.virgo-theme:hover .signo-card-symbol,
+.signo-card.virgo-theme:hover h3 { color: var(--virgo-primary); }
+.signo-card.virgo-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 155, 149, 0.5); }

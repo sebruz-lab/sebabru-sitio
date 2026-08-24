@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Pago exitoso! | Seba Bru</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #0d0d0d;
+            color: #f0f0f0;
+            font-family: 'Outfit', sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .gracias-box { max-width: 520px; }
+        .icono { font-size: 4rem; color: #249b95; margin-bottom: 20px; }
+        .icono.error { color: #e05555; }
+        .icono.spinner { color: #249b95; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h1 { font-size: 1.8rem; margin-bottom: 10px; }
+        p { font-size: 0.95rem; opacity: 0.75; line-height: 1.7; margin-bottom: 20px; }
+        .btn {
+            display: inline-block;
+            background: #249b95;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+            margin-top: 10px;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-secondary {
+            display: inline-block;
+            background: transparent;
+            color: #aaa;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255,255,255,0.15);
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+        .btn-secondary:hover { opacity: 0.7; }
+        #estado-activando, #estado-exito, #estado-error, #estado-generico { display: none; }
+    </style>
+</head>
+<body>
+    <div class="gracias-box">
+
+        <!-- Verificando pago -->
+        <div id="estado-activando">
+            <div class="icono spinner"><i class="fa-solid fa-circle-notch"></i></div>
+            <h1>Activando tu acceso...</h1>
+            <p>Estamos verificando tu pago con Mercado Pago.<br>No cierres esta página.</p>
+        </div>
+
+        <!-- Acceso activado -->
+        <div id="estado-exito">
+            <div class="icono"><i class="fa-solid fa-circle-check"></i></div>
+            <h1>¡Tu acceso está listo!</h1>
+            <p>Tu pago fue aprobado y el curso ya está disponible en tu cuenta.<br>
+               También te enviamos un email de confirmación.</p>
+            <a id="btn-curso" href="/escuela/abierta/" class="btn">
+                <i class="fa-solid fa-play"></i> Ir al curso
+            </a>
+            <br>
+            <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
+        </div>
+
+        <!-- Error al verificar -->
+        <div id="estado-error">
+            <div class="icono error"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h1>Hubo un problema</h1>
+            <p id="msg-error">No pudimos verificar tu pago en este momento.</p>
+            <p style="font-size:0.85rem; opacity:0.55;">
+                Si tu pago fue aprobado, el acceso se va a activar en unos minutos automáticamente.<br>
+                Si el problema persiste, escribinos al
+                <a href="https://wa.me/5493544584122" style="color:#249b95;">+54 9 3544 584122</a>.
+            </p>
+            <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
+        </div>
+
+        <!-- Sin payment_id (acceso directo a la página) -->
+        <div id="estado-generico">
+            <div class="icono"><i class="fa-solid fa-circle-check"></i></div>
+            <h1>¡Muchas gracias!</h1>
+            <p>Tu pago fue procesado exitosamente.<br>
+               En unos minutos vas a recibir un email con el link para acceder a tu curso.</p>
+            <p style="font-size:0.8rem; opacity:0.5;">Si no lo recibís, revisá tu carpeta de spam.</p>
+            <a href="index.html" class="btn">
+                <i class="fa-solid fa-arrow-left"></i> Volver a Cursos Abiertos
+            </a>
+        </div>
+
+    </div>
+
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyD4MOeUZGrlbwrqSnTjRY9BT_-x8L6Hn3s",
+        authDomain: "sebabru-e5563.firebaseapp.com",
+        projectId: "sebabru-e5563",
+        storageBucket: "sebabru-e5563.firebasestorage.app",
+        messagingSenderId: "485871026732",
+        appId: "1:485871026732:web:9083310f93687055f4c789"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      const VERIFY_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/verificarPagoMP';
+
+      const params = new URLSearchParams(window.location.search);
+      const paymentId = params.get('payment_id');
+      const status    = params.get('status');
+
+      function mostrar(id) {
+        ['estado-activando','estado-exito','estado-error','estado-generico']
+          .forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none');
+      }
+
+      if (!paymentId || status !== 'approved') {
+        mostrar('estado-generico');
+      } else {
+        mostrar('estado-activando');
+
+        onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            mostrar('estado-error');
+            document.getElementById('msg-error').textContent =
+              'No pudimos identificar tu sesión. Iniciá sesión e ingresá a tu curso desde Cursos Abiertos.';
+            return;
+          }
+
+          try {
+            const token = await user.getIdToken();
+            const resp = await fetch(VERIFY_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ paymentId })
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data.ok) {
+              document.getElementById('btn-curso').href = data.cursoUrl;
+              mostrar('estado-exito');
+            } else {
+              document.getElementById('msg-error').textContent =
+                data.error || 'No pudimos verificar tu pago en este momento.';
+              mostrar('estado-error');
+            }
+          } catch (err) {
+            document.getElementById('msg-error').textContent =
+              'Error de conexión. Intentá recargar la página.';
+            mostrar('estado-error');
+          }
+        });
+      }
+    </script>
+</body>
+</html>

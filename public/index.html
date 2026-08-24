@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seba Bru | Astrología de los devenires</title>
+    <meta name="description" content="Formaciones, Libros, Consultas y Contenidos gratuitos para acompañarte a descubrir las fuerzas activas para convertirte en quien en verdad sos.">
+    
+    <!-- CSS crítico inline (primera pantalla) -->
+    <style>
+*{box-sizing:border-box}
+:root{--bg-base:#07070a;--bg-surface:#12141d;--bg-surface-hover:#1a1c29;--primary-color:#3bc2bc;--secondary-color:#f7d239;--dark-color:#e0e6ed;--light-color:#2a2d38;--consultas-color:#bfaee0;--contenido-color:#f56d96;--text-light:#ffffff;--text-dark:#e0e0e0;--spotify-color:#1DB954;--youtube-color:#FF0000}
+html,body{margin:0;padding:0;width:100%;background-color:var(--bg-base);font-size:14px}
+body{font-family:'Outfit',sans-serif;letter-spacing:.2px;line-height:1.8;color:var(--text-dark);overflow-x:hidden;background:linear-gradient(315deg,#07070a 0%,#0b0518 70%,#04131a 80%,#10101a 100%);animation:gradient 15s ease infinite;background-size:400% 400%;background-attachment:fixed}
+@keyframes gradient{0%{background-position:0% 0%}50%{background-position:100% 100%}100%{background-position:0% 0%}}
+main{max-width:1200px;margin:0 auto;padding:60px 20px}
+@media(max-width:768px){main{padding:20px 15px;font-size:14px}}
+.main-header{padding:2rem 1rem;text-align:center;text-wrap:balance}
+.main-header h1{font-family:'Outfit',sans-serif;font-weight:350;color:var(--dark-color);font-size:3em;text-shadow:1px 1px 1px rgba(0,0,0,.1);text-transform:uppercase;text-wrap:balance;opacity:.8;line-height:1.1}
+.main-header h3{font-family:'Outfit',sans-serif;font-weight:350;color:var(--dark-color);font-size:.85em;text-transform:uppercase;text-wrap:balance;text-align:center}
+h2{font-family:'Outfit',sans-serif;font-weight:300;text-align:left;margin-top:0;margin-bottom:1.5rem;font-size:2em;text-transform:uppercase;text-wrap:balance;line-height:1.2}
+h3,h4,h5,h6{font-family:'Outfit',sans-serif;font-weight:200;text-transform:uppercase;text-wrap:balance;text-align:left;line-height:1.3}
+p{text-align:left;text-align-last:left}
+a{color:var(--primary-color);text-decoration:none}
+a:hover{text-decoration:underline}
+.hamburger-menu{position:fixed;top:25px;right:25px;z-index:1000000!important}
+.menu-toggle{display:none!important}
+.menu-button{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;width:30px;height:22px;cursor:pointer;z-index:1000001!important;position:relative}
+.menu-button .bar{width:6px;height:6px;background-color:rgba(224,230,237,.9);border-radius:50%;transition:all .4s cubic-bezier(.23,1,.32,1)}
+.menu-button:hover .bar{background-color:var(--primary-color);box-shadow:0 0 10px rgba(59,194,188,.5)}
+.menu-toggle:checked + .menu-button .bar{border-radius:2px;background-color:var(--primary-color)}
+.menu-toggle:checked + .menu-button .bar:nth-child(1){width:100%;transform:translateY(8px) rotate(45deg)}
+.menu-toggle:checked + .menu-button .bar:nth-child(2){opacity:0;transform:scale(0)}
+.menu-toggle:checked + .menu-button .bar:nth-child(3){width:100%;transform:translateY(-8px) rotate(-45deg)}
+.menu-list{list-style:none!important;padding:0!important;margin:0!important;position:fixed;top:0;right:-100%;width:320px;height:100vh;background:rgba(10,10,15,.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center;align-items:center;transition:right .6s cubic-bezier(.23,1,.32,1);z-index:999999!important;border-left:1px solid rgba(255,255,255,.05);box-shadow:-10px 0 30px rgba(0,0,0,.5)}
+.menu-toggle:checked ~ .menu-list{right:0}
+.menu-list li{width:100%;text-align:center;padding:15px 0;opacity:0;transform:translateX(20px);transition:all .4s ease}
+.menu-toggle:checked ~ .menu-list li{opacity:1;transform:translateX(0)}
+.menu-list li a{color:#fff!important;font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:400;text-decoration:none;text-transform:uppercase;letter-spacing:3px;display:block;transition:all .3s ease}
+.menu-list li a:hover{color:var(--primary-color)!important;letter-spacing:5px}
+@media(max-width:768px){.menu-list{width:100%;opacity:.9}}
+.luciernagas-container{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+.luciernagas-container::before,.luciernagas-container::after{content:'';position:absolute;width:3px;height:3px;background:transparent;border-radius:50%;box-shadow:15vw 15vh rgba(247,210,57,.9),30vw 55vh rgba(247,210,57,.7),55vw 25vh rgba(247,210,57,.9),70vw 70vh rgba(247,210,57,.8),85vw 10vh rgba(247,210,57,.7),10vw 80vh rgba(247,210,57,.9),45vw 45vh rgba(247,210,57,.8),60vw 90vh rgba(247,210,57,.9);filter:blur(1.5px);animation:flotarYTitilar 30s infinite alternate}
+.luciernagas-container::after{width:2px;height:2px;box-shadow:25vw 25vh rgba(247,210,57,.6),60vw 60vh rgba(247,210,57,.5),90vw 40vh rgba(247,210,57,.7),10vw 10vh rgba(247,210,57,.5),40vw 90vh rgba(247,210,57,.6);animation:flotarYTitilarFondo 45s -5s infinite alternate;filter:blur(1px)}
+@keyframes flotarYTitilar{0%{transform:translate(0,0) scale(1);opacity:.1}25%{transform:translate(5vw,5vh) scale(1.2);opacity:1}50%{transform:translate(10vw,-5vh) scale(.8);opacity:.3}75%{transform:translate(-5vw,10vh) scale(1.2);opacity:1}100%{transform:translate(-10vw,-10vh) scale(1);opacity:.1}}
+@keyframes flotarYTitilarFondo{0%{transform:translate(0,0) scale(1);opacity:0}33%{transform:translate(10vw,-5vh) scale(1.1);opacity:.8}66%{transform:translate(-5vw,10vh) scale(.9);opacity:.2}100%{transform:translate(-10vw,-10vh) scale(1);opacity:0}}
+#fixed-background{position:fixed;top:-15vh;left:0;width:100vw;height:130vh;z-index:-1;background-color:#040406;overflow:hidden;will-change:transform}
+#fixed-background::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");pointer-events:none;z-index:10}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.4;animation:movimientoLiquido 25s infinite alternate cubic-bezier(.4,0,.2,1);will-change:transform}
+.color-1{width:32vw;height:32vw;background-color:var(--primary-color);top:-5%;left:-5%;animation-delay:0s}
+.color-2{width:38vw;height:38vw;background-color:var(--consultas-color);bottom:-10%;right:-5%;animation-delay:-5s;animation-direction:alternate-reverse}
+@keyframes movimientoLiquido{0%{transform:translate(0,0) scale(1) rotate(0deg)}33%{transform:translate(15vw,15vh) scale(1.2) rotate(90deg)}66%{transform:translate(-10vw,25vh) scale(.8) rotate(180deg)}100%{transform:translate(10vw,-15vh) scale(1.1) rotate(270deg)}}
+.main-sections{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:60px}
+a.section-block{background-color:rgba(255,255,255,.03);padding:45px 30px;border-radius:16px;border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-align:center;transition:transform .25s,background-color .25s,border-color .25s,box-shadow .25s;background-repeat:no-repeat;background-position:center;background-size:contain;display:flex;flex-direction:column;align-items:center;justify-content:center}
+a.section-block:hover{transform:translateY(-3px);text-decoration:none;background-color:rgba(255,255,255,.06);border-color:var(--section-c);box-shadow:inset 0 0 40px -20px var(--section-c),0 12px 28px rgba(0,0,0,.35)}
+a.section-block .icon{display:none}
+a.section-block h3{font-size:1.2em;position:relative;z-index:2;transition:color .2s;font-family:'Outfit',sans-serif;font-weight:300;margin:0}
+a.block-formaciones{--section-c:var(--primary-color)}a.block-contenido{--section-c:var(--contenido-color)}a.block-consultas{--section-c:var(--consultas-color)}a.block-bios{--section-c:var(--secondary-color)}
+a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover h3{color:var(--contenido-color)}a.block-consultas:hover h3{color:var(--consultas-color)}a.block-bios:hover h3{color:var(--secondary-color)}
+@media(max-width:768px){.main-sections{grid-template-columns:repeat(2,1fr);gap:10px}}
+.fade-in-element{opacity:0;transform:scale(.85) translateY(30px);filter:blur(5px);transition:opacity 1.2s ease-out,transform 1.2s cubic-bezier(.23,1,.32,1),filter 1s ease-out;will-change:transform,opacity}
+.fade-in-element.is-visible{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}
+    </style>
+    <!-- Resto del CSS: no bloqueante -->
+    <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="style.css?v=3" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.css?v=3"></noscript>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+</head>
+<body>
+  <div id="fixed-background"></div>
+
+<div class="luciernagas-container"></div>
+
+  
+
+  
+
+
+   <nav class="hamburger-menu">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    
+    <label for="menu-toggle" class="menu-button">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </label>
+
+    <ul class="menu-list">
+        <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+        <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+        <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+        <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+        <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+        <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+        <li><a href="https://sebabru.com/escuela/" target="_blank" rel="noopener noreferrer">ESCUELA</a></li>
+    </ul>
+</nav>
+    
+   <header class="main-header">
+    <h1>Seba Bru</h1>
+    <h3>Astrología de los devenires</h3> </header>
+
+    <main>
+        <section class="main-sections">
+            <a href="#formaciones" class="section-block block-formaciones">
+               <h3>Formaciones</h3>
+            </a>
+            <a href="#podcast" class="section-block block-contenido">
+               
+                <h3>Contenido</h3>
+            </a>
+            <a href="#consultas" class="section-block block-consultas">
+                
+                <h3>Consultas</h3>
+            </a>
+            <a href="#bios" class="section-block block-bios">
+    
+                <h3>bios</h3>
+            </a>
+        </section>
+    </main>
+
+    <section class="efecto-shrink-container" id="taller-lunas-2026">
+    <div class="efecto-shrink-sticky">
+
+        <img src="escuela/img/luna2026.webp" alt="La luna en la carta natal" class="efecto-imagen" fetchpriority="high">
+
+        <div class="efecto-texto">
+            <h2>La luna en la carta natal 🌝</h2>
+            <h3>Un espacio de autoconocimiento desde la astrología.</h3>
+            <p>Una recorrida de 6 encuentros de dos horas por las 12 lunas del zodíaco.<br>
+            Viernes de 18 a 20 h, a partir del 11/9.<br>
+            Online o Presencial en Villa de las Rosas.</p>
+
+            <h3>¿De qué se trata este taller?</h3>
+            <p>En estos encuentros buscaremos reconocer los mecanismos y las potencias de la luna en carta natal a través de un espacio teórico que abre y orienta en las particularidades de cada luna y un espacio de charla en el que compartiremos lo que nos trae.</p>
+            <p>La luna habla de nuestra forma de conseguir seguridad emocional, de los mecanismos que repito para ponerse a salvo y de las inscripciones que implica su posición en la carta natal. En dos segmentos diferenciados de la clase, abordaremos profundamente este punto para acceder a una comprensión teórica de sus particularidades en cada casa y signo; y en un segundo momento buscaremos generar un espacio de escucha sin juicio y una mirada amorosa para compartir lo que nos trae individualmente esta información.</p>
+
+            <h4>Intercambio</h4>
+            <p>Son 6 encuentros de 2 horas, los viernes de 18 a 20 h, a partir del viernes 11/9.</p>
+            <p>Un pago de $80.000 o dos cuotas de $45.000.</p>
+            <p>Promo: anotate con tu amig@ y tenés un 20% de descuento.<br>
+            Un pago de $64.000 o dos cuotas de $36.000 cada unx.</p>
+
+           <div class="grupo-botones-sutiles">
+    <a href="https://forms.gle/wrx4bjKMRgKR219o7" target="_blank" rel="noopener noreferrer" class="btn-sutil">Anotate acá</a>
+</div>
+        </div>
+
+    </div>
+</section>
+
+         <section class="efecto-shrink-container" id="seccion-luna-negra">
+    <div class="efecto-shrink-sticky">
+        
+        <img src="img/portada.webp" alt="Portada del libro Luna Negra" class="efecto-imagen" loading="lazy">
+        
+        <div class="efecto-texto">
+            <h2>Luna Negra</h2>
+            <h3>Un libro de Seba Bru</h3>
+            
+            <p><i>Luna Negra, Lilith en la carta natal o la potencia del vacío</i>, es un libro que busca hacer contacto con nuestro registro sensible y con nuestro cuerpo, al tiempo que brinda herramientas para comprender la importancia de la fuerza misteriosa de este punto astrológico. Recoge herramientas del psicoanálisis y de la psicología sistémica para abordar la complejidad de este punto en toda su extensión.</p>
+            
+            <p>Señala un espacio donde se abre un profundo contacto con el inconsciente, en su dimensión más corporal. En este lugar misterioso resuenan ecos de las memorias del linaje, ausencias que se vuelven agujeros negros alrededor de los que orbitamos tratando de resolver lo imposible. Pero también señala el hueco por el que nos atraviesa la fuerza de la vida, componiendo una subjetividad deseante.</p>
+            
+            <p><strong>Páginas:</strong> 290 | <strong>Formato:</strong> 15 x 22<br>
+            <strong>Precio:</strong> $35.000 / USD 30</p>
+            
+            <p>Podés adquirir el libro en Argentina escribiéndonos por WhatsApp para coordinar la entrega a un precio con descuento de $30.000. Lo entregamos en Buenos Aires y en Rosario de momento (estamos sumando otros puntos), y por correo a todo el país.</p>
+            
+            <p>También podés buscarlo en las librerías:</p>
+            <ul>
+                <li><strong>Magia:</strong> Thames 1619, CABA.</li>
+                <li><strong>La Libre:</strong> Chacabuco 917, CABA.</li>
+            </ul>
+            
+            <div class="grupo-botones-sutiles">
+                <a href="https://sebabru.com/libros/#comprar" target="_blank" rel="noopener noreferrer" class="btn-sutil">Compras Internacionales</a>
+                <a href="https://wa.me/+5493544584122" target="_blank" rel="noopener noreferrer" class="btn-sutil">Comprar en Argentina</a>
+            </div>
+            
+        </div>
+    </div>
+</section>
+     
+  <section class="efecto-shrink-container seccion-mercurio-animada" id="astro-cotidiana-mercurio">
+    <div class="efecto-shrink-sticky">
+
+        <div class="texto-mercurio-sutil-wrapper">
+            <p class="texto-sutil-p">algunos contenidos para que la astrología sea parte de tu vida cotidiana</p>
+        </div>
+
+        <div class="mercurio-anim-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="150 250 800 800" class="mercurio-anim-svg">
+                <path class="mercurio-path-draw" d="M772.12,351.11c0,50.23-22.64,90.31-67.92,120.23,32.53,35.66,48.79,73.78,48.79,114.38,0,35.39-12.36,67.79-37.08,97.2-23.42,28.11-52.05,46.98-85.88,56.6l-1.17,101.1h81.2c13.01,0,23.29,4.17,30.84,12.49,6.76,7.55,10.15,16.53,10.15,26.93,0,10.93-3.39,20.04-10.15,27.33-7.55,8.33-17.83,12.49-30.84,12.49h-80.8v86.27c0,12.49-3.97,22.25-11.91,29.28-7.94,7.03-17.5,10.54-28.69,10.54s-20.56-3.26-28.11-9.76c-8.33-7.55-12.49-17.57-12.49-30.06v-86.27h-74.95c-13.27,0-23.42-3.9-30.45-11.71-7.03-7.29-10.54-16.66-10.54-28.11s3.51-20.17,10.54-27.72c7.03-7.54,17.18-11.45,30.45-11.71l75.34-.78-.39-99.54c-18.74-5.2-35.52-12.49-50.36-21.86-14.83-9.37-27.85-21.21-39.04-35.52-22.38-27.84-33.57-60.24-33.57-97.2,0-41.12,16.79-79.63,50.36-115.55-44.25-29.67-66.36-69.35-66.36-119.06,0-6.25,1.1-11.84,3.32-16.79,2.21-4.94,5.27-9.17,9.17-12.69,3.9-3.51,8.39-6.25,13.47-8.2s10.34-2.93,15.81-2.93,10.6.85,15.42,2.54c4.81,1.7,9.04,4.17,12.69,7.42,3.64,3.26,6.5,7.29,8.59,12.1,2.08,4.82,3.12,10.34,3.12,16.59,0,25.25,9.62,43.85,28.89,55.82,15.87,10.15,39.43,15.22,70.66,15.22s54.91-4.94,71.05-14.83c19.26-11.71,28.89-30.45,28.89-56.21,0-11.71,3.9-21.08,11.71-28.11,7.81-7.03,17.18-10.54,28.11-10.54,5.46,0,10.73.92,15.81,2.73,5.07,1.82,9.56,4.49,13.47,8,3.9,3.51,7.03,7.81,9.37,12.88,2.34,5.08,3.51,10.74,3.51,16.98ZM665.55,586.89c0-20.82-7.55-38.77-22.64-53.87-15.1-14.57-33.05-21.86-53.87-21.86s-38.78,7.42-53.87,22.25c-15.1,15.1-22.64,32.92-22.64,53.48,0,10.67,1.82,20.49,5.47,29.47,3.64,8.98,9.23,17.12,16.79,24.4,14.57,14.58,32.66,21.86,54.26,21.86s38.9-7.42,53.48-22.25c15.35-14.57,23.03-32.4,23.03-53.48Z"/>
+            </svg>
+        </div>
+
+    </div>
+</section>
+
+<section class="efecto-shrink-container layout-wide-visual" id="podcast">
+    <div class="efecto-shrink-sticky">
+        
+        <div class="efecto-visual">
+            
+            <button class="flecha-carrusel flecha-izq">❮</button>
+            
+            <div class="carrusel-horizontal">
+                <article class="tarjeta-carrusel">
+                    <div class="etiqueta-plataforma etiqueta-spotify">
+                        <span>Spotify Podcast</span>
+                    </div>
+                    <div class="iframe-container">
+                        <iframe style="border-radius:0 0 12px 12px; display:block;" src="https://open.spotify.com/embed/show/3pUBeAtMJw2WY3ykB82Tw3/video?utm_source=generator" width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    </div>
+                </article>
+
+                <article class="tarjeta-carrusel">
+                    <div class="etiqueta-plataforma etiqueta-youtube">
+                        <span>YouTube Video</span>
+                    </div>
+                    <div class="iframe-container">
+                        <div class="yt-facade" data-yt="https://www.youtube.com/embed/videoseries?si=toy1NWiMo_YG71Ow&list=PLxMY1XMl9aPWFsQtElx1EZcAoPyMCEYby&autoplay=1">
+                            <svg class="yt-play" viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#f00"/><path d="M45 24 27 14v20" fill="#fff"/></svg>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            
+            <button class="flecha-carrusel flecha-der">❯</button>
+            
+        </div>
+        
+        <div class="efecto-texto">
+            <h2>Kit astrológico para habitar la tierra</h2>
+            <p>Los acontecimientos celestes pueden ser el ruido que enturbia nuestra vida o la melodía que nos permite improvisar. En este podcast semanal voy a intentar describir el cielo para invitarte a mirar de otro modo lo que te pasa.</p>
+            <p>Si todo sale bien, además del análisis de tránsitos semanales haré algún que otro contenido más imperecedero para acompañarte en los días de la vida.</p>
+            
+            <blockquote class="cita-destacada">
+                "Improvisar es unirse al mundo, confundirse con él."<br>
+                <span style="font-size: 0.9rem; opacity: 0.7;">— Deleuze y Guattari.</span>
+            </blockquote>
+
+            <div class="grupo-botones-sutiles">
+                <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3?si=1c6cfcdda2704c49" target="_blank" rel="noopener noreferrer" class="btn-sutil">Escuchar en Spotify</a>
+                <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" class="btn-sutil">Canal de YouTube</a>
+            </div>
+        </div>
+        
+    </div>
+</section>
+
+<section id="instagram-section" style="padding: 60px 20px; max-width: 460px; margin: 0 auto;">
+    <h2 style="color: var(--contenido-color); text-align: center; margin-bottom: 30px;">Instagram</h2>
+    <div style="border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-height: 560px;">
+        <blockquote class="instagram-media" data-instgrm-captioned
+            data-instgrm-permalink="https://www.instagram.com/p/DcYyyBUjohM/?utm_source=ig_embed&amp;utm_campaign=loading"
+            data-instgrm-version="14"
+            style="background:#FFF; border:0; border-radius:0; box-shadow:none; margin:0; max-width:100%; min-width:0; padding:0; width:100%;">
+        </blockquote>
+    </div>
+</section>
+
+ <section class="efecto-shrink-container layout-wide-visual" id="seccion-lunas">
+    <div class="efecto-shrink-sticky">
+        
+        <div class="efecto-visual">
+            
+            <button class="flecha-carrusel flecha-izq">❮</button>
+            
+            <div class="carrusel-horizontal">
+                <article class="tarjeta-carrusel">
+                    <img src="img/nueva.webp" width="1081" height="1351" alt="Luna Nueva" class="imagen-luna" loading="lazy">
+                    <div class="contenido-tarjeta">
+                        <h3>Luna Nueva</h3>
+                        <a href="https://sebabru.com/lunanueva" target="_blank" rel="noopener noreferrer", class="btn-luna", alt="Luna Nueva">leelo</a>
+                    </div>
+                </article>
+                <article class="tarjeta-carrusel">
+                    <img src="img/lunallena.webp" width="1081" height="1351" alt="Luna Llena" class="imagen-luna" loading="lazy">
+                    <div class="contenido-tarjeta">
+                        <h3>Luna Llena</h3>
+                        <a href="https://sebabru.com/lunallena" class="btn-luna">leelo</a>
+                    </div>
+                </article>
+            </div>
+            
+            <button class="flecha-carrusel flecha-der">❯</button>
+            
+        </div>
+        
+        <div class="efecto-texto">
+            <h2>Informes de Lunas</h2>
+            <p>Cada lunación elaboro un informe que publico en Instagram, en la comunidad y también lo subo a esta página. Accedé a él de la forma que más quieras.</p>
+            <div class="grupo-botones-sutiles">
+                <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-sutil">
+                    📲 Sumate a la comunidad
+                </a>
+                <a href="https://sebabru.com/lunanueva" target="_blank" rel="noopener noreferrer" class="btn-sutil">
+                    🌑 Luna nueva
+                </a>
+                <a href="https://sebabru.com/lunallena" target="_blank" rel="noopener noreferrer" class="btn-sutil">
+                    🌕 Luna llena
+                </a>
+                <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-sutil">
+                    📷 Instagram
+                </a>
+            </div>
+        </div>
+        
+    </div>
+</section>
+
+     <section class="comunidad-banner fade-in-element">
+    <div class="comunidad-card">
+        
+        <h2>Sumate a la Comunidad Astrológica</h2>
+        <p>Un espacio cotidiano para compartir, debatir y seguir pensando el cielo juntos. Sumate por tu plataforma favorita.</p>
+        
+        <div class="comunidad-botones">
+            <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-sutil">
+                WhatsApp
+            </a>
+            
+            <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-comunidad btn-telegram">
+                Telegram
+            </a>
+        </div>
+
+    </div>
+</section>
+
+
+<section class="efecto-shrink-container glifo-section" id="construccion-neptuno">
+    <div class="efecto-shrink-sticky">
+        
+        <div class="neptuno-content-wrapper">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="100 400 800 800" class="neptuno-svg-anim">
+                <path class="neptuno-path-stroke" d="M499.93,780.22c-79.9-12.49-143.4-57.51-190.5-135.06-44.5-72.61-66.75-160.69-66.75-264.27,0-6.76,1.17-12.81,3.51-18.15,2.34-5.33,5.47-9.82,9.37-13.47,3.9-3.64,8.45-6.44,13.66-8.39,5.2-1.95,10.67-2.93,16.4-2.93,10.67,0,20.43,3.78,29.28,11.32,8.59,7.29,12.88,17.57,12.88,30.84,0,81.19,13.4,148.73,40.21,202.6,29.92,61.16,73.91,98.24,131.94,111.25v-307.6c0-13.27,4.1-23.68,12.3-31.23,8.2-7.54,18.15-11.32,29.86-11.32s21.34,3.78,29.67,11.32c8.59,7.03,12.88,17.44,12.88,31.23v307.21c57.77-12.49,101.62-49.44,131.55-110.86,27.06-54.13,40.6-121.66,40.6-202.6,0-13.53,4.03-23.94,12.1-31.23,4.42-3.9,9.11-6.7,14.05-8.39,4.94-1.69,10.28-2.54,16-2.54,11.97,0,22.12,3.78,30.45,11.32,8.33,7.03,12.49,17.57,12.49,31.62,0,102.54-22.25,190.5-66.75,263.88-46.84,77.04-110.34,122.05-190.5,135.06v92.12h82.76c13.27,0,23.94,4.43,32.01,13.27,7.03,7.81,10.54,17.44,10.54,28.89s-3.78,20.82-11.32,29.67c-7.29,8.59-17.7,12.88-31.23,12.88h-82.76v82.76c0,6.5-1.11,12.42-3.32,17.76-2.21,5.33-5.27,9.82-9.17,13.47-3.9,3.64-8.46,6.5-13.66,8.59-5.21,2.08-10.67,3.12-16.4,3.12-11.71,0-21.47-3.51-29.28-10.54-8.59-7.81-12.88-18.61-12.88-32.4v-82.76h-73.39c-6.77,0-12.75-1.11-17.96-3.32-5.21-2.21-9.63-5.27-13.27-9.17-3.65-3.9-6.44-8.46-8.39-13.66-1.95-5.21-2.93-10.67-2.93-16.4s.98-11.12,2.93-16.2c1.95-5.07,4.75-9.56,8.39-13.47,3.64-3.9,8.06-6.96,13.27-9.17,5.2-2.21,11.19-3.32,17.96-3.32h73.39v-91.73Z"/>
+            </svg>
+            
+            <p class="texto-neptuno-abajo">somos huellas en la arena del tiempo, y tu carta natal es el mapa de esa huella</p>
+
+        </div>
+
+    </div>
+</section>
+
+       <section class="efecto-shrink-container" id="consultas">
+    <div class="efecto-shrink-sticky">
+        
+        <img src="img/consultas.webp" alt="Consultas Astrológicas" class="efecto-imagen" loading="lazy">
+        
+        <div class="efecto-texto">
+            <h2>Consultas</h2>
+            
+            <h3>¿Qué es una carta Natal?</h3>
+            <p>La carta Natal es un mapa del cielo en el momento en el que nacemos. Es una fotografía de cómo estaban los planetas y las estrellas en ese preciso instante. Mirando ese mapa, podemos entender las energías disponibles para nosotros, nuestras fortalezas, desafíos y propósitos de vida.</p>
+            <p>Somos el eco de ese momento en el que nacemos. La carta natal nos permite reconocer ese patrón energético, aceptarlo y transformarlo. Es una herramienta poderosa para el autoconocimiento y la evolución personal.</p>
+            
+            <h3>¿Qué sucede en una consulta astrológica?</h3>
+            <p>En una consulta astrológica hay una gran búsqueda: acompañar los procesos de quien consulta. La astrología nos brinda un lenguaje simbólico que nos permite comprender lo que nos sucede. Es una guía para reconocer patrones, entender nuestro potencial y transitar desafíos con mayor conciencia.</p>
+            <p>Exploramos juntos tu carta natal, tus inquietudes y los temas que te resuenan. La idea es que te lleves claridad y herramientas para navegar tu camino. Es un espacio de escucha activa y reflexión profunda, donde la astrología se convierte en un puente hacia tu interior.</p>
+            <p>Las consultas duran entre una hora y media y dos horas, e incluyen el registro de un audio y una imagen digital de tu carta.</p>
+            
+            <h3>¿Qué ofrecemos?</h3>
+            <ul>
+                <li><strong>Cartas Natales:</strong> un espacio para aproximarnos a tu esencia.</li>
+                <li><strong>Revoluciones Solares:</strong> Análisis de tu año personal, desde un cumpleaños al siguiente.</li>
+                <li><strong>Sinastrías:</strong> Estudio de la compatibilidad y dinámica entre dos cartas natales (parejas, amistades, socios).</li>
+                <li><strong>Espacios terapéuticos regulares:</strong> Seguimiento y acompañamiento continuo a través de la Escucha Astrológica.</li>
+            </ul>
+            
+            <p>El tiempo de espera aproximado para una sesión es de entre una y dos semanas. El valor de las sesiones es de 100.000$ u 80 dólares.</p>
+            
+            <h3>Para agendar tu espacio, completá este formulario:</h3>
+            <div style="background-color: white; border-radius: 12px; padding: 10px; margin-top: 20px;">
+                <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSfLnEs2g2wEaYv9as5ZEdFgmxaJ3aHiTXIJsPzIdXORV9MA2A/viewform?embedded=true" width="100%" height="400" frameborder="0" marginheight="0" class="lazy-iframe">Cargando…</iframe>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+<section class="efecto-shrink-container seccion-sol-animada" id="animacion-sol">
+    <div class="efecto-shrink-sticky">
+
+        <div class="sol-anim-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="50 150 900 900" class="sol-anim-svg">
+                <path class="sol-path-draw" d="M539.53,286.58h2.69c99,0,187.71,35.39,266.11,106.18,80.64,80.42,120.96,174.5,120.96,282.24,0,126.56-54.21,232.29-162.62,317.18-71.46,47.49-145.38,71.23-221.76,71.23h-8.06c-111.78,0-209.89-46.14-294.34-138.43-60.03-76.83-90.05-158.37-90.05-244.61v-6.72c0-100.57,36.29-190.18,108.86-268.8,80.19-78.84,172.92-118.27,278.21-118.27ZM176.65,676.34c0,95.2,34.94,179.88,104.83,254.02,74.37,72.58,160.83,108.87,259.39,108.87,73.92,0,142.91-21.5,206.98-64.51,18.36-12.99,36.73-28.67,55.1-47.04,68.09-73.25,102.14-157.47,102.14-252.67,0-102.37-38.98-191.52-116.93-267.46-72.13-64.51-155.46-96.77-249.98-96.77s-185.25,37.63-260.74,112.9c-67.2,72.8-100.8,157.03-100.8,252.67ZM540.87,599.74h5.38c34.05,0,58.24,19.71,72.58,59.13.89,6.05,1.34,10.98,1.34,14.79v5.38c0,30.24-16.13,53.09-48.38,68.54-7.39,3.59-17.25,5.38-29.57,5.38h-1.34c-34.05,0-58.24-19.71-72.58-59.13-.9-6.05-1.34-10.97-1.34-14.79v-5.38c0-34.05,19.71-58.24,59.14-72.58,6.05-.89,10.97-1.34,14.78-1.34Z"/>
+            </svg>
+        </div>
+
+    </div>
+</section>
+
+<section class="efecto-shrink-container" id="bios">
+    <div class="efecto-shrink-sticky">
+        
+        <img src="img/seba.webp" alt="Foto de Sebastián Bru" class="efecto-imagen" loading="lazy">
+        
+        <div class="efecto-texto">
+            <h2>Bios</h2>
+            
+            <h3>Seba Bru</h3>
+            <p>Es astrólogo y tarotista desde 2015. Escribe, enseña y divulga astrología.</p>
+            <p>En medio de un tránsito de Neptuno a su Sol, aprendió astrología en un tiempo imposible, y encontró allí su verdadera lengua materna. Desde entonces se dedica a estudiar, investigar y enseñar astrología, además de ejercer el oficio de astrólogo a través de consultas. En 2025 vio la luz su primer libro de astrología, sobre la Luna Negra.</p>
+            <p>Nació en Buenos Aires el 1 de marzo de 1984. Cursó estudios secundarios orientados en química y luego derivó hacia la psicología y la sociología, cursando sus estudios en la Universidad de Buenos Aires, sin completar las carreras de grado.</p>
+            <p>En el 2008, fundó un proyecto editorial en el que trabajó hasta el 2015, año en que comienza a dedicarse a la astrología. Escribió varios libros de poesía y tres novelas breves que editó en editoriales independientes de Buenos Aires entre el 2010 y el 2014.</p>
+            <p>Desde el 2018, y a pedido de una editorial chilena, comenzó a escribir informes para cada luna llena y luna nueva en los que continuó desplegando su afinidad con la escritura. Desde el 2022 comenzó un podcast de astrología que actualmente se emite en formato semanal. Además de la astrología, continúa leyendo el tarot y cada tanto abre formaciones. Abre registros akáshicos (y da iniciaciones) e investiga la cábala.</p>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 40px 0;">
+            
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                <img src="img/Clari.webp" width="722" height="727" alt="Foto de Clarissa Gismondi" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);" loading="lazy">
+                <h3 style="margin: 0;">Clarissa Gismondi</h3>
+            </div>
+            
+            <p>Nacida el 22 de mayo de 1991 en Corral de Bustos, Córdoba, le apasiona la búsqueda del bienestar y la gestión de proyectos. Con experiencia en yoga, terapias holísticas y alimentación natural, ha compartido prácticas y conocimientos en Rosario, Santa Fe, y actualmente reside en el Valle de Traslasierra, Córdoba.</p>
+            <p>Es la fundadora de Soul Experiences: una productora de eventos holísticos que organiza retiros, viajes y celebraciones para conectar con la esencia y profundizar en el autoconocimiento.</p>
+            <p>Actualmente, se desempeña como administradora en Viva Traslasierra, asiste a líderes de emprendimientos como Seba Bru y Cecile de La Herborista Azul, y también lidera su propio proyecto de administración de emprendimientos y asistencia de proyectos, enfocándose en la calidad del servicio, el crecimiento sostenible y la eficiencia operativa.</p>
+            
+        </div>
+    </div>
+</section>
+
+<section class="efecto-shrink-container glifo-section" id="construccion-jupiter">
+    <div class="efecto-shrink-sticky">
+        
+        <div class="jupiter-content-wrapper">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="100 200 800 800" class="jupiter-svg-anim">
+                <path class="jupiter-path-stroke" d="M696.69,703.08h150.29c13.27,0,23.94,4.43,32.01,13.27,7.03,7.81,10.54,17.57,10.54,29.28,0,5.47-.92,10.73-2.73,15.81-1.82,5.07-4.56,9.56-8.2,13.47-3.65,3.9-8.07,7.03-13.27,9.37-5.21,2.34-11.32,3.51-18.35,3.51h-150.29v149.51c0,6.76-1.17,12.69-3.51,17.76s-5.46,9.43-9.37,13.08c-3.9,3.64-8.39,6.37-13.47,8.2-5.07,1.82-10.34,2.73-15.81,2.73-11.19,0-20.82-3.39-28.89-10.15-8.85-8.07-13.27-18.61-13.27-31.62v-149.51h-237.73c-10.15,0-17.7-2.34-22.64-7.03-4.95-4.68-7.42-11.06-7.42-19.13,0-4.16.65-9.23,1.95-15.22,1.3-5.98,3.38-12.75,6.25-20.3l8.2-21.47c5.46-14.83,12.42-30.58,20.88-47.23,8.45-16.65,18.54-34.74,30.25-54.26,13.53-22.9,24.53-41.57,32.99-56.02,8.45-14.44,14.38-25.04,17.76-31.81,15.61-31.23,23.42-59.07,23.42-83.54s-11.19-47.62-33.57-67.14c-15.36-13.79-36.3-25.76-62.85-35.91-17.96-6.76-29.28-10.41-33.96-10.93-2.6-2.08-4.95-4.29-7.03-6.64-2.09-2.34-3.78-4.81-5.07-7.42-1.31-2.6-2.21-5.33-2.73-8.2-.52-2.86-.78-5.72-.78-8.59,0-10.67,4.29-20.55,12.88-29.67,8.59-9.37,18.6-14.05,30.06-14.05,10.15,0,19.26,3.65,27.33,10.93,3.9,0,17.69,6.77,41.38,20.3,31.49,17.96,57.25,37.87,77.29,59.73,27.58,30.71,41.38,62.59,41.38,95.64,0,9.11-1.89,20.82-5.66,35.13-3.78,14.31-9.44,31.23-16.98,50.75-3.65,9.11-7.29,17.96-10.93,26.54-3.65,8.59-7.29,17.05-10.93,25.37-3.65,8.33-7.75,17.05-12.3,26.15-4.56,9.11-9.44,18.61-14.64,28.5-19.52,37.22-35.52,64.15-48.01,80.8h161.22v-119.84c0-13.01,4.03-23.42,12.1-31.23,8.33-7.28,18.35-10.93,30.06-10.93,5.72,0,10.99.98,15.81,2.93,4.81,1.95,9.3,4.75,13.47,8.39,8.59,7.55,12.88,17.83,12.88,30.84v119.84Z"/>
+            </svg>
+            
+            <p class="texto-jupiter-abajo">el oficio de mirar el cielo: herramientas para acompañar nuestros procesos más profundos.</p>
+
+        </div>
+
+    </div>
+</section>
+
+  <section id="formaciones" class="section-formaciones fade-in-element">
+    <div class="formaciones-layout">
+        
+        <div class="formaciones-media">
+            
+            <button class="flecha-carrusel flecha-izq">❮</button>
+            
+            <div class="carrusel-nativo">
+                <div class="carrusel-item">
+                    <video class="media-cover" autoplay loop muted playsinline>
+                        <source src="img/formaciones2026.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <a href="#transitos" class="carrusel-item"><img src="img/transitos.webp" width="1081" height="1354" alt="Tránsitos" class="media-cover" loading="lazy"></a>
+                <a href="#taller-luna" class="carrusel-item"><img src="escuela/img/lunaabierta.webp" width="1081" height="1351" alt="La Luna en la Carta Natal" class="media-cover" loading="lazy"></a>
+                <a href="#seminario-saturno" class="carrusel-item"><img src="img/saturno.webp" width="1081" height="1351" alt="Seminario Saturno" class="media-cover" loading="lazy"></a>
+                <a href="#planetas" class="carrusel-item"><img src="img/planetas.webp" width="1081" height="1352" alt="Planetas y aspectos" class="media-cover" loading="lazy"></a>
+                <a href="#curso-identidad-astral" class="carrusel-item"><img src="img/dni.webp" width="1081" height="1351" alt="Curso Identidad Astral" class="media-cover" loading="lazy"></a>
+                <a href="#seminario-pluton-nodos" class="carrusel-item"><img src="img/pluton.webp" width="1081" height="1351" alt="Seminario Plutón y Nodos" class="media-cover" loading="lazy"></a>
+                <a href="#seminario-singularidad" class="carrusel-item"><img src="img/quiron.webp" width="1081" height="1351" alt="Seminario Quirón y Singularidad" class="media-cover" loading="lazy"></a>
+                <a href="#seminario-linaje" class="carrusel-item"><img src="img/taller2.webp" width="1081" height="1351" alt="Seminario Linaje" class="media-cover" loading="lazy"></a>
+                <a href="#luna-negra" class="carrusel-item"><img src="img/taller3.webp" width="1081" height="1351" alt="Seminario Luna Negra" class="media-cover" loading="lazy"></a>
+                <a href="#taller-tarot" class="carrusel-item"><img src="img/taller4.webp" width="1081" height="1351" alt="Taller de Tarot" class="media-cover" loading="lazy"></a>
+            </div>
+            
+            <button class="flecha-carrusel flecha-der">❯</button>
+            
+        </div>
+
+        <div class="formaciones-texto">
+            <h2>Formaciones y Talleres</h2>
+            <h3>Un Espacio para Vos</h3>
+            
+            <p>Esta escuela tiene las puertas abiertas aunque sepas mucho, poquito o nada.</p>
+            <p>Si estás con ganas de hacer crecer tu conocimiento astrológico, acá se comparte con profundidad y sensibilidad.</p>
+            <p>Podés empezar a estudiar signos, casas y planetas, profundizar con nuestros seminarios o adentrarte en la investigación de los tránsitos astrológicos.</p>
+            <p>Podés estudiar sincrónicamente o en videos a demanda.</p>
+            <p>Podés hacerlo a tu ritmo, siguiendo el ritmo de cursada de cuatro años, o entrando y saliendo todas las veces que quieras.</p>
+            <p>En esta escuela te escuchamos y te entendemos, estamos cerca para acompañar tu desarrollo individualmente y favorecemos el tejido grupal.</p>
+            
+            <div class="grupo-botones-sutiles">
+                <a href="https://sebabru.com/programa" target="_blank" rel="noopener noreferrer" class="btn-sutil">Programa completo</a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section class="parallax-propuestas">
+    
+    <div class="glass-propuestas-content">
+        <h2>Nuestras Propuestas</h2>
+        <p> <span class="destacado">para acompañar tu formación</span>.</p>
+        
+          </div>
+</section>
+
+
+
+ 
+                <section id="taller-luna" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="escuela/img/lunaabierta.webp">
+
+            <div class="layout-wrapper layout-media-left">
+                <div class="media-column">
+                    <img src="escuela/img/lunaabierta.webp" width="1081" height="1351" alt="La Luna en la Carta Natal" class="static-image" loading="lazy">
+                </div>
+                <div class="text-column">
+                    <h2>La Luna en La Carta Natal</h2>
+                    <div class="subsection">
+                        <p>Autoconocimiento &amp; formación.</p>
+                        <p>La Luna habla de nuestra forma de conseguir seguridad emocional, de los mecanismos que repetimos para construirla, y del modo en el que podemos dejar de hacerlo. En este espacio vamos a hacer una recorrida por las doce Lunas del zodiaco, intentando comprender profundamente cada una en al menos tres dimensiones centrales. Por un lado, la Luna implica una reacción emocional, un mecanismo que se gatilla para preservarnos pero que muchas veces nos trae dolores de cabeza e incomodidad, lograr hacer conscientes estos mecanismos trae un profundo alivio. Por otro lado, estudiar esta luminaria nos permite registrar nuestras necesidades emocionales y encontrar entonces los recursos saludables con los que podemos satisfacer esa necesidad, comprendiéndonos amorosamente en lo que nos hace falta. Finalmente, también veremos los talentos que implica esa dimensión, las potencias que se despliegan desde ese espacio de intimidad que cada Luna representa.</p>
+                        <p>Estudiar la Luna nos permite comprender cómo vimos a nuestra madre, cómo vivimos nuestra historia, cómo se ordena la memoria. En este punto podemos encontrarnos con cosas propias que reconoceremos de inmediato y que nos permitirán ampliar al mismo tiempo la mirada sobre lo que fuimos y lo que somos, sobre lo que nos pasó y sobre todo, cómo entendimos lo que nos pasó.</p>
+                        <p>Este taller abre un espacio para darnos cuenta de lo que nos pasa, pero a la vez nos da recursos para registrar a lxs demás en su singular modo de sentirse segurxs y a salvo.</p>
+                        <p>🕜 Son 13 encuentros de una hora cada uno.<br>
+                        🎓 Al finalizar el curso vas a comprender mejor tus mecanismos emocionales, y vas a entender con más profundidad a tus amigxs, familiares y a tus consultantes y pacientes.<br>
+                        📚 Incluye bibliografía complementaria y el acceso es permanente.</p>
+                        <iframe data-src="https://forms.gle/fh46bRR7aip5iM6c9" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+                    </div>
+                </div>
+            </div>
+        </section>      
+        
+        <section id="transitos" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/transitos.webp">
+    
+    <div class="layout-wrapper layout-media-right">
+        <div class="media-column">
+            <img src="img/transitos.webp" width="1081" height="1354" alt="Imagen del curso sobre Tránsitos Astrológicos" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+            <h2>Tránsitos</h2>
+            <div class="subsection">
+                <p>En este curso de un año aprenderemos a leer las influencias y los acontecimientos que producen los planetas en tránsito por el cielo. Veremos de qué forma la serie de tránsitos que alguien está atravesando hará poner de relevancia ciertos temas, ciertas necesidades y preocupaciones. Veremos también formas de acompañar a quienes atraviesan esos tránsitos.</p>
+                <p>En un primer movimiento, vamos a aprender a obtener la información de los tránsitos que vive una persona, como verlos en las distintas plataformas disponibles, que software recomiendo y cómo hacerse de esa información. Luego vamos a analizar los tránsitos de los planetas en su pasaje por las casas de una carta; veremos qué van trayendo a nuestra vida a través de determinadas experiencias y acontecimientos. También analizaremos las transformaciones que producen en nuestra vida los planetas transpersonales al pasar por las casas de una Carta Natal y al hacer aspectos con los planetas natales.</p>
+                <p>Para más información comunicate con Clari al 📲 <a href="http://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer">http://wa.me/5493544559877</a></p>
+                
+                <h4>INFO e Intercambio:</h4>
+                <p>Son un total de 14 encuentros los sábados a las 11h. Incluye materiales de lectura complementarios y accesos a las clases grabadas.</p>
+                <p>Venimos escuchando y viendo que muchas de las personas que nos siguen se ven forzadas a ajustar sus consumos no esenciales. En vistas de esto, el precio que te paso a continuación es para que sepas cuánto considero que vale el curso, y lo tomes como una referencia; pero el intercambio está sujeto a tu realidad económica. La idea es que el dinero no sea un impedimento, sino un medio de intercambio.</p>
+                <p><strong>$160.000 | 160u$s</strong> (o 4 cuotas de $45.000)</p>
+
+                <p>Para inscribirte completá el siguiente formulario:</p>
+                <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSeStxN3iIPP9_ICOYsoeyPmH0dKvYJ3x8b4sWHW2gDlAku3Kw/viewform?embedded=true" width="100%" height="500" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+            </div>
+        </div>
+    </div>
+</section>
+        
+        <section id="seminario-luna-negra" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/taller3.webp">
+          
+            <div class="layout-wrapper layout-media-left">
+                <div class="media-column">
+                    <img src="img/taller3.webp" width="1081" height="1351" alt="Imagen del Seminario Luna Negra" class="static-image" loading="lazy">
+                </div>
+                <div class="text-column">
+                      <h2>Seminario Luna Negra</h2>
+                    <div class="subsection">
+                        <p>En este seminario abordaremos este punto desde una perspectiva mítica y astronómica. Veremos su funcionamiento dentro de la carta natal, cómo pensarlo y cómo utilizarlo en una lectura.</p>
+                        <p>La Luna Negra trabaja sobre lo negado, lo que no tiene palabras. Algo que, profundamente oculto, opera en la conformación del psiquismo. Las amenazas de las que nos defendemos, los miedos que emergen de lo profundo de nuestro interior, aquello que está en un inconsciente siempre ciego. Pero también sobre las pasiones viscerales, los movimientos que no controlamos, corporales, animales, que emergen también acercándonos al placer y a la fuerza.</p>
+                        <p>La rebeldía de la luna negra nos permite encontrarnos con la tierra, lejos de los anhelos de volver al edén, al útero de nuestra madre, y con la fuerza para alcanzar y sostener nuestro deseo.</p>
+                        <p>Lilith nos permite ir más allá de la fuerza que nos lleva a repetir tradiciones de nuestra historia familiar para permitirnos encontrar una realidad que le da lugar a lo que somos. En ese sentido, será un gran indicador de desórdenes, secretos y mentiras familiares.</p>
+                        <p>📖 No se requieren conocimientos previos.</p>
+                        <p>📅 Comienzo de cursada: <strong>24 de Mayo</strong></p>
+                        <p>Las clases quedan grabadas para repasar o por si algún sábado no podés venir.</p>
+                        <p>La cursada estará a cargo de Sebastián Bru.</p>
+                        <p>La cursada será del sábado 24/5 al 28 de Junio.</p>
+                        <h4>Valores:</h4>
+                        <p>Un pago de 60u$s | 60000$</p>
+                        <p>(si se te complica el intercambio escribinos y vemos cómo hacertela más fácil)</p>
+                        <p>Para inscribirte completá el siguiente formulario:</p>
+                        <iframe data-src="https://forms.gle/HgB6L3wK7ygpUdmj7" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="seminario-linaje" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/taller2.webp">
+    
+    <div class="layout-wrapper layout-media-right">
+        <div class="media-column">
+            <img src="img/taller2.webp" width="1081" height="1351" alt="Imagen del curso Tu Identidad Astral" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+            <h2>Linaje, clan y genealogía a través de las casas astrológicas</h2> 
+    <div class="subsection">
+        <p>
+  <i>Un seminario para elaborar la relación entre la carta natal y la familia de orígen.</i>
+</p>
+<p>
+  El mapa del cielo nos habla de nuestra esencia, pero ¿qué nos dice de la sustancia con la que esa esencia se vuelve real, tangible, humana?
+</p>
+<p>
+  Incorporando nuevos sentidos a la interpretación de las casas astrológicas podemos acompañar nuestras lecturas de cartas natales con una información que ahonde en la familia y en las raíces ancestrales. El objetivo del seminario es ampliar los recursos en nuestra mirada para identificar las recurrencias y sobrecargas que arrastramos de nuestro árbol y que se evidencian en la carta natal; así como los talentos y las potencias que deja a nuestro alcance nuestro origen familiar.
+  ¿Cómo nos sostiene nuestra tierra y qué sostenemos de nuestros antepasados? ¿Qué desórdenes podemos identificar en nuestra relación con el clan?
+</p>
+<p>
+  Serán cinco encuentros de 2 horas, los sábados 20 y 27 de Septiembre, 4, 11 y 18 de Octubre, de 15 a 17 hs
+</p>
+<p>
+  Vamos a trabajar diferentes indicadores y modos de pensar y evaluar la relación con la familia y la posición que ocupamos en el linaje. Abordaremos una mirada profunda sobre los personajes de la familia y cómo encontrar los puntos pegados o sobrecargados en la memoria familiar. Nos detendremos especialmente en los vínculos fundamentales con la madre y el padre, diferenciando a los personajes y sus particularidades con la función psíquica con la que se relacionan; ensayando modos de separar la función de los personajes.
+  La cursada estará a cargo de Sebastián Bru.
+</p>
+        <h4>Intercambio:</h4>
+        <p>Linaje: 60u$s | 65000$</p>
+
+        <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSdp4GK1Mq18PiBqbfG1gNtj6i3byf_vtROm3ApQ2Jtmpt7oVw/viewform?embedded=true" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+    </div>
+</section>
+
+       <section id="pluton" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/pluton.webp">
+            
+            <div class="layout-wrapper layout-media-left">
+                <div class="media-column">
+                    <img src="img/pluton.webp" width="1081" height="1351" alt="Imagen del Seminario Plutón y los Nodos Lunares" class="static-image" loading="lazy">
+                </div>
+                <div class="text-column">
+                    <h2>Plutón y los nodos lunares</h2> 
+                    <div class="subsection">
+                        <p>Plutón es uno de los planetas transpersonales que marca profundamente nuestra experiencia en esta vida. Dentro de nuestra carta natal, señala un punto por donde entramos en contacto con una enorme intensidad desbordante. El potente magnetismo de este punto astrológico puede causarnos un profundo rechazo y una fascinación extraordinaria, pero es muy difícil sentir desinterés. Representa el inconsciente, el vínculo con mi linaje y mi clan y la relación con la muerte y la sexualidad entre muchas otras cosas que abordaremos en este seminario.</p>
+                        <p>Los nodos lunares están en una relación estrecha con los eclipses y señalan en nuestra carta natal un lugar en donde escucharemos una llamada profunda de nuestra alma. Entre Plutón y los nodos, podemos encontrar información valiosa para entender hacia dónde nos convoca a avanzar la fuerza misteriosa de la vida.</p>
+                        <p>Este seminario está destinado a personas con conocimientos básicos de astrología y es parte de nuestra formación. Durante este curso, incorporarás conocimientos que te permitirán profundizar la lectura y la interpretación de una Carta Natal. Al finalizar el curso, entenderás con más profundidad una carta natal y podrás ver dinámicas de transformación que atraviesan a todas las personas.</p>
+                        <p>Son 8 encuentros de dos horas, y materiales complementarios para que te acompañes a entender en profundidad estos puntos.</p>
+                        <h4>Info:</h4>
+                        <p>El intercambio incluye:</p>
+                        <ul>
+                            <li>✨El acceso a los materiales complementarios de lectura</li>
+                            <li>✨El acceso a los videos con el registro de la cursada</li>
+                        </ul>
+                        <h4>Aranceles:</h4>
+                        <p>Un pago de 100.000 $ar / 100€ / 110$ o dos cuotas de 55.000 / 55€ / 60$</p>
+                        <p>(consultá facilidades de pago y financiación)</p>
+                        <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLScKXvCzzNFFnjYs_xNtaR5_INf193Epr-YFsVcgJMf9hE0aUw/viewform?usp=dialog" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+     
+    <section id="seminario-singularidad" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/quiron.webp">
+     
+    <div class="layout-wrapper layout-media-right">
+        <div class="media-column">
+            <img src="img/quiron.webp" width="1081" height="1351" alt="Imagen del curso Tu Identidad Astral" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+            <h2>El camino de la singularidad: Neptuno, Urano y Quirón</h2>
+    <div class="subsection">
+        <p>Abordaremos a Neptuno, Quirón y Urano como puertas de acceso al funcionamiento de la psiquis desde una perspectiva astrológica.</p>
+        <p>En este ciclo de seminarios nos introducimos en los misterios de nuestro sistema psíquico, abordando estos tres planetas transpersonales. Haremos una aproximación profunda a cada uno de los puntos, y en su conjunto buscaremos construir una serie de recursos conceptuales y técnicos que nos permitan abordar y acompañar, con mayor profundidad, una consulta astrológica.</p>
+        
+        <h4>Parte 1. Neptuno: la repetición y el paraíso perdido.</h4>
+        <p>Trabajaremos con este planeta desde una perspectiva mítica y astronómica. Veremos su funcionamiento dentro de la carta natal, cómo pensarlo y utilizarlo en una lectura, y cómo reconocer su importancia relativa en una carta. El eje central del seminario será estudiar su participación en la construcción del psiquismo.</p>
+        <p>Neptuno nos permite acceder a los elementos que se repiten en la experiencia de un sujeto, y a la vez nos permite encontrar la puerta de entrada para ir desde la repetición y el anhelo hacia el deseo y la presencia.</p>
+        <p>Una de sus funciones principales es ayudar a conformar una identidad que nos permita atravesar los primeros pasos en la vida. Este cuerpo celeste habla de nuestro registro del paraíso perdido, de la vida intrauterina; y desde esa memoria, también dirá qué anhelamos recuperar y dónde podemos lograr encontrarnos reunidos.</p>
+        
+        <h4>2. Quirón: la herida y la aceptación</h4>
+        <p>Trabajaremos con este asteroide desde una perspectiva mítica y astronómica. Veremos su funcionamiento dentro de la carta natal, cómo pensarlo y utilizarlo en una lectura, y cómo reconocer su importancia relativa en una carta.</p>
+        <p>Quirón nos dice que la condición humana incluye una herida, que el propio hecho de nacer es tener una herida, un hueco, algo que falta. Este asteroide también nos dice cuál es la explicación que le damos a eso: por qué nos falta lo que nos falta y nos duele lo que nos duele. Quirón marca, entre otras cosas, el gesto que haremos por recuperar lo perdido, para evitar la herida. El camino que emprendemos para sanar nuestras heridas nos permite encontrar nuestra maestría. En su posición en la carta encontraremos una información muy valiosa a la hora de pensar cómo se construye la identidad y las defensas emocionales.</p>
+        <p>Integrándolo a la lectura con Neptuno y con la luna negra, este asteroide nos permite ver con claridad la forma en la que se construyen y se sostienen los mecanismos psíquicos que nos permiten sobrevivir, y la forma en la que podemos acompañar una apertura a la vida.</p>
+        
+        <h4>3. Urano.</h4>
+        <p>Trabajaremos con este planeta desde una perspectiva mítica y astronómica. Veremos su funcionamiento dentro de la carta natal, cómo pensarlo y utilizarlo en una lectura, y cómo reconocer su importancia relativa en una carta.</p>
+        
+        <h4>4. Abordajes interpretativos y prácticos.</h4>
+        <p>En este último trayecto, trabajaremos con cartas de ejemplo para poner en práctica lo que vimos en los seminarios anteriores.</p>
+        <p>El funcionamiento conjunto de Neptuno, Quirón y Urano nos permite entender con más profundidad una carta natal.</p>
+        
+        <p>Las clases quedan grabadas para su repaso o por si algún día no podés asistir.</p>
+
+        <br> 
+        
+        <h4>+ info Seminario Neptuno:</h4>
+        <p>Valores:</p>
+        <p>9 encuentros: $60.000 | 60u$s</p>
+        <p>(o 3 cuotas de 240000)</p>
+        <p>Incluye materiales de lectura complementarios y accesos a las clases grabadas.</p>
+        <p>Para inscribirte completa el siguiente formulario:</p>
+        <iframe data-src="https://forms.gle/oWweYuVspbUsmpyb6" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+    </div>
+</section>
+<section id="taller-tarot" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/taller4.webp">
+    
+    <div class="layout-wrapper layout-media-left">
+        <div class="media-column">
+            <img src="img/taller4.webp" width="1081" height="1351" alt="Imagen del curso Tu Identidad Astral" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+            <h2>Tarot | Mazo Rider – Waite </h2> 
+    <div class="subsection">
+        <p>En este taller haremos un recorrido por los arcanos mayores y menores del mazo Rider Waite en el que aprenderemos a leer los diferentes símbolos a través de los que las cartas nos hablan.</p>
+        <p>La intención del taller es habilitar una iniciación a la lectura de las cartas de un modo dinámico y abierto, que nos permita habilitar la intuición y entrelazarla al saber.</p>
+        <p>Trabajaremos algunos conceptos fundamentales de la cábala y el esoterismo que sostiene el contenido del mazo. El taller tendrá un recorrido por los 22 arcanos y luego una parte práctica para poner en juego lo aprendido. Abordaremos las diferentes tiradas, y cómo leer el diálogo entre las cartas.</p>
+        <p>Son un total de 12 Encuentros a través de videos de clases dictadas por Seba Bru.</p>
+        
+        <br> 
+
+        <p>Para inscribirte completa el siguiente formulario:</p>
+        <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSeYx4vY6ZiCNuSjIM7YvnRVXz0NAO0Umaox-1GAqAGJI3N1tQ/viewform?usp=sf_link" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+    </div>
+</section>
+<section id="curso-identidad-astral" class="section-container section-formaciones con-imagen" data-imagen="img/dni.webp">
+   
+     <div class="layout-wrapper layout-media-right">
+        <div class="media-column">
+            <img src="img/dni.webp" width="1081" height="1351" alt="Imagen del curso Tu Identidad Astral" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+             <h2>Tu identidad astral</h2> 
+            <div class="subsection">
+        <p>En este curso te acercamos los conceptos fundamentales para entender un poco más tu identidad desde la mirada amorosa de la astrología.</p>
+        <p>Tu Sol habla del modo de expresar tu esencia, y en este curso lo abordamos desde la comprensión de la función del Sol en la carta natal y desde una aproximación profunda a la energía del signo en el que está en tu carta. ¿Qué te invita a trabajar tu energía Solar? ¿Qué recursos podés encontrar para hacerlo?</p>
+        <p>Tu luna habla de aquello que te da seguridad emocional, de lo que te acerca la sensación de hogar, de la memoria y de lo que se afectiviza. En este curso te acercamos la posibilidad de mirarte desde otra distancia para entender mejor lo que te da seguridad y lo que te ata, lo que te encierra y lo que te sostiene.</p>
+        <p>Tu ascendente es un desafío, una energía que te invita a desplegarte en lugares nuevos y de modos nuevos. En este curso, te compartimos una mirada que te permite entender dónde encontrás seguridad, a qué tendes a resistirte, y cuál es el punto de menor resistencia para ir hacia vos mismx.</p>
+        
+        <h4>Modalidad de cursada</h4>
+        <p>5hs de Video + Encuentro sincrónico de síntesis.</p>
+        <p>Este curso será a través de videos de clases dictadas por Seba Bru en los que se describe la dinámica del ascendente, la función del sol y de la luna en la carta, y lo que trae para vos tu sol, tu luna y tu ascendente. Serán un total de 5 horas de clases y tendrás disponibles materiales de lectura complementarios.</p>
+        <p>El encuentro de síntesis será grupal, con horarios que iremos coordinando.</p>
+        
+        <h4>Sol.</h4>
+        <p>En nuestra carta, el Sol es el encargado de expresar lo que somos, de darle un lugar en el mundo a nuestra esencia a través del filtro de nuestro signo solar.</p>
+        <p>El abordaje de tus energías solares será facilitado por dos videos. En el primero, veremos en profundidad la función del sol en la carta natal, en el segundo, veremos de qué se trata la energía del signo en el que está a través de un video en el que te acompañará una visualización y un desarrollo teórico que te permite mirarte con otros ojos.</p>
+        
+        <h4>Luna</h4>
+        <p>El abordaje de esta energía en tu carta natal surge de un curso dictado por Seba Bru el 2024.</p>
+        <p>Sobre el taller de lunas:</p>
+        <p>La luna habla de nuestra forma de conseguir seguridad emocional, de los mecanismos que repito compulsivamente, y del modo en el que puedo dejar de hacerlo. En este espacio vamos a hacer una recorrida por las doce lunas del zodiaco. La intención es ir reconociendo en cada luna algunos mecanismos emocionales y los recursos con los cuales podemos producir seguridad.</p>
+        <p>Este taller abre un espacio para darnos cuenta de lo que nos pasa, para advertir nuestras repeticiones y las necesidades emocionales que necesitamos atender; pero a la vez nos da recursos para registrar a lxs demás en su singular modo de sentirse segurxs y a salvo.</p>
+        
+        <h4>Ascendente.</h4>
+        <p>Vamos a trabajar con tu ascendente desde un curso dictado por seba en el 2023.</p>
+        <p>Nuestro ascendente señala una energía que nos resulta difícil y desafiante, que nos confronta con algo que preferimos evitar, pero que en su incorporación encontramos algo valioso. La vida nos traerá, una y otra vez, la energía de este signo zodiacal para que aprendamos a reconocernos en ella. Dentro de este curso, describiré la dinámica general del ascendente y la dinámica específica para cada signo zodiacal.</p>
+        
+        <h4>Info DNI</h4>
+        <p>El intercambio incluye:</p>
+        <ul>
+            <li>✨Los videos de los tres puntos astrológicos (unas 6 horas de clases)</li>
+            <li>✨Materiales de lectura complementaria</li>
+            <li>✨Un encuentro grupal de síntesis para ver cómo funcionan de conjunto sol-luna y ascendente en tu carta.</li>
+        </ul>
+        
+        <h4>Aranceles:</h4>
+        <p>30000$ar / 30u$d</p>
+
+        <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLScIqBjninexsmgUJBKGuU-th6hpQBxK1-iiPcQ_PpxWP6L5IQ/viewform" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+    </div>
+</section>
+
+<section id="planetas" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/planetas.webp">
+    
+    <div class="layout-wrapper layout-media-left">
+        <div class="media-column">
+            <img src="img/planetas.webp" width="1081" height="1352" alt="Imagen del curso El Sol, la Luna y los planetas" class="static-image" loading="lazy">
+        </div>
+        <div class="text-column">
+            <h2>El sol, la luna y los planetas en la carta natal y una introducción a los aspectos astrológicos</h2>
+            <div class="subsection">
+                <p>En este curso abordaremos la función que cumple cada planeta y luminaria (Sol y Luna) en la carta natal y haremos una introducción a los aspectos astrológicos. Trabajaremos los mitos, las funciones psíquicas y los arquetipos con los que se asocia cada uno, y la forma de mirarlos en una carta natal. Serán abordados a través de visualizaciones que nos permitan encontrarnos con la esencia de la energía de cada uno de ellos de forma didáctica y sencilla, pero al mismo tiempo profunda.</p>
+                <p>La modalidad de cursada incluye 14 clases teóricas de 2hs cada una y 12 encuentros prácticos para hacer preguntas y compartir la experiencia de la cursada de una forma más abierta y relajada.</p>
+                <p>Es recomendable tener una base de signos y casas, pero también es posible cursar primero este semestre y luego estudiar signos y casas. Podés consultarme si tenés dudas.</p>
+                <p>Este curso es parte de nuestra formación, podés consultar el programa completo si te interesa.</p>
+                <p>La cursada estará a cargo de Sebastián Bru.</p>
+                
+                <h4>+ INFO e Intercambio:</h4>
+                <p>Venimos escuchando y viendo que muchas de las personas que nos siguen se ven forzadas a ajustar sus consumos no esenciales. En vistas de esto, el precio que te paso a continuación es para que sepas cuánto considero que vale el curso, y lo tomes como una referencia; pero el intercambio está sujeto a tu realidad económica. La idea es que el dinero no sea un impedimento, sino un medio de intercambio.</p>
+                <p>14 encuentros teóricos y 10 encuentros prácticos de una hora: <strong>$180.000 | 160u$s</strong> (o 4 cuotas de $50.000)</p>
+                <p>Incluye materiales de lectura complementarios y accesos a las clases grabadas.</p>
+
+                <p>Para inscribirte completá el siguiente formulario:</p>
+                <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSdkgry8yatbaHnV6xDMVa6tOA81ZK6u7qZv4fgmqGz0ayvUGA/viewform?embedded=true" width="100%" height="500" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+            </div>
+        </div>
+    </div>
+</section>
+
+ <section id="seminario-saturno" class="section-container section-formaciones con-imagen fade-in-element" data-imagen="img/saturno.webp">
+            
+            <div class="layout-wrapper layout-media-rigth">
+                <div class="text-column">
+                    <h2>Saturno, la Luna y las defensas emocionales </h2> 
+                    <div class="subsection">
+                        <p>En este espacio trabajaremos la construcción de la estructura psíquica desde una perspectiva astrológica y sus posibles formas de reelaboración a lo largo del tiempo. Veremos los ciclos conjuntos de estos puntos astrológicos y recorreremos las claves del proceso de construcción de identidad.</p>
+                        <p>Abordaremos la función materna y la función paterna y la relación entre los personajes, las funciones y esos puntos astrológicos.</p>
+                        <p>Podés cursar este seminario a tu ritmo a través de videos</p>
+                        <h4>Valores:</h4>
+                        <p>Un pago de $50.000 | 50 u$s</p>
+                        <p>Para inscribirte completa el siguiente formulario:</p>
+                        <iframe data-src="https://docs.google.com/forms/d/e/1FAIpQLSdVqzpKwWnxXlveBSK0Hu10cmMToAJ3QSU6fMhPVYmozHsOYA/viewform?embedded=true" width="100%" height="400" frameborder="0" marginheight="0" marginwidth="0" class="lazy-iframe lazy-iframe-formaciones">Cargando…</iframe>
+                    </div>
+                </div>
+                <div class="media-column">
+                    <img src="img/saturno.webp" width="1081" height="1351" alt="Imagen del Seminario de Saturno" class="static-image" loading="lazy">
+                </div>
+            </div>
+        </section>
+
+        </main>
+<footer class="main-footer">
+            <div class="contact-info">
+            <p>Contacto: <a href="mailto:seba@sebabru.com">info@sebabru.com</a></p>               
+            <p>Teléfono: +54 9 3544 559877</p>
+            </div>
+            <div class="social-links">
+                <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" aria-label="YouTube"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z"/></svg></a>
+                <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/></svg></a>
+                <a href="https://www.facebook.com/sebabru.astrologia" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"/></svg></a>
+                <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3?si=c81c8808786648ea" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M248 8C111.1 8 0 119.1 0 256s111.1 248 248 248 248-111.1 248-248S384.9 8 248 8zm100.7 364.9c-4.2 0-6.8-1.3-10.7-3.6-62.4-37.6-135-39.2-206.7-24.5-3.9 1-9 2.6-11.9 2.6-9.7 0-15.8-7.7-15.8-15.8 0-10.3 6.1-15.2 13.6-16.8 81.9-18.1 165.6-16.5 237 26.2 6.1 3.9 9.7 7.4 9.7 16.5s-7.1 15.4-15.2 15.4zm26.9-65.6c-5.2 0-8.7-2.3-12.3-4.2-62.5-37-155.7-51.9-238.6-29.4-4.8 1.3-7.4 2.6-11.9 2.6-10.7 0-19.4-8.7-19.4-19.4s5.2-17.8 15.5-20.7c27.8-7.8 56.2-13.6 97.8-13.6 64.9 0 127.6 16.1 177 45.5 8.1 4.8 11.3 11 11.3 19.7-.1 10.8-8.5 19.5-19.4 19.5zm31-76.2c-5.2 0-8.4-1.3-12.9-3.9-71.2-42.5-198.5-52.7-280.9-29.7-5.2 1.3-8.4 2.6-13.1 2.6-13.4 0-23.3-10.3-23.3-23.6 0-13.6 8.4-21.3 17.4-23.9 35.2-10.3 74.6-15.2 117.5-15.2 73 0 149.5 15.2 205.4 47.8 7.8 4.5 12.9 10.7 12.9 22.6 0 13.6-11 23.3-23 23.3z"/></svg></a>
+                <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" aria-label="Telegram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M248 8C111 8 0 119 0 256S111 504 248 504 496 393 496 256 385 8 248 8zM363 176.7c-3.7 39.2-19.9 134.4-28.1 178.3-3.5 18.6-10.3 24.8-16.9 25.4-14.4 1.3-25.3-9.5-39.3-18.7-21.8-14.3-34.2-23.2-55.3-37.2-24.5-16.1-8.6-25 5.3-39.5 3.7-3.8 67.1-61.5 68.3-66.7 .2-.7 .3-3.1-1.2-4.4s-3.6-.8-5.1-.5q-3.3 .7-104.6 69.1-14.8 10.2-26.9 9.9c-8.9-.2-25.9-5-38.6-9.1-15.5-5-27.9-7.7-26.8-16.3q.8-6.7 18.5-13.7 108.4-47.2 144.6-62.3c68.9-28.6 83.2-33.6 92.5-33.8 2.1 0 6.6 .5 9.6 2.9a10.5 10.5 0 0 1 3.5 6.7A43.8 43.8 0 0 1 363 176.7z"/></svg></a>
+                <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" aria-label="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg></a>
+            </div>
+            <p>© 2024 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+        </footer>
+    </div>
+    </div>        
+        <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-GDLRMR5D57');
+</script>
+    <script src="script.js?v=3" defer></script>
+<style>
+.yt-facade {
+    position: relative;
+    width: 100%;
+    height: 352px;
+    background: #0f0f0f;
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+}
+.yt-facade img.yt-thumb {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.75;
+}
+.yt-play {
+    position: relative;
+    width: 68px;
+    height: 48px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+    transition: transform 0.15s;
+}
+.yt-facade:hover .yt-play { transform: scale(1.1); }
+</style>
+<script>
+(function() {
+    const facades = document.querySelectorAll('.yt-facade');
+    if (!facades.length) return;
+
+    // Click → reemplaza con iframe real
+    facades.forEach(function(el) {
+        el.addEventListener('click', function() {
+            const iframe = document.createElement('iframe');
+            iframe.src = el.dataset.yt;
+            iframe.width = '100%';
+            iframe.height = '352';
+            iframe.frameBorder = '0';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+            iframe.allowFullscreen = true;
+            iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+            iframe.style.cssText = 'border-radius:0 0 12px 12px; display:block; width:100%;';
+            el.replaceWith(iframe);
+        });
+    });
+
+    // IntersectionObserver → marca como visible al entrar en viewport (listo para click)
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('yt-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '200px' });
+
+    facades.forEach(function(el) { observer.observe(el); });
+})();
+</script>
+<script>
+(function() {
+    const igSection = document.getElementById('instagram-section');
+    if (!igSection) return;
+    let loaded = false;
+    const observer = new IntersectionObserver(function(entries) {
+        if (loaded || !entries[0].isIntersecting) return;
+        loaded = true;
+        const s = document.createElement('script');
+        s.src = '//www.instagram.com/embed.js';
+        s.async = true;
+        document.body.appendChild(s);
+        observer.disconnect();
+    }, { rootMargin: '300px' });
+    observer.observe(igSection);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /invitaciones/{token} {
+      allow read: if true;
+      // Admins: acceso total. Usuarios: solo pueden marcar su propia invitación como usada.
+      allow create, delete: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+      allow update: if request.auth != null && (
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
+        (
+          !resource.data.usado &&
+          (!('email' in resource.data) || resource.data.email == request.auth.token.email)
+        )
+      );
+    }
+
+    match /usuarios/{email} {
+      allow read: if request.auth != null && (
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
+        request.auth.token.email == email
+      );
+      allow write: if request.auth != null && (
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
+        request.auth.token.email == email
+      );
+    }
+
+    match /pagos_procesados/{id} {
+      allow read, write: if false;
+    }
+
+    match /ordenes_paypal/{id} {
+      allow read, write: if false;
+    }
+
+    match /codigos_descuento/{codigo} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    match /cursos/{id} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    match /pedidos/{id} {
+      allow write: if true;
+      allow read: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+  }
+}

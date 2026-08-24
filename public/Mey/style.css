@@ -1,0 +1,402 @@
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  background: #0e0e0e;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================================
+   SCROLL SPACE  (solo provee altura al documento)
+   ============================================================ */
+#scroll-space {
+  position: relative;
+  z-index: 0;
+}
+
+.driver { pointer-events: none; }
+
+/* ============================================================
+   SECCIONES FIJAS — apiladas por z-index (asignado en JS)
+   ============================================================ */
+.book-section {
+  position: fixed;
+  inset: 0;
+  height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0e0e0e;
+  pointer-events: none;
+}
+
+/* Último libro: fondo blanco para la transición a Mey */
+.book-section.is-white {
+  background: #ffffff;
+}
+
+/* ============================================================
+   ESCENA 3D
+   ============================================================ */
+.scene {
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+}
+
+/*
+   Contenedor del libro — proporción 3:4
+   object-fit:contain en todas las imágenes → sin recorte
+
+   DIMENSIONES IDEALES DE IMÁGENES:
+     Tapas:  600 × 800 px  (ratio 3:4)
+     Páginas dobles: 800 × 600 px (4:3 apaisado)
+*/
+.book {
+  position: relative;
+  width: 72vw;
+  max-width: 280px;
+  aspect-ratio: 3 / 4;
+  transform-style: preserve-3d;
+}
+
+.book-front {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  z-index: 2;
+  will-change: transform, opacity;
+  background: #111;
+  border-radius: 2px 5px 5px 2px;
+}
+
+.book-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+/* Marco interior decorativo */
+.book-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 0 0 0 6px rgba(0, 0, 0, 0.20),
+    inset 0 0 0 7px rgba(200, 180, 140, 0.15),
+    4px 8px 28px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Marco sobre fondo blanco: sin sombra exterior oscura */
+.book-section.is-white .book-front::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 6px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 7px rgba(150, 130, 100, 0.12),
+    4px 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+.book-spread {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 1;
+  will-change: opacity, transform;
+  background: #1a1a1a;
+  border-radius: 3px;
+}
+
+/* Spreads del libro blanco */
+.book-section.is-white .book-spread {
+  background: #ffffff;
+}
+
+.book-spread img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+/* ============================================================
+   STRIP DE TEXTO — desliza de izquierda a derecha
+   ============================================================ */
+.book-strip {
+  position: absolute;
+  bottom: 14%;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  text-align: left;
+  padding: 0 8vw;
+}
+
+.book-strip-text {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+  letter-spacing: 0.14em;
+  color: rgba(240, 237, 230, 0.5);
+  font-style: italic;
+}
+
+/* Strip sobre fondo blanco */
+.book-section.is-white .book-strip-text {
+  color: rgba(30, 20, 10, 0.35);
+}
+
+del {
+  text-decoration-color: currentColor;
+}
+
+/* ============================================================
+   ARTISTA — siempre al fondo (z-index: 10 en CSS)
+   Fondo blanco para la transición de zoom del último libro
+   ============================================================ */
+#artist-section {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;   /* foto + nombre arriba, footer abajo */
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: #ffffff;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.artist-inner {
+  text-align: center;
+  max-width: 420px;
+  padding: 0 24px;
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.artist-inner img {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.15);
+}
+
+.artist-name {
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #1a1a1a;
+}
+
+.artist-name span {
+  color: #c84535;
+}
+
+/* Footer con íconos sociales — aparece después de Mey */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 32px;
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.site-footer a {
+  display: flex;
+  color:#c84535;
+  transition: color 0.2s, opacity 0.2s;
+  opacity: 0.75;
+}
+
+.site-footer a:hover {
+  color: #1a1a1a;
+  opacity: 1;
+}
+
+.site-footer svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ============================================================
+   MENÚ — tres puntos fijos
+   ============================================================ */
+#menu-btn {
+  position: fixed;
+  top: 24px;
+  right: 20px;
+  z-index: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.45;
+  transition: opacity 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#menu-btn:hover,
+#menu-btn.is-open {
+  opacity: 1;
+}
+
+#menu-btn span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c84535;   /* mismo color que el overlay del menú */
+  display: block;
+  transition: background 0.25s;
+}
+
+/* Sobre fondos blancos (cuando el último libro está activo) */
+/* Se resuelve con JS si hace falta, por ahora el contraste es suficiente */
+
+/* ============================================================
+   OVERLAY DEL MENÚ
+   ============================================================ */
+#menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;            /* explícito para evitar bugs mobile */
+  height: 100%;
+  min-height: 100svh;
+  z-index: 400;
+  background: #c84535;   /* terracota — cambiar a gusto */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 10vw;
+  visibility: hidden;    /* gsap autoAlpha lo maneja */
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#menu-overlay[aria-hidden="false"] {
+  pointer-events: auto;
+}
+
+#menu-nav {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#menu-nav > li {
+  overflow: hidden;
+}
+
+#menu-nav > li > a,
+#menu-nav > li > button {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 400;
+  color: #f5ede6;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  text-align: left;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+#menu-nav > li > a:hover,
+#menu-nav > li > button:hover {
+  opacity: 0.7;
+}
+
+.works-arrow {
+  font-size: 0.5em;
+  transition: transform 0.25s;
+  display: inline-block;
+}
+
+#works-toggle[aria-expanded="true"] .works-arrow {
+  transform: rotate(180deg);
+}
+
+/* Sub-lista de libros */
+#works-list {
+  list-style: none;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s ease;
+  padding-left: 1.2em;
+}
+
+#works-list.open {
+  max-height: 400px;
+}
+
+#works-list li a {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: clamp(1rem, 3.5vw, 1.4rem);
+  color: rgba(245, 237, 230, 0.75);
+  text-decoration: none;
+  padding: 4px 0;
+  transition: opacity 0.2s;
+}
+
+#works-list li a:hover {
+  opacity: 0.6;
+}
+
+/* ============================================================
+   DESKTOP (≥ 768px)
+   ============================================================ */
+@media (min-width: 768px) {
+  .book {
+    width: 36vw;
+    max-width: 380px;
+  }
+
+  .artist-inner img {
+    width: 220px;
+    height: 220px;
+  }
+
+  #menu-btn {
+    top: 32px;
+    right: 32px;
+  }
+}

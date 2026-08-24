@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luna Negra | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../escuela.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div id="security-overlay">
+        <div class="spinner" id="spinner-icon"></div>
+        <div class="texto-seguridad" id="status-text">Verificando acceso...</div>
+        <div class="error-seguridad" id="error-msg">
+            <p>No se pudo verificar tu acceso.</p>
+            <a href="../index.html" class="btn-external">VOLVER A LA ESCUELA</a>
+        </div>
+    </div>
+
+    <div class="mobile-header">
+        <span class="mobile-title">Luna Negra</span>
+        <button class="hamburger-btn" id="menu-toggle">
+            <i class="fa-solid fa-bars"></i> Menú
+        </button>
+    </div>
+
+    <div class="aula-layout">
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h3>Luna Negra</h3>
+                    <p>Seminario</p>
+                </div>
+
+                <nav class="auto-nav">
+                    <ul id="lista-clases"></ul>
+                </nav>
+                <div class="sidebar-footer">
+                    <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Volver a Cursos</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+                <header class="clase-header">
+                    <h2><span class="num">#1</span> Clase 1</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/bde20735-d83f-4737-8d5a-21e1dbcc69eb?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-2" data-titulo="Clase 2">
+                <header class="clase-header">
+                    <h2><span class="num">#2</span> Clase 2</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/70e58295-c957-4d4d-abcc-a71dff4275e0?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-3" data-titulo="Clase 3">
+                <header class="clase-header">
+                    <h2><span class="num">#3</span> Clase 3</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/a3801a01-9b38-4c93-a1fa-6c3c5e6dab33?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-4" data-titulo="Clase 4">
+                <header class="clase-header">
+                    <h2><span class="num">#4</span> Clase 4</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/038f9a98-e7f0-4a53-987e-1c155ae70f3a?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-5" data-titulo="Clase 5">
+                <header class="clase-header">
+                    <h2><span class="num">#5</span> Clase 5</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/8520d228-a47c-4363-b7ed-6f0be7fc7da1?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-6" data-titulo="Clase 6">
+                <header class="clase-header">
+                    <h2><span class="num">#6</span> Clase 6</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/24ea08a4-a7f5-46cf-b1c3-27b697f3bf11?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+        </main>
+    </div>
+
+    <script type="module" src="../escuela.js"></script>
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { auth, db } from '../firebase.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userEmail = user.email.toLowerCase().trim();
+                    const docRef = doc(db, "usuarios", userEmail);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists() && docSnap.data().cursos?.includes('lunanegra')) {
+                        const _obs = new IntersectionObserver(entries => {
+                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
+                        }, { rootMargin: '200px' });
+                        document.querySelectorAll('iframe[data-src]').forEach(iframe => { _obs.observe(iframe); });
+                        document.getElementById('security-overlay').style.display = 'none';
+                    } else {
+                        alert("No tenés acceso a este seminario.");
+                        window.location.href = "../index.html";
+                    }
+                } catch (e) {
+                    console.error("Error al verificar el acceso:", e);
+                    window.location.href = "../index.html";
+                }
+            } else {
+                window.location.href = "../index.html";
+            }
+        });
+    </script>
+</body>
+</html>

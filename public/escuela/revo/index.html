@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revoluciones Solares | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../escuela.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div id="security-overlay">
+        <div class="spinner" id="spinner-icon"></div>
+        <div class="texto-seguridad" id="status-text">Verificando acceso...</div>
+        <div class="error-seguridad" id="error-msg">
+            <p>No se pudo verificar tu acceso.</p>
+            <a href="../index.html" class="btn-external">VOLVER A LA ESCUELA</a>
+        </div>
+    </div>
+
+    <div class="mobile-header">
+        <span class="mobile-title">Revoluciones Solares</span>
+        <button class="hamburger-btn" id="menu-toggle">
+            <i class="fa-solid fa-bars"></i> Menú
+        </button>
+    </div>
+
+    <div class="aula-layout">
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h3>Revoluciones Solares</h3>
+                    <p>Formación</p>
+                </div>
+                <a href="https://drive.google.com/open?id=13YiBZfexVe2HwtUUjRgRNr1s0wrDyZur&usp=drive_fs"
+                   target="_blank" rel="noopener"
+                   class="btn-sidebar-main"
+                   style="background-color: var(--secondary-color, #4a4a4a); border: 1px solid rgba(255,255,255,0.2); margin-bottom: 10px;">
+                    <i class="fa-solid fa-folder-open"></i> Carpeta de la cursada
+                </a>
+
+                <details style="margin-bottom: 10px;">
+                    <summary style="cursor:pointer; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; font-size: 0.85rem; color: #e0e6ed; list-style: none; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-star"></i> Solar Fire
+                    </summary>
+                    <div style="padding: 10px 4px 0; display: flex; flex-direction: column; gap: 6px;">
+                        <a href="https://youtu.be/GBFqoiaRzyY" target="_blank" rel="noopener"
+                           class="btn-sidebar-main"
+                           style="border: 1px solid rgba(255,255,255,0.12); font-size: 0.8rem; margin-bottom: 0;">
+                            <i class="fa-brands fa-youtube"></i> Para instalar
+                        </a>
+                        <a href="https://youtu.be/_z0gvve60oY" target="_blank" rel="noopener"
+                           class="btn-sidebar-main"
+                           style="border: 1px solid rgba(255,255,255,0.12); font-size: 0.8rem; margin-bottom: 0;">
+                            <i class="fa-brands fa-youtube"></i> Master Class
+                        </a>
+                    </div>
+                </details>
+
+                <nav class="auto-nav">
+                    <ul id="lista-clases"></ul>
+                </nav>
+                <div class="sidebar-footer">
+                    <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Volver a Cursos</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+                <header class="clase-header">
+                    <h2><span class="num">#1</span> Clase 1</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/ad47822b-a073-4548-913b-3155049b3479?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe>
+                </div>
+
+                <details class="material-desplegable" style="margin-top: 10px;">
+                    <summary><i class="fa-solid fa-book-open"></i> Material de lectura</summary>
+                    <div class="contenido-desplegable">
+                        <div class="pdf-wrapper">
+                            <button class="btn-expandir"><i class="fa-solid fa-expand"></i></button>
+                            <iframe data-src="https://drive.google.com/file/d/1wYT1IsBus-HthuDORdMKa7yxqRcXCP-h/preview" class="pdf-iframe" allow="autoplay" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </details>
+            </article>
+
+            <article class="clase-item" id="clase-2" data-titulo="Clase 2">
+                <header class="clase-header">
+                    <h2><span class="num">#2</span> Clase 2</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/773dbf8f-4afc-4a81-8a19-7a61bb172eb3?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe>
+                </div>
+
+                <details class="material-desplegable" style="margin-top: 10px;">
+                    <summary><i class="fa-solid fa-image"></i> Progresiones simbólicas</summary>
+                    <div class="contenido-desplegable">
+                        <img src="../img/progs.webp" alt="Programaciones" style="width:100%; border-radius:8px;">
+                    </div>
+                </details>
+            </article>
+
+            <article class="clase-item" id="clase-3" data-titulo="Clase 3">
+                <header class="clase-header">
+                    <h2><span class="num">#3</span> Clase 3</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/4d5e2f2a-d211-45c0-8c2f-d89bdfc55205?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-4" data-titulo="Clase 4">
+                <header class="clase-header">
+                    <h2><span class="num">#4</span> Clase 4</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/6fbad3c5-6df6-49eb-b07b-bfdad8beb361?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-5" data-titulo="Clase 5">
+                <header class="clase-header">
+                    <h2><span class="num">#5</span> Clase 5</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/9d4bff87-00e5-4f6b-9d16-4a3781f3dd1d?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-6" data-titulo="Clase 6">
+                <header class="clase-header">
+                    <h2><span class="num">#6</span> Clase 6</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/07b7edfb-b337-4401-830f-04e3aed06338?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-7" data-titulo="Clase 7">
+                <header class="clase-header">
+                    <h2><span class="num">#7</span> Clase 7</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/e7ed1b13-2f3a-4230-8e1b-6fa347c66d11?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-8" data-titulo="Clase 8">
+                <header class="clase-header">
+                    <h2><span class="num">#8</span> Clase 8</h2>
+                </header>
+
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/05b04f78-9cf5-4daf-b1e7-f7fa66c91ea6?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+        </main>
+    </div>
+
+    <script type="module" src="../escuela.js"></script>
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { auth, db } from '../firebase.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userEmail = user.email.toLowerCase().trim();
+                    const docSnap = await getDoc(doc(db, "usuarios", userEmail));
+                    if (docSnap.exists() && docSnap.data().cursos?.includes('revo')) {
+                        const _obs = new IntersectionObserver(entries => {
+                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
+                        }, { rootMargin: '200px' });
+                        document.querySelectorAll('iframe[data-src]').forEach(iframe => {
+                            if (!iframe.closest('details')) { _obs.observe(iframe); }
+                        });
+                        document.querySelectorAll('details').forEach(d => {
+                            d.addEventListener('toggle', () => {
+                                if (d.open) d.querySelectorAll('iframe[data-src]').forEach(iframe => { iframe.src = iframe.dataset.src; });
+                            });
+                        });
+                        document.getElementById('security-overlay').style.display = 'none';
+                    } else {
+                        window.location.href = "../index.html";
+                    }
+                } catch (e) {
+                    console.error("Error al verificar el acceso:", e);
+                    window.location.href = "../index.html";
+                }
+            } else {
+                window.location.href = "../index.html";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Curso | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary:   #249b95;
+            --secondary: #f0c516;
+            --bg:        #07070a;
+            --surface:   rgba(30, 34, 48, 0.9);
+            --border:    rgba(255,255,255,0.1);
+            --text:      #e0e6ed;
+            --muted:     #8892a0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Montserrat', sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 440px; width: 100%;
+        }
+        .screen.visible { display: flex; }
+
+        /* LOADING */
+        .spinner {
+            width: 44px; height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* CARD */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+        }
+        .card .icon {
+            font-size: 2.8rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .card h2 {
+            font-size: 1.4rem; font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+        .card p {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .card p strong { color: var(--primary); }
+
+        /* SUCCESS */
+        .icon-success { color: var(--primary); }
+        .icon-error   { color: #e05555; }
+        .icon-lock    { color: var(--secondary); }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 9px; padding: 13px 28px;
+            border: none; border-radius: 10px;
+            cursor: pointer; font-size: 0.95rem; font-weight: 700;
+            text-decoration: none; width: 100%;
+            transition: opacity 0.2s;
+        }
+        .btn:hover:not(:disabled) { opacity: 0.85; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary  { background: var(--primary);   color: #fff; }
+        .btn-google   { background: #fff; color: #333; }
+        .btn-back     { background: rgba(255,255,255,0.08); color: var(--text); }
+
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 18px 0; color: var(--muted); font-size: 0.8rem;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--border);
+        }
+
+        /* FORM */
+        .form-group { text-align: left; margin-bottom: 14px; }
+        .form-group label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 6px; }
+        input[type="email"], input[type="password"] {
+            width: 100%; background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border); color: var(--text);
+            padding: 11px 14px; border-radius: 8px; font-size: 0.9rem;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .error-msg {
+            background: rgba(220,80,80,0.12);
+            border: 1px solid #e05555; color: #f08080;
+            padding: 10px 14px; border-radius: 8px;
+            font-size: 0.85rem; margin-bottom: 14px; display: none;
+        }
+
+        .curso-badge {
+            display: inline-block;
+            background: rgba(36,155,149,0.15);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING -->
+    <div class="screen visible" id="screen-loading">
+        <div class="spinner"></div>
+        <p style="color:var(--muted)">Verificando invitación...</p>
+    </div>
+
+    <!-- ERROR -->
+    <div class="screen" id="screen-error">
+        <div class="card">
+            <span class="icon icon-error"><i class="fa-solid fa-circle-xmark"></i></span>
+            <h2 id="error-titulo">Link inválido</h2>
+            <p id="error-texto">Este link de invitación no es válido o ya fue utilizado.</p>
+            <a href="../index.html" class="btn btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Volver a la Escuela
+            </a>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="screen" id="screen-login">
+        <div class="card">
+            <span class="icon icon-lock"><i class="fa-solid fa-envelope-open-text"></i></span>
+            <h2>¡Tenés una invitación!</h2>
+            <p>Iniciá sesión para activar tu acceso al curso <strong id="login-curso-nombre"></strong>.</p>
+
+            <button class="btn btn-google" id="btn-google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="Google">
+                Continuar con Google
+            </button>
+
+            <div class="divider">o con email</div>
+
+            <div id="login-error-msg" class="error-msg"></div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="inp-email" placeholder="tu@email.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="inp-pass" placeholder="••••••••">
+            </div>
+
+            <button class="btn btn-primary" id="btn-email-login" style="margin-top:4px">
+                <i class="fa-solid fa-right-to-bracket"></i> Entrar
+            </button>
+        </div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div class="screen" id="screen-success">
+        <div class="card">
+            <span class="icon icon-success"><i class="fa-solid fa-circle-check"></i></span>
+            <h2>¡Acceso habilitado!</h2>
+            <div class="curso-badge" id="success-curso-badge"></div>
+            <p>Ya podés acceder al curso desde el Aula Virtual.</p>
+            <a href="../index.html" class="btn btn-primary" id="btn-ir-curso">
+                <i class="fa-solid fa-graduation-cap"></i> Ir al curso
+            </a>
+        </div>
+    </div>
+
+<script type="module">
+    import { auth, db } from '../firebase.js';
+    import {
+        onAuthStateChanged,
+        signInWithPopup, signInWithEmailAndPassword,
+        GoogleAuthProvider
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+    import { getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+    const CURSOS = {
+        pluton:       'Seminario Plutón',
+        introduccion: 'Introducción',
+        lectura:      'Lectura e Interpretación',
+        cosito:       '¿Qué es ese cosito?',
+        transitos:    'Tránsitos',
+        luna:         'La Luna en la carta natal',
+        tarot:        'Tarot: Arcanos Mayores y Menores',
+        signos:       'Los Signos del Zodíaco',
+        casas:        'Las Casas Astrológicas',
+    };
+
+    const googleProvider = new GoogleAuthProvider();
+
+    // Leer token de la URL
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get('token');
+
+    function mostrar(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+        document.getElementById(id).classList.add('visible');
+    }
+
+    function mostrarError(titulo, texto) {
+        document.getElementById('error-titulo').textContent = titulo;
+        document.getElementById('error-texto').textContent  = texto;
+        mostrar('screen-error');
+    }
+
+    // Si no hay token en la URL, error inmediato
+    if (!token) {
+        mostrarError('Link inválido', 'No se encontró ningún token en este link.');
+    }
+
+    let tokenData = null;
+
+    async function canjearToken() {
+        const functions = getFunctions(getApp(), 'us-central1');
+        const activar = httpsCallable(functions, 'activarInvitacion');
+        try {
+            const result = await activar({ token });
+            const { cursoId, cursoUrl } = result.data;
+            const nombreCurso = CURSOS[cursoId] || cursoId;
+            document.getElementById('success-curso-badge').textContent = nombreCurso;
+            document.getElementById('btn-ir-curso').href = cursoUrl;
+            mostrar('screen-success');
+        } catch (e) {
+            const code = (e.code || '').replace('functions/', '');
+            const msgs = {
+                'already-exists':   ['Invitación ya utilizada',        'Este link ya fue canjeado.'],
+                'deadline-exceeded':['Invitación vencida',             'Este link ya expiró. Pedí uno nuevo.'],
+                'permission-denied':['Invitación para otra cuenta',    e.message],
+                'not-found':        ['Link inválido',                  'Esta invitación no existe.'],
+            };
+            const [titulo, texto] = msgs[code] || ['Error al activar el acceso', 'Ocurrió un problema. Contactá a Seba.'];
+            mostrarError(titulo, texto);
+        }
+    }
+
+    // ── FLUJO PRINCIPAL ───────────────────────────────────────────
+    if (token) {
+        onAuthStateChanged(auth, async user => {
+            if (user) {
+                // Logueado → canjear vía Cloud Function (valida y otorga acceso server-side)
+                await canjearToken();
+            } else {
+                // No logueado → intentar leer el token para mostrar el nombre del curso,
+                // pero si falla por permisos, mostrar login igual con texto genérico
+                if (!tokenData) {
+                    try {
+                        const snap = await getDoc(doc(db, 'invitaciones', token));
+                        if (snap.exists()) tokenData = snap.data();
+                    } catch (e) {
+                        // Sin permisos para leer sin sesión — está bien, seguimos
+                    }
+                }
+                const cid = tokenData?.cursoId || tokenData?.curso;
+                const nombreCurso = cid ? (CURSOS[cid] || cid) : 'este curso';
+                document.getElementById('login-curso-nombre').textContent = nombreCurso;
+                mostrar('screen-login');
+            }
+        });
+    }
+
+    // ── LOGIN CON GOOGLE ──────────────────────────────────────────
+    document.getElementById('btn-google').addEventListener('click', async () => {
+        try {
+            await signInWithPopup(auth, googleProvider);
+            // onAuthStateChanged lo toma desde acá
+        } catch (e) {
+            console.error(e);
+            const msg = document.getElementById('login-error-msg');
+            msg.textContent = 'Error al iniciar con Google. Intentá de nuevo.';
+            msg.style.display = 'block';
+        }
+    });
+
+    // ── LOGIN CON EMAIL ───────────────────────────────────────────
+    document.getElementById('btn-email-login').addEventListener('click', async () => {
+        const btn   = document.getElementById('btn-email-login');
+        const msg   = document.getElementById('login-error-msg');
+        const email = document.getElementById('inp-email').value.trim();
+        const pass  = document.getElementById('inp-pass').value.trim();
+
+        msg.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            // onAuthStateChanged lo toma desde acá
+        } catch (e) {
+            msg.textContent = 'Email o contraseña incorrectos.';
+            msg.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar';
+        }
+    });
+
+    document.getElementById('inp-pass').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btn-email-login').click();
+    });
+</script>
+</body>
+</html>

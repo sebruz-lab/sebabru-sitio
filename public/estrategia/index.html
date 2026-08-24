@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Model Canvas — Seba Bru Astrología</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f4f0;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #2c2c2a;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #888780;
+    margin-bottom: 20px;
+  }
+  .canvas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 8px;
+  }
+  .pillar {
+    border-radius: 8px;
+    padding: 12px;
+    border: 0.5px solid;
+    position: relative;
+  }
+  .pillar-num {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.5;
+    margin-bottom: 2px;
+  }
+  .pillar-title {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .pillar-body {
+    font-size: 12px;
+    line-height: 1.5;
+    color: inherit;
+    opacity: 0.75;
+  }
+  .pillar-body li {
+    margin-bottom: 4px;
+    padding-left: 10px;
+    position: relative;
+    list-style: none;
+  }
+  .pillar-body li::before {
+    content: "·";
+    position: absolute;
+    left: 0;
+    opacity: 0.5;
+  }
+  .mejora {
+    margin-top: 10px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    border-left: 2px solid;
+    background: rgba(255,255,255,0.7);
+  }
+  .span2 { grid-column: span 2; }
+  .span3 { grid-column: span 3; }
+  .span1 { grid-column: span 1; }
+
+  .p1 { background: #E6F1FB; border-color: #B5D4F4; color: #0C447C; }
+  .p1 .pillar-title { color: #0C447C; }
+  .p1 .mejora { border-color: #185FA5; color: #185FA5; }
+
+  .p2 { background: #EAF3DE; border-color: #C0DD97; }
+  .p2 .pillar-title { color: #27500A; }
+  .p2 .mejora { border-color: #3B6D11; color: #3B6D11; }
+
+  .p3 { background: #EEEDFE; border-color: #CECBF6; }
+  .p3 .pillar-title { color: #3C3489; }
+  .p3 .mejora { border-color: #534AB7; color: #534AB7; }
+
+  .p4 { background: #E1F5EE; border-color: #9FE1CB; }
+  .p4 .pillar-title { color: #085041; }
+  .p4 .mejora { border-color: #0F6E56; color: #0F6E56; }
+
+  .p5 { background: #FAEEDA; border-color: #FAC775; }
+  .p5 .pillar-title { color: #633806; }
+  .p5 .mejora { border-color: #854F0B; color: #854F0B; }
+
+  .p6 { background: #FBEAF0; border-color: #F4C0D1; }
+  .p6 .pillar-title { color: #4B1528; }
+  .p6 .mejora { border-color: #993556; color: #993556; }
+
+  .p7 { background: #FAECE7; border-color: #F5C4B3; }
+  .p7 .pillar-title { color: #4A1B0C; }
+  .p7 .mejora { border-color: #993C1D; color: #993C1D; }
+
+  .p8 { background: #F1EFE8; border-color: #D3D1C7; }
+  .p8 .pillar-title { color: #2C2C2A; }
+  .p8 .mejora { border-color: #5F5E5A; color: #5F5E5A; }
+
+  .p9 { background: #FCEBEB; border-color: #F7C1C1; }
+  .p9 .pillar-title { color: #501313; }
+  .p9 .mejora { border-color: #A32D2D; color: #A32D2D; }
+
+  .cruce {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    text-align: center;
+  }
+  .cruce .pillar-body {
+    font-size: 11px;
+    max-width: 320px;
+    margin: 4px auto 0;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 900px) {
+    .canvas-grid { grid-template-columns: 1fr 1fr; }
+    .span2, .span3 { grid-column: span 2; }
+  }
+  @media (max-width: 600px) {
+    .canvas-grid { grid-template-columns: 1fr; }
+    .span2, .span3 { grid-column: span 1; }
+    body { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Business Model Canvas</h1>
+<p class="subtitle">Seba Bru Astrología — actualizado abril 2026</p>
+
+<div class="canvas-grid">
+
+  <!-- Fila 1 -->
+  <div class="pillar p8 span1">
+    <div class="pillar-num">8</div>
+    <div class="pillar-title">Socios clave</div>
+    <ul class="pillar-body">
+      <li>Clari (producción)</li>
+      <li>Cecile — Plantas.Cuerpo.Cielo</li>
+      <li>Mey (arte / constelaciones)</li>
+      <li>Pau (Uruguay)</li>
+    </ul>
+    <div class="mejora">+ Reconstruir red de cuentas afines: astrólogxs, terapeutas, wellness</div>
+  </div>
+
+  <div class="pillar p7 span1">
+    <div class="pillar-num">7</div>
+    <div class="pillar-title">Actividades clave</div>
+    <ul class="pillar-body">
+      <li>Producción de contenido gratuito (podcast, carruseles)</li>
+      <li>Escritura e investigación</li>
+      <li>Clases y consultas</li>
+    </ul>
+    <div class="mejora">+ Delegar operativa a Clari para liberar tiempo de creación y grabación</div>
+  </div>
+
+  <div class="pillar p2 span1">
+    <div class="pillar-num">2</div>
+    <div class="pillar-title">Propuesta de valor</div>
+    <ul class="pillar-body">
+      <li>Astrología cruda, poética y sensible</li>
+      <li>Formación Abierta: "cuando querés, como querés"</li>
+      <li>Desarmar lugares comunes: carta como deseo, no destino</li>
+    </ul>
+    <div class="mejora">+ La poética y la sensibilidad no son adornos: son el producto</div>
+  </div>
+
+  <div class="pillar p4 span1">
+    <div class="pillar-num">4</div>
+    <div class="pillar-title">Relación con clientes</div>
+    <ul class="pillar-body">
+      <li>Tono de par: directo, humor, reflexión autónoma</li>
+      <li>Mensaje de cumpleaños (Revolución Solar)</li>
+    </ul>
+    <div class="mejora">+ El mensaje de rev. solar es un golazo de fidelización — implementar</div>
+  </div>
+
+  <div class="pillar p1 span1">
+    <div class="pillar-num">1</div>
+    <div class="pillar-title">Segmentos</div>
+    <ul class="pillar-body">
+      <li>Mujeres (90%), 35–54 años</li>
+      <li>Argentina (77%)</li>
+      <li>Personas en procesos de cambio</li>
+      <li>Valoran profundidad, no respuestas armadas</li>
+    </ul>
+    <div class="mejora">+ Expansión activa: España, Uruguay, Chile, México</div>
+  </div>
+
+  <!-- Fila 2 -->
+  <div class="pillar p6 span1">
+    <div class="pillar-num">6</div>
+    <div class="pillar-title">Recursos clave</div>
+    <ul class="pillar-body">
+      <li>Bagaje intelectual (astro, psico, filosofía, lit.)</li>
+      <li>Voz, escritura, capacidad poética</li>
+      <li>Spotify, Bunny.net, Firebase, WhatsApp</li>
+    </ul>
+    <div class="mejora">+ Comunidad de 500 personas: activo estratégico subexplotado</div>
+  </div>
+
+  <div class="pillar p2 span3 cruce">
+    <div>
+      <div class="pillar-num" style="text-align:center">— el cruce estratégico —</div>
+      <div class="pillar-body">Delegar operativa (7+8) → grabar enlatados → abrir canilla de ingresos pasivos (5)</div>
+    </div>
+  </div>
+
+  <div class="pillar p5 span1">
+    <div class="pillar-num">5</div>
+    <div class="pillar-title">Fuentes de ingreso</div>
+    <ul class="pillar-body">
+      <li>Consultas individuales</li>
+      <li>Formación de 4 años</li>
+      <li>Talleres / seminarios</li>
+      <li>Libro impreso + digital (Amazon)</li>
+      <li>Formación Abierta (evergreen)</li>
+    </ul>
+    <div class="mejora">+ Subir ticket de consultas: hay sobredemanda. El libro digital es puerta de entrada al ecosistema</div>
+  </div>
+
+  <!-- Fila 3 -->
+  <div class="pillar p9 span2">
+    <div class="pillar-num">9</div>
+    <div class="pillar-title">Estructura de costos</div>
+    <ul class="pillar-body" style="display:flex; gap:24px; flex-wrap:wrap;">
+      <li>Hosting / dominio / plataformas</li>
+      <li>Pauta publicitaria mensual estructurada</li>
+      <li>Pago a Clari</li>
+    </ul>
+    <div class="mejora">+ No pautar contenido de luna/luna nueva — buen alcance orgánico. Pautar: signos (seguidores) y Luna Negra (compras)</div>
+  </div>
+
+  <div class="pillar p3 span3">
+    <div class="pillar-num">3</div>
+    <div class="pillar-title">Canales</div>
+    <ul class="pillar-body" style="display:flex; gap:24px; flex-wrap:wrap;">
+      <li>Spotify — podcast</li>
+      <li>YouTube — videos largos</li>
+      <li>Instagram — carruseles (profundidad) + reels (captación)</li>
+      <li>WhatsApp — comunidad 500 personas, conversión</li>
+      <li>ManyChat — automatización DM</li>
+      <li>sebabru.com — entrega y venta</li>
+    </ul>
+    <div class="mejora">+ El sharing orgánico de cuentas afines es el principal motor de captación — activar como canal estratégico</div>
+  </div>
+
+</div>
+
+<h1 style="margin-top: 32px;">FODA</h1>
+<p class="subtitle">Seba Bru Astrología — actualizado abril 2026</p>
+
+<style>
+  .foda-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .cuadrante {
+    border-radius: 8px;
+    padding: 14px;
+    border: 0.5px solid;
+  }
+  .cuadrante-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .cuadrante-label {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .cuadrante-sub {
+    font-size: 11px;
+    color: #888780;
+  }
+  .foda-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .foda-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .foda-text { color: #4a4a48; }
+  .foda-text strong { color: #2c2c2a; font-weight: 500; }
+
+  .fq-f { background: #EAF3DE; border-color: #C0DD97; }
+  .fq-f .cuadrante-label { background: #C0DD97; color: #173404; }
+  .fq-f .foda-dot { background: #3B6D11; }
+
+  .fq-o { background: #E6F1FB; border-color: #B5D4F4; }
+  .fq-o .cuadrante-label { background: #B5D4F4; color: #042C53; }
+  .fq-o .foda-dot { background: #185FA5; }
+
+  .fq-d { background: #FAEEDA; border-color: #FAC775; }
+  .fq-d .cuadrante-label { background: #FAC775; color: #412402; }
+  .fq-d .foda-dot { background: #854F0B; }
+
+  .fq-a { background: #FAECE7; border-color: #F5C4B3; }
+  .fq-a .cuadrante-label { background: #F5C4B3; color: #4A1B0C; }
+  .fq-a .foda-dot { background: #993C1D; }
+
+  @media (max-width: 600px) {
+    .foda-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="foda-grid">
+
+  <div class="cuadrante fq-f">
+    <div class="cuadrante-header">
+      <span class="cuadrante-label">Fortalezas</span>
+      <span class="cuadrante-sub">interno · positivo</span>
+    </div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Voz única e inimitable.</strong> La poética, el humor y la sensibilidad no son replicables por competidores ni por IA.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Autoridad construida.</strong> Libro publicado, años de podcast, formación activa. Credibilidad sólida en el nicho.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Comunidad caliente.</strong> 500 personas activas en WhatsApp con alta disposición a comprar.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Contenido de alto alcance orgánico.</strong> Las lunas y tránsitos se viralizan sin pauta.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Catálogo latente.</strong> Clases grabadas listas para convertirse en productos sin trabajo extra de creación.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Red de colaboraciones.</strong> Cecile, Mey, Pau — alianzas que cruzan audiencias sin costo de pauta.</div></div>
+  </div>
+
+  <div class="cuadrante fq-o">
+    <div class="cuadrante-header">
+      <span class="cuadrante-label">Oportunidades</span>
+      <span class="cuadrante-sub">externo · positivo</span>
+    </div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Mercado hispanohablante enorme.</strong> España, México, Chile tienen demanda de astrología seria y el formato digital no tiene fronteras.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Tendencia de formación flexible.</strong> El mercado demanda aprender sin horarios fijos — Formación Abierta llega en el momento justo.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Segundo libro en desarrollo.</strong> Oportunidad de relanzar autoridad y generar nuevo ciclo de atención.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Presencia en Uruguay y Rosario.</strong> Actividades presenciales que consolidan vínculos y generan contenido.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Amazon como canal global.</strong> El libro digital ya está disponible en 15 países — falta activarlo estratégicamente.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Sobredemanda de consultas.</strong> Señal clara de que hay margen para subir precios sin perder volumen.</div></div>
+  </div>
+
+  <div class="cuadrante fq-d">
+    <div class="cuadrante-header">
+      <span class="cuadrante-label">Debilidades</span>
+      <span class="cuadrante-sub">interno · negativo</span>
+    </div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Operativa sin delegar.</strong> Clari existe pero no está aprovechada al máximo — Seba sigue absorbiendo trabajo que no es su valor diferencial.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Catálogo disperso.</strong> Muchos productos en distintas etapas, sin jerarquía clara ni embudo definido.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Red de afines desactivada.</strong> El canal más eficiente de captación (sharing orgánico) no está siendo cultivado sistemáticamente.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Precio de consultas desactualizado.</strong> La sobredemanda no se está traduciendo en mayor ingreso por hora.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Dependencia de Argentina.</strong> 77% de audiencia en un solo mercado con inestabilidad económica estructural.</div></div>
+  </div>
+
+  <div class="cuadrante fq-a">
+    <div class="cuadrante-header">
+      <span class="cuadrante-label">Amenazas</span>
+      <span class="cuadrante-sub">externo · negativo</span>
+    </div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Saturación del mercado de cursos grabados.</strong> La oferta de formación online creció mucho — diferenciarse por calidad y voz es clave.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Algoritmos impredecibles.</strong> El alcance orgánico en Instagram puede caer sin aviso — la comunidad propia (WhatsApp, web) es el seguro.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Astrología "de consumo rápido".</strong> El nicho tiene mucho contenido superficial que compite por la misma atención, aunque no por el mismo público.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Contexto económico argentino.</strong> Poder adquisitivo local fluctuante afecta conversión de consultas y formaciones en pesos.</div></div>
+    <div class="foda-item"><div class="foda-dot"></div><div class="foda-text"><strong>Burnout de creador.</strong> El modelo actual tiene a Seba en el centro de todo — sin delegación, el crecimiento tiene techo físico.</div></div>
+  </div>
+
+</div>
+
+<h1 style="margin-top: 32px;">Círculo Dorado</h1>
+<p class="subtitle">El propósito en el centro</p>
+
+<style>
+  .golden-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: center;
+    max-width: 820px;
+  }
+  .golden-circles {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    flex-shrink: 0;
+    margin: auto;
+  }
+  .gc-outer {
+    position: absolute;
+    inset: 0;
+    background: #F1EFE8;
+    border-radius: 50%;
+    border: 0.5px solid #D3D1C7;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 18px;
+  }
+  .gc-mid {
+    position: absolute;
+    top: 16%; left: 16%;
+    width: 68%; height: 68%;
+    background: #E8E6DF;
+    border-radius: 50%;
+    border: 0.5px solid #C5C3B8;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 16px;
+  }
+  .gc-core {
+    position: absolute;
+    top: 33%; left: 33%;
+    width: 34%; height: 34%;
+    background: linear-gradient(135deg, #f59f00 0%, #e67700 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(245,159,0,0.35);
+  }
+  .gc-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    color: #888780;
+  }
+  .gc-mid .gc-label { color: #5a5955; }
+  .gc-core strong { color: #fff; font-size: 9px; letter-spacing: 1.5px; }
+
+  .golden-desc {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .gd-block h3 {
+    margin: 0 0 5px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gd-block h3 small {
+    font-size: 11px;
+    font-weight: 400;
+    color: #888780;
+  }
+  .gd-block p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #4a4a48;
+  }
+  .gd-porq h3 { color: #e67700; }
+  .gd-como h3 { color: #2c2c2a; }
+  .gd-que  h3 { color: #888780; }
+</style>
+
+<div class="golden-wrap">
+  <div class="golden-circles">
+    <div class="gc-outer"><span class="gc-label">QUÉ</span></div>
+    <div class="gc-mid"><span class="gc-label">CÓMO</span></div>
+    <div class="gc-core"><strong>POR QUÉ</strong></div>
+  </div>
+
+  <div class="golden-desc">
+    <div class="gd-block gd-porq">
+      <h3>🎯 POR QUÉ <small>(Tu Propósito)</small></h3>
+      <p>Devolverle la potencia a la gente. Que dejen el lugar de víctimas, se hagan cargo de su propio deseo y abran la puerta para salir a jugar.</p>
+    </div>
+    <div class="gd-block gd-como">
+      <h3>🧠 CÓMO <small>(Tu Diferencial)</small></h3>
+      <p>Traduciendo el cielo a través de la poesía y la filosofía. Un acompañamiento crudo, sensible y de par a par que desarma solemnidades.</p>
+    </div>
+    <div class="gd-block gd-que">
+      <h3>📦 QUÉ <small>(Tus Productos)</small></h3>
+      <p>Formación Abierta, Talleres Sincrónicos (La Potencia, Luna Negra), el Libro de Lilith, Sesiones 1 a 1 y el Kit Astrológico.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

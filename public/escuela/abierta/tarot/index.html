@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarot: Arcanos Mayores y Menores | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
+    <link rel="stylesheet" href="../../../style.css">
+    <link rel="stylesheet" href="../../escuela.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .materiales-toggle {
+            width: 100%;
+            background: var(--secondary-color, #4a4a4a);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            text-align: left;
+        }
+        .materiales-toggle .chevron {
+            transition: transform 0.25s;
+            font-size: 0.75rem;
+        }
+        .materiales-toggle.abierto .chevron {
+            transform: rotate(180deg);
+        }
+        .materiales-lista {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+            padding: 0 2px;
+        }
+        .materiales-lista.visible {
+            display: flex;
+        }
+        .materiales-lista a {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            color: #ddd;
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .materiales-lista a:hover {
+            background: rgba(255,255,255,0.12);
+        }
+    </style>
+</head>
+<body>
+    <div id="security-overlay">
+        <div class="spinner" id="spinner-icon"></div>
+        <div class="texto-seguridad" id="status-text">Verificando acceso...</div>
+        <div class="error-seguridad" id="error-msg">
+            <p>No se pudo verificar tu acceso.</p>
+            <a href="../index.html" class="btn-external">VOLVER A CURSOS ABIERTOS</a>
+        </div>
+    </div>
+
+    <div class="mobile-header">
+        <span class="mobile-title">Tarot: Arcanos Mayores y Menores</span>
+        <button class="hamburger-btn" id="menu-toggle">
+            <i class="fa-solid fa-bars"></i> Menú
+        </button>
+    </div>
+
+    <div class="aula-layout">
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h3>Tarot</h3>
+                    <p>Formación abierta</p>
+
+                    <button class="materiales-toggle" id="btn-materiales">
+                        <span><i class="fa-solid fa-book-open" style="margin-right:8px;"></i> Materiales de lectura</span>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </button>
+                    <div class="materiales-lista" id="lista-materiales">
+                        <a href="https://drive.google.com/open?id=1Rqs_dpaUSDxPWAy0vDGzbDHol0Twh1WV&usp=drive_fs" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-book-open"></i> Rachel Pollack · 78 grados
+                        </a>
+                        <a href="https://drive.google.com/open?id=19URJUNq3thmkUtHLr5fefd5pWygyaLDP&usp=drive_fs" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-book-open"></i> Sallie Nichols · Jung y el Tarot
+                        </a>
+                        <a href="https://drive.google.com/open?id=175gzHAeqA3SyQF5fJmGasPX7mBMxeJw-&usp=drive_fs" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-book-open"></i> Jodorowsky · La vía del Tarot
+                        </a>
+                    </div>
+
+                    <a href="https://drive.google.com/open?id=1TMfYpqVfaOKSBMmVXE5AwTDXnL52cCrL&usp=drive_fs" target="_blank" rel="noopener noreferrer" class="btn-sidebar-main" style="background-color:var(--secondary-color,#4a4a4a); border:1px solid rgba(255,255,255,0.2); margin-bottom:8px;">
+                        <i class="fa-solid fa-images"></i> Imágenes del mazo Rider
+                    </a>
+                </div>
+
+                <nav class="auto-nav">
+                    <ul id="lista-clases"></ul>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Volver a Cursos</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <h2 style="margin-bottom: 24px;">Arcanos Mayores</h2>
+
+            <article class="clase-item" id="clase-am-1" data-titulo="Arcanos Mayores 1">
+                <header class="clase-header">
+                    <h2><span class="num">#1</span> Arcanos Mayores 1</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000;">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-am-2" data-titulo="Arcanos Mayores 2">
+                <header class="clase-header">
+                    <h2><span class="num">#2</span> Arcanos Mayores 2</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-am-3" data-titulo="Arcanos Mayores 3">
+                <header class="clase-header">
+                    <h2><span class="num">#3</span> Arcanos Mayores 3</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-am-4" data-titulo="Arcanos Mayores 4">
+                <header class="clase-header">
+                    <h2><span class="num">#4</span> Arcanos Mayores 4</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-am-5" data-titulo="Arcanos Mayores 5">
+                <header class="clase-header">
+                    <h2><span class="num">#5</span> Arcanos Mayores 5</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-am-6" data-titulo="Arcanos Mayores 6">
+                <header class="clase-header">
+                    <h2><span class="num">#6</span> Arcanos Mayores 6</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <h2 style="margin: 40px 0 24px;">Arcanos Menores</h2>
+
+            <article class="clase-item" id="clase-mn-1" data-titulo="Arcanos Menores 1">
+                <header class="clase-header">
+                    <h2><span class="num">#7</span> Arcanos Menores 1</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-mn-2" data-titulo="Arcanos Menores 2">
+                <header class="clase-header">
+                    <h2><span class="num">#8</span> Arcanos Menores 2</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-mn-3" data-titulo="Arcanos Menores 3">
+                <header class="clase-header">
+                    <h2><span class="num">#9</span> Arcanos Menores 3</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-mn-4" data-titulo="Arcanos Menores 4">
+                <header class="clase-header">
+                    <h2><span class="num">#10</span> Arcanos Menores 4</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-mn-5" data-titulo="Arcanos Menores 5">
+                <header class="clase-header">
+                    <h2><span class="num">#11</span> Arcanos Menores 5</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-mn-6" data-titulo="Arcanos Menores 6">
+                <header class="clase-header">
+                    <h2><span class="num">#12</span> Arcanos Menores 6</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+        </main>
+    </div>
+
+    <script type="module" src="../../escuela.js"></script>
+    <script>
+        document.getElementById('btn-materiales').addEventListener('click', function() {
+            this.classList.toggle('abierto');
+            document.getElementById('lista-materiales').classList.toggle('visible');
+        });
+    </script>
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { auth, db } from '../../firebase.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userEmail = user.email.toLowerCase().trim();
+                    const docRef = doc(db, "usuarios", userEmail);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        if (userData.cursos && userData.cursos.includes('tarot')) {
+                            const cursoSnap = await getDoc(doc(db, "cursos", "tarot"));
+                            const videos = cursoSnap.data()?.videos || [];
+                            document.querySelectorAll('iframe[data-video]').forEach((iframe, i) => {
+                                if (videos[i]) iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
+                            });
+                            document.getElementById('security-overlay').style.display = 'none';
+                        } else {
+                            alert("No tenés acceso a este curso.");
+                            window.location.href = "../index.html";
+                        }
+                    } else {
+                        window.location.href = "../index.html";
+                    }
+                } catch (error) {
+                    console.error("Error al verificar el acceso:", error);
+                    window.location.href = "../index.html";
+                }
+            } else {
+                window.location.href = "../index.html";
+            }
+        });
+    </script>
+</body>
+</html>

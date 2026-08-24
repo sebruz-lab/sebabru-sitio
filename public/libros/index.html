@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seba Bru | Libros</title>
+    
+    <link rel="stylesheet" href="../style.css"> 
+    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        /* Ajustes específicos para Libros */
+        :root {
+            --luna-text: #cccac3;
+            --luna-theme: #3bc2bc; /* Tu verde agua característico */
+        }
+
+        .book-hero {
+            padding-top: 100px;
+            margin-bottom: 60px;
+        }
+
+        .price-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .price-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 194, 188, 0.3);
+            text-align: center;
+        }
+
+        .price-card strong { color: var(--luna-theme); font-size: 1.4rem; }
+
+        /* Contenedor Amazon Grid */
+        .amazon-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .amazon-grid { grid-template-columns: repeat(2, 1fr); }
+            .book-hero .layout-wrapper { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="fixed-background">
+        <div class="blob color-1"></div>
+        <div class="blob color-2"></div>
+    </div>
+    <div class="luciernagas-container"></div>
+
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+          </ul>
+    </nav>
+
+    <div id="content-wrapper">
+        <main>
+            <section class="section-container book-hero fade-in-element">
+                <div class="layout-wrapper">
+                    <div class="media-column">
+                        <img src="img/LN1.jpeg" alt="Luna Negra Libro" class="static-image" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
+                    </div>
+
+                    <div class="text-column">
+                        <h1 style="color: #fff; margin-bottom: 10px;">Luna Negra</h1>
+                        <h2 style="color: var(--luna-theme); margin-top: 0; font-size: 1.4rem;">Lilith en la Carta Natal o la potencia del vacío</h2>
+                        
+                        <div class="resumen-libro" style="margin-top: 25px;">
+                            <p>El libro busca hacer contacto con nuestro registro sensible y con nuestro cuerpo, al tiempo que brinda herramientas para comprender la importancia de la fuerza misteriosa de este punto astrológico.</p>
+                            <p>La Luna Negra señala un espacio donde se abre un profundo contacto con el inconsciente, en su dimensión más corporal. En este lugar misterioso resuenan ecos de las memorias del linaje, ausencias que se vuelven agujeros negros y puntos de contacto con lo traumático.</p>
+                            <p>Un texto conmovedor que recorre la técnica astronómica, el mito de Lilith y los efectos de este arquetipo en nuestra subjetividad actual.</p>
+                        </div>
+
+                        <div class="grupo-botones-sutiles" style="margin-top: 30px;">
+                            <a href="#comprar" class="btn-sutil">¿Cómo comprar?</a>
+                            <a href="#pdf-modal" class="btn-sutil" onclick="document.getElementById('pdf-modal').style.display='flex'">Vista Previa</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="parallax-divider" id="comprar" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('../img/propuestas.webp');">
+                <h2 class="parallax-title" style="color: #f0c516">Disponible en Argentina y el Mundo</h2>
+            </section>
+
+            <section class="section-container narrow-text-section fade-in-element">
+                <div class="visualizacion-box" style="background: rgba(59, 194, 188, 0.05); border-left: 4px solid var(--luna-theme);">
+                    <h3 style="color: #fff;">🇦🇷 Comprar en Argentina</h3>
+                    <p>Adquirilo con <strong>descuento promocional ($30.000)</strong> coordinando directamente con nosotros.</p>
+                    <p>📍 Puntos de recogida: Buenos Aires y Rosario.<br>
+                       🚚 Envíos a todo el país vía correo (Sucursal: $4000-$5500 / Domicilio: $8000-$9500).</p>
+                    
+                    <a href="https://wa.me/5493544584122" class="house-button" style="display: inline-block; margin-top: 15px;">
+                        <i class="fab fa-whatsapp"></i> Comprar por WhatsApp
+                    </a>
+                </div>
+
+                <div style="margin-top: 40px; text-align: center;">
+                    <h4 style="color: #fff;">Encontralo en librerías:</h4>
+                    <p>• <strong>Magia:</strong> Thames 1619, CABA.<br>
+                       • <strong>La Libre:</strong> Chacabuco 917, CABA.</p>
+                </div>
+            </section>
+
+            <section class="section-container narrow-text-section fade-in-element" style="text-align: center;">
+                <h2 class="luna-accent">🌐 Comprar en Amazon</h2>
+                <div class="price-list">
+                    <div class="price-card">E-pub: <strong>10$</strong></div>
+                    <div class="price-card">Impreso: <strong>30$</strong></div>
+                </div>
+                
+                <p style="margin-bottom: 25px;">Seleccioná tu tienda local:</p>
+                
+               <div class="main-sections amazon-grid-full" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;"> 
+    <a href="https://www.amazon.com/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Estados Unidos</h3></a>
+    <a href="https://www.amazon.com.mx/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>México</h3></a>
+    <a href="https://www.amazon.ca/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Canadá</h3></a>
+    <a href="https://www.amazon.com.br/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Brasil</h3></a>
+
+    <a href="https://www.amazon.es/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>España</h3></a>
+    <a href="https://www.amazon.co.uk/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Reino Unido</h3></a>
+    <a href="https://www.amazon.de/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Alemania</h3></a>
+    <a href="https://www.amazon.fr/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Francia</h3></a>
+    <a href="https://www.amazon.it/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Italia</h3></a>
+    <a href="https://www.amazon.nl/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Países Bajos</h3></a>
+    <a href="https://www.amazon.pl/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Polonia</h3></a>
+    <a href="https://www.amazon.se/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Suecia</h3></a>
+    <a href="https://www.amazon.com.be/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Bélgica</h3></a>
+
+    <a href="https://www.amazon.com.au/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Australia</h3></a>
+    <a href="https://www.amazon.co.jp/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Japón</h3></a>
+</div>
+            </section>
+
+            <section class="section-container fade-in-element" style="text-align: center;">
+                <img src="img/v2.jpeg" alt="Luna Negra Detalle" class="static-image" style="max-width: 600px; border-radius: 20px;">
+            <div id="pdf-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Vista Previa del Libro</h2>
+            <div class="modal-iframe-container">
+                <iframe src="https://drive.google.com/file/d/1RSA085a7yl7TFqxMfpTdyoh3GvII5lwl/preview" width="640" height="480" allow="autoplay"></iframe>
+            </div>
+            <p>(Desliza para leer las primeras páginas)</p>
+        </div>
+    </div>
+            </section>
+
+        </main>
+
+       
+
+        <footer class="main-footer">
+            <p>© 2026 Seba Bru Astrología. La potencia del vacío.</p>
+        </footer>
+    </div>
+
+    <script src="../script.js"></script>
+</body>
+</html>
