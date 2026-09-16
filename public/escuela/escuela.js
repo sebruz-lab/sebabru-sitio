@@ -98,6 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGoogle.onclick = async () => {
             try {
                 const result = await signInWithPopup(auth, googleProvider);
+                // El popup se cerró — mostrar overlay inmediatamente
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                if (modal) modal.style.display = 'none';
                 const user = result.user;
                 const email = user.email.toLowerCase().trim();
 
@@ -196,6 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNCIÓN CENTRAL DE PERMISOS ---
     async function verificarYEntrar(email, url) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        if (modal) modal.style.display = 'none';
         try {
             const docSnap = await getDoc(doc(db, "usuarios", email.toLowerCase().trim()));
             if (docSnap.exists()) {
@@ -204,14 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (tienePermiso) {
                     window.location.href = url;
                 } else {
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    modal.style.display = 'flex';
                     alert("No tenés acceso habilitado para este curso.");
                     modal.style.display = 'none';
                 }
             } else {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
                 alert("Usuario no registrado en la base de datos.");
             }
         } catch (error) {
             console.error(error);
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
             alert("Error de conexión. Intentá en modo Incógnito.");
         }
     }

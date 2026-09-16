@@ -68,9 +68,30 @@ service cloud.firestore {
     }
 
     match /cursos/{id} {
-      allow read: if request.auth != null;
+      // Solo admins o quien ya compro ese curso puede leer la lista completa
+      // de videos. La clase gratis (primer video) se sirve aparte via la
+      // Cloud Function obtenerMuestra, que no requiere login.
+      allow read: if request.auth != null && (
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
+        (id in get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.cursos)
+      );
       allow write: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    match /enlaces/{token} {
+      // Admins crean y gestionan los enlaces desde el panel.
+      // La Cloud Function activarEnlace (Admin SDK) los lee e incrementa usos
+      // sin pasar por estas reglas.
+      allow read, write: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    match /regalos/{codigo} {
+      // Los codigos de regalo se crean, se canjean y se marcan usados
+      // exclusivamente desde Cloud Functions (Admin SDK), que no pasan por
+      // estas reglas. Ningun cliente deberia leer ni escribir directo.
+      allow read, write: if false;
     }
 
     match /pedidos/{id} {

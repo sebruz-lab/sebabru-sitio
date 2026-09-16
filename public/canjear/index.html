@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canjear un regalo | Seba Bru</title>
+    <meta name="robots" content="noindex">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sebabru.com/canjear">
+    <meta property="og:title" content="Canjear un regalo | Seba Bru Astrología">
+    <meta property="og:description" content="Ingresá tu código de regalo y accedé al curso.">
+    <meta property="og:image" content="https://sebabru.com/img/portada.webp">
+    <meta property="og:site_name" content="Seba Bru Astrología">
+
+    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary:   #249b95;
+            --secondary: #f0c516;
+            --bg:        #07070a;
+            --surface:   rgba(30, 34, 48, 0.9);
+            --border:    rgba(255,255,255,0.1);
+            --text:      #e0e6ed;
+            --muted:     #8892a0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Montserrat', sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 440px; width: 100%;
+        }
+        .screen.visible { display: flex; }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+        }
+        .card .icon { font-size: 2.8rem; margin-bottom: 16px; display: block; }
+        .card h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+        .card p { color: var(--muted); font-size: 0.92rem; line-height: 1.6; margin-bottom: 24px; }
+        .card p strong { color: var(--primary); }
+
+        .icon-gift    { color: var(--secondary); }
+        .icon-success { color: var(--primary); }
+        .icon-error   { color: #e05555; }
+        .icon-lock    { color: var(--secondary); }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 9px; padding: 13px 28px;
+            border: none; border-radius: 10px;
+            cursor: pointer; font-size: 0.95rem; font-weight: 700;
+            text-decoration: none; width: 100%;
+            transition: opacity 0.2s;
+        }
+        .btn:hover:not(:disabled) { opacity: 0.85; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-google  { background: #fff; color: #333; }
+        .btn-back    { background: rgba(255,255,255,0.08); color: var(--text); }
+
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 18px 0; color: var(--muted); font-size: 0.8rem;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .form-group { text-align: left; margin-bottom: 14px; }
+        .form-group label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 6px; }
+        input[type="email"], input[type="password"], input[type="text"] {
+            width: 100%; background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border); color: var(--text);
+            padding: 11px 14px; border-radius: 8px; font-size: 0.9rem;
+            font-family: inherit;
+        }
+        input#inp-codigo { text-transform: uppercase; letter-spacing: 0.08em; text-align: center; font-family: 'Courier New', monospace; }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .error-msg {
+            background: rgba(220,80,80,0.12);
+            border: 1px solid #e05555; color: #f08080;
+            padding: 10px 14px; border-radius: 8px;
+            font-size: 0.85rem; margin-bottom: 14px; display: none;
+        }
+
+        .curso-badge {
+            display: inline-block;
+            background: rgba(36,155,149,0.15);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .switch-auth { margin-top: 14px; font-size: 0.85rem; color: var(--muted); }
+        .switch-auth a { color: var(--primary); font-weight: 600; text-decoration: none; cursor: pointer; }
+        .switch-auth a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- CARGANDO -->
+    <div class="screen visible" id="screen-loading">
+        <div class="spinner"></div>
+        <p style="color:var(--muted)" id="loading-texto">Un momento...</p>
+    </div>
+
+    <!-- ERROR -->
+    <div class="screen" id="screen-error">
+        <div class="card">
+            <span class="icon icon-error"><i class="fa-solid fa-circle-xmark"></i></span>
+            <h2 id="error-titulo">Código inválido</h2>
+            <p id="error-texto">Ese código no existe o ya fue canjeado.</p>
+            <button class="btn btn-back" id="btn-reintentar">
+                <i class="fa-solid fa-arrow-left"></i> Probar con otro código
+            </button>
+        </div>
+    </div>
+
+    <!-- INGRESAR CODIGO -->
+    <div class="screen" id="screen-codigo">
+        <div class="card">
+            <span class="icon icon-gift"><i class="fa-solid fa-gift"></i></span>
+            <h2>Canjear un regalo</h2>
+            <p>Ingresá el código que te compartieron para habilitar el curso en tu cuenta.</p>
+            <form id="form-codigo">
+                <div class="form-group">
+                    <label>Código de regalo</label>
+                    <input type="text" id="inp-codigo" placeholder="RG-XXXXX-XXXXX" maxlength="20" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-unlock"></i> Canjear
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIN / REGISTRO -->
+    <div class="screen" id="screen-login">
+        <div class="card">
+            <span class="icon icon-lock"><i class="fa-solid fa-envelope-open-text"></i></span>
+            <h2 id="login-titulo">Iniciá sesión para canjear</h2>
+            <p>Para habilitar el curso en tu cuenta necesitamos que inicies sesión (o te crees una, es gratis).</p>
+
+            <button class="btn btn-google" id="btn-google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="Google">
+                Continuar con Google
+            </button>
+
+            <div class="divider">o con email</div>
+
+            <div id="login-error-msg" class="error-msg"></div>
+
+            <div id="bloque-login">
+                <form id="form-login">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="inp-email-login" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="inp-pass-login" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-right-to-bracket"></i> Entrar
+                    </button>
+                </form>
+                <p class="switch-auth">¿No tenés cuenta? <a id="ir-a-registro">Creala acá</a></p>
+            </div>
+
+            <div id="bloque-registro" style="display:none;">
+                <form id="form-registro">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="inp-email-registro" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Creá una contraseña</label>
+                        <input type="password" id="inp-pass-registro" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-user-plus"></i> Crear cuenta
+                    </button>
+                </form>
+                <p class="switch-auth">¿Ya tenés cuenta? <a id="ir-a-login">Ingresá acá</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXITO -->
+    <div class="screen" id="screen-success">
+        <div class="card">
+            <span class="icon icon-success"><i class="fa-solid fa-circle-check"></i></span>
+            <h2>¡Listo, ya es tuyo!</h2>
+            <div class="curso-badge" id="success-curso-badge"></div>
+            <p>Ya podés entrar al aula cuando quieras.</p>
+            <a href="/escuela/" class="btn btn-primary" id="btn-ir-curso">
+                <i class="fa-solid fa-graduation-cap"></i> Ir al curso
+            </a>
+        </div>
+    </div>
+
+<script type="module">
+    import { auth } from '../escuela/firebase.js';
+    import {
+        onAuthStateChanged,
+        signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+        GoogleAuthProvider
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { db } from '../escuela/firebase.js';
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+    import { getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+    const googleProvider = new GoogleAuthProvider();
+
+    const params = new URLSearchParams(window.location.search);
+    let codigo = (params.get('codigo') || '').trim().toUpperCase() || null;
+    let enlaceToken = (params.get('t') || '').trim() || null;
+    let currentUser = null;
+    let canjeando = false;
+
+    function mostrar(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+        document.getElementById(id).classList.add('visible');
+    }
+
+    function mostrarCargando(texto) {
+        document.getElementById('loading-texto').textContent = texto;
+        mostrar('screen-loading');
+    }
+
+    function mostrarError(titulo, texto) {
+        document.getElementById('error-titulo').textContent = titulo;
+        document.getElementById('error-texto').textContent = texto;
+        mostrar('screen-error');
+    }
+
+    async function canjear(cod) {
+        if (canjeando) return;
+        canjeando = true;
+        mostrarCargando('Canjeando tu codigo...');
+        const functionsApi = getFunctions(getApp(), 'us-central1');
+        const canjearRegalo = httpsCallable(functionsApi, 'canjearRegalo');
+        try {
+            const result = await canjearRegalo({ codigo: cod });
+            const { cursoId, cursoNombre, cursoUrl } = result.data;
+            document.getElementById('success-curso-badge').textContent = cursoNombre || cursoId;
+            document.getElementById('btn-ir-curso').href = cursoUrl || '/escuela/';
+            mostrar('screen-success');
+            if (window.gtag) gtag('event', 'canje_regalo', { curso: cursoId });
+        } catch (e) {
+            const code = (e.code || '').replace('functions/', '');
+            const msgs = {
+                'not-found':      ['Codigo invalido', 'Ese codigo no existe. Revisa que este bien escrito.'],
+                'already-exists': ['Codigo ya usado', 'Ese codigo ya fue canjeado antes.'],
+                'unauthenticated':['Necesitas iniciar sesion', 'Vuelve a intentar despues de loguearte.'],
+            };
+            const [titulo, texto] = msgs[code] || ['Error al canjear', 'Ocurrio un problema. Escribinos si se repite: sebruz@gmail.com'];
+            mostrarError(titulo, texto);
+        } finally {
+            canjeando = false;
+        }
+    }
+
+    async function activarEnlace(tok) {
+        if (canjeando) return;
+        canjeando = true;
+        mostrarCargando('Activando acceso...');
+        const functionsApi = getFunctions(getApp(), 'us-central1');
+        const activarEnlaceFn = httpsCallable(functionsApi, 'activarEnlace');
+        try {
+            const result = await activarEnlaceFn({ token: tok });
+            const { cursoId, cursoNombre, cursoUrl } = result.data;
+            document.getElementById('success-curso-badge').textContent = cursoNombre || cursoId;
+            document.getElementById('btn-ir-curso').href = cursoUrl || '/escuela/';
+            mostrar('screen-success');
+            if (window.gtag) gtag('event', 'activar_enlace', { curso: cursoId });
+        } catch (e) {
+            const code = (e.code || '').replace('functions/', '');
+            const msgs = {
+                'not-found':        ['Enlace invalido', 'Ese enlace no existe o fue escrito incorrectamente.'],
+                'permission-denied':['Enlace expirado', 'Este enlace ya no esta activo. Pedile uno nuevo a quien te lo compartio.'],
+                'resource-exhausted':['Enlace completo', 'Este enlace ya fue usado por el maximo de personas.'],
+                'unauthenticated':  ['Necesitas iniciar sesion', 'Vuelve a intentar despues de loguearte.'],
+            };
+            const [titulo, texto] = msgs[code] || ['Error al activar', 'Ocurrio un problema. Escribinos si se repite: sebruz@gmail.com'];
+            mostrarError(titulo, texto);
+        } finally {
+            canjeando = false;
+        }
+    }
+
+    onAuthStateChanged(auth, user => {
+        currentUser = user;
+        if (user) {
+            if (enlaceToken) { activarEnlace(enlaceToken); }
+            else if (codigo) { canjear(codigo); }
+            else { mostrar('screen-codigo'); }
+        } else {
+            if (enlaceToken) {
+                document.getElementById('login-titulo').textContent = 'Iniciá sesion para activar tu acceso';
+                mostrar('screen-login');
+            } else if (codigo) {
+                document.getElementById('login-titulo').textContent = 'Iniciá sesion para canjear tu codigo';
+                mostrar('screen-login');
+            } else {
+                mostrar('screen-codigo');
+            }
+        }
+    });
+
+    document.getElementById('form-codigo').addEventListener('submit', e => {
+        e.preventDefault();
+        const val = document.getElementById('inp-codigo').value.trim().toUpperCase();
+        if (!val) return;
+        codigo = val;
+        if (currentUser) canjear(codigo);
+        else {
+            document.getElementById('login-titulo').textContent = 'Iniciá sesión para canjear tu código';
+            mostrar('screen-login');
+        }
+    });
+
+    document.getElementById('btn-reintentar').addEventListener('click', () => {
+        codigo = null;
+        document.getElementById('inp-codigo').value = '';
+        mostrar('screen-codigo');
+    });
+
+    // ---- Login / registro ----
+    document.getElementById('ir-a-registro').addEventListener('click', e => {
+        e.preventDefault();
+        document.getElementById('bloque-login').style.display = 'none';
+        document.getElementById('bloque-registro').style.display = 'block';
+    });
+    document.getElementById('ir-a-login').addEventListener('click', e => {
+        e.preventDefault();
+        document.getElementById('bloque-registro').style.display = 'none';
+        document.getElementById('bloque-login').style.display = 'block';
+    });
+
+    function mostrarErrorLogin(msg) {
+        const el = document.getElementById('login-error-msg');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    document.getElementById('btn-google').addEventListener('click', async () => {
+        try { await signInWithPopup(auth, googleProvider); }
+        catch (e) { mostrarErrorLogin('No se pudo iniciar con Google. Intentá de nuevo.'); }
+    });
+
+    document.getElementById('form-login').addEventListener('submit', async e => {
+        e.preventDefault();
+        const email = document.getElementById('inp-email-login').value.trim();
+        const pass = document.getElementById('inp-pass-login').value;
+        try { await signInWithEmailAndPassword(auth, email, pass); }
+        catch (e2) { mostrarErrorLogin('Email o contraseña incorrectos.'); }
+    });
+
+    document.getElementById('form-registro').addEventListener('submit', async e => {
+        e.preventDefault();
+        const email = document.getElementById('inp-email-registro').value.trim();
+        const pass = document.getElementById('inp-pass-registro').value;
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            await setDoc(doc(db, 'usuarios', cred.user.email.toLowerCase().trim()), {
+                cursos: [],
+                cohorte: '2026',
+                fechaRegistro: new Date(),
+            });
+        } catch (e2) {
+            mostrarErrorLogin('No se pudo crear la cuenta. ' + (e2.message || ''));
+        }
+    });
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GDLRMR5D57');
+</script>
+</body>
+</html>

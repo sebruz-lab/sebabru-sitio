@@ -26,11 +26,23 @@ const VIDEOS = {
     'UT-38kgcSIM', 'PjGZvbiuZDA', 'El-s3r6O62Q', 'HGrdBoLs_E4',
     'cvnAkxD1H2U', 'aB8TB9KVfUI', '-qjxncID7gc', '3oliOPXRxxU',
     '1B2W3AJgZdc', 'jFxWisBmIj0', 'pJW0wUB3YVI', 'I_QBCk-0SSA'
+  ],
+  lilith: [
+    '-gs3kRKh2TI', 'WoZFbKXO1OI', 'IAjdhcogEXI', 'BkQIbxeqeVY',
+    'cpvXyowz0ds', '8E4c0iMFar8'
   ]
 };
 
+// Uso: node seed-videos.js            -> siembra TODOS los cursos de VIDEOS
+//      node seed-videos.js lilith     -> siembra solo el curso indicado
+//      node seed-videos.js lilith tarot -> siembra varios cursos puntuales
 async function seed() {
-  for (const [cursoId, videos] of Object.entries(VIDEOS)) {
+  const filtro = process.argv.slice(2);
+  const entradas = filtro.length
+    ? Object.entries(VIDEOS).filter(([id]) => filtro.includes(id))
+    : Object.entries(VIDEOS);
+
+  for (const [cursoId, videos] of entradas) {
     await db.collection('cursos').doc(cursoId).set({ videos });
     console.log(`✓ ${cursoId}: ${videos.length} videos`);
   }

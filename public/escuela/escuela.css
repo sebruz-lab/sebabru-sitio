@@ -528,3 +528,216 @@ input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.5); }
     padding-left: 15px;
     color: var(--secondary-color);
 }
+
+/* =========================================
+   11. AULA — PALETA B/N (negro vidriado + blanco/gris)
+   Reemplaza el turquesa/amarillo del aula. El modal de login y la
+   galeria del hub (fuera de .aula-layout) conservan su color.
+   ========================================= */
+.aula-layout {
+    --primary-color: #e9e9ee;
+    --secondary-color: #b9b9c2;
+}
+.sidebar-panel,
+.mobile-header {
+    background-color: rgba(20, 20, 26, 0.72) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+.sidebar-panel { border-right: 1px solid rgba(255, 255, 255, 0.08); }
+.mobile-header { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.sidebar-panel.active { background-color: rgba(20, 20, 26, 0.72) !important; box-shadow: 0 100vh 0 rgba(0, 0, 0, 0.5) !important; }
+
+.sidebar-header h3 { color: #f0f0f4; }
+.sidebar-header p { border-bottom-color: rgba(255, 255, 255, 0.12); }
+/* !important porque varias aulas traen background-color inline en estos botones */
+.btn-sidebar-main { background: rgba(255, 255, 255, 0.06) !important; border-color: rgba(255, 255, 255, 0.15) !important; }
+.btn-sidebar-main:hover { background: rgba(255, 255, 255, 0.14) !important; color: #fff !important; }
+.auto-nav li a { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.auto-nav li a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.auto-nav li a.visitada { color: rgba(255, 255, 255, 0.45); }
+.auto-nav li a.visitada::before { color: rgba(255, 255, 255, 0.6); }
+.sidebar-footer a:hover { color: #fff; }
+
+.clase-header h2 { color: #f0f0f4; border-bottom-color: rgba(255, 255, 255, 0.12); }
+.num { background: rgba(255, 255, 255, 0.12); color: #f0f0f4; }
+
+.spinner { border-top-color: #e9e9ee; }
+.btn-external { background: rgba(255, 255, 255, 0.1); color: #f0f0f4; border: 1px solid rgba(255, 255, 255, 0.2); }
+.btn-external:hover { background: rgba(255, 255, 255, 0.2); color: #f0f0f4; transform: none; border-color: rgba(255, 255, 255, 0.3); }
+.tab-btn.active, .tab-btn:hover { background-color: rgba(255, 255, 255, 0.14); color: #fff; border-color: rgba(255, 255, 255, 0.25); }
+.btn-expandir:hover { background: rgba(255, 255, 255, 0.16); color: #f0f0f4; border-color: rgba(255, 255, 255, 0.3); }
+.complementarias-nav details > summary { color: #d8d8de; }
+.complementarias-nav ul li a:hover { color: #fff; }
+
+/* =========================================
+   12. SCROLLBAR OSCURO (nada de barrita gris sobre blanco)
+   ========================================= */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.16);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* =========================================
+   13. AULA ABIERTA: clase gratis + clases bloqueadas
+   ========================================= */
+.clase-candado, .clase-gate-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    z-index: 2;
+    border-radius: 8px;
+}
+.clase-candado {
+    background: rgba(10, 10, 14, 0.86);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px;
+}
+.clase-candado i { font-size: 1.8rem; color: rgba(255, 255, 255, 0.5); }
+.clase-candado p { margin: 0; color: #d8d8de; font-size: 0.9rem; max-width: 280px; line-height: 1.5; }
+.clase-candado .btn-external { margin-top: 4px; text-decoration: none; padding: 8px 16px; font-size: 0.8rem; }
+
+.clase-gate-play {
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 14, 0.55);
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    transition: background 0.2s;
+}
+.clase-gate-play:hover { background: rgba(10, 10, 14, 0.4); }
+.clase-gate-play i { font-size: 3rem; color: #fff; transition: transform 0.2s; }
+.clase-gate-play:hover i { transform: scale(1.08); }
+.clase-gate-play span { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; }
+.clase-gate-play .gate-sub { font-size: 0.78rem; font-weight: 400; color: rgba(255,255,255,0.7); letter-spacing: normal; }
+
+.badge-gratis {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f0f0f4;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    padding: 2px 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.btn-comprar-aula {
+    display: block;
+    text-align: center;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+.btn-comprar-aula:hover { background: rgba(255, 255, 255, 0.18) !important; }
+
+/* =========================================
+   14. AULA ABIERTA: checkout embebido debajo de la clase gratis
+   ========================================= */
+.checkout-aula { margin: 10px 0 34px; }
+.checkout-aula .checkout-titulo {
+    font-family: 'Outfit', sans-serif; font-weight: 400; font-size: 1.1rem;
+    color: #f0f0f4; margin: 0 0 4px;
+}
+.checkout-aula .checkout-sub { color: #9a9aa4; font-size: 0.85rem; margin: 0 0 16px; }
+
+.comprar-section { margin-top: 4px; }
+
+details.comprar-main {
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+}
+details.comprar-main > summary {
+    padding: 13px 16px; cursor: pointer; font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem; letter-spacing: 0.03em; color: #f0f0f4;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    list-style: none; user-select: none; background: rgba(255,255,255,0.05); transition: background 0.2s;
+}
+details.comprar-main > summary::-webkit-details-marker { display: none; }
+details.comprar-main > summary:hover { background: rgba(255,255,255,0.09); }
+details.comprar-main[open] > summary { background: rgba(255,255,255,0.08); }
+.summary-left { display: flex; align-items: center; gap: 10px; }
+.summary-chevron { font-size: 0.7rem; opacity: 0.5; transition: transform 0.25s; }
+details.comprar-main[open] .summary-chevron { transform: rotate(180deg); }
+.comprar-body { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+.precio-mp { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.4rem; color: #f0f0f4; margin-bottom: 14px; }
+.precio-mp span { font-size: 0.8rem; color: #9a9aa4; }
+
+.btn-mp {
+    display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+    background: #009ee3; color: #fff; border: none; padding: 13px; border-radius: 8px;
+    font-family: 'Outfit', sans-serif; font-size: 0.86rem; letter-spacing: 0.02em;
+    cursor: pointer; transition: opacity 0.2s;
+}
+.btn-mp:hover { opacity: 0.9; }
+
+.login-aviso { font-size: 0.8rem; color: #9a9aa4; text-align: center; margin-top: 10px; }
+.login-aviso a { color: #f0f0f4; cursor: pointer; text-decoration: underline; }
+
+.precio-transferencia { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.precio-final { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.4rem; color: #f0f0f4; }
+.precio-original { font-size: 0.9rem; color: #7a7a84; text-decoration: line-through; }
+.descuento-tag {
+    font-size: 0.75rem; background: rgba(255,255,255,0.1); color: #f0f0f4;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 2px 9px;
+}
+
+.datos-bancarios {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+    padding: 14px 16px; font-size: 0.83rem; line-height: 2; color: #c6c6d0;
+}
+.datos-bancarios strong { color: #f0f0f4; }
+
+.alias-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; padding: 10px 14px;
+}
+.alias-valor { flex: 1; font-family: monospace; font-size: 1rem; color: #f0f0f4; letter-spacing: 0.05em; }
+.btn-copiar-alias {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #f0f0f4;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;
+    display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+}
+.btn-copiar-alias:hover { background: rgba(255,255,255,0.18); }
+
+.codigo-descuento-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.codigo-descuento-row input {
+    flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: #f0f0f4;
+    padding: 8px 12px; border-radius: 7px; font-size: 0.82rem; font-family: monospace;
+    letter-spacing: 0.05em; text-transform: uppercase;
+}
+.codigo-descuento-row input::placeholder { text-transform: none; letter-spacing: 0; color: #7a7a84; }
+.codigo-descuento-row input:focus { outline: none; border-color: rgba(255,255,255,0.4); }
+.btn-codigo {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #f0f0f4;
+    padding: 8px 13px; border-radius: 7px; cursor: pointer; font-size: 0.8rem; white-space: nowrap;
+    transition: background 0.2s;
+}
+.btn-codigo:hover { background: rgba(255,255,255,0.18); }
+.codigo-msg { font-size: 0.78rem; padding: 6px 10px; border-radius: 6px; display: none; flex-basis: 100%; }
+.codigo-msg.ok    { display: block; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); color: #f0f0f4; }
+.codigo-msg.error { display: block; background: rgba(220,80,80,0.1);  border: 1px solid rgba(220,80,80,0.3);  color: #f08080; }

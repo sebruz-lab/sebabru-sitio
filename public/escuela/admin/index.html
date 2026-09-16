@@ -175,6 +175,7 @@
             border-radius: 20px; font-size: 0.72rem; font-weight: 600; margin: 2px;
         }
         .tag-curso    { background: rgba(36,155,149,0.2);  color: var(--primary); }
+        .tag-interes  { background: rgba(200,160,60,0.18); color: #d4af5a; }
         .tag-activo   { background: rgba(36,155,149,0.2);  color: #6dd5cf; }
         .tag-usado    { background: rgba(200,200,200,0.12); color: #777; }
         .tag-expirado { background: rgba(220,80,80,0.2);   color: #e07777; }
@@ -243,6 +244,12 @@
         <button class="tab-btn" data-tab="migrar">
             <i class="fa-solid fa-copy"></i> Migrar acceso
         </button>
+        <button class="tab-btn" data-tab="enlaces">
+            <i class="fa-solid fa-wand-sparkles"></i> Enlace Maestro
+        </button>
+        <button class="tab-btn" data-tab="videos">
+            <i class="fa-solid fa-video"></i> Videos de curso
+        </button>
     </div>
 
     <!-- TAB: BUSCAR -->
@@ -267,6 +274,7 @@
                 <select id="filtro-curso">
                     <option value="">Todos los cursos</option>
                     <option value="__ninguno__">Sin cursos</option>
+                    <option value="__leads__">Leads (vieron clase gratis, no compraron)</option>
                 </select>
                 <button class="btn btn-primary" id="btn-cargar-usuarios">
                     <i class="fa-solid fa-arrow-rotate-right"></i> Cargar
@@ -363,14 +371,74 @@
         </div>
     </div>
 
+    <!-- TAB: ENLACE MAESTRO -->
+    <div id="tab-enlaces" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Generar enlace maestro</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:20px;">Genera un enlace que pueden usar varias personas para autoinscribirse a un curso, sin necesidad de invitaciones individuales.</p>
+            <div class="input-row">
+                <select id="enl-curso">
+                    <option value="">Seleccioná un curso</option>
+                </select>
+                <input type="number" id="enl-max-usos" placeholder="Max. usos" min="1" max="500" style="max-width:130px;" value="20">
+                <select id="enl-dias">
+                    <option value="7">Válido 7 dias</option>
+                    <option value="14">Válido 14 dias</option>
+                    <option value="30">Válido 30 dias</option>
+                </select>
+                <button class="btn btn-primary" id="btn-generar-enlace">
+                    <i class="fa-solid fa-wand-sparkles"></i> Generar
+                </button>
+            </div>
+            <div id="enlace-generado" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Enlaces activos</p>
+            <button class="btn btn-secondary btn-sm" id="btn-cargar-enlaces" style="margin-bottom:16px">
+                <i class="fa-solid fa-arrow-rotate-right"></i> Actualizar
+            </button>
+            <div id="lista-enlaces">
+                <div class="empty-state">
+                    <i class="fa-solid fa-wand-sparkles"></i>
+                    <p>Presioná "Actualizar" para cargar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: VIDEOS DE CURSO -->
+    <div id="tab-videos" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Cargar videos de un curso (Formación Abierta)</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:16px;">
+                Pegá una URL o ID de YouTube por línea, en el orden en que deben aparecer las clases (la clase 1 es la que se muestra gratis). Al guardar, reemplaza la lista completa de videos de ese curso.
+            </p>
+            <div class="input-row" style="margin-bottom:14px;">
+                <select id="vid-curso"></select>
+                <button class="btn btn-secondary" id="btn-cargar-videos-actuales">
+                    <i class="fa-solid fa-arrow-rotate-right"></i> Ver videos actuales
+                </button>
+            </div>
+            <textarea id="vid-lista" rows="8" placeholder="https://youtu.be/-gs3kRKh2TI&#10;https://youtu.be/WoZFbKXO1OI&#10;..."
+                style="width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); padding:10px 13px; border-radius:8px; font-size:0.85rem; font-family:monospace; resize:vertical;"></textarea>
+            <button class="btn btn-primary" id="btn-guardar-videos" style="margin-top:12px;">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar videos
+            </button>
+            <div id="videos-msg"></div>
+        </div>
+    </div>
+
 </div>
 
 <script type="module">
     import { auth, db } from '../firebase.js';
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+    import { getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import {
-        doc, getDoc, setDoc, updateDoc,
-        collection, getDocs
+        doc, getDoc, setDoc, updateDoc, deleteDoc,
+        collection, getDocs, addDoc, Timestamp, orderBy, query, limit
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const ADMIN_EMAILS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
@@ -384,6 +452,7 @@
     const CURSOS = [
         { id: 'pluton',       nombre: 'Seminario Plutón' },
         { id: 'introduccion', nombre: 'Introducción' },
+        { id: 'lunas26',      nombre: 'La Luna en la carta natal 2026' },
         { id: 'planetas',     nombre: 'Planetas y Luminarias' },
         { id: 'saturnoluna',  nombre: 'Saturno y la Luna' },
         { id: 'escucha',      nombre: 'Escucha Astrologica' },
@@ -397,6 +466,7 @@
         { id: 'revo',         nombre: 'Revoluciones Solares' },
         { id: 'lunanegra',    nombre: 'Luna Negra' },
         { id: 'pluton26',     nombre: 'Plutón (On Demand)' },
+        { id: 'lilith',       nombre: 'Luna Negra · Lilith en la carta natal' },
     ];
 
     // Poblar selects de cursos
@@ -405,12 +475,16 @@
     const descCursosSelect = document.getElementById('desc-cursos');
     const migrarOrigenSelect  = document.getElementById('migrar-origen');
     const migrarDestinoSelect = document.getElementById('migrar-destino');
+    const enlCursoSelect = document.getElementById('enl-curso');
+    const vidCursoSelect = document.getElementById('vid-curso');
     CURSOS.forEach(c => {
         filtroSelect.innerHTML      += `<option value="${c.id}">${c.nombre}</option>`;
         invCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
         descCursosSelect.innerHTML  += `<option value="${c.id}">${c.nombre}</option>`;
         migrarOrigenSelect.innerHTML  += `<option value="${c.id}">${c.nombre}</option>`;
         migrarDestinoSelect.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+        enlCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
+        vidCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
     });
 
     // ── AUTH CHECK ────────────────────────────────────────────────
@@ -573,6 +647,8 @@
 
             if (filtroVal === '__ninguno__') {
                 usuarios = usuarios.filter(u => !u.cursos || u.cursos.length === 0);
+            } else if (filtroVal === '__leads__') {
+                usuarios = usuarios.filter(u => (!u.cursos || u.cursos.length === 0) && (u.interesados || []).length > 0);
             } else if (filtroVal) {
                 usuarios = usuarios.filter(u => (u.cursos || []).includes(filtroVal));
             }
@@ -587,7 +663,8 @@
                 <tr>
                     <td>${escapeHtml(u.email)}</td>
                     <td>${u.nombre ? escapeHtml(u.nombre) : '<span style="color:#555">—</span>'}</td>
-                    <td>${(u.cursos || []).map(c => `<span class="tag tag-curso">${escapeHtml(c)}</span>`).join('')}</td>
+                    <td>${(u.cursos || []).map(c => `<span class="tag tag-curso">${escapeHtml(c)}</span>`).join('') || '<span style="color:#555">—</span>'}</td>
+                    <td>${(u.interesados || []).map(c => `<span class="tag tag-interes">${escapeHtml(c)}</span>`).join('') || '<span style="color:#555">—</span>'}</td>
                     <td>${u.cohorte ? escapeHtml(u.cohorte) : '—'}</td>
                     <td>
                         <button class="btn-table btn-edit-user" data-email="${escapeHtml(u.email)}">
@@ -604,6 +681,7 @@
                                 <th>Email</th>
                                 <th>Nombre</th>
                                 <th>Cursos</th>
+                                <th>Interés</th>
                                 <th>Cohorte</th>
                                 <th></th>
                             </tr>
@@ -904,6 +982,148 @@
         } catch (e) {
             res.textContent = 'Error: ' + e.message;
         }
+    });
+
+    // ── TAB: ENLACE MAESTRO ───────────────────────────────────────
+    document.getElementById('btn-generar-enlace').addEventListener('click', async () => {
+        const cursoId  = document.getElementById('enl-curso').value;
+        const maxUsos  = parseInt(document.getElementById('enl-max-usos').value, 10) || 20;
+        const dias     = parseInt(document.getElementById('enl-dias').value, 10) || 7;
+        const contenedor = document.getElementById('enlace-generado');
+
+        if (!cursoId) {
+            contenedor.innerHTML = '<div class="alert alert-error">Selecciona un curso.</div>';
+            return;
+        }
+
+        const cursoNombre = CURSOS.find(c => c.id === cursoId)?.nombre || cursoId;
+        contenedor.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+
+        try {
+            const fns = getFunctions(getApp(), 'us-central1');
+            const crearEnlaceFn = httpsCallable(fns, 'crearEnlace');
+            const result = await crearEnlaceFn({ cursoId, cursoNombre, maxUsos, dias });
+            const { token } = result.data;
+            const url = `https://sebabru.com/canjear/?t=${token}`;
+            contenedor.innerHTML = `
+                <div class="alert alert-success" style="background:rgba(36,155,149,0.12); border:1px solid var(--primary); border-radius:8px; padding:14px; margin-top:12px;">
+                    <strong style="color:var(--primary);">Enlace generado</strong><br>
+                    <code style="word-break:break-all; font-size:0.82rem; opacity:.9;">${escapeHtml(url)}</code><br>
+                    <small style="opacity:.6;">Curso: ${escapeHtml(cursoNombre)} &nbsp;|&nbsp; Max. ${maxUsos} usos &nbsp;|&nbsp; Valido ${dias} dias</small><br>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="navigator.clipboard.writeText('${escapeHtml(url)}').then(()=>this.textContent='Copiado!')">
+                        <i class="fa-solid fa-copy"></i> Copiar enlace
+                    </button>
+                </div>`;
+        } catch (e) {
+            contenedor.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+    });
+
+    document.getElementById('btn-cargar-enlaces').addEventListener('click', async () => {
+        const lista = document.getElementById('lista-enlaces');
+        lista.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+            const snap = await getDocs(query(collection(db, 'enlaces'), orderBy('creadoEn', 'desc'), limit(30)));
+            if (snap.empty) {
+                lista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-wand-sparkles"></i><p>No hay enlaces generados.</p></div>';
+                return;
+            }
+            const ahora = Date.now();
+            const rows = snap.docs.map(d => {
+                const e = d.data();
+                const expirado = e.expiraEn && e.expiraEn.toDate().getTime() < ahora;
+                const agotado  = e.maxUsos && e.usos >= e.maxUsos;
+                const estado   = !e.activo ? 'desactivado' : expirado ? 'expirado' : agotado ? 'agotado' : 'activo';
+                const color    = estado === 'activo' ? '#249b95' : '#888';
+                const url      = `https://sebabru.com/canjear/?t=${d.id}`;
+                return `<tr>
+                    <td><code style="font-size:.78rem;">${escapeHtml(d.id)}</code></td>
+                    <td>${escapeHtml(e.cursoNombre || e.cursoId)}</td>
+                    <td>${e.usos || 0} / ${e.maxUsos || '-'}</td>
+                    <td>${e.expiraEn ? e.expiraEn.toDate().toLocaleDateString('es') : '-'}</td>
+                    <td style="color:${color}; font-weight:600;">${estado}</td>
+                    <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${escapeHtml(url)}').then(()=>this.textContent='Copiado!')">Copiar</button>
+                        ${e.activo ? `<button class="btn btn-sm" style="background:rgba(220,80,80,.15);color:#f08080;" data-token="${d.id}" data-action="desactivar">Desactivar</button>` : `<button class="btn btn-secondary btn-sm" data-token="${d.id}" data-action="activar">Activar</button>`}
+                    </td>
+                </tr>`;
+            }).join('');
+            lista.innerHTML = `<table class="user-table"><thead><tr><th>Token</th><th>Curso</th><th>Usos</th><th>Expira</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+            lista.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const tok    = btn.dataset.token;
+                    const action = btn.dataset.action;
+                    await updateDoc(doc(db, 'enlaces', tok), { activo: action === 'activar' });
+                    document.getElementById('btn-cargar-enlaces').click();
+                });
+            });
+        } catch (e) {
+            lista.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+    });
+
+    // ── TAB: VIDEOS DE CURSO ──────────────────────────────────────
+    function extraerVideoId(linea) {
+        const s = linea.trim();
+        if (!s) return null;
+        const patrones = [
+            /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/,
+        ];
+        for (const re of patrones) {
+            const m = s.match(re);
+            if (m) return m[1];
+        }
+        // Si no matcheo ninguna URL conocida, asumimos que ya es el ID (11 caracteres típicos de YouTube)
+        return /^[A-Za-z0-9_-]{6,}$/.test(s) ? s : null;
+    }
+
+    document.getElementById('btn-cargar-videos-actuales').addEventListener('click', async () => {
+        const cursoId = document.getElementById('vid-curso').value;
+        const msg = document.getElementById('videos-msg');
+        const textarea = document.getElementById('vid-lista');
+        msg.innerHTML = '';
+        try {
+            const snap = await getDoc(doc(db, 'cursos', cursoId));
+            const videos = snap.exists() ? (snap.data().videos || []) : [];
+            textarea.value = videos.join('\n');
+            msg.innerHTML = videos.length
+                ? `<div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> ${videos.length} video${videos.length !== 1 ? 's' : ''} cargado${videos.length !== 1 ? 's' : ''}.</div>`
+                : `<div class="alert alert-error">Este curso todavía no tiene videos guardados.</div>`;
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+    });
+
+    document.getElementById('btn-guardar-videos').addEventListener('click', async () => {
+        const cursoId = document.getElementById('vid-curso').value;
+        const textarea = document.getElementById('vid-lista');
+        const btn = document.getElementById('btn-guardar-videos');
+        const msg = document.getElementById('videos-msg');
+
+        const lineas = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+        const videos = lineas.map(extraerVideoId);
+
+        if (videos.some(v => !v)) {
+            msg.innerHTML = '<div class="alert alert-error">No pude reconocer alguna de las líneas como un video de YouTube válido. Revisá el formato.</div>';
+            return;
+        }
+        if (videos.length === 0) {
+            msg.innerHTML = '<div class="alert alert-error">Pegá al menos un video antes de guardar.</div>';
+            return;
+        }
+
+        const nombreCurso = CURSOS.find(c => c.id === cursoId)?.nombre || cursoId;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+        try {
+            await setDoc(doc(db, 'cursos', cursoId), { videos }, { merge: true });
+            msg.innerHTML = `<div class="alert alert-success"><i class="fa-solid fa-check"></i> Guardado: ${videos.length} clases para <strong>${nombreCurso}</strong>.</div>`;
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar videos';
     });
 
 </script>

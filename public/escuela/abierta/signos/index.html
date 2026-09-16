@@ -6,7 +6,7 @@
     <title>Los Signos del Zodíaco | Aula Virtual</title>
     <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
     <link rel="stylesheet" href="../../../style.css">
-    <link rel="stylesheet" href="../../escuela.css">
+    <link rel="stylesheet" href="../../escuela.css?v=5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
@@ -49,9 +49,9 @@
 
         <main class="main-content">
 
-            <article class="clase-item" id="clase-intro" data-titulo="Introducción">
+            <article class="clase-item" id="clase-intro" data-titulo="Introducción" data-preview>
                 <header class="clase-header">
-                    <h2><span class="num">#1</span> Introducción</h2>
+                    <h2><span class="num">#1</span> Introducción <span class="badge-gratis">Gratis</span></h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000;">
                     <iframe data-video
@@ -210,33 +210,8 @@
 
     <script type="module" src="../../escuela.js"></script>
     <script type="module">
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { auth, db } from '../../firebase.js';
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const userEmail = user.email.toLowerCase().trim();
-                    const docSnap = await getDoc(doc(db, "usuarios", userEmail));
-                    if (docSnap.exists() && docSnap.data().cursos?.includes('signos')) {
-                        const cursoSnap = await getDoc(doc(db, "cursos", "signos"));
-                        const videos = cursoSnap.data()?.videos || [];
-                        document.querySelectorAll('iframe[data-video]').forEach((iframe, i) => {
-                            if (videos[i]) iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
-                        });
-                        document.getElementById('security-overlay').style.display = 'none';
-                    } else {
-                        alert("No tenés acceso a este curso.");
-                        window.location.href = "../index.html";
-                    }
-                } catch (error) {
-                    window.location.href = "../index.html";
-                }
-            } else {
-                window.location.href = "../index.html";
-            }
-        });
+        import { initAula } from '../../aula-abierta.js';
+        initAula('signos');
     </script>
 </body>
 </html>

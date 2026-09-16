@@ -38,6 +38,10 @@
           {
             "key": "Permissions-Policy",
             "value": "camera=(), microphone=(), geolocation=()"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300"
           }
         ]
       },
@@ -60,10 +64,16 @@
         ]
       }
     ],
-    "rewrites": [
+    "redirects": [
       {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "/escuela/abierta-test",
+        "destination": "/escuela/abierta",
+        "type": 301
+      },
+      {
+        "source": "/escuela/abierta-test/**",
+        "destination": "/escuela/abierta",
+        "type": 301
       }
     ]
   }

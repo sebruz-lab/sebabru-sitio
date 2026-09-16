@@ -52,7 +52,13 @@
             transition: opacity 0.2s;
         }
         .btn-secondary:hover { opacity: 0.7; }
-        #estado-activando, #estado-exito, #estado-error, #estado-generico { display: none; }
+        #estado-activando, #estado-exito, #estado-error, #estado-generico, #estado-regalo, #estado-reclamar { display: none; }
+        .codigo-regalo {
+            background: rgba(255,255,255,0.06); border: 1px dashed #249b95; border-radius: 8px;
+            padding: 14px 20px; margin: 0 auto 20px; max-width: 320px;
+            font-family: 'Courier New', monospace; font-size: 1.3rem; letter-spacing: 0.1em; color: #6dd5cf;
+        }
+        .btn-plain { background: #249b95; border: none; }
     </style>
 </head>
 <body>
@@ -74,6 +80,34 @@
             <a id="btn-curso" href="/escuela/abierta/" class="btn">
                 <i class="fa-solid fa-play"></i> Ir al curso
             </a>
+            <br>
+            <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
+        </div>
+
+        <!-- Codigo de regalo generado -->
+        <div id="estado-regalo">
+            <div class="icono"><i class="fa-solid fa-gift"></i></div>
+            <h1 id="regalo-titulo">¡Listo! Generamos tu código de regalo</h1>
+            <p id="regalo-texto">Compartilo con quien quieras regalarle <strong id="regalo-curso">este curso</strong> — lo puede canjear cuando quiera en
+               <strong>sebabru.com/canjear</strong>. También te lo mandamos por mail (no lo volvemos a mostrar acá).</p>
+            <div class="codigo-regalo" id="regalo-codigo"></div>
+            <button class="btn btn-plain" id="btn-copiar-codigo" type="button" style="cursor:pointer;">
+                <i class="fa-solid fa-copy"></i> Copiar código
+            </button>
+            <br>
+            <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
+        </div>
+
+        <!-- Pago aprobado pero sin sesion: reclamar acceso -->
+        <div id="estado-reclamar">
+            <div class="icono"><i class="fa-solid fa-key"></i></div>
+            <h1>¡Ya llegó tu pago!</h1>
+            <p>Iniciá sesión para activar tu curso al instante. Igual te mandamos un código de acceso por mail, para activarlo cuando quieras en <strong>sebabru.com/canjear</strong>.</p>
+            <div class="codigo-regalo" id="codigo-reclamar" style="display:none;"></div>
+            <button id="btn-login-google" class="btn btn-plain" type="button" style="cursor:pointer;">
+                <i class="fa-brands fa-google"></i> Iniciar sesión con Google
+            </button>
+            <p id="msg-reclamar-error" style="color:#e05555; font-size:0.85rem; display:none;"></p>
             <br>
             <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
         </div>
@@ -107,7 +141,8 @@
 
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
       const firebaseConfig = {
         apiKey: "AIzaSyD4MOeUZGrlbwrqSnTjRY9BT_-x8L6Hn3s",
@@ -120,59 +155,150 @@
 
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
+      const funcs = getFunctions(app, 'us-central1');
+      const reclamarPagoFn = httpsCallable(funcs, 'reclamarPago');
 
       const VERIFY_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/verificarPagoMP';
 
       const params = new URLSearchParams(window.location.search);
-      const paymentId = params.get('payment_id');
-      const status    = params.get('status');
+      const paymentId       = params.get('payment_id');
+      const status          = params.get('status');
+      const metodo          = params.get('metodo');
+      const regaloEnUrl     = params.get('regalo') === '1';
+      const accesoEnUrl     = params.get('acceso') === '1';
+      const codigoEnUrl     = params.get('codigo');
+      const paypalPaymentId = params.get('paymentId');
 
       function mostrar(id) {
-        ['estado-activando','estado-exito','estado-error','estado-generico']
+        ['estado-activando','estado-exito','estado-error','estado-generico','estado-regalo','estado-reclamar']
           .forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none');
       }
 
-      if (!paymentId || status !== 'approved') {
+      function trackCompra(datos) {
+        if (window.gtag) gtag('event', 'compra_confirmada', datos);
+      }
+
+      document.getElementById('btn-copiar-codigo').addEventListener('click', () => {
+        const codigo = document.getElementById('regalo-codigo').textContent.trim();
+        if (!codigo) return;
+        navigator.clipboard.writeText(codigo).then(() => {
+          const btn = document.getElementById('btn-copiar-codigo');
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+          setTimeout(() => { btn.innerHTML = original; }, 2000);
+        });
+      });
+
+      document.getElementById('btn-login-google').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-login-google');
+        const msg = document.getElementById('msg-reclamar-error');
+        msg.style.display = 'none';
+        btn.disabled = true;
+        try {
+          await signInWithPopup(auth, new GoogleAuthProvider());
+          // onAuthStateChanged (abajo) reacciona solo al login y sigue el flujo.
+        } catch (err) {
+          btn.disabled = false;
+          msg.textContent = 'No pudimos iniciar sesión. Probá de nuevo.';
+          msg.style.display = 'block';
+        }
+      });
+
+      async function verificarMP(user) {
+        mostrar('estado-activando');
+        try {
+          const token = await user.getIdToken();
+          const resp = await fetch(VERIFY_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ paymentId })
+          });
+
+          const data = await resp.json();
+
+          if (resp.ok && data.ok && data.regalo) {
+            document.getElementById('regalo-codigo').textContent = data.codigoRegalo;
+            document.getElementById('regalo-curso').textContent = data.cursoNombre || 'este curso';
+            mostrar('estado-regalo');
+            trackCompra({ metodo: 'mp', regalo: true });
+          } else if (resp.ok && data.ok) {
+            document.getElementById('btn-curso').href = data.cursoUrl;
+            mostrar('estado-exito');
+            trackCompra({ metodo: 'mp', regalo: false });
+          } else {
+            document.getElementById('msg-error').textContent =
+              data.error || 'No pudimos verificar tu pago en este momento.';
+            mostrar('estado-error');
+          }
+        } catch (err) {
+          document.getElementById('msg-error').textContent =
+            'Error de conexión. Intentá recargar la página.';
+          mostrar('estado-error');
+        }
+      }
+
+      async function reclamarPaypal() {
+        mostrar('estado-activando');
+        try {
+          const { data } = await reclamarPagoFn({ paymentId: paypalPaymentId });
+          if (data.granted) {
+            document.getElementById('btn-curso').href = data.cursoUrl;
+            mostrar('estado-exito');
+            trackCompra({ metodo: 'paypal', regalo: false });
+          } else {
+            // El codigo ya se lo mandamos por mail; lo mostramos igual de respaldo.
+            document.getElementById('regalo-titulo').textContent = 'Ya tenés tu código de acceso';
+            document.getElementById('regalo-texto').innerHTML =
+              'Usalo para activar tu curso cuando quieras en <strong>sebabru.com/canjear</strong>. También te lo mandamos por mail.';
+            document.getElementById('regalo-codigo').textContent = codigoEnUrl || '';
+            mostrar('estado-regalo');
+          }
+        } catch (err) {
+          document.getElementById('msg-error').textContent =
+            'No pudimos activar tu curso automáticamente. Usá el código que te enviamos por mail en sebabru.com/canjear.';
+          mostrar('estado-error');
+        }
+      }
+
+      if (regaloEnUrl && codigoEnUrl) {
+        // Vuelta de PayPal: el codigo de regalo ya viene generado en la URL.
+        document.getElementById('regalo-codigo').textContent = codigoEnUrl;
+        mostrar('estado-regalo');
+        trackCompra({ metodo: metodo || 'paypal', regalo: true });
+      } else if (accesoEnUrl && codigoEnUrl) {
+        // Vuelta de PayPal de una compra anonima: ya hay codigo de acceso
+        // emailado; si se loguea ahora, se activa directo.
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            reclamarPaypal();
+          } else {
+            document.getElementById('codigo-reclamar').textContent = codigoEnUrl;
+            document.getElementById('codigo-reclamar').style.display = 'block';
+            mostrar('estado-reclamar');
+          }
+        });
+      } else if (!paymentId || status !== 'approved') {
         mostrar('estado-generico');
       } else {
-        mostrar('estado-activando');
-
-        onAuthStateChanged(auth, async (user) => {
-          if (!user) {
-            mostrar('estado-error');
-            document.getElementById('msg-error').textContent =
-              'No pudimos identificar tu sesión. Iniciá sesión e ingresá a tu curso desde Cursos Abiertos.';
-            return;
-          }
-
-          try {
-            const token = await user.getIdToken();
-            const resp = await fetch(VERIFY_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ paymentId })
-            });
-
-            const data = await resp.json();
-
-            if (resp.ok && data.ok) {
-              document.getElementById('btn-curso').href = data.cursoUrl;
-              mostrar('estado-exito');
-            } else {
-              document.getElementById('msg-error').textContent =
-                data.error || 'No pudimos verificar tu pago en este momento.';
-              mostrar('estado-error');
-            }
-          } catch (err) {
-            document.getElementById('msg-error').textContent =
-              'Error de conexión. Intentá recargar la página.';
-            mostrar('estado-error');
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            verificarMP(user);
+          } else {
+            mostrar('estado-reclamar');
           }
         });
       }
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GDLRMR5D57');
     </script>
 </body>
 </html>

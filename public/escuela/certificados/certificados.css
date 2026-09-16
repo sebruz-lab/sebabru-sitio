@@ -1,0 +1,67 @@
+/* =========================================
+   CERTIFICADOS
+   ========================================= */
+
+.certificados-main {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 20px 80px;
+}
+
+.curso-certificados {
+    margin-top: 50px;
+}
+
+.curso-certificados:first-child {
+    margin-top: 10px;
+}
+
+.curso-certificados h2 {
+    color: var(--text-light);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
+    font-size: 1.4em;
+}
+
+.lista-egresados {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lista-egresados li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lista-egresados li:last-child {
+    border-bottom: none;
+}
+
+.lista-egresados a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 8px;
+    color: var(--text-dark);
+    font-size: 1.05em;
+    transition: color 0.2s ease, padding-left 0.2s ease;
+}
+
+.lista-egresados a i {
+    color: var(--primary-color);
+    font-size: 0.9em;
+    width: 1em;
+    text-align: center;
+}
+
+.lista-egresados a:hover {
+    color: var(--primary-color);
+    padding-left: 16px;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .certificados-main {
+        padding: 10px 15px 60px;
+    }
+}

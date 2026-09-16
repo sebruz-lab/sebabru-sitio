@@ -6,7 +6,7 @@
     <title>Escuela Online | Seba Bru</title>
     
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="escuela.css?v=2">
+    <link rel="stylesheet" href="escuela.css?v=5">
     <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
@@ -29,6 +29,16 @@
 </header>
 
     <main class="courses-container">
+
+        <a href="#" class="course-card curso-lock" data-url="lunas26/index.html">
+            <div class="card-image">
+                <img src="img/luna26.webp" alt="La Luna en la carta natal 2026">
+                <div class="overlay">
+                    <i class="fa-solid fa-lock"></i> INGRESAR
+                </div>
+            </div>
+            <h3>La Luna en la carta natal 2026</h3>
+        </a>
 
         <a href="#" class="course-card curso-lock" data-url="planetas/index.html">
             <div class="card-image">
@@ -143,6 +153,11 @@
 
     </main>
 
+    <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:24px;">
+        <div class="spinner"></div>
+        <p style="color:rgba(255,255,255,0.75); font-family:'Outfit',sans-serif; font-size:1rem; margin:0; letter-spacing:0.05em;">Ingresando...</p>
+    </div>
+
     <div id="login-modal" class="modal-overlay">
         <div class="modal-box">
             <button id="close-modal" class="close-btn">&times;</button>
@@ -188,5 +203,13 @@
     </script>
 
     <script type="module" src="escuela.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GDLRMR5D57');
+    </script>
 </body>
 </html>

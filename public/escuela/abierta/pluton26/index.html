@@ -6,7 +6,7 @@
     <title>Plutón y los Nodos Lunares | Aula Virtual</title>
     <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
     <link rel="stylesheet" href="../../../style.css">
-    <link rel="stylesheet" href="../../escuela.css">
+    <link rel="stylesheet" href="../../escuela.css?v=5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
@@ -57,9 +57,9 @@
                 <h2>Las clases</h2>
             </div>
 
-            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+            <article class="clase-item" id="clase-1" data-titulo="Clase 1" data-preview>
                 <header class="clase-header">
-                    <h2><span class="num">#1</span> Introducción al Seminario</h2>
+                    <h2><span class="num">#1</span> Introducción al Seminario <span class="badge-gratis">Gratis</span></h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000;">
                     <iframe data-src="https://player.mediadelivery.net/embed/615375/ae1fbd75-7adc-48b5-9f27-513a49c40218?autoplay=false&loop=false&muted=false&preload=true&responsive=true" loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;" allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe>
@@ -134,34 +134,8 @@
 
     <script type="module" src="../../escuela.js"></script>
     <script type="module">
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { auth, db } from '../../firebase.js';
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const userEmail = user.email.toLowerCase().trim();
-                    const docSnap = await getDoc(doc(db, "usuarios", userEmail));
-
-                    if (docSnap.exists() && docSnap.data().cursos?.includes('pluton26')) {
-                        const _obs = new IntersectionObserver(entries => {
-                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
-                        }, { rootMargin: '200px' });
-                        document.querySelectorAll('iframe[data-src]').forEach(iframe => { _obs.observe(iframe); });
-                        document.getElementById('security-overlay').style.display = 'none';
-                    } else {
-                        alert("No tenés acceso a este seminario.");
-                        window.location.href = "../";
-                    }
-                } catch (error) {
-                    console.error("Error al verificar el acceso:", error);
-                    window.location.href = "../";
-                }
-            } else {
-                window.location.href = "../";
-            }
-        });
+        import { initAula } from '../../aula-abierta.js';
+        initAula('pluton26');
     </script>
 </body>
 </html>

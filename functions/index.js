@@ -11,6 +11,8 @@ const CURSO_URLS = {
   signos:    '/escuela/abierta/signos/',
   casas:     '/escuela/abierta/casas/',
   pluton26:  '/escuela/abierta/pluton26/',
+  lilith:    '/escuela/abierta/lilith/',
+  lunas26:   '/escuela/lunas26/',
 };
 
 const PRECIOS = {
@@ -19,6 +21,7 @@ const PRECIOS = {
   signos:    { ars: 60000, usd: 50 },
   casas:     { ars: 60000, usd: 50 },
   pluton26:  { ars: 80000, usd: 70 },
+  lilith:    { ars: 80000, usd: 50 },
 };
 
 let _db;
@@ -96,6 +99,119 @@ async function validarCodigo(codigo, cursoId) {
 }
 
 // -------------------------------------------------------
+// obtenerMuestra: expone SOLO el primer video de un curso (la clase
+// gratis), sin requerir login. El resto de "cursos/{id}.videos" sigue
+// protegido por las reglas de Firestore (solo dueños del curso).
+// -------------------------------------------------------
+exports.obtenerMuestra = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const cursoId = String(req.query.curso || '').trim();
+  if (!cursoId || !CURSO_URLS[cursoId]) {
+    return res.status(400).json({ error: 'Curso inválido.' });
+  }
+
+  try {
+    const snap = await _db.collection('cursos').doc(cursoId).get();
+    const videoId = snap.data()?.videos?.[0] || null;
+    if (!videoId) return res.status(404).json({ error: 'Este curso todavía no tiene clase gratis cargada.' });
+    return res.status(200).json({ videoId });
+  } catch (error) {
+    functions.logger.error('Error en obtenerMuestra:', error);
+    return res.status(500).json({ error: 'Error al obtener la clase gratis.' });
+  }
+});
+
+// -------------------------------------------------------
+// registrarInteres: marca a un usuario logueado (que todavia no compro)
+// como interesado en un curso, porque miro la clase gratis. Sirve para
+// segmentar leads: cursos:[] + interesados:[...] = mostro interes pero
+// no compro nada todavia.
+// -------------------------------------------------------
+exports.registrarInteres = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
+  }
+  ensureInit();
+
+  const email = (context.auth.token.email || '').toLowerCase().trim();
+  if (!email) {
+    throw new functions.https.HttpsError('failed-precondition', 'Tu cuenta no tiene un email asociado.');
+  }
+
+  const cursoId = String(data?.cursoId || '').trim();
+  if (!cursoId || !CURSO_URLS[cursoId]) {
+    throw new functions.https.HttpsError('invalid-argument', 'Curso inválido.');
+  }
+
+  const ref = _db.collection('usuarios').doc(email);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    await ref.set({
+      cursos: [],
+      cohorte: '2026',
+      fechaRegistro: admin.firestore.FieldValue.serverTimestamp(),
+      interesados: [cursoId],
+    });
+  } else {
+    await ref.update({ interesados: admin.firestore.FieldValue.arrayUnion(cursoId) });
+  }
+
+  functions.logger.info('Interes registrado', { email, cursoId });
+  return { ok: true };
+});
+
+// -------------------------------------------------------
+// Regalo de cursos: generar y asegurar el codigo de canje
+// -------------------------------------------------------
+
+// Codigo corto y legible para compartir (sin I/O/0/1, que se confunden).
+function generarCodigoRegalo() {
+  const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bloque = () => {
+    let s = '';
+    for (let i = 0; i < 5; i++) s += ABC[Math.floor(Math.random() * ABC.length)];
+    return s;
+  };
+  return `RG-${bloque()}-${bloque()}`;
+}
+
+// Crea (o recupera, si ya se creo antes para este mismo pago) el codigo de
+// regalo asociado a un pago. Idempotente: se puede llamar desde el webhook
+// de MP y desde verificarPagoMP para el mismo pago sin generar dos codigos
+// ni pisar el estado "usado" de uno ya canjeado.
+async function asegurarRegalo(pagoRef, { cursoId, cursoNombre, compradorEmail, origen }) {
+  const codigo = await _db.runTransaction(async tx => {
+    const snap = await tx.get(pagoRef);
+    if (snap.exists && snap.data().codigoRegalo) return snap.data().codigoRegalo;
+    const nuevo = generarCodigoRegalo();
+    tx.set(pagoRef, { codigoRegalo: nuevo }, { merge: true });
+    return nuevo;
+  });
+
+  try {
+    await _db.collection('regalos').doc(codigo).create({
+      cursoId,
+      cursoNombre,
+      cursoUrl: CURSO_URLS[cursoId] || '/escuela/abierta/',
+      compradoPor: compradorEmail,
+      origen,
+      creadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      usado: false,
+    });
+  } catch (e) {
+    // Ya existe (llamada repetida / carrera webhook vs verificarPagoMP): no pisar su estado.
+    if (!/already exists/i.test(e.message || '')) throw e;
+  }
+
+  return codigo;
+}
+
+// -------------------------------------------------------
 // activarInvitacion: canjear token de invitación server-side
 // -------------------------------------------------------
 exports.activarInvitacion = functions.https.onCall(async (data, context) => {
@@ -157,6 +273,158 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
 });
 
 // -------------------------------------------------------
+// canjearRegalo: canjear un codigo de regalo y habilitar el curso
+// -------------------------------------------------------
+exports.canjearRegalo = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
+  }
+  ensureInit();
+
+  const userEmail = (context.auth.token.email || '').toLowerCase().trim();
+  if (!userEmail) {
+    throw new functions.https.HttpsError('failed-precondition', 'Tu cuenta no tiene un email asociado.');
+  }
+
+  const codigo = String(data?.codigo || '').trim().toUpperCase();
+  if (!codigo) {
+    throw new functions.https.HttpsError('invalid-argument', 'Código requerido.');
+  }
+
+  const regaloRef = _db.collection('regalos').doc(codigo);
+
+  const cursoId = await _db.runTransaction(async tx => {
+    const snap = await tx.get(regaloRef);
+    if (!snap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Ese código no existe.');
+    }
+    const r = snap.data();
+    if (r.usado) {
+      throw new functions.https.HttpsError('already-exists', 'Ese código ya fue canjeado.');
+    }
+    tx.update(regaloRef, {
+      usado: true,
+      usadoPor: userEmail,
+      usadoEn: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return r.cursoId;
+  });
+
+  const regaloData = (await regaloRef.get()).data();
+
+  const userRef = _db.collection('usuarios').doc(userEmail);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    await userRef.set({
+      cursos: [cursoId],
+      cohorte: '2026',
+      fechaRegistro: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else {
+    await userRef.update({ cursos: admin.firestore.FieldValue.arrayUnion(cursoId) });
+  }
+
+  functions.logger.info('Regalo canjeado', { userEmail, cursoId, codigo });
+  return {
+    cursoId,
+    cursoNombre: regaloData.cursoNombre,
+    cursoUrl: regaloData.cursoUrl || CURSO_URLS[cursoId] || '/escuela/abierta/',
+  };
+});
+
+// -------------------------------------------------------
+// reclamarPago: para compras hechas sin sesion (login diferido).
+// El comprador paga como anonimo, recibe un codigo de acceso por mail y,
+// si despues inicia sesion desde gracias.html, esto le habilita el curso
+// directo sin tener que ir a /canjear a pegar el codigo a mano.
+// -------------------------------------------------------
+exports.reclamarPago = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
+  }
+  ensureInit();
+
+  const callerEmail = (context.auth.token.email || '').toLowerCase().trim();
+  if (!callerEmail) {
+    throw new functions.https.HttpsError('failed-precondition', 'Tu cuenta no tiene un email asociado.');
+  }
+
+  const paymentId = String(data?.paymentId || '').trim();
+  if (!paymentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Falta el identificador de pago.');
+  }
+
+  const pagoSnap = await _db.collection('pagos_procesados').doc(paymentId).get();
+  if (!pagoSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'No encontramos ese pago.');
+  }
+  const pago = pagoSnap.data();
+
+  // Un regalo real (para otra persona) no se autoreclama: el codigo queda
+  // para que el comprador lo comparta.
+  if (pago.regalo) {
+    return { granted: false, esRegalo: true };
+  }
+  if (!pago.codigoRegalo) {
+    // Compra con sesion iniciada: el acceso ya se otorgo directo, nada que reclamar.
+    return { granted: false, yaAsignado: true };
+  }
+
+  const regaloRef = _db.collection('regalos').doc(pago.codigoRegalo);
+  const regaloSnap = await regaloRef.get();
+  if (!regaloSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'Código no encontrado.');
+  }
+  const r = regaloSnap.data();
+
+  if (r.usado) {
+    if (r.usadoPor === callerEmail) {
+      return { granted: true, cursoId: r.cursoId, cursoNombre: r.cursoNombre, cursoUrl: r.cursoUrl };
+    }
+    return { granted: false, yaCanjeado: true };
+  }
+
+  const compradorEmail = (r.compradoPor || '').toLowerCase().trim();
+  if (compradorEmail && compradorEmail !== callerEmail) {
+    return { granted: false, otroComprador: true };
+  }
+
+  try {
+    await _db.runTransaction(async tx => {
+      const s = await tx.get(regaloRef);
+      if (s.data().usado) {
+        throw new functions.https.HttpsError('already-exists', 'Ese código ya fue canjeado.');
+      }
+      tx.update(regaloRef, {
+        usado: true,
+        usadoPor: callerEmail,
+        usadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+  } catch (e) {
+    if (e instanceof functions.https.HttpsError && e.code === 'already-exists') {
+      return { granted: false, yaCanjeado: true };
+    }
+    throw e;
+  }
+
+  const userRef = _db.collection('usuarios').doc(callerEmail);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    await userRef.set({
+      cursos: [r.cursoId],
+      cohorte: '2026',
+      fechaRegistro: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else {
+    await userRef.update({ cursos: admin.firestore.FieldValue.arrayUnion(r.cursoId) });
+  }
+
+  functions.logger.info('Pago reclamado', { callerEmail, cursoId: r.cursoId, paymentId });
+  return { granted: true, cursoId: r.cursoId, cursoNombre: r.cursoNombre, cursoUrl: r.cursoUrl };
+});
+
+// -------------------------------------------------------
 // crearPago: MercadoPago
 // -------------------------------------------------------
 exports.crearPago = functions.https.onRequest(async (req, res) => {
@@ -167,21 +435,25 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  // Login opcional: si viene token valido lo usamos; si no, es una compra
+  // anonima (la persona reclama el acceso despues, con un codigo). El precio
+  // se valida siempre server-side, asi que no hay riesgo de manipulacion.
+  let userEmail = null;
   const authHeader = req.headers.authorization || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: { status: 'UNAUTHENTICATED', message: 'Debés iniciar sesión para comprar.' } });
+  if (authHeader.startsWith('Bearer ')) {
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+      userEmail = decodedToken.email || null;
+    } catch (e) { /* token invalido -> se trata como anonimo */ }
   }
 
-  let decodedToken;
-  try {
-    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
-  } catch (e) {
-    return res.status(401).json({ error: { status: 'UNAUTHENTICATED', message: 'Token inválido.' } });
+  if (!userEmail && !(await checkRateLimit('crearPago', req, 15))) {
+    return res.status(429).json({ error: { status: 'RESOURCE_EXHAUSTED', message: 'Demasiados intentos. Probá de nuevo en unos minutos.' } });
   }
 
-  const userEmail = decodedToken.email;
   const { cursoId, codigoDescuento } = req.body.data || {};
   const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
+  const regalo = req.body.data?.regalo === true;
 
   const preciosBase = PRECIOS[cursoId];
   if (!cursoId || !cursoNombre || !preciosBase) {
@@ -206,7 +478,7 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
           unit_price: precio,
           currency_id: 'ARS'
         }],
-        payer: { email: userEmail },
+        ...(userEmail ? { payer: { email: userEmail } } : {}),
         back_urls: {
           success: `${process.env.SITE_URL}/escuela/abierta/gracias.html`,
           failure: `${process.env.SITE_URL}/escuela/abierta/`,
@@ -217,8 +489,9 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
         metadata: {
           curso_id: cursoId,
           curso_nombre: cursoNombre,
-          user_email: userEmail,
+          user_email: userEmail || null,
           codigo_descuento: codigoData ? codigoDescuento.toUpperCase() : null,
+          regalo: regalo ? 'true' : 'false',
         }
       }
     });
@@ -256,9 +529,14 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       return res.status(200).send('OK');
     }
 
-    const { curso_id, curso_nombre, user_email, codigo_descuento } = payment.metadata || {};
+    const { curso_id, curso_nombre, user_email, codigo_descuento, regalo } = payment.metadata || {};
+    const esRegalo = regalo === 'true';
+    const payerEmail = payment.payer?.email || null;
+    // Compra anonima: no hay cuenta atada al pago -> se entrega por codigo.
+    const esAnonima = !user_email;
+    const porCodigo = esRegalo || esAnonima;
 
-    if (!user_email || !curso_id) {
+    if (!curso_id) {
       functions.logger.error('Metadata incompleta en pago', { id: data.id });
       return res.status(200).send('OK');
     }
@@ -269,10 +547,7 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       functions.logger.info('Pago ya procesado', { id: data.id });
       return res.status(200).send('OK');
     }
-    await pagoRef.set({ procesadoEn: admin.firestore.FieldValue.serverTimestamp() });
-
-    const userRef = _db.collection('usuarios').doc(user_email.toLowerCase().trim());
-    await userRef.set({ cursos: admin.firestore.FieldValue.arrayUnion(curso_id) }, { merge: true });
+    await pagoRef.set({ procesadoEn: admin.firestore.FieldValue.serverTimestamp(), regalo: esRegalo, anonima: esAnonima });
 
     if (codigo_descuento) {
       await _db.collection('codigos_descuento').doc(codigo_descuento).update({
@@ -280,14 +555,40 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       });
     }
 
-    functions.logger.info('Acceso otorgado', { user_email, curso_id });
-
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
 
     const nombreCurso = curso_nombre || curso_id;
+
+    if (porCodigo) {
+      const codigo = await asegurarRegalo(pagoRef, {
+        cursoId: curso_id, cursoNombre: nombreCurso, compradorEmail: user_email || payerEmail, origen: 'mp'
+      });
+
+      const destino = user_email || payerEmail;
+      if (destino) {
+        await transporter.sendMail({
+          from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+          to: destino,
+          bcc: 'espaciointeriorastrologia@gmail.com',
+          subject: esRegalo ? `Tu código de regalo: ${nombreCurso}` : `Tu código de acceso: ${nombreCurso}`,
+          html: emailRegaloHtml(nombreCurso, codigo, esRegalo)
+        });
+      } else {
+        functions.logger.warn('Pago por codigo sin email de destino', { id: data.id, codigo });
+      }
+
+      functions.logger.info('Compra por codigo', { destino, curso_id, codigo, esRegalo });
+      return res.status(200).send('OK');
+    }
+
+    const userRef = _db.collection('usuarios').doc(user_email.toLowerCase().trim());
+    await userRef.set({ cursos: admin.firestore.FieldValue.arrayUnion(curso_id) }, { merge: true });
+
+    functions.logger.info('Acceso otorgado', { user_email, curso_id });
+
     const cursoUrl = `${process.env.SITE_URL}${CURSO_URLS[curso_id] || '/escuela/abierta/'}`;
 
     await transporter.sendMail({
@@ -369,6 +670,37 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
     </div>`;
 }
 
+function emailRegaloHtml(cursoNombre, codigo, esRegalo) {
+  const nombreSeguro = escapeHtml(cursoNombre);
+  const codigoSeguro = escapeHtml(codigo);
+  const bajada = esRegalo
+    ? `<p>Compartilo con quien quieras regalarle <strong>${nombreSeguro}</strong> — lo puede canjear cuando quiera en
+         <a href="https://sebabru.com/canjear" style="color:#249b95;">sebabru.com/canjear</a>.</p>
+       <p style="color:#888; font-size:0.85em;">Es un código de un solo uso: guardalo hasta que se lo pases a esa persona.</p>`
+    : `<p>Con este código habilitás <strong>${nombreSeguro}</strong> en tu cuenta. Entrá a
+         <a href="https://sebabru.com/canjear" style="color:#249b95;">sebabru.com/canjear</a>, iniciá sesión (o creá tu cuenta,
+         es gratis) y pegá el código.</p>
+       <p style="color:#888; font-size:0.85em;">Es un código de un solo uso. Guardá este mail.</p>`;
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #222;">
+      <h2 style="color: #249b95;">¡Gracias por tu compra!</h2>
+      <p>${esRegalo ? 'Generamos tu código de regalo para' : 'Tu pago fue acreditado. Tu código de acceso a'} <strong>${nombreSeguro}</strong>:</p>
+      <p style="text-align: center; margin: 24px 0;">
+        <span style="display:inline-block; background:#f5f5f5; border:1px dashed #249b95; border-radius:8px;
+                     padding:14px 28px; font-family:'Courier New',monospace; font-size:1.3rem; letter-spacing:0.1em; color:#249b95;">
+          ${codigoSeguro}
+        </span>
+      </p>
+      ${bajada}
+      <hr style="border:none; border-top:1px solid #eee; margin:30px 0;">
+      <p style="color:#555; font-size:0.9em; line-height:1.7;">
+        Cualquier duda podés responder a este mismo correo.<br><br>
+        Seba.
+      </p>
+      <p style="color:#aaa; font-size:0.8em; margin-top:20px;">Seba Bru Astrología · sebabru.com</p>
+    </div>`;
+}
+
 // -------------------------------------------------------
 // verificarPagoMP: verifica pago aprobado y activa acceso
 // -------------------------------------------------------
@@ -417,6 +749,22 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
       return res.status(400).json({ error: 'Metadata de curso incompleta.' });
     }
 
+    const esRegalo = payment.metadata?.regalo === 'true';
+
+    if (esRegalo) {
+      const pagoRef = _db.collection('pagos_procesados').doc(String(paymentId));
+      const cursoNombre = payment.metadata?.curso_nombre || curso_id;
+      const codigo = await asegurarRegalo(pagoRef, {
+        cursoId: curso_id, cursoNombre, compradorEmail: userEmail, origen: 'mp'
+      });
+
+      functions.logger.info('verificarPagoMP: regalo listo', { userEmail, curso_id, paymentId });
+      return res.status(200).json({
+        ok: true, regalo: true, codigoRegalo: codigo, cursoNombre,
+        canjearUrl: `${process.env.SITE_URL}/canjear`
+      });
+    }
+
     const userRef = _db.collection('usuarios').doc(userEmail);
     await userRef.set({ cursos: admin.firestore.FieldValue.arrayUnion(curso_id) }, { merge: true });
 
@@ -441,21 +789,24 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  // Login opcional: igual que crearPago, se puede pagar sin sesion y
+  // reclamar el acceso despues con un codigo.
+  let userEmail = null;
   const authHeader = req.headers.authorization || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: { status: 'UNAUTHENTICATED', message: 'Debés iniciar sesión para comprar.' } });
+  if (authHeader.startsWith('Bearer ')) {
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+      userEmail = decodedToken.email ? decodedToken.email.toLowerCase().trim() : null;
+    } catch (e) { /* token invalido -> se trata como anonimo */ }
   }
 
-  let decodedToken;
-  try {
-    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
-  } catch (e) {
-    return res.status(401).json({ error: { status: 'UNAUTHENTICATED', message: 'Token inválido.' } });
+  if (!userEmail && !(await checkRateLimit('crearPagoPaypal', req, 15))) {
+    return res.status(429).json({ error: { status: 'RESOURCE_EXHAUSTED', message: 'Demasiados intentos. Probá de nuevo en unos minutos.' } });
   }
 
-  const userEmail = decodedToken.email.toLowerCase().trim();
   const { cursoId, codigoDescuento } = req.body.data || {};
   const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
+  const regalo = req.body.data?.regalo === true;
 
   const preciosBase = PRECIOS[cursoId];
   if (!cursoId || !cursoNombre || !preciosBase) {
@@ -495,6 +846,7 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
       cursoNombre,
       userEmail,
       codigoDescuento: codigoData ? codigoDescuento.toUpperCase() : null,
+      regalo,
       status: 'pending',
       creadaEn: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -656,17 +1008,48 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       functions.logger.error('Orden PayPal no encontrada en Firestore', { orderId });
       return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
     }
-    const { cursoId, cursoNombre, userEmail, codigoDescuento } = ordenSnap.data();
-
-    await _db.collection('usuarios').doc(userEmail).set({
-      cursos: admin.firestore.FieldValue.arrayUnion(cursoId)
-    }, { merge: true });
+    const { cursoId, cursoNombre, userEmail, codigoDescuento, regalo } = ordenSnap.data();
+    const payerEmail = capture.payer?.email_address || null;
+    const esAnonima = !userEmail;
+    const porCodigo = regalo || esAnonima;
 
     if (codigoDescuento) {
       await _db.collection('codigos_descuento').doc(codigoDescuento).update({
         usos: admin.firestore.FieldValue.increment(1)
       });
     }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+    });
+
+    if (porCodigo) {
+      const destino = userEmail || payerEmail;
+      const codigo = await asegurarRegalo(pagoRef, {
+        cursoId, cursoNombre, compradorEmail: destino, origen: 'paypal'
+      });
+
+      if (destino) {
+        await transporter.sendMail({
+          from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+          to: destino,
+          bcc: 'espaciointeriorastrologia@gmail.com',
+          subject: regalo ? `Tu código de regalo: ${cursoNombre}` : `Tu código de acceso: ${cursoNombre}`,
+          html: emailRegaloHtml(cursoNombre, codigo, regalo)
+        });
+      } else {
+        functions.logger.warn('Pago PayPal por codigo sin email de destino', { orderId, codigo });
+      }
+
+      functions.logger.info('Codigo PayPal generado', { destino, cursoId, codigo, regalo, esAnonima });
+      const param = regalo ? 'regalo=1' : 'acceso=1';
+      return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html?metodo=paypal&${param}&codigo=${encodeURIComponent(codigo)}&paymentId=${encodeURIComponent('paypal_' + orderId)}`);
+    }
+
+    await _db.collection('usuarios').doc(userEmail).set({
+      cursos: admin.firestore.FieldValue.arrayUnion(cursoId)
+    }, { merge: true });
 
     functions.logger.info('Acceso PayPal otorgado', { userEmail, cursoId });
 
@@ -684,11 +1067,6 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       tipo: 'pago'
     });
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-
     await transporter.sendMail({
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
       to: userEmail,
@@ -704,4 +1082,108 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
     functions.logger.error('Error en exitoPaypal:', { message: error.message });
     res.redirect(`${process.env.SITE_URL}/escuela/abierta/`);
   }
+});
+
+// -------------------------------------------------------
+// crearEnlace: admin crea un enlace maestro multi-uso
+// -------------------------------------------------------
+exports.crearEnlace = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesion.');
+  }
+  const ADMINS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+  const email = (context.auth.token.email || '').toLowerCase();
+  if (!ADMINS.includes(email)) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo admins pueden crear enlaces.');
+  }
+  ensureInit();
+
+  const cursoId     = String(data?.cursoId || '').trim();
+  const cursoNombre = String(data?.cursoNombre || cursoId).trim();
+  const maxUsos     = Math.min(Math.max(parseInt(data?.maxUsos) || 20, 1), 500);
+  const dias        = Math.min(Math.max(parseInt(data?.dias) || 7, 1), 365);
+
+  if (!cursoId) {
+    throw new functions.https.HttpsError('invalid-argument', 'cursoId requerido.');
+  }
+
+  const { randomBytes } = require('crypto');
+  const token = randomBytes(12).toString('hex');
+
+  const expiraEn = new Date(Date.now() + dias * 24 * 60 * 60 * 1000);
+
+  await _db.collection('enlaces').doc(token).set({
+    cursoId,
+    cursoNombre,
+    activo: true,
+    maxUsos,
+    usos: 0,
+    expiraEn,
+    creadoEn: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  functions.logger.info('Enlace creado', { email, cursoId, token, maxUsos, dias });
+  return { token };
+});
+
+// -------------------------------------------------------
+// activarEnlace: enlace maestro multi-uso para talleres
+// Firestore: enlaces/{token} = { cursoId, cursoNombre, activo, expiraEn, maxUsos, usos }
+// -------------------------------------------------------
+exports.activarEnlace = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesion.');
+  }
+  ensureInit();
+
+  const userEmail = (context.auth.token.email || '').toLowerCase().trim();
+  if (!userEmail) {
+    throw new functions.https.HttpsError('failed-precondition', 'Tu cuenta no tiene un email asociado.');
+  }
+
+  const token = String(data?.token || '').trim();
+  if (!token) {
+    throw new functions.https.HttpsError('invalid-argument', 'Token requerido.');
+  }
+
+  const enlaceRef = _db.collection('enlaces').doc(token);
+
+  const result = await _db.runTransaction(async tx => {
+    const snap = await tx.get(enlaceRef);
+    if (!snap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Enlace invalido.');
+    }
+    const e = snap.data();
+    if (!e.activo) {
+      throw new functions.https.HttpsError('permission-denied', 'Este enlace esta desactivado.');
+    }
+    if (e.expiraEn && e.expiraEn.toDate && e.expiraEn.toDate() < new Date()) {
+      throw new functions.https.HttpsError('permission-denied', 'Este enlace ya expiro.');
+    }
+    if (e.maxUsos && (e.usos || 0) >= e.maxUsos) {
+      throw new functions.https.HttpsError('resource-exhausted', 'Este enlace alcanzo su limite de usos.');
+    }
+    tx.update(enlaceRef, { usos: admin.firestore.FieldValue.increment(1) });
+    return { cursoId: e.cursoId, cursoNombre: e.cursoNombre };
+  });
+
+  const { cursoId, cursoNombre } = result;
+  const userRef = _db.collection('usuarios').doc(userEmail);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    await userRef.set({
+      cursos: [cursoId],
+      cohorte: '2026',
+      fechaRegistro: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else {
+    await userRef.update({ cursos: admin.firestore.FieldValue.arrayUnion(cursoId) });
+  }
+
+  functions.logger.info('Enlace activado', { userEmail, cursoId, token });
+  return {
+    cursoId,
+    cursoNombre: cursoNombre || cursoId,
+    cursoUrl: CURSO_URLS[cursoId] || '/escuela/',
+  };
 });

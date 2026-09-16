@@ -6,7 +6,7 @@
     <title>La Luna en la carta natal | Aula Virtual</title>
     <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
     <link rel="stylesheet" href="../../../style.css">
-    <link rel="stylesheet" href="../../escuela.css">
+    <link rel="stylesheet" href="../../escuela.css?v=5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
@@ -56,9 +56,9 @@
                 <h2>Las clases</h2>
             </div>
 
-            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+            <article class="clase-item" id="clase-1" data-titulo="Clase 1" data-preview>
                 <header class="clase-header">
-                    <h2><span class="num">#1</span> Clase 1</h2>
+                    <h2><span class="num">#1</span> Clase 1 <span class="badge-gratis">Gratis</span></h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000;">
                     <iframe data-video
@@ -217,43 +217,8 @@
 
     <script type="module" src="../../escuela.js"></script>
     <script type="module">
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { auth, db } from '../../firebase.js';
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const userEmail = user.email.toLowerCase().trim();
-                    const docRef = doc(db, "usuarios", userEmail);
-                    const docSnap = await getDoc(docRef);
-
-                    if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        if (userData.cursos && userData.cursos.includes('luna')) {
-                            document.getElementById('security-overlay').style.display = 'none';
-                            try {
-                                const cursoSnap = await getDoc(doc(db, "cursos", "luna"));
-                                const videos = cursoSnap.data()?.videos || [];
-                                document.querySelectorAll('iframe[data-video]').forEach((iframe, i) => {
-                                    if (videos[i]) iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
-                                });
-                            } catch (e) { console.warn("Videos no disponibles:", e); }
-                        } else {
-                            alert("No tenés acceso a este curso.");
-                            window.location.href = "../index.html";
-                        }
-                    } else {
-                        window.location.href = "../index.html";
-                    }
-                } catch (error) {
-                    console.error("Error al verificar el acceso:", error);
-                    window.location.href = "../index.html";
-                }
-            } else {
-                window.location.href = "../index.html";
-            }
-        });
+        import { initAula } from '../../aula-abierta.js';
+        initAula('luna');
     </script>
 </body>
 </html>

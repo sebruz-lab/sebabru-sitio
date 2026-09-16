@@ -77,6 +77,43 @@
             letter-spacing: 0.06em;
         }
 
+        /* ─── NAV RÁPIDA (Libro / Video / Seminario) ─── */
+        .lilith-quicknav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 10px 20px 30px;
+        }
+        .lilith-quicknav a {
+            display: inline-block;
+            padding: 10px 26px;
+            border: 1px solid var(--luna-theme);
+            color: var(--luna-theme);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: background 0.3s, color 0.3s;
+        }
+        .lilith-quicknav a:hover {
+            background: var(--luna-theme);
+            color: #000;
+            text-decoration: none;
+        }
+
+        /* ─── IMAGEN SOLA DEL LIBRO ─── */
+        .libro-hero-img {
+            padding: 10px 20px 40px;
+            text-align: center;
+        }
+        .libro-hero-img img {
+            max-width: 320px;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.65);
+        }
 
         /* ─── VIDEO ─── */
         .video-section {
@@ -302,6 +339,20 @@
         }
         .btn-mp:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+        .btn-paypal-lilith {
+            background: rgba(0,48,135,0.15);
+            color: #7eb4f7;
+            border-color: rgba(0,48,135,0.4);
+            justify-content: center;
+        }
+        .btn-paypal-lilith:hover {
+            background: rgba(0,48,135,0.28);
+            border-color: rgba(0,48,135,0.7);
+            transform: translateY(-2px);
+            color: #7eb4f7;
+        }
+        .btn-paypal-lilith:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
         /* ─── AMAZON GRID ─── */
         .price-list {
             display: flex;
@@ -414,6 +465,95 @@
             background: var(--luna-theme);
             color: #000;
         }
+
+        /* ─── LOADING OVERLAY (checkout del seminario) ─── */
+        #loading-pago-lilith {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #fff;
+            gap: 18px;
+        }
+        #loading-pago-lilith .spinner-loading {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: var(--luna-theme);
+            border-radius: 50%;
+            animation: spin-lilith 0.8s linear infinite;
+        }
+        @keyframes spin-lilith { to { transform: rotate(360deg); } }
+
+        /* ─── MODAL DE LOGIN (checkout del seminario) ─── */
+        #login-modal-lilith {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #login-modal-lilith.active { display: flex; }
+        #login-modal-lilith .modal-box {
+            background: #101016;
+            border: 1px solid rgba(59,194,188,0.25);
+            border-radius: 14px;
+            padding: 28px;
+            max-width: 380px;
+            width: 100%;
+            position: relative;
+        }
+        #login-modal-lilith .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--luna-text);
+            font-size: 1.6rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #login-modal-lilith h2 {
+            color: #fff;
+            font-size: 1.1rem;
+            margin: 0 0 14px;
+        }
+        #login-modal-lilith input {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 11px 14px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.92rem;
+        }
+        #login-modal-lilith .btn-login-lilith {
+            width: 100%;
+            background: var(--luna-theme);
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.92rem;
+        }
+        #login-modal-lilith .error-msg-lilith {
+            display: none;
+            color: #f08080;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -453,26 +593,231 @@
                             </section>
 
             <!-- ══════════════════════════════
-                 PRESENTACIÓN VIRTUAL
+                 NAV RÁPIDA
             ══════════════════════════════ -->
-            <section class="efecto-shrink-container" id="presentacion">
-                <div class="efecto-shrink-sticky">
-                    <img src="../img/presenta.webp" alt="Presentación virtual Luna Negra" class="efecto-imagen">
-                    <div class="efecto-texto">
-                        <h3>Presentación virtual</h3>
-                        <h2>Luna Negra · Lilith en la carta natal o la potencia del vacío</h2>
-                        <p>Luego de las dos presentaciones en Baires y en trasla, retomamos el ciclo de presentaciones de este hermoso libro.</p>
-                        <p>La cita será el <strong style="color:#fff;">sábado 23 de mayo · 15hs · Por Zoom</strong></p>
-                        <p>Encuentro abierto y gratuito.</p>
-                        <p style="color:var(--luna-theme);">¿Cómo participar?</p>
-                        <p>Agendatelo y unite a la reunión de Zoom ese día</p>
-                        <div class="evento-info">
-                            ID de reunión: 871 3839 9167<br>
-                            Código de acceso: lilith
+            <nav class="lilith-quicknav">
+                <a href="#libro-hero">Libro</a>
+                <a href="#video">Video</a>
+                <a href="#seminario">Seminario</a>
+            </nav>
+
+            <!-- ══════════════════════════════
+                 IMAGEN SOLA DEL LIBRO
+            ══════════════════════════════ -->
+            <section class="libro-hero-img" id="libro-hero">
+                <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
+            </section>
+
+            <!-- ══════════════════════════════
+                 PARALLAX DIVIDER
+            ══════════════════════════════ -->
+            <section class="parallax-divider" id="comprar"
+                     style="background-image: linear-gradient(rgba(0,0,0,0.68), rgba(0,0,0,0.68)), url('../libros/img/propuestas.jpg');">
+                <h2 class="parallax-title" style="color: var(--luna-gold);">Conseguí tu ejemplar</h2>
+            </section>
+
+            <!-- ══════════════════════════════
+                 SECCIÓN DE COMPRA — ACORDEÓN
+            ══════════════════════════════ -->
+            <section class="section-container fade-in-element"  style="padding: 60px 20px; text-align: center;">
+                <h2 class="luna-accent" style="text-align: center;">¿Dónde comprarlo?</h2>
+                <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
+                    Seleccioná tu región y desplegá las opciones disponibles.
+                </p>
+
+                <div class="compra-accordion">
+
+                    <!-- ── ARGENTINA ── -->
+                    <details class="compra-opcion">
+                        <summary>
+                            <span class="summary-icon">🇦🇷</span>
+                            <span class="summary-text">
+                                Argentina
+                                <small>Compra directa · Librerías · Envíos a todo el país</small>
+                            </span>
+                            <i class="fas fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="compra-content">
+
+                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
+                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$35.000</div>
+                            </div>
+
+                            <!-- Mercado Pago -->
+                            <div style="border:1px solid rgba(59,194,188,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:brightness(1.3);">
+                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.1rem;">$35.000</span>
+                                </div>
+                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:12px;">Pagá con cualquier tarjeta o desde tu cuenta de Mercado Pago.</p>
+                                <button id="btn-mp-libro" class="btn-compra btn-mp" style="width:100%; border:1px solid rgba(0,158,227,0.4);">
+                                    <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
+                                </button>
+                            </div>
+
+                            <!-- Transferencia -->
+                            <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--luna-theme);"></i>
+                                    <span style="color:#fff; font-weight:500;">Transferencia</span>
+                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.05rem;">$30.000 <span style="font-size:0.72em; color:#6dd5cf; font-weight:400;">−$5.000</span></span>
+                                </div>
+                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:10px;">Transferí y completá tus datos para coordinar el envío.</p>
+                                <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--luna-text); margin-bottom:10px; line-height:2;">
+                                    <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <strong style="color:#ccc;">Alias:</strong>
+                                        <span>Seba.astrologia</span>
+                                        <button id="btn-copiar-alias-libro" style="background:rgba(59,194,188,0.15); border:1px solid rgba(59,194,188,0.35); color:var(--luna-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
+                                            <i class="fa-solid fa-copy"></i> Copiar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="transferencia-confirmacion" style="display:none;">
+                                    <p style="color:#6dd5cf; font-size:0.87rem; margin-bottom:10px;"><i class="fa-solid fa-check"></i> ¡Alias copiado! Una vez hecha la transferencia:</p>
+                                    <a href="/lilith/pedido/?metodo=transferencia"
+                                       style="display:inline-flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:12px; background:rgba(59,194,188,0.12); border:1px solid rgba(59,194,188,0.4); color:var(--luna-theme); border-radius:10px; font-size:0.95rem; font-weight:600; text-decoration:none; transition:background 0.2s;">
+                                        <i class="fas fa-arrow-right"></i> Completar datos de envío
+                                    </a>
+                                </div>
+                            </div>
+
+                            <p style="font-size:0.82rem; color:var(--luna-text); margin-bottom:16px; text-align:center;">
+                                <i class="fas fa-truck"></i> Envío por Correo Argentino a todo el país
+                            </p>
+
+                            <!-- Librerías -->
+                            <div style="border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                                <p style="font-size:0.8rem; color:var(--luna-text); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">
+                                    <i class="fas fa-book-open"></i> También en librerías
+                                </p>
+                                <div class="libreria-item">
+                                    <span>📚</span>
+                                    <div>
+                                        <strong>Magia</strong>
+                                        <p style="margin:2px 0 0;">Thames 1619, CABA</p>
+                                    </div>
+                                </div>
+                                <div class="libreria-item">
+                                    <span>📚</span>
+                                    <div>
+                                        <strong>La Libre</strong>
+                                        <p style="margin:2px 0 0;">Chacabuco 917, CABA</p>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
-                        <a href="https://us02web.zoom.us/j/87138399167?pwd=lzzfwlon2BSqSrlz0sLovsYB2QdVXr.1" target="_blank" class="btn-evento">Unirse al Zoom</a>
-                        <a target="_blank" href="https://calendar.google.com/calendar/event?action=TEMPLATE&amp;tmeid=Y3BobWFvcjI2NHEzMGI5a2NoaG1jYjlrY2NxMzJiOXA2bGozNmI5aTZkZ2o0Y3BsNzFpbThjcG9jOCBpbmZvQHNlYmFicnUuY29t&amp;tmsrc=info%40sebabru.com" class="btn-evento" style="margin-left: 12px;">Agendáte el evento</a>
+                    </details>
+
+                    <!-- ── URUGUAY ── -->
+                    <details class="compra-opcion">
+                        <summary>
+                            <span class="summary-icon">🇺🇾</span>
+                            <span class="summary-text">
+                                Uruguay
+                                <small>Compra directa · Puntos de entrega · Envíos</small>
+                            </span>
+                            <i class="fas fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="compra-content">
+
+                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
+                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$1.000</div>
+                            </div>
+
+                            <div class="arg-opcion" data-arg>
+                                <button class="arg-summary" type="button" aria-expanded="false">
+                                    <i class="fas fa-tag"></i>
+                                    &nbsp;Compra directa
+                                    <i class="fas fa-chevron-down arg-chevron"></i>
+                                </button>
+                                <div class="arg-content" hidden>
+                                    <p>Coordiná tu entrega con Paula.</p>
+
+                                    <div class="puntos-entrega">
+                                        <span class="punto-tag">📍 Montevideo</span>
+                                        <span class="punto-tag">🚚 Envíos al interior</span>
+                                    </div>
+
+                                    <a href="https://wa.me/5491128363909" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer"
+                                       class="btn-compra btn-whatsapp">
+                                        <i class="fab fa-whatsapp"></i> Escribile a Paula por WhatsApp
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </details>
+
+                    <!-- ── RESTO DEL MUNDO ── -->
+                    <details class="compra-opcion">
+                        <summary>
+                            <span class="summary-icon">🌐</span>
+                            <span class="summary-text">
+                                Resto del mundo — Amazon
+                                <small>E-pub · Impreso · 15 tiendas disponibles</small>
+                            </span>
+                            <i class="fas fa-chevron-down summary-chevron"></i>
+                        </summary>
+                        <div class="compra-content">
+                            <div class="price-list">
+                                <div class="price-card">E-pub<strong>USD 10</strong></div>
+                                <div class="price-card">Impreso<strong>USD 30</strong></div>
+                            </div>
+                            <p style="color: var(--luna-text); margin-bottom: 14px; font-size: 0.92rem;">
+                                Seleccioná tu tienda local:
+                            </p>
+                            <div class="amazon-grid">
+                                <a href="https://www.amazon.com/dp/B0FV638D3T"    target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Estados Unidos</h3></a>
+                                <a href="https://www.amazon.com.mx/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>México</h3></a>
+                                <a href="https://www.amazon.ca/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Canadá</h3></a>
+                                <a href="https://www.amazon.com.br/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Brasil</h3></a>
+                                <a href="https://www.amazon.es/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>España</h3></a>
+                                <a href="https://www.amazon.co.uk/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Reino Unido</h3></a>
+                                <a href="https://www.amazon.de/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Alemania</h3></a>
+                                <a href="https://www.amazon.fr/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Francia</h3></a>
+                                <a href="https://www.amazon.it/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Italia</h3></a>
+                                <a href="https://www.amazon.nl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Países Bajos</h3></a>
+                                <a href="https://www.amazon.pl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Polonia</h3></a>
+                                <a href="https://www.amazon.se/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Suecia</h3></a>
+                                <a href="https://www.amazon.com.be/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Bélgica</h3></a>
+                                <a href="https://www.amazon.com.au/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Australia</h3></a>
+                                <a href="https://www.amazon.co.jp/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Japón</h3></a>
+                            </div>
+                        </div>
+                    </details>
+
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════
+                 DESCRIPCIÓN DEL LIBRO (scroll-shrink)
+            ══════════════════════════════ -->
+            <section class="efecto-shrink-container" id="sinopsis">
+                <div class="efecto-shrink-sticky">
+                    <img src="../libros/img/LN1.jpeg" alt="Luna Negra Libro" class="efecto-imagen">
+                    <div class="efecto-texto">
+                        <p><i>Luna Negra, la potencia del vacío</i>, es un libro que busca hacer contacto con nuestro registro sensible y con nuestro cuerpo, al tiempo que brinda herramientas para comprender la importancia de la fuerza misteriosa de este punto astrológico. Recoge herramientas del psicoanálisis y de la psicología sistémica para abordar la complejidad de este punto astrológico en toda su extensión.</p>
+                        <p>La luna negra señala un punto donde se abre un profundo contacto con el inconsciente, en su dimensión más corporal. En este punto misterioso aparecen reflejados los ecos de las memorias del linaje y las ausencias que generan agujeros negros alrededor de los que orbitamos, tratando de resolver lo imposible; pero también da cuenta de los lugares por donde nos atraviesa la fuerza de la vida, componiendo un territorio posible, una subjetividad que despliega la fuerza de lo misterioso a través del deseo.</p>
+                        <p>El recorrido de este texto conmovedor nos lleva por la descripción técnica del punto astronómico y astrológico, y se detiene en el mito de Lilith, porque en ella encuentra un principal arquetipo para comprender la fuerza arrasadora y creativa de la Luna Negra. Luego continúa llevándonos a reconocer los efectos sobre nuestra subjetividad y nuestra conciencia. El texto invita a celebrar la fuerza de la vida que ha logrado abrirse paso hasta nosotrxs, nos convoca a celebrar el misterio que nos sigue llevando por caminos inesperados, a encuentros inesperados como este, con la astrología, con la Luna Negra, con este libro y con lo salvaje que nos habita.</p>
                     </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════
+                 VIDEO YOUTUBE
+            ══════════════════════════════ -->
+            <section class="section-container video-section fade-in-element" id="video">
+                <div class="video-container">
+                    <iframe
+                        src="https://www.youtube.com/embed/PEgj53lZpGY"
+                        title="Luna Negra — Presentación del libro"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
                 </div>
             </section>
 
@@ -491,39 +836,116 @@
                         <p>Pero también habla de las pasiones viscerales, los movimientos que no controlamos, que emergen acercándonos al placer y a la fuerza vital que habita en nosotres. Es, también, un modo astrológico de hablar del cuerpo, del cuerpo carne sobre el que se sostiene todo lo que somos.</p>
                         <p>Lilith nos permite ir más allá de la repetición, abriendo un espacio en nuestro interior para encontrarnos otras cosas en la relación con el afuera. Oxigena profundamente nuestra mirada sobre nosotres y nuestras interpretaciones como profesionales del campo de la astrología.</p>
                         <div class="evento-info">
-                            ⏰ Viernes de 18 a 20 h Argentina.<br>
-                            💻 Modalidad online o presencial en San Javier.<br>
+                            ⏰ Cursada abierta, se acomoda a tu agenda como vos quieras<br>
+                            💻 Primera clase gratis.<br>
+                            🔁 La cursada se inicia cuando vos quieras y tenés acceso permanente al material.<br>
                             📖 No se requieren conocimientos previos.<br>
-                            📅 Comienzo de cursada: 29 de Mayo.<br>
                             📽️ Las clases quedan grabadas.<br>
                             🌟 A cargo de Sebastián Bru.<br>
                             📲 Info: 3544559877
                         </div>
-                        <div class="evento-precios">
-                            📚 <strong style="color:#fff;">El intercambio incluye:</strong><br>
-                            — 6 encuentros sincrónicos.<br>
-                            — Materiales de lectura en PDF<br>
-                            — Aula virtual con clases grabadas<br>
-                            — Diploma de participación<br><br>
-                            💰 3 cuotas de $50.000 / €35<br>
-                            💰 Pago único: $120.000 / €90
-                        </div>
-                        <a href="https://forms.gle/bdzQPvVPoY5gAgnE7" target="_blank" class="btn-evento">Inscribirse</a>
-                    </div>
-                </div>
-            </section>
 
-            <!-- ══════════════════════════════
-                 VIDEO YOUTUBE
-            ══════════════════════════════ -->
-            <section class="section-container video-section fade-in-element" id="video">
-                <div class="video-container">
-                    <iframe
-                        src="https://www.youtube.com/embed/PEgj53lZpGY"
-                        title="Luna Negra — Presentación del libro"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen>
-                    </iframe>
+                        <div class="compra-accordion" style="margin-top:10px;" id="seccion-compra-lilith">
+                            <details class="compra-opcion" open>
+                                <summary>
+                                    <span class="summary-icon">🌚</span>
+                                    <span class="summary-text">
+                                        Sumate al seminario
+                                        <small>Mercado Pago · Transferencia · PayPal</small>
+                                    </span>
+                                    <i class="fas fa-chevron-down summary-chevron"></i>
+                                </summary>
+                                <div class="compra-content">
+
+                                    <ul style="color:var(--luna-text); font-size:0.95rem; line-height:1.8; margin:0 0 16px; padding-left:20px;">
+                                        <li>🌚 6 clases grabadas, a tu ritmo</li>
+                                        <li>📚 Materiales de lectura en PDF</li>
+                                        <li>🎓 Diploma de participación</li>
+                                    </ul>
+                                    <p style="color:var(--luna-text); font-size:0.9rem; margin-bottom:6px;"><strong style="color:#fff;">Acceso permanente:</strong> la cursada se inicia cuando vos quieras y tenés acceso permanente al material.</p>
+                                    <p style="color:var(--luna-text); font-size:0.9rem; margin-bottom:16px;">La primera clase es abierta y gratuita. <a href="/escuela/abierta/lilith/" style="color:var(--luna-theme);">Verla ahora</a></p>
+
+                                    <div style="margin:0 0 18px; padding:12px 14px; background:rgba(240,197,22,0.08); border:1px solid rgba(240,197,22,0.3); border-radius:8px; color:var(--luna-text); font-size:0.88rem; line-height:1.5;">
+                                        🎁 <strong style="color:var(--luna-gold);">Súper promo:</strong> con la compra del curso y abonando solo un 10% más del precio, te llevás también el libro <em>Luna Negra</em>.
+                                    </div>
+
+                                    <label style="display:flex; align-items:center; gap:9px; margin-bottom:14px; color:var(--luna-text); font-size:0.88rem; cursor:pointer;">
+                                        <input type="checkbox" id="regalo-lilith" style="width:16px; height:16px; accent-color:var(--luna-gold);">
+                                        🎁 Es para regalar
+                                    </label>
+                                    <p id="regalo-nota-lilith" hidden style="font-size:0.82rem; color:var(--luna-text); margin:-6px 0 14px;">Al pagar te damos un <strong style="color:var(--luna-gold);">código para regalar</strong>. El curso no se activa en tu cuenta — lo activa quien reciba el código en sebabru.com/canjear.</p>
+
+                                    <div style="text-align:center; margin-bottom:18px; padding:14px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                                        <span style="color:var(--luna-text); font-size:0.85rem; letter-spacing:0.05em; text-transform:uppercase;">Precio</span>
+                                        <div style="color:#fff; font-size:1.4rem; font-weight:600; margin-top:4px;" id="precio-cabecera-lilith">$80.000 ARS <span style="font-size:0.6em; color:var(--luna-text); font-weight:400;">· USD 50 · Transferencia $72.000</span></div>
+                                    </div>
+
+                                    <!-- Mercado Pago -->
+                                    <div style="border:1px solid rgba(59,194,188,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
+                                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                            <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:brightness(1.3);">
+                                            <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.05rem;" id="precio-mp-lilith">$80.000</span>
+                                        </div>
+                                        <button id="btn-pagar-mp-lilith" class="btn-compra btn-mp" style="width:100%; border:1px solid rgba(0,158,227,0.4);">
+                                            <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
+                                        </button>
+                                        <p id="aviso-login-mp-lilith" style="font-size:0.8rem; color:var(--luna-text); text-align:center; margin-top:10px;">No hace falta iniciar sesión para comprar. El acceso te llega por mail. Si preferís, podés <a id="link-login-mp-lilith" style="color:var(--luna-theme); cursor:pointer; text-decoration:underline;">iniciar sesión antes</a>.</p>
+                                    </div>
+
+                                    <!-- Transferencia -->
+                                    <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
+                                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                            <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--luna-theme);"></i>
+                                            <span style="color:#fff; font-weight:500;">Transferencia</span>
+                                            <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.05rem;" id="precio-trans-lilith">$72.000 <span style="font-size:0.72em; color:#6dd5cf; font-weight:400;">−10%</span></span>
+                                        </div>
+                                        <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--luna-text); margin-bottom:10px; line-height:2;">
+                                            <div><strong style="color:#ccc;">Banco:</strong> Galicia</div>
+                                            <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
+                                            <div style="display:flex; align-items:center; gap:8px;">
+                                                <strong style="color:#ccc;">Alias:</strong>
+                                                <span>Seba.astrologia</span>
+                                                <button id="btn-copiar-alias-lilith" style="background:rgba(59,194,188,0.15); border:1px solid rgba(59,194,188,0.35); color:var(--luna-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
+                                                    <i class="fa-solid fa-copy"></i> Copiar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="info-comprobante-lilith" style="display:none;">
+                                            <p style="color:#6dd5cf; font-size:0.87rem; margin-bottom:10px;"><i class="fa-solid fa-check"></i> ¡Alias copiado! Una vez hecha la transferencia, enviá el comprobante:</p>
+                                            <a id="wa-comprobante-lilith" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" style="width:100%; justify-content:center;">
+                                                <i class="fab fa-whatsapp"></i> Enviar comprobante por WhatsApp
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- PayPal -->
+                                    <div style="border:1px solid rgba(0,48,135,0.25); border-radius:12px; padding:16px; margin-bottom:16px;">
+                                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                            <i class="fa-brands fa-paypal" style="color:#7eb4f7; font-size:1.2rem;"></i>
+                                            <span style="color:#fff; font-weight:500;">PayPal</span>
+                                            <span style="margin-left:auto; color:var(--luna-gold); font-weight:600;" id="precio-pp-lilith">USD 50</span>
+                                        </div>
+                                        <button id="btn-pagar-paypal-lilith" class="btn-compra btn-paypal-lilith" style="width:100%;">
+                                            <i class="fa-brands fa-paypal"></i> Pagar con PayPal
+                                        </button>
+                                        <p id="aviso-login-paypal-lilith" style="font-size:0.8rem; color:var(--luna-text); text-align:center; margin-top:10px;">No hace falta iniciar sesión para comprar. El acceso te llega por mail. Si preferís, podés <a id="link-login-paypal-lilith" style="color:var(--luna-theme); cursor:pointer; text-decoration:underline;">iniciar sesión antes</a>.</p>
+                                    </div>
+
+                                    <!-- Código de descuento -->
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                                        <input type="text" id="inp-codigo-lilith" placeholder="¿Tenés un código de descuento?" maxlength="20" style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; padding:9px 12px; border-radius:8px; font-size:0.85rem; font-family:monospace; letter-spacing:0.05em; text-transform:uppercase;">
+                                        <button id="btn-codigo-lilith" style="background:rgba(240,197,22,0.14); border:1px solid rgba(240,197,22,0.35); color:var(--luna-gold); padding:9px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; white-space:nowrap;">Aplicar</button>
+                                        <span id="msg-codigo-lilith" style="font-size:0.8rem; padding:6px 0; flex-basis:100%; display:none;"></span>
+                                    </div>
+
+                                    <a href="/escuela/abierta/lilith/" id="btn-acceder-lilith" class="btn-compra btn-mp" style="display:none; width:100%; justify-content:center; margin-top:10px;">
+                                        <i class="fa-solid fa-circle-play"></i> Ir al aula
+                                    </a>
+
+                                </div>
+                            </details>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -865,204 +1287,6 @@
                     </details>
                 </div>
             </section>
-            <!-- ══════════════════════════════
-                 DESCRIPCIÓN DEL LIBRO (scroll-shrink)
-            ══════════════════════════════ -->
-            <section class="efecto-shrink-container" id="sinopsis">
-                <div class="efecto-shrink-sticky">
-                    <img src="../libros/img/LN1.jpeg" alt="Luna Negra Libro" class="efecto-imagen">
-                    <div class="efecto-texto">
-                        <p><i>Luna Negra, la potencia del vacío</i>, es un libro que busca hacer contacto con nuestro registro sensible y con nuestro cuerpo, al tiempo que brinda herramientas para comprender la importancia de la fuerza misteriosa de este punto astrológico. Recoge herramientas del psicoanálisis y de la psicología sistémica para abordar la complejidad de este punto astrológico en toda su extensión.</p>
-                        <p>La luna negra señala un punto donde se abre un profundo contacto con el inconsciente, en su dimensión más corporal. En este punto misterioso aparecen reflejados los ecos de las memorias del linaje y las ausencias que generan agujeros negros alrededor de los que orbitamos, tratando de resolver lo imposible; pero también da cuenta de los lugares por donde nos atraviesa la fuerza de la vida, componiendo un territorio posible, una subjetividad que despliega la fuerza de lo misterioso a través del deseo.</p>
-                        <p>El recorrido de este texto conmovedor nos lleva por la descripción técnica del punto astronómico y astrológico, y se detiene en el mito de Lilith, porque en ella encuentra un principal arquetipo para comprender la fuerza arrasadora y creativa de la Luna Negra. Luego continúa llevándonos a reconocer los efectos sobre nuestra subjetividad y nuestra conciencia. El texto invita a celebrar la fuerza de la vida que ha logrado abrirse paso hasta nosotrxs, nos convoca a celebrar el misterio que nos sigue llevando por caminos inesperados, a encuentros inesperados como este, con la astrología, con la Luna Negra, con este libro y con lo salvaje que nos habita.</p>
-                    </div>
-                </div>
-            </section>
-
-                        <!-- ══════════════════════════════
-                 PARALLAX DIVIDER
-            ══════════════════════════════ -->
-            <section class="parallax-divider" id="comprar"
-                     style="background-image: linear-gradient(rgba(0,0,0,0.68), rgba(0,0,0,0.68)), url('../libros/img/propuestas.jpg');">
-                <h2 class="parallax-title" style="color: var(--luna-gold);">Conseguí tu ejemplar</h2>
-            </section>
-
-            <!-- ══════════════════════════════
-                 SECCIÓN DE COMPRA — ACORDEÓN
-            ══════════════════════════════ -->
-            <section class="section-container fade-in-element"  style="padding: 60px 20px; text-align: center;">
-                <h2 class="luna-accent" style="text-align: center;">¿Dónde comprarlo?</h2>
-                <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
-                    Seleccioná tu región y desplegá las opciones disponibles.
-                </p>
-
-                <div class="compra-accordion">
-
-                    <!-- ── ARGENTINA ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🇦🇷</span>
-                            <span class="summary-text">
-                                Argentina
-                                <small>Compra directa · Librerías · Envíos a todo el país</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-
-                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
-                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$35.000</div>
-                            </div>
-
-                            <!-- Mercado Pago -->
-                            <div style="border:1px solid rgba(59,194,188,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:brightness(1.3);">
-                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.1rem;">$35.000</span>
-                                </div>
-                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:12px;">Pagá con cualquier tarjeta o desde tu cuenta de Mercado Pago.</p>
-                                <button id="btn-mp-libro" class="btn-compra btn-mp" style="width:100%; border:1px solid rgba(0,158,227,0.4);">
-                                    <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
-                                </button>
-                            </div>
-
-                            <!-- Transferencia -->
-                            <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--luna-theme);"></i>
-                                    <span style="color:#fff; font-weight:500;">Transferencia</span>
-                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.05rem;">$30.000 <span style="font-size:0.72em; color:#6dd5cf; font-weight:400;">−$5.000</span></span>
-                                </div>
-                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:10px;">Transferí y completá tus datos para coordinar el envío.</p>
-                                <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--luna-text); margin-bottom:10px; line-height:2;">
-                                    <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <strong style="color:#ccc;">Alias:</strong>
-                                        <span>Seba.astrologia</span>
-                                        <button id="btn-copiar-alias-libro" style="background:rgba(59,194,188,0.15); border:1px solid rgba(59,194,188,0.35); color:var(--luna-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
-                                            <i class="fa-solid fa-copy"></i> Copiar
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="transferencia-confirmacion" style="display:none;">
-                                    <p style="color:#6dd5cf; font-size:0.87rem; margin-bottom:10px;"><i class="fa-solid fa-check"></i> ¡Alias copiado! Una vez hecha la transferencia:</p>
-                                    <a href="/lilith/pedido/?metodo=transferencia"
-                                       style="display:inline-flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:12px; background:rgba(59,194,188,0.12); border:1px solid rgba(59,194,188,0.4); color:var(--luna-theme); border-radius:10px; font-size:0.95rem; font-weight:600; text-decoration:none; transition:background 0.2s;">
-                                        <i class="fas fa-arrow-right"></i> Completar datos de envío
-                                    </a>
-                                </div>
-                            </div>
-
-                            <p style="font-size:0.82rem; color:var(--luna-text); margin-bottom:16px; text-align:center;">
-                                <i class="fas fa-truck"></i> Envío por Correo Argentino a todo el país
-                            </p>
-
-                            <!-- Librerías -->
-                            <div style="border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
-                                <p style="font-size:0.8rem; color:var(--luna-text); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">
-                                    <i class="fas fa-book-open"></i> También en librerías
-                                </p>
-                                <div class="libreria-item">
-                                    <span>📚</span>
-                                    <div>
-                                        <strong>Magia</strong>
-                                        <p style="margin:2px 0 0;">Thames 1619, CABA</p>
-                                    </div>
-                                </div>
-                                <div class="libreria-item">
-                                    <span>📚</span>
-                                    <div>
-                                        <strong>La Libre</strong>
-                                        <p style="margin:2px 0 0;">Chacabuco 917, CABA</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </details>
-
-                    <!-- ── URUGUAY ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🇺🇾</span>
-                            <span class="summary-text">
-                                Uruguay
-                                <small>Compra directa · Puntos de entrega · Envíos</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-
-                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
-                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$1.000</div>
-                            </div>
-
-                            <div class="arg-opcion" data-arg>
-                                <button class="arg-summary" type="button" aria-expanded="false">
-                                    <i class="fas fa-tag"></i>
-                                    &nbsp;Compra directa
-                                    <i class="fas fa-chevron-down arg-chevron"></i>
-                                </button>
-                                <div class="arg-content" hidden>
-                                    <p>Coordiná tu entrega con Paula.</p>
-
-                                    <div class="puntos-entrega">
-                                        <span class="punto-tag">📍 Montevideo</span>
-                                        <span class="punto-tag">🚚 Envíos al interior</span>
-                                    </div>
-
-                                    <a href="https://wa.me/5491128363909" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer"
-                                       class="btn-compra btn-whatsapp">
-                                        <i class="fab fa-whatsapp"></i> Escribile a Paula por WhatsApp
-                                    </a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </details>
-
-                    <!-- ── RESTO DEL MUNDO ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🌐</span>
-                            <span class="summary-text">
-                                Resto del mundo — Amazon
-                                <small>E-pub · Impreso · 15 tiendas disponibles</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-                            <div class="price-list">
-                                <div class="price-card">E-pub<strong>USD 10</strong></div>
-                                <div class="price-card">Impreso<strong>USD 30</strong></div>
-                            </div>
-                            <p style="color: var(--luna-text); margin-bottom: 14px; font-size: 0.92rem;">
-                                Seleccioná tu tienda local:
-                            </p>
-                            <div class="amazon-grid">
-                                <a href="https://www.amazon.com/dp/B0FV638D3T"    target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Estados Unidos</h3></a>
-                                <a href="https://www.amazon.com.mx/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>México</h3></a>
-                                <a href="https://www.amazon.ca/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Canadá</h3></a>
-                                <a href="https://www.amazon.com.br/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Brasil</h3></a>
-                                <a href="https://www.amazon.es/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>España</h3></a>
-                                <a href="https://www.amazon.co.uk/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Reino Unido</h3></a>
-                                <a href="https://www.amazon.de/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Alemania</h3></a>
-                                <a href="https://www.amazon.fr/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Francia</h3></a>
-                                <a href="https://www.amazon.it/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Italia</h3></a>
-                                <a href="https://www.amazon.nl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Países Bajos</h3></a>
-                                <a href="https://www.amazon.pl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Polonia</h3></a>
-                                <a href="https://www.amazon.se/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Suecia</h3></a>
-                                <a href="https://www.amazon.com.be/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Bélgica</h3></a>
-                                <a href="https://www.amazon.com.au/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Australia</h3></a>
-                                <a href="https://www.amazon.co.jp/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Japón</h3></a>
-                            </div>
-                        </div>
-                    </details>
-
-                </div>
-            </section>
 
             <!-- MODAL VISTA PREVIA PDF -->
         <div id="pdf-modal" class="lilith-banner">
@@ -1077,6 +1301,45 @@
             </div>
         </div>
 
+        <!-- MODAL DE LOGIN (checkout del seminario) -->
+        <div id="login-modal-lilith">
+            <div class="modal-box">
+                <button id="close-modal-lilith" class="close-btn">&times;</button>
+                <div style="margin-bottom:16px; text-align:center;">
+                    <button id="btn-google-lilith" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:white; color:#444; border:1px solid #ddd; padding:10px; border-radius:8px; cursor:pointer; font-weight:600;">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+                        Continuar con Google
+                    </button>
+                    <p style="margin:14px 0; color:var(--luna-text); font-size:0.78rem;">— o bien —</p>
+                </div>
+                <div id="seccion-login-lilith">
+                    <h2>Ingresar</h2>
+                    <form id="login-form-lilith">
+                        <input type="email" id="email-login-lilith" placeholder="Tu email" required>
+                        <input type="password" id="pass-login-lilith" placeholder="Contraseña" required>
+                        <button type="submit" class="btn-login-lilith">Entrar</button>
+                    </form>
+                    <p style="margin-top:10px; font-size:0.85rem; color:var(--luna-text);">¿No tenés cuenta? <a href="#" id="ir-a-registro-lilith" style="color:var(--luna-theme);">Registrate acá</a></p>
+                </div>
+                <div id="seccion-registro-lilith" style="display:none;">
+                    <h2>Crear cuenta</h2>
+                    <form id="registro-form-lilith">
+                        <input type="email" id="email-registro-lilith" placeholder="Tu email" required>
+                        <input type="password" id="pass-registro-lilith" placeholder="Creá una contraseña" required>
+                        <button type="submit" class="btn-login-lilith">Crear cuenta</button>
+                    </form>
+                    <p style="margin-top:10px; font-size:0.85rem; color:var(--luna-text);">¿Ya tenés cuenta? <a href="#" id="ir-a-login-lilith" style="color:var(--luna-theme);">Ingresá acá</a></p>
+                </div>
+                <p class="error-msg-lilith" id="login-error-lilith"></p>
+            </div>
+        </div>
+
+        <!-- LOADING OVERLAY (checkout del seminario) -->
+        <div id="loading-pago-lilith">
+            <div class="spinner-loading"></div>
+            <p>Preparando tu pago...</p>
+        </div>
+
         <footer class="main-footer">
             <p>© 2026 Seba Bru Astrología. La potencia del vacío.</p>
         </footer>
@@ -1084,7 +1347,7 @@
 
         </main>
 
-        
+
 
     <script src="../script.js"></script>
     <script>
@@ -1167,6 +1430,202 @@
                 document.getElementById('transferencia-confirmacion').style.display = 'block';
             });
         }
+    </script>
+
+    <!-- ══════════════════════════════
+         CHECKOUT DEL SEMINARIO (curso "lilith")
+         Misma lógica y mismas Cloud Functions que /escuela/abierta/,
+         adaptada a un único curso.
+    ══════════════════════════════ -->
+    <script type="module">
+        import { app, auth, db } from '../firebase.js';
+        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+        const functions = getFunctions(app);
+        const crearPago = httpsCallable(functions, 'crearPago');
+        let currentUser = null;
+
+        const CURSO = { id: 'lilith', nombre: 'Luna Negra · Lilith en la carta natal', precio: 80000, precioUsd: 50 };
+        let codigoAplicado = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+
+            if (user) {
+                document.getElementById('aviso-login-mp-lilith')?.style.setProperty('display', 'none');
+                document.getElementById('aviso-login-paypal-lilith')?.style.setProperty('display', 'none');
+                try {
+                    const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
+                    const cursos = snap.exists() ? (snap.data().cursos || []) : [];
+                    if (cursos.includes(CURSO.id)) {
+                        document.getElementById('seccion-compra-lilith')?.style.setProperty('display', 'none');
+                        const acc = document.getElementById('btn-acceder-lilith');
+                        if (acc) acc.style.display = 'flex';
+                    }
+                } catch (e) { /* sin cursos previos */ }
+            } else {
+                document.getElementById('aviso-login-mp-lilith')?.style.setProperty('display', 'block');
+                document.getElementById('aviso-login-paypal-lilith')?.style.setProperty('display', 'block');
+            }
+        });
+
+        const modalLilith = document.getElementById('login-modal-lilith');
+        const abrirModalLilith  = () => modalLilith.classList.add('active');
+        const cerrarModalLilith = () => modalLilith.classList.remove('active');
+        document.getElementById('link-login-mp-lilith')?.addEventListener('click', abrirModalLilith);
+        document.getElementById('link-login-paypal-lilith')?.addEventListener('click', abrirModalLilith);
+        document.getElementById('close-modal-lilith').addEventListener('click', cerrarModalLilith);
+        modalLilith.addEventListener('click', e => { if (e.target === modalLilith) cerrarModalLilith(); });
+
+        document.getElementById('ir-a-registro-lilith').addEventListener('click', e => {
+            e.preventDefault();
+            document.getElementById('seccion-login-lilith').style.display = 'none';
+            document.getElementById('seccion-registro-lilith').style.display = 'block';
+        });
+        document.getElementById('ir-a-login-lilith').addEventListener('click', e => {
+            e.preventDefault();
+            document.getElementById('seccion-registro-lilith').style.display = 'none';
+            document.getElementById('seccion-login-lilith').style.display = 'block';
+        });
+
+        const mostrarErrorLilith = (msg) => {
+            const el = document.getElementById('login-error-lilith');
+            el.textContent = msg;
+            el.style.display = 'block';
+        };
+
+        document.getElementById('login-form-lilith').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                await signInWithEmailAndPassword(auth, document.getElementById('email-login-lilith').value, document.getElementById('pass-login-lilith').value);
+                cerrarModalLilith();
+            } catch { mostrarErrorLilith('Email o contraseña incorrectos.'); }
+        });
+        document.getElementById('registro-form-lilith').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                await createUserWithEmailAndPassword(auth, document.getElementById('email-registro-lilith').value, document.getElementById('pass-registro-lilith').value);
+                cerrarModalLilith();
+            } catch (err) { mostrarErrorLilith('No se pudo crear la cuenta. ' + err.message); }
+        });
+        document.getElementById('btn-google-lilith').addEventListener('click', async () => {
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); cerrarModalLilith(); }
+            catch { mostrarErrorLilith('No se pudo iniciar con Google.'); }
+        });
+
+        // Código de descuento
+        const inpCodigo = document.getElementById('inp-codigo-lilith');
+        const btnCodigo = document.getElementById('btn-codigo-lilith');
+        const msgCodigo = document.getElementById('msg-codigo-lilith');
+        async function aplicarCodigo() {
+            const codigo = inpCodigo.value.trim().toUpperCase();
+            msgCodigo.style.display = 'none';
+            if (!codigo) return;
+            try {
+                const snap = await getDoc(doc(db, 'codigos_descuento', codigo));
+                const fail = (texto) => { msgCodigo.textContent = texto; msgCodigo.style.color = '#f08080'; msgCodigo.style.display = 'block'; codigoAplicado = null; };
+                if (!snap.exists()) return fail('Código inválido.');
+                const data = snap.data();
+                if (!data.activo) return fail('Este código ya no está activo.');
+                if (data.expiraEn && data.expiraEn.toDate() < new Date()) return fail('Este código ya expiró.');
+                if (data.maxUsos && data.usos >= data.maxUsos) return fail('Este código alcanzó el límite de usos.');
+                if (data.cursos?.length && !data.cursos.includes(CURSO.id)) return fail('Este código no aplica a este curso.');
+
+                codigoAplicado = { codigo, descuento: data.descuento };
+                const precioConDesc = Math.round(CURSO.precio * (1 - data.descuento / 100));
+                const usdConDesc    = (CURSO.precioUsd * (1 - data.descuento / 100)).toFixed(0);
+                const descTotal     = 10 + data.descuento;
+                const precioTrans   = Math.round(CURSO.precio * (1 - descTotal / 100));
+
+                document.getElementById('precio-mp-lilith').textContent = `$${precioConDesc.toLocaleString('es-AR')}`;
+                document.getElementById('precio-pp-lilith').textContent = `USD ${usdConDesc}`;
+                document.getElementById('precio-trans-lilith').innerHTML = `$${precioTrans.toLocaleString('es-AR')} <span style="font-size:0.72em; color:#6dd5cf; font-weight:400;">−${descTotal}%</span>`;
+                document.getElementById('precio-cabecera-lilith').innerHTML = `$${precioConDesc.toLocaleString('es-AR')} ARS <span style="font-size:0.6em; color:var(--luna-text); font-weight:400;">· USD ${usdConDesc} · Transferencia $${precioTrans.toLocaleString('es-AR')}</span>`;
+
+                msgCodigo.textContent = `${data.descuento}% de descuento aplicado`;
+                msgCodigo.style.color = '#6dd5cf';
+                msgCodigo.style.display = 'block';
+            } catch (e) {
+                msgCodigo.textContent = 'Error al verificar el código.';
+                msgCodigo.style.color = '#f08080';
+                msgCodigo.style.display = 'block';
+            }
+        }
+        btnCodigo?.addEventListener('click', aplicarCodigo);
+        inpCodigo?.addEventListener('keydown', e => { if (e.key === 'Enter') aplicarCodigo(); });
+
+        // Toggle "es para regalar"
+        const chkRegalo = document.getElementById('regalo-lilith');
+        const btnMpLilith = document.getElementById('btn-pagar-mp-lilith');
+        const btnPpLilith = document.getElementById('btn-pagar-paypal-lilith');
+        const notaRegalo  = document.getElementById('regalo-nota-lilith');
+        const MP_NORMAL = '<i class="fas fa-credit-card"></i> Pagar con Mercado Pago';
+        const MP_REGALO = '<i class="fa-solid fa-gift"></i> Comprar para regalar';
+        const PP_NORMAL = '<i class="fa-brands fa-paypal"></i> Pagar con PayPal';
+        const PP_REGALO = '<i class="fa-solid fa-gift"></i> Comprar para regalar';
+        chkRegalo?.addEventListener('change', () => {
+            const g = chkRegalo.checked;
+            if (btnMpLilith) btnMpLilith.innerHTML = g ? MP_REGALO : MP_NORMAL;
+            if (btnPpLilith) btnPpLilith.innerHTML = g ? PP_REGALO : PP_NORMAL;
+            if (notaRegalo) notaRegalo.hidden = !g;
+        });
+
+        const loadingLilith = document.getElementById('loading-pago-lilith');
+
+        // Mercado Pago
+        btnMpLilith?.addEventListener('click', async () => {
+            const regalo = !!chkRegalo?.checked;
+            if (window.gtag) gtag('event', 'begin_checkout', { curso: CURSO.id, metodo: 'mp', regalo });
+            loadingLilith.style.display = 'flex';
+            try {
+                const result = await crearPago({ cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo });
+                window.location.href = result.data.init_point;
+            } catch (err) {
+                loadingLilith.style.display = 'none';
+                alert('No se pudo iniciar el pago. Intentá de nuevo o escribinos al +54 9 3544 584122.\n' + err.message);
+            }
+        });
+
+        // PayPal
+        btnPpLilith?.addEventListener('click', async () => {
+            const regalo = !!chkRegalo?.checked;
+            if (window.gtag) gtag('event', 'begin_checkout', { curso: CURSO.id, metodo: 'paypal', regalo });
+            loadingLilith.querySelector('p').textContent = 'Preparando tu pago con PayPal...';
+            loadingLilith.style.display = 'flex';
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (currentUser) headers['Authorization'] = `Bearer ${await currentUser.getIdToken()}`;
+                const response = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ data: { cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo: !!regalo } })
+                });
+                const data = await response.json();
+                if (data.result?.approve_url) { window.location.href = data.result.approve_url; }
+                else { throw new Error(data.error?.message || 'No se pudo crear el pago.'); }
+            } catch (err) {
+                loadingLilith.style.display = 'none';
+                alert('No se pudo iniciar el pago con PayPal. Intentá de nuevo o escribinos al +54 9 3544 584122.\n' + err.message);
+            }
+        });
+
+        // Copiar alias — transferencia seminario
+        document.getElementById('btn-copiar-alias-lilith')?.addEventListener('click', () => {
+            navigator.clipboard.writeText('Seba.astrologia').then(() => {
+                const btn = document.getElementById('btn-copiar-alias-lilith');
+                const info = document.getElementById('info-comprobante-lilith');
+                const wa = document.getElementById('wa-comprobante-lilith');
+                if (wa) wa.href = 'https://wa.me/5493544584122?text=' + encodeURIComponent('Hola Seba, acabo de hacer la transferencia para el seminario Luna Negra · Lilith. Te mando el comprobante.');
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
+                if (info) info.style.display = 'block';
+                setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar'; }, 2500);
+            });
+        });
+        document.getElementById('wa-comprobante-lilith')?.addEventListener('click', () => {
+            if (window.gtag) gtag('event', 'pago_comprobante', { curso: CURSO.id, metodo: 'transferencia', regalo: !!chkRegalo?.checked });
+        });
     </script>
 </body>
 </html>
