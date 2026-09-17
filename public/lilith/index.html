@@ -33,9 +33,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             text-align: center;
-            padding: 80px 20px 20px;
+            padding: 16vh 20px 20px;
             overflow: hidden;
         }
 
@@ -387,13 +387,26 @@
 
         /* ─── RESPONSIVE ─── */
         @media (max-width: 768px) {
-            .lilith-banner { min-height: 100vh; }
+            .lilith-banner { min-height: 100vh; padding-top: 12vh; }
+            .lilith-banner h1, .lilith-banner h2 { text-align: center; width: 100%; }
             .amazon-grid { grid-template-columns: repeat(2, 1fr); }
             .book-hero .layout-wrapper { flex-direction: column; }
             .compra-content { padding: 16px 14px; }
         }
 
         .luna-accent { color: var(--luna-theme); }
+
+        /* En esta página la imagen tiene que despejar más terreno para que
+           el texto (más largo que en el resto del sitio) se lea sin
+           superponerse, por eso viaja más lejos que el default del sitio. */
+        #sinopsis .efecto-imagen,
+        #seminario .efecto-imagen {
+            transform: scale(calc(1 - (0.35 * var(--scroll-progress)))) translateX(calc(-95% * var(--scroll-progress)));
+        }
+        #sinopsis .efecto-texto,
+        #seminario .efecto-texto {
+            transform: translateX(calc(100% - (58% * var(--scroll-progress))));
+        }
 
         /* ─── ENTRADAS (efecto-texto overrides para esta página) ─── */
         .efecto-texto p { font-size: 1.2rem !important; }
@@ -566,8 +579,6 @@
                 <h1>Luna Negra</h1>
                 <h2>Lilith en la Carta Natal o la potencia del vacío</h2>
                             </section>
-
-            <div id="scroll-idle-hint" class="scroll-idle-hint" aria-hidden="true">Deslizá <span class="flecha-titila">&darr;</span></div>
 
             <!-- ══════════════════════════════
                  NAV RÁPIDA
