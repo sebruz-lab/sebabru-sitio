@@ -561,6 +561,11 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 .esfera {
     position: absolute; left: 0; top: 0;
+    /* Clave: con el origen en el centro, el translate(-50%,-50%) se mide
+       desde un punto que despues rota, y el objeto termina desplazado
+       (tamaño/2)·(1−cos yaw). Con el origen en 0 0 el centro cae exacto
+       en las coordenadas del mundo. */
+    transform-origin: 0 0;
     border-radius: 50%;
     background: radial-gradient(circle at 42% 36%, #17171b 0%, #0b0b0e 34%, #050506 62%, #000 100%);
     box-shadow: inset -80px -80px 260px rgba(0,0,0,0.95), 0 0 300px 60px rgba(255,255,255,0.022);
@@ -571,6 +576,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 .bloque {
     position: absolute; left: 0; top: 0;
+    transform-origin: 0 0;   /* ver comentario en .esfera */
     width: min(92vw, 640px);
     max-height: 82vh;
     overflow-y: auto;
@@ -1374,177 +1380,9 @@ html, body { margin: 0; padding: 0; background: #000; }
                 </div>
             </section>
 
-            <section class="section-container fade-in-element" id="comprar-final" style="padding: 60px 20px; text-align: center;">
-                <h2 class="luna-accent" style="text-align: center;">Dónde comprar el libro</h2>
-                <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
-                    Seleccioná tu región y desplegá las opciones disponibles.
-                </p>
-
-                <div class="compra-accordion">
-
-                    <!-- ── ARGENTINA ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🇦🇷</span>
-                            <span class="summary-text">
-                                Argentina
-                                <small>Compra directa · Librerías · Envíos a todo el país</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-
-                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
-                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$35.000</div>
-                            </div>
-
-                            <!-- Mercado Pago -->
-                            <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:grayscale(1) brightness(1.3);">
-                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.1rem;">$35.000</span>
-                                </div>
-                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:12px;">Pagá con cualquier tarjeta o desde tu cuenta de Mercado Pago.</p>
-                                <button id="btn-mp-libro-final" class="btn-compra btn-mp" style="width:100%; border:1px solid rgba(255,255,255,0.4);">
-                                    <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
-                                </button>
-                            </div>
-
-                            <!-- Transferencia -->
-                            <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--luna-theme);"></i>
-                                    <span style="color:#fff; font-weight:500;">Transferencia</span>
-                                    <span style="margin-left:auto; color:var(--luna-gold); font-weight:600; font-size:1.05rem;">$30.000 <span style="font-size:0.72em; color:#e8e8e8; font-weight:400;">−$5.000</span></span>
-                                </div>
-                                <p style="color:var(--luna-text); font-size:0.87rem; margin-bottom:10px;">Transferí y completá tus datos para coordinar el envío.</p>
-                                <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--luna-text); margin-bottom:10px; line-height:2;">
-                                    <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <strong style="color:#ccc;">Alias:</strong>
-                                        <span>Seba.astrologia</span>
-                                        <button id="btn-copiar-alias-libro-final" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:var(--luna-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
-                                            <i class="fa-solid fa-copy"></i> Copiar
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="transferencia-confirmacion-final" style="display:none;">
-                                    <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;"><i class="fa-solid fa-check"></i> ¡Alias copiado! Una vez hecha la transferencia:</p>
-                                    <a href="/lilith/pedido/?metodo=transferencia"
-                                       style="display:inline-flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:12px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.4); color:var(--luna-theme); border-radius:10px; font-size:0.95rem; font-weight:600; text-decoration:none; transition:background 0.2s;">
-                                        <i class="fas fa-arrow-right"></i> Completar datos de envío
-                                    </a>
-                                </div>
-                            </div>
-
-                            <p style="font-size:0.82rem; color:var(--luna-text); margin-bottom:16px; text-align:center;">
-                                <i class="fas fa-truck"></i> Envío por Correo Argentino a todo el país
-                            </p>
-
-                            <!-- Librerías -->
-                            <div style="border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
-                                <p style="font-size:0.8rem; color:var(--luna-text); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">
-                                    <i class="fas fa-book-open"></i> También en librerías
-                                </p>
-                                <div class="libreria-item">
-                                    <span>📚</span>
-                                    <div>
-                                        <strong>Magia</strong>
-                                        <p style="margin:2px 0 0;">Thames 1619, CABA</p>
-                                    </div>
-                                </div>
-                                <div class="libreria-item">
-                                    <span>📚</span>
-                                    <div>
-                                        <strong>La Libre</strong>
-                                        <p style="margin:2px 0 0;">Chacabuco 917, CABA</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </details>
-
-                    <!-- ── URUGUAY ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🇺🇾</span>
-                            <span class="summary-text">
-                                Uruguay
-                                <small>Compra directa · Puntos de entrega · Envíos</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-
-                            <div style="text-align:center; margin-bottom: 18px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                                <span style="color: var(--luna-text); font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;">Precio de venta al público</span>
-                                <div style="color: #fff; font-size: 1.5rem; font-weight: 600; margin-top: 4px;">$1.000</div>
-                            </div>
-
-                            <div class="arg-opcion" data-arg>
-                                <button class="arg-summary" type="button" aria-expanded="false">
-                                    <i class="fas fa-tag"></i>
-                                    &nbsp;Compra directa
-                                    <i class="fas fa-chevron-down arg-chevron"></i>
-                                </button>
-                                <div class="arg-content" hidden>
-                                    <p>Coordiná tu entrega con Paula.</p>
-
-                                    <div class="puntos-entrega">
-                                        <span class="punto-tag">📍 Montevideo</span>
-                                        <span class="punto-tag">🚚 Envíos al interior</span>
-                                    </div>
-
-                                    <a href="https://wa.me/5491128363909" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer"
-                                       class="btn-compra btn-whatsapp">
-                                        <i class="fab fa-whatsapp"></i> Escribile a Paula por WhatsApp
-                                    </a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </details>
-
-                    <!-- ── RESTO DEL MUNDO ── -->
-                    <details class="compra-opcion">
-                        <summary>
-                            <span class="summary-icon">🌐</span>
-                            <span class="summary-text">
-                                Resto del mundo — Amazon
-                                <small>E-pub · Impreso · 15 tiendas disponibles</small>
-                            </span>
-                            <i class="fas fa-chevron-down summary-chevron"></i>
-                        </summary>
-                        <div class="compra-content">
-                            <div class="price-list">
-                                <div class="price-card">E-pub<strong>USD 10</strong></div>
-                                <div class="price-card">Impreso<strong>USD 30</strong></div>
-                            </div>
-                            <p style="color: var(--luna-text); margin-bottom: 14px; font-size: 0.92rem;">
-                                Seleccioná tu tienda local:
-                            </p>
-                            <div class="amazon-grid">
-                                <a href="https://www.amazon.com/dp/B0FV638D3T"    target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Estados Unidos</h3></a>
-                                <a href="https://www.amazon.com.mx/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>México</h3></a>
-                                <a href="https://www.amazon.ca/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Canadá</h3></a>
-                                <a href="https://www.amazon.com.br/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Brasil</h3></a>
-                                <a href="https://www.amazon.es/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>España</h3></a>
-                                <a href="https://www.amazon.co.uk/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Reino Unido</h3></a>
-                                <a href="https://www.amazon.de/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Alemania</h3></a>
-                                <a href="https://www.amazon.fr/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Francia</h3></a>
-                                <a href="https://www.amazon.it/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Italia</h3></a>
-                                <a href="https://www.amazon.nl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Países Bajos</h3></a>
-                                <a href="https://www.amazon.pl/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Polonia</h3></a>
-                                <a href="https://www.amazon.se/dp/B0FV638D3T"     target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Suecia</h3></a>
-                                <a href="https://www.amazon.com.be/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Bélgica</h3></a>
-                                <a href="https://www.amazon.com.au/dp/B0FV638D3T" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Australia</h3></a>
-                                <a href="https://www.amazon.co.jp/dp/B0FV638D3T"  target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="house-button"><h3>Japón</h3></a>
-                            </div>
-                        </div>
-                    </details>
-
+            <section class="section-container" style="padding: 20px 20px 90px; text-align: center;">
+                <div class="grupo-botones-sutiles" style="justify-content:center;">
+                    <button type="button" class="btn-sutil" data-ir-a-estacion="1" style="cursor:pointer; font-family:inherit;">Comprar el libro</button>
                 </div>
             </section>
 
@@ -1734,6 +1572,21 @@ html, body { margin: 0; padding: 0; background: #000; }
 
         ticking = false;
     }
+
+    // Ir a una estacion puntual: traducimos el indice de estacion al punto
+    // de scroll donde esa parada queda enfocada.
+    function irAEstacion(i) {
+        var maxScroll = Math.max(1, track.offsetHeight - window.innerHeight);
+        window.scrollTo({
+            top: (i / (N - 1)) * maxScroll,
+            behavior: 'smooth'
+        });
+    }
+    document.querySelectorAll('[data-ir-a-estacion]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            irAEstacion(parseInt(el.dataset.irAEstacion, 10) || 0);
+        });
+    });
 
     window.addEventListener('scroll', function () {
         if (!ticking) { window.requestAnimationFrame(frame); ticking = true; }
