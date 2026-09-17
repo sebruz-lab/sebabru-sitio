@@ -596,54 +596,34 @@ html, body { margin: 0; padding: 0; background: #000; }
        contenedor, porque en la pagina real mide 190vh y acá tiene que
        entrar en una tarjeta. El --scroll-progress lo maneja el recorrido
        durante la estadia en cada parada (ver frame()). ─── */
+/* El efecto de main necesita un escenario del ancho de la pantalla: el
+   texto se desplaza con translateX relativo a SU PROPIO ancho (de 100% a
+   45%), asi que en una tarjeta angosta se sale de la caja y el overflow
+   lo corta. Le damos al bloque el mismo espacio que tiene en main y NO
+   tocamos ni la imagen ni el texto: que hagan exactamente lo de siempre,
+   en compu y en celular. */
+.bloque:has(.efecto-shrink-container) {
+    width: min(96vw, 1100px);
+    max-height: none;
+    overflow: visible;
+}
 .bloque .efecto-shrink-container {
     position: static !important;
     height: auto !important;
 }
 .bloque .efecto-shrink-sticky {
     position: relative !important;
-    height: auto !important;
-    min-height: 64vh;
     top: auto !important;
-    overflow: hidden;
+    height: 85vh !important;
 }
-.bloque .efecto-imagen {
-    max-width: min(62%, 300px) !important;
-    width: min(62%, 300px) !important;
-}
+
+/* Lo unico que agregamos es el glossy detras del texto. No uso
+   backdrop-filter: adentro de un elemento con opacity animada y
+   transform 3D los navegadores lo descartan. */
 .bloque .efecto-texto {
-    max-width: 88% !important;
-    max-height: 58vh !important;
-    padding: 20px !important;
-    padding-bottom: 20px !important;
-    text-align: center;
-    /* El "glossy delicado" detras del texto. No uso backdrop-filter:
-       adentro de un elemento con opacity animada y transform 3D los
-       navegadores lo descartan. */
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
-}
-.bloque .efecto-texto p,
-.bloque .efecto-texto .evento-info { text-align: center; }
-
-/* En celular el sitio usa otro mecanismo (columna, la imagen animando su
-   altura). Lo respetamos, solo bajamos la escala para que entre. */
-@media (max-width: 768px) {
-    .bloque .efecto-shrink-sticky {
-        height: auto !important;
-        padding-top: 0 !important;
-        min-height: 0;
-    }
-    .bloque .efecto-imagen {
-        height: calc(46vh - (26vh * var(--scroll-progress))) !important;
-        width: min(78%, 280px) !important;
-        max-width: min(78%, 280px) !important;
-    }
-    .bloque .efecto-texto {
-        height: auto !important;
-        max-height: 40vh !important;
-    }
 }
 .bloque .fade-in-element {
     opacity: 1 !important;
