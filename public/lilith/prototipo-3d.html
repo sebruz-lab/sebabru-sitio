@@ -543,7 +543,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 /* 5 estadias + 4 viajes: hace falta mas recorrido que antes, porque cada
    parada ahora tiene su propio tramo donde se despliega el contenido. */
-.track { position: relative; height: 900vh; }
+.track { position: relative; height: 675vh; }
 
 .viewport {
     position: fixed; top: 0; left: 0;
@@ -656,6 +656,10 @@ html, body { margin: 0; padding: 0; background: #000; }
     max-width: 100% !important;
     width: 100% !important;
 }
+/* La "linea blanca" que separaba el video del acordeon de Lilith, y la del
+   fragmento del libro al final, es el borde de .video-container. */
+.bloque .video-container,
+.cierre .video-container { border: none !important; }
 .bloque .lilith-banner {
     min-height: auto !important;
     padding: 30px 20px !important;
@@ -1519,7 +1523,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
     // ─── Linea de tiempo: estadia(0), viaje(0→1), estadia(1), ... ───
     var PESO_VIAJE   = 0.9;
-    var PESO_ESTADIA = 1.2;
+    var PESO_ESTADIA = 0.72;   // 60% de lo que duraba antes
     var FASES = [];
     (function armarFases() {
         FASES.push({ tipo: 'estadia', est: 0, peso: PESO_ESTADIA });
@@ -1604,14 +1608,23 @@ html, body { margin: 0; padding: 0; background: #000; }
         // Cada bloque recibe su propio --scroll-progress: 1 si ya pasamos
         // su parada, el avance de la estadia si estamos en ella, 0 si aun
         // no llegamos (imagen enfocada, texto todavia no).
+        //
+        // OJO: hay que escribirlo sobre el .efecto-shrink-container, no
+        // sobre el bloque. style.css declara "--scroll-progress: 0" en esa
+        // misma regla, y una declaracion propia le gana al valor heredado
+        // del padre. script.js hace exactamente esto en el home.
         for (var s = 0; s < bloques.length; s++) {
             var prog;
             if (f.tipo === 'estadia') {
-                prog = s < f.est ? 1 : (s === f.est ? avanceLocal : 0);
+                prog = s < f.est ? 1 : (s === f.est ? easeInOut(avanceLocal) : 0);
             } else {
                 prog = s <= f.de ? 1 : 0;
             }
             bloques[s].style.setProperty('--scroll-progress', prog);
+            var conts = bloques[s].querySelectorAll('.efecto-shrink-container');
+            for (var c = 0; c < conts.length; c++) {
+                conts[c].style.setProperty('--scroll-progress', prog);
+            }
         }
 
         var cam  = posCamara(ang, rad);
