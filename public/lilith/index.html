@@ -396,16 +396,20 @@
 
         .luna-accent { color: var(--luna-theme); }
 
-        /* En esta página la imagen tiene que despejar más terreno para que
-           el texto (más largo que en el resto del sitio) se lea sin
-           superponerse, por eso viaja más lejos que el default del sitio. */
-        #sinopsis .efecto-imagen,
-        #seminario .efecto-imagen {
-            transform: scale(calc(1 - (0.35 * var(--scroll-progress)))) translateX(calc(-95% * var(--scroll-progress)));
-        }
-        #sinopsis .efecto-texto,
-        #seminario .efecto-texto {
-            transform: translateX(calc(100% - (58% * var(--scroll-progress))));
+        /* Solo en compu: la imagen tiene que despejar más terreno que el
+           default del sitio, porque el texto de esta página es más largo.
+           En celular NO va acá: el sitio usa otro mecanismo (columna, con
+           la imagen animando su altura de 80vh a 25vh y el texto abajo),
+           y si pisamos el transform se rompe ese layout. */
+        @media (min-width: 769px) {
+            #sinopsis .efecto-imagen,
+            #seminario .efecto-imagen {
+                transform: scale(calc(1 - (0.35 * var(--scroll-progress)))) translateX(calc(-95% * var(--scroll-progress)));
+            }
+            #sinopsis .efecto-texto,
+            #seminario .efecto-texto {
+                transform: translateX(calc(100% - (58% * var(--scroll-progress))));
+            }
         }
 
         /* ─── ENTRADAS (efecto-texto overrides para esta página) ─── */

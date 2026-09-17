@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototipo — Recorrido 3D</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<style>
+    :root {
+        --ink: #ffffff;
+        --dim: #8f8f8f;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0; padding: 0;
+        background: #000;
+        color: var(--ink);
+        font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    }
+
+    .track { position: relative; height: 700vh; }
+
+    .viewport {
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100vh;
+        overflow: hidden;
+        background: #000;
+        perspective: 1400px;
+        perspective-origin: 50% 50%;
+    }
+
+    /* El "mundo": un punto en el centro de la pantalla sobre el que se
+       cuelgan todos los objetos con coordenadas 3D reales. La cámara se
+       mueve aplicando acá la transformación inversa. */
+    .world {
+        position: absolute; left: 50%; top: 50%;
+        width: 0; height: 0;
+        transform-style: preserve-3d;
+        will-change: transform;
+    }
+
+    /* ─── La esfera: enorme. Es un billboard que siempre mira a cámara,
+           así que se lee como una masa esférica sin costo de render. ─── */
+    .esfera {
+        position: absolute; left: 0; top: 0;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 42% 36%,
+                #17171b 0%,
+                #0b0b0e 34%,
+                #050506 62%,
+                #000 100%);
+        box-shadow:
+            inset -80px -80px 260px rgba(0,0,0,0.95),
+            0 0 300px 60px rgba(255,255,255,0.022);
+    }
+
+    /* ─── Polvo estelar: da la referencia de movimiento (sin esto no se
+           percibe que la cámara orbita, porque una esfera lisa se ve
+           igual desde todos lados). ─── */
+    .polvo { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+    .polvo i {
+        position: absolute; left: 0; top: 0;
+        width: 2px; height: 2px; border-radius: 50%;
+        background: #fff;
+    }
+
+    /* ─── Bloques de contenido ─── */
+    .bloque {
+        position: absolute; left: 0; top: 0;
+        width: 480px;
+        padding: 26px;
+        text-align: center;
+        backface-visibility: hidden;
+        will-change: opacity, filter;
+    }
+    .bloque img {
+        display: block; margin: 0 auto 18px;
+        width: 120px; border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+    }
+    .bloque .kicker {
+        font-size: 0.82rem; letter-spacing: 0.24em; text-transform: uppercase;
+        color: var(--dim); margin: 0 0 14px;
+    }
+    .bloque h2 { font-weight: 300; font-size: 2rem; line-height: 1.2; margin: 0 0 14px; }
+    .bloque p:not(.kicker) { color: #b4b4b4; font-size: 1.1rem; line-height: 1.6; margin: 0; }
+
+    .bloque.cabecera h2 {
+        font-size: 3.2rem; text-transform: uppercase; letter-spacing: 0.12em;
+        margin-bottom: 18px;
+    }
+    .bloque.cabecera p { color: #d8d8d8; font-size: 1.25rem; }
+
+    /* ─── Progreso ─── */
+    .dots {
+        position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+        display: flex; gap: 10px; z-index: 5;
+        opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+    }
+    .dots.on { opacity: 1; }
+    .dots span {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: rgba(255,255,255,0.22); transition: background 0.3s, transform 0.3s;
+    }
+    .dots span.here { background: #fff; transform: scale(1.5); }
+
+    .stop {
+        position: relative; z-index: 2;
+        height: 100vh; background: #000;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center; padding: 20px;
+    }
+    .stop h1 { font-weight: 300; font-size: clamp(1.8rem, 6vw, 2.6rem); margin: 0 0 14px; }
+    .stop p { color: var(--dim); max-width: 34ch; line-height: 1.7; margin: 0; }
+
+    @media (max-width: 700px) {
+        .bloque { width: 86vw; padding: 18px; }
+        .bloque h2 { font-size: 1.6rem; }
+        .bloque.cabecera h2 { font-size: 2.2rem; }
+        .bloque p:not(.kicker) { font-size: 1rem; }
+    }
+</style>
+</head>
+<body>
+
+<div class="track" id="track">
+    <div class="viewport" id="viewport">
+        <div class="world" id="world">
+            <div class="esfera" id="esfera"></div>
+            <div class="polvo" id="polvo"></div>
+
+            <article class="bloque cabecera">
+                <h2>Luna Negra</h2>
+                <p>Lilith en la Carta Natal o la potencia del vacío</p>
+            </article>
+
+            <article class="bloque">
+                <img src="../img/libroln.webp" alt="">
+                <p class="kicker">El libro</p>
+                <h2>Dónde comprar el libro</h2>
+                <p>Argentina, Uruguay y el resto del mundo. Desde $35.000.</p>
+            </article>
+
+            <article class="bloque">
+                <p class="kicker">Sinopsis</p>
+                <h2>¿De qué se trata este libro?</h2>
+                <p>Busca hacer contacto con nuestro registro sensible y con nuestro cuerpo, mientras brinda herramientas para comprender la fuerza misteriosa de este punto astrológico.</p>
+            </article>
+
+            <article class="bloque">
+                <p class="kicker">Video</p>
+                <h2>Presentación del libro</h2>
+                <p>Un adelanto en video de qué se trata Luna Negra.</p>
+            </article>
+
+            <article class="bloque">
+                <p class="kicker">Tu carta</p>
+                <h2>¿Dónde está Lilith en mi carta?</h2>
+                <p>Encontrá tu signo según tu fecha de nacimiento.</p>
+            </article>
+
+            <article class="bloque">
+                <img src="../img/seminarioln.webp" alt="">
+                <p class="kicker">Formación abierta</p>
+                <h2>Seminario Luna Negra</h2>
+                <p>Seis encuentros para recorrer el mito, la carta natal y sus particularidades. Desde $80.000.</p>
+            </article>
+        </div>
+    </div>
+
+    <div class="dots" id="dots"></div>
+</div>
+
+<section class="stop">
+    <h1>Fin del recorrido</h1>
+    <p>Acá seguiría el resto de la página normal.</p>
+</section>
+
+<script>
+(function () {
+    'use strict';
+
+    // ══════════════════════════════════════════════
+    //  CONSTANTES DE AJUSTE (tocar acá para calibrar)
+    // ══════════════════════════════════════════════
+    var ESFERA_R = 2600;   // radio visual de la esfera (px de mundo)
+    var FOCO     = 620;    // a qué distancia de la cámara se planta cada bloque
+    var ALCANCE  = 1500;   // a partir de qué distancia un bloque se desvanece
+    var PERSP    = 1400;   // igual que el perspective del CSS
+
+    // Cada estación es una posición de cámara en órbita alrededor de la esfera.
+    //   ang: ángulo alrededor de la esfera (grados, crece = seguís girando)
+    //   rad: distancia al centro. Menor que ESFERA_R = estás ADENTRO (todo negro).
+    //   y:   altura (negativo = arriba)
+    var ESTACIONES = [
+        { ang:   0, rad: 4300, y:    0 },  // cabecera: lejos, la esfera se ve entera
+        { ang: 105, rad: 3050, y: -380 },  // libro: nos acercamos a la superficie
+        { ang: 200, rad: 1750, y:  260 },  // sinopsis: adentro, engullidos
+        { ang: 310, rad: 3700, y: -620 },  // video: salimos de nuevo
+        { ang: 430, rad: 1550, y:  420 },  // tu carta: lo más profundo
+        { ang: 540, rad: 4000, y: -180 }   // seminario: emergemos a la superficie
+    ];
+
+    var RAD = Math.PI / 180;
+    var track    = document.getElementById('track');
+    var viewport = document.getElementById('viewport');
+    var world    = document.getElementById('world');
+    var esfera   = document.getElementById('esfera');
+    var polvo    = document.getElementById('polvo');
+    var dots     = document.getElementById('dots');
+    var bloques  = Array.prototype.slice.call(document.querySelectorAll('.bloque'));
+    var N = ESTACIONES.length;
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+    function posCamara(ang, rad) {
+        return { x: Math.sin(ang * RAD) * rad, z: Math.cos(ang * RAD) * rad };
+    }
+
+    // ─── La esfera ───
+    esfera.style.width  = (ESFERA_R * 2) + 'px';
+    esfera.style.height = (ESFERA_R * 2) + 'px';
+
+    // ─── Los bloques: cada uno se planta justo delante de la cámara de su
+    //     estación (sobre la recta estación→centro), a FOCO de distancia.
+    //     Así, cuando la cámara llega, el bloque queda perfectamente
+    //     centrado y enfocado — no depende de acertarle "de casualidad". ───
+    var POS = [];
+    ESTACIONES.forEach(function (st, i) {
+        var cam = posCamara(st.ang, st.rad);
+        var dirX = -Math.sin(st.ang * RAD);   // versor cámara → centro
+        var dirZ = -Math.cos(st.ang * RAD);
+        var p = {
+            x: cam.x + dirX * FOCO,
+            y: st.y,
+            z: cam.z + dirZ * FOCO,
+            yaw: st.ang
+        };
+        POS.push(p);
+        if (bloques[i]) {
+            bloques[i].style.transform =
+                'translate3d(' + p.x + 'px,' + p.y + 'px,' + p.z + 'px) ' +
+                'rotateY(' + p.yaw + 'deg) translate(-50%,-50%)';
+        }
+    });
+
+    // ─── Polvo estelar ───
+    var CANT_POLVO = window.innerWidth < 700 ? 70 : 160;
+    (function sembrarPolvo() {
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < CANT_POLVO; i++) {
+            var a = Math.random() * 360;
+            var r = 1600 + Math.random() * 5600;
+            var p = posCamara(a, r);
+            var y = (Math.random() - 0.5) * 4200;
+            var d = document.createElement('i');
+            d.style.transform = 'translate3d(' + p.x + 'px,' + y + 'px,' + p.z + 'px)';
+            d.style.opacity = (0.25 + Math.random() * 0.55).toFixed(2);
+            frag.appendChild(d);
+        }
+        polvo.appendChild(frag);
+    })();
+
+    // ─── Puntitos de progreso ───
+    (function armarDots() {
+        for (var i = 0; i < N; i++) dots.appendChild(document.createElement('span'));
+    })();
+    var dotEls = Array.prototype.slice.call(dots.querySelectorAll('span'));
+
+    // ─── Reduced motion: todo plano, apilado, sin recorrido ───
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        viewport.style.position = 'static';
+        viewport.style.height = 'auto';
+        viewport.style.perspective = 'none';
+        world.style.position = 'static';
+        world.style.transform = 'none';
+        esfera.style.display = 'none';
+        polvo.style.display = 'none';
+        track.style.height = 'auto';
+        bloques.forEach(function (b) {
+            b.style.position = 'static';
+            b.style.transform = 'none';
+            b.style.width = 'min(90vw, 520px)';
+            b.style.margin = '60px auto';
+        });
+        return;
+    }
+
+    // ─── Loop ───
+    var ticking = false;
+    var blurPrev = [];
+
+    function frame() {
+        var vh = window.innerHeight;
+        var maxScroll = Math.max(1, track.offsetHeight - vh);
+        var scrollY = window.scrollY || window.pageYOffset;
+
+        // Pineo manual (no usamos position:sticky: en la prueba anterior
+        // no agarraba y el scroll se iba de largo hasta el final).
+        if (scrollY < maxScroll) {
+            viewport.style.position = 'fixed';
+            viewport.style.top = '0px';
+        } else {
+            viewport.style.position = 'absolute';
+            viewport.style.top = maxScroll + 'px';
+        }
+
+        var p = clamp(scrollY / maxScroll, 0, 1);
+
+        // Interpolamos en coordenadas polares, no en línea recta: así el
+        // viaje entre dos estaciones es un arco que rodea la esfera en vez
+        // de atravesarla por el medio.
+        var seg = p * (N - 1);
+        var i = Math.min(N - 2, Math.floor(seg));
+        var t = easeInOut(clamp(seg - i, 0, 1));
+        var j = i + 1;
+
+        var ang = lerp(ESTACIONES[i].ang, ESTACIONES[j].ang, t);
+        var rad = lerp(ESTACIONES[i].rad, ESTACIONES[j].rad, t);
+        var camY = lerp(ESTACIONES[i].y, ESTACIONES[j].y, t);
+        var cam = posCamara(ang, rad);
+
+        // Transformación inversa de cámara: primero trasladamos el mundo,
+        // después lo rotamos, de modo que la cámara siempre mira al centro.
+        world.style.transform =
+            'rotateY(' + (-ang) + 'deg) ' +
+            'translate3d(' + (-cam.x) + 'px,' + (-camY) + 'px,' + (-cam.z) + 'px)';
+
+        // La esfera es un billboard: contrarrota para seguir mirando a cámara.
+        esfera.style.transform =
+            'translate3d(0,0,0) rotateY(' + ang + 'deg) translate(-50%,-50%)';
+
+        // Adentro de la esfera el polvo desaparece (estás engullido).
+        var adentro = clamp(1 - rad / ESFERA_R, 0, 1);
+        polvo.style.opacity = (1 - adentro).toFixed(3);
+
+        // Foco por bloque: distancia real en espacio de cámara.
+        var cosA = Math.cos(-ang * RAD);
+        var sinA = Math.sin(-ang * RAD);
+
+        for (var k = 0; k < bloques.length; k++) {
+            var b = POS[k];
+            var vx = b.x - cam.x;
+            var vy = b.y - camY;
+            var vz = b.z - cam.z;
+
+            var cx = vx * cosA + vz * sinA;
+            var cz = -vx * sinA + vz * cosA;
+
+            var vis;
+            if (cz > -40) {
+                vis = 0;  // quedó a la altura de la cámara o detrás
+            } else {
+                var d = Math.sqrt(cx * cx + vy * vy + cz * cz);
+                vis = clamp(1 - d / ALCANCE, 0, 1);
+            }
+
+            var el = bloques[k];
+            el.style.opacity = vis;
+            el.style.visibility = vis > 0.02 ? 'visible' : 'hidden';
+
+            // El desenfoque es lo que da la sensación de "llegar a foco".
+            var blur = Math.round((1 - vis) * 8);
+            if (blurPrev[k] !== blur) {
+                el.style.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
+                blurPrev[k] = blur;
+            }
+        }
+
+        dots.classList.toggle('on', p > 0.005 && p < 0.995);
+        var actual = clamp(Math.round(p * (N - 1)), 0, N - 1);
+        for (var m = 0; m < dotEls.length; m++) {
+            dotEls[m].classList.toggle('here', m === actual);
+        }
+
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+        if (!ticking) { window.requestAnimationFrame(frame); ticking = true; }
+    }, { passive: true });
+    window.addEventListener('resize', function () {
+        window.requestAnimationFrame(frame);
+    });
+    frame();
+})();
+</script>
+</body>
+</html>
