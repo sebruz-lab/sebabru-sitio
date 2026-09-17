@@ -1,24 +1,31 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luna Negra | Lilith en la Carta Natal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna Negra | Lilith en la Carta Natal</title>
 
-    <link rel="stylesheet" href="../style.css">
-    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/lilith/">
+<meta property="og:title" content="Luna Negra | Lilith en la Carta Natal">
+<meta property="og:description" content="Lilith en la carta natal o la potencia del vacío. El libro, el seminario y dónde está Lilith en tu carta.">
+<meta property="og:image" content="https://sebabru.com/img/libroln.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-GDLRMR5D57');
-    </script>
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+<style>
+/* ════════ Estilos heredados de /lilith (mismos que la pagina real) ════════ */
         :root {
             --luna-text: #cccac3;
             --luna-theme: #ffffff;
@@ -546,16 +553,178 @@
             margin-top: 10px;
             font-size: 0.85rem;
         }
-    </style>
+
+/* ════════ Capa 3D del prototipo ════════ */
+html, body { margin: 0; padding: 0; background: #000; }
+
+/* 5 estadias + 4 viajes: hace falta mas recorrido que antes, porque cada
+   parada ahora tiene su propio tramo donde se despliega el contenido. */
+.track { position: relative; height: 675vh; }
+
+.viewport {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100vh;
+    overflow: hidden;
+    background: #000;
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+}
+
+.world {
+    position: absolute; left: 50%; top: 50%;
+    width: 0; height: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+.esfera {
+    position: absolute; left: 0; top: 0;
+    /* Clave: con el origen en el centro, el translate(-50%,-50%) se mide
+       desde un punto que despues rota, y el objeto termina desplazado
+       (tamaño/2)·(1−cos yaw). Con el origen en 0 0 el centro cae exacto
+       en las coordenadas del mundo. */
+    transform-origin: 0 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 36%, #17171b 0%, #0b0b0e 34%, #050506 62%, #000 100%);
+    box-shadow: inset -80px -80px 260px rgba(0,0,0,0.95), 0 0 300px 60px rgba(255,255,255,0.022);
+}
+
+.polvo { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+.polvo i { position: absolute; left: 0; top: 0; width: 2px; height: 2px; border-radius: 50%; background: #fff; }
+
+.bloque {
+    position: absolute; left: 0; top: 0;
+    transform-origin: 0 0;   /* ver comentario en .esfera */
+    width: min(92vw, 640px);
+    max-height: 82vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    backface-visibility: hidden;
+    will-change: opacity, filter;
+    text-align: center;
+}
+.bloque::-webkit-scrollbar { display: none; }
+.bloque table { margin-left: auto; margin-right: auto; }
+
+/* ─── El efecto de main (imagen enfocada → se corre → aparece el texto)
+       se conserva tal cual: NO pisamos los transform de .efecto-imagen ni
+       de .efecto-texto. Lo unico que ajustamos es la geometria del
+       contenedor, porque en la pagina real mide 190vh y acá tiene que
+       entrar en una tarjeta. El --scroll-progress lo maneja el recorrido
+       durante la estadia en cada parada (ver frame()). ─── */
+.bloque .efecto-shrink-container {
+    position: static !important;
+    height: auto !important;
+}
+.bloque .efecto-shrink-sticky {
+    position: relative !important;
+    height: auto !important;
+    min-height: 64vh;
+    top: auto !important;
+    overflow: hidden;
+}
+.bloque .efecto-imagen {
+    max-width: min(62%, 300px) !important;
+    width: min(62%, 300px) !important;
+}
+.bloque .efecto-texto {
+    max-width: 88% !important;
+    max-height: 58vh !important;
+    padding: 20px !important;
+    padding-bottom: 20px !important;
+    text-align: center;
+    /* El "glossy delicado" detras del texto. No uso backdrop-filter:
+       adentro de un elemento con opacity animada y transform 3D los
+       navegadores lo descartan. */
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+}
+.bloque .efecto-texto p,
+.bloque .efecto-texto .evento-info { text-align: center; }
+
+/* En celular el sitio usa otro mecanismo (columna, la imagen animando su
+   altura). Lo respetamos, solo bajamos la escala para que entre. */
+@media (max-width: 768px) {
+    .bloque .efecto-shrink-sticky {
+        height: auto !important;
+        padding-top: 0 !important;
+        min-height: 0;
+    }
+    .bloque .efecto-imagen {
+        height: calc(46vh - (26vh * var(--scroll-progress))) !important;
+        width: min(78%, 280px) !important;
+        max-width: min(78%, 280px) !important;
+    }
+    .bloque .efecto-texto {
+        height: auto !important;
+        max-height: 40vh !important;
+    }
+}
+.bloque .fade-in-element {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+}
+.bloque .video-container {
+    transform: none !important;
+    aspect-ratio: 16 / 9 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+.bloque .lilith-banner {
+    min-height: auto !important;
+    padding: 30px 20px !important;
+    overflow: visible !important;
+}
+.bloque .lilith-banner::before { display: none; }
+.bloque .parallax-divider {
+    background-attachment: scroll !important;
+    padding: 20px !important;
+}
+.bloque .section-container { padding: 24px !important; max-width: none !important; }
+.bloque .compra-accordion { margin-top: 18px; }
+
+/* ─── Accesos debajo de la cabecera ─── */
+.accesos {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin-top: 38px;
+}
+.accesos button {
+    background: none; border: none; padding: 4px 8px;
+    font-family: inherit; font-style: italic;
+    font-size: 1.05rem; letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+.accesos button:hover { color: #fff; }
+
+/* ─── Progreso ─── */
+.dots {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 5;
+    opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+}
+.dots.on { opacity: 1; }
+.dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.22); transition: background 0.3s, transform 0.3s; }
+.dots span.here { background: #fff; transform: scale(1.5); }
+
+/* ─── Cierre: fuera del recorrido, flujo normal. Hay que neutralizar los
+       efectos que dependen de --scroll-progress / de script.js, que aca no
+       corren (si no, queda todo en opacity: 0). ─── */
+.cierre { position: relative; z-index: 2; background: #000; padding-top: 60px; }
+.cierre .fade-in-element,
+.cierre .efecto-texto,
+.cierre .video-container {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+}
+.cierre .section-container { max-width: 900px; margin: 0 auto; }
+</style>
 </head>
 <body>
-
-    <div id="fixed-background">
-        <div class="blob color-1"></div>
-        <div class="blob color-2"></div>
-    </div>
-    <div class="luciernagas-container"></div>
-
     <nav class="hamburger-menu">
         <input type="checkbox" id="menu-toggle" class="menu-toggle">
         <label for="menu-toggle" class="menu-button">
@@ -573,36 +742,28 @@
         </ul>
     </nav>
 
-    <div id="content-wrapper">
-        <main>
+<div class="track" id="track">
+    <div class="viewport" id="viewport">
+        <div class="world" id="world">
+            <div class="esfera" id="esfera"></div>
+            <div class="polvo" id="polvo"></div>
 
-            <!-- ══════════════════════════════
-                 BANNER HERO
-            ══════════════════════════════ -->
+            <article class="bloque" data-i="0">
             <section class="lilith-banner">
                 <h1>Luna Negra</h1>
                 <h2>Lilith en la Carta Natal o la potencia del vacío</h2>
+                <nav class="accesos">
+                    <button type="button" data-ir-a-estacion="1">Un libro</button>
+                    <button type="button" data-ir-a-estacion="4">Un curso</button>
+                    <button type="button" data-ir-a-estacion="3">Un video</button>
+                </nav>
                             </section>
+            </article>
 
-            <!-- ══════════════════════════════
-                 NAV RÁPIDA
-            ══════════════════════════════ -->
-            <nav class="grupo-botones-sutiles" style="justify-content:center; padding: 10px 20px 30px;">
-                <a href="#libro-hero" class="btn-sutil">Libro</a>
-                <a href="#video" class="btn-sutil">Video</a>
-                <a href="#seminario" class="btn-sutil">Seminario</a>
-            </nav>
-
-            <!-- ══════════════════════════════
-                 IMAGEN SOLA DEL LIBRO
-            ══════════════════════════════ -->
+            <article class="bloque" data-i="1">
             <section class="libro-hero-img" id="libro-hero">
                 <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
             </section>
-
-            <!-- ══════════════════════════════
-                 SECCIÓN DE COMPRA — ACORDEÓN
-            ══════════════════════════════ -->
             <section class="section-container fade-in-element" id="comprar" style="padding: 60px 20px; text-align: center;">
                 <h2 class="luna-accent" style="text-align: center;">Dónde comprar el libro</h2>
                 <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
@@ -776,10 +937,9 @@
 
                 </div>
             </section>
+            </article>
 
-            <!-- ══════════════════════════════
-                 DESCRIPCIÓN DEL LIBRO (scroll-shrink)
-            ══════════════════════════════ -->
+            <article class="bloque" data-i="2">
             <section class="efecto-shrink-container" id="sinopsis">
                 <div class="efecto-shrink-sticky">
                     <img src="../libros/img/LN1.jpeg" alt="Luna Negra Libro" class="efecto-imagen">
@@ -791,24 +951,19 @@
                     </div>
                 </div>
             </section>
+            </article>
 
-            <!-- ══════════════════════════════
-                 VIDEO YOUTUBE
-            ══════════════════════════════ -->
+            <article class="bloque" data-i="3">
             <section class="section-container video-section fade-in-element" id="video">
                 <div class="video-container">
                     <iframe
-                        src="https://www.youtube.com/embed/PEgj53lZpGY"
+                        data-src="https://www.youtube.com/embed/PEgj53lZpGY"
                         title="Luna Negra — Presentación del libro"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen>
                     </iframe>
                 </div>
             </section>
-
-            <!-- ══════════════════════════════
-                 ¿DÓNDE ESTÁ LILITH EN MI CARTA?
-            ══════════════════════════════ -->
             <section class="section-container fade-in-element" style="padding: 40px 20px 60px; max-width: 680px;">
                 <div class="compra-accordion">
                     <details class="compra-opcion">
@@ -816,7 +971,6 @@
                             <span class="summary-icon">🌑</span>
                             <span class="summary-text">
                                 ¿Dónde está Lilith en mi carta?
-                                <small>Encontrá tu signo según tu fecha de nacimiento</small>
                             </span>
                             <i class="fas fa-chevron-down summary-chevron"></i>
                         </summary>
@@ -1144,17 +1298,12 @@
                     </details>
                 </div>
             </section>
+            </article>
 
-            <!-- ══════════════════════════════
-                 PARALLAX DIVIDER — FORMACIÓN ABIERTA
-            ══════════════════════════════ -->
+            <article class="bloque" data-i="4">
             <section class="parallax-divider">
                 <h2 class="parallax-title">Formación abierta</h2>
             </section>
-
-            <!-- ══════════════════════════════
-                 SEMINARIO LUNA NEGRA
-            ══════════════════════════════ -->
             <section class="efecto-shrink-container" id="seminario">
                 <div class="efecto-shrink-sticky">
                     <img src="../img/seminarioln.webp" alt="Seminario Luna Negra" class="efecto-imagen">
@@ -1279,23 +1428,28 @@
                     </div>
                 </div>
             </section>
+            </article>
+        </div>
+    </div>
 
-            <!-- ══════════════════════════════
-                 VISTA PREVIA DEL LIBRO
-            ══════════════════════════════ -->
+    <div class="dots" id="dots"></div>
+</div>
+
+<div class="cierre">
             <section class="section-container video-section fade-in-element" style="padding-bottom: 100px;">
-                <h2 class="luna-accent" style="text-align: center;">Vista previa del libro</h2>
-                <p style="color: var(--luna-text); margin: 0 auto 24px; text-align: center; max-width: 460px;">
-                    Deslizá para leer las primeras páginas antes de decidirte.
-                </p>
-                <div class="video-container" style="aspect-ratio: 4 / 3;">
+                <div class="video-container" style="aspect-ratio:auto; height:88vh; max-width:900px; margin:0 auto;">
                     <iframe src="https://drive.google.com/file/d/1RSA085a7yl7TFqxMfpTdyoh3GvII5lwl/preview"
                             allow="autoplay" loading="lazy">
                     </iframe>
                 </div>
             </section>
 
-        <!-- MODAL DE LOGIN (checkout del seminario) -->
+            <section class="section-container" style="padding: 20px 20px 90px; text-align: center;">
+                <div class="grupo-botones-sutiles" style="justify-content:center;">
+                    <button type="button" class="btn-sutil" data-ir-a-estacion="1" style="cursor:pointer; font-family:inherit;">Comprar el libro</button>
+                </div>
+            </section>
+
         <div id="login-modal-lilith">
             <div class="modal-box">
                 <button id="close-modal-lilith" class="close-btn">&times;</button>
@@ -1328,7 +1482,6 @@
             </div>
         </div>
 
-        <!-- LOADING OVERLAY (checkout del seminario) -->
         <div id="loading-pago-lilith">
             <div class="spinner-loading"></div>
             <p>Preparando tu pago...</p>
@@ -1337,14 +1490,290 @@
         <footer class="main-footer">
             <p>© 2026 Seba Bru Astrología. La potencia del vacío.</p>
         </footer>
-    </div>
+</div>
 
-        </main>
+<script>
+(function () {
+    'use strict';
 
+    // ══════════ CONSTANTES DE AJUSTE ══════════
+    var ESFERA_R = 2600;   // radio visual de la esfera
+    var FOCO     = 620;    // distancia camara → bloque cuando esta enfocado
+    var ALCANCE  = 1400;   // cuanto se puede desviar del foco antes de desaparecer
+    var PERSP    = 1400;
 
+    var ESTACIONES = [
+        { ang:   0, rad: 4300, y:    0 },  // cabecera
+        { ang: 110, rad: 3050, y: -380 },  // tapa + donde comprar el libro
+        { ang: 215, rad: 1750, y:  260 },  // sinopsis (adentro de la esfera)
+        { ang: 330, rad: 3700, y: -620 },  // video + donde esta lilith (salimos)
+        { ang: 440, rad: 1600, y:  340 }   // formacion abierta + seminario (profundo)
+    ];
 
-    <script src="../script.js"></script>
-    <script>
+    var RAD = Math.PI / 180;
+    var track    = document.getElementById('track');
+    var viewport = document.getElementById('viewport');
+    var world    = document.getElementById('world');
+    var esfera   = document.getElementById('esfera');
+    var polvo    = document.getElementById('polvo');
+    var dots     = document.getElementById('dots');
+    var bloques  = Array.prototype.slice.call(document.querySelectorAll('.bloque'));
+    var N = ESTACIONES.length;
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function posCamara(ang, rad) {
+        return { x: Math.sin(ang * RAD) * rad, z: Math.cos(ang * RAD) * rad };
+    }
+
+    esfera.style.width  = (ESFERA_R * 2) + 'px';
+    esfera.style.height = (ESFERA_R * 2) + 'px';
+
+    // Cada bloque se planta justo delante de la camara de su estacion.
+    var POS = [];
+    ESTACIONES.forEach(function (st, i) {
+        var cam = posCamara(st.ang, st.rad);
+        var dirX = -Math.sin(st.ang * RAD);
+        var dirZ = -Math.cos(st.ang * RAD);
+        var p = { x: cam.x + dirX * FOCO, y: st.y, z: cam.z + dirZ * FOCO, yaw: st.ang };
+        POS.push(p);
+        if (bloques[i]) {
+            bloques[i].style.transform =
+                'translate3d(' + p.x + 'px,' + p.y + 'px,' + p.z + 'px) ' +
+                'rotateY(' + p.yaw + 'deg) translate(-50%,-50%)';
+        }
+    });
+
+    var CANT_POLVO = window.innerWidth < 700 ? 70 : 160;
+    (function sembrarPolvo() {
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < CANT_POLVO; i++) {
+            var a = Math.random() * 360;
+            var r = 1600 + Math.random() * 5600;
+            var p = posCamara(a, r);
+            var y = (Math.random() - 0.5) * 4200;
+            var d = document.createElement('i');
+            d.style.transform = 'translate3d(' + p.x + 'px,' + y + 'px,' + p.z + 'px)';
+            d.style.opacity = (0.25 + Math.random() * 0.55).toFixed(2);
+            frag.appendChild(d);
+        }
+        polvo.appendChild(frag);
+    })();
+
+    for (var q = 0; q < N; q++) dots.appendChild(document.createElement('span'));
+    var dotEls = Array.prototype.slice.call(dots.querySelectorAll('span'));
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        viewport.style.position = 'static';
+        viewport.style.height = 'auto';
+        viewport.style.perspective = 'none';
+        world.style.position = 'static';
+        world.style.transform = 'none';
+        esfera.style.display = 'none';
+        polvo.style.display = 'none';
+        track.style.height = 'auto';
+        bloques.forEach(function (b) {
+            b.style.position = 'static';
+            b.style.transform = 'none';
+            b.style.maxHeight = 'none';
+            b.style.margin = '60px auto';
+        });
+        return;
+    }
+
+    // ─── Linea de tiempo: estadia(0), viaje(0→1), estadia(1), ... ───
+    var PESO_VIAJE   = 0.9;
+    var PESO_ESTADIA = 0.72;   // 60% de lo que duraba antes
+    var FASES = [];
+    (function armarFases() {
+        FASES.push({ tipo: 'estadia', est: 0, peso: PESO_ESTADIA });
+        for (var i = 1; i < N; i++) {
+            FASES.push({ tipo: 'viaje', de: i - 1, a: i, peso: PESO_VIAJE });
+            FASES.push({ tipo: 'estadia', est: i, peso: PESO_ESTADIA });
+        }
+        var acum = 0, total = 0;
+        FASES.forEach(function (f) { total += f.peso; });
+        FASES.forEach(function (f) {
+            f.ini = acum / total;
+            acum += f.peso;
+            f.fin = acum / total;
+        });
+    })();
+
+    function faseEn(p) {
+        for (var i = 0; i < FASES.length; i++) {
+            var f = FASES[i];
+            if (p <= f.fin || i === FASES.length - 1) {
+                var span = f.fin - f.ini;
+                return {
+                    tipo: f.tipo, est: f.est, de: f.de, a: f.a,
+                    t: span > 0 ? clamp((p - f.ini) / span, 0, 1) : 0
+                };
+            }
+        }
+        return { tipo: 'estadia', est: N - 1, t: 1 };
+    }
+
+    // Indice de estacion actual (para los puntitos y para irAEstacion).
+    function estacionDe(p) {
+        var f = faseEn(p);
+        return f.tipo === 'estadia' ? f.est : f.a;
+    }
+
+    var ticking = false;
+    var blurPrev = [];
+
+    function cargarIframes(el) {
+        var pendientes = el.querySelectorAll('iframe[data-src]');
+        for (var n = 0; n < pendientes.length; n++) {
+            pendientes[n].src = pendientes[n].dataset.src;
+            pendientes[n].removeAttribute('data-src');
+        }
+    }
+
+    function frame() {
+        var vh = window.innerHeight;
+        var maxScroll = Math.max(1, track.offsetHeight - vh);
+        var scrollY = window.scrollY || window.pageYOffset;
+
+        if (scrollY < maxScroll) {
+            viewport.style.position = 'fixed';
+            viewport.style.top = '0px';
+        } else {
+            viewport.style.position = 'absolute';
+            viewport.style.top = maxScroll + 'px';
+        }
+
+        var p = clamp(scrollY / maxScroll, 0, 1);
+
+        // El recorrido alterna viaje y estadia. Durante la estadia la
+        // camara no se mueve: ahi es donde corre el efecto de main
+        // (--scroll-progress de 0 a 1) y el contenido se despliega.
+        var f = faseEn(p);
+        var ang, rad, camY, avanceLocal;
+
+        if (f.tipo === 'estadia') {
+            var e = ESTACIONES[f.est];
+            ang = e.ang; rad = e.rad; camY = e.y;
+            avanceLocal = f.t;
+        } else {
+            var a = ESTACIONES[f.de], b = ESTACIONES[f.a];
+            var t = easeInOut(f.t);
+            ang  = lerp(a.ang, b.ang, t);
+            rad  = lerp(a.rad, b.rad, t);
+            camY = lerp(a.y,   b.y,   t);
+            avanceLocal = 0;
+        }
+
+        // Cada bloque recibe su propio --scroll-progress: 1 si ya pasamos
+        // su parada, el avance de la estadia si estamos en ella, 0 si aun
+        // no llegamos (imagen enfocada, texto todavia no).
+        //
+        // OJO: hay que escribirlo sobre el .efecto-shrink-container, no
+        // sobre el bloque. style.css declara "--scroll-progress: 0" en esa
+        // misma regla, y una declaracion propia le gana al valor heredado
+        // del padre. script.js hace exactamente esto en el home.
+        for (var s = 0; s < bloques.length; s++) {
+            var prog;
+            if (f.tipo === 'estadia') {
+                prog = s < f.est ? 1 : (s === f.est ? easeInOut(avanceLocal) : 0);
+            } else {
+                prog = s <= f.de ? 1 : 0;
+            }
+            bloques[s].style.setProperty('--scroll-progress', prog);
+            var conts = bloques[s].querySelectorAll('.efecto-shrink-container');
+            for (var c = 0; c < conts.length; c++) {
+                conts[c].style.setProperty('--scroll-progress', prog);
+            }
+        }
+
+        var cam  = posCamara(ang, rad);
+
+        world.style.transform =
+            'rotateY(' + (-ang) + 'deg) ' +
+            'translate3d(' + (-cam.x) + 'px,' + (-camY) + 'px,' + (-cam.z) + 'px)';
+
+        esfera.style.transform =
+            'translate3d(0,0,0) rotateY(' + ang + 'deg) translate(-50%,-50%)';
+
+        var adentro = clamp(1 - rad / ESFERA_R, 0, 1);
+        polvo.style.opacity = (1 - adentro).toFixed(3);
+
+        var cosA = Math.cos(-ang * RAD);
+        var sinA = Math.sin(-ang * RAD);
+
+        for (var k = 0; k < bloques.length; k++) {
+            var b = POS[k];
+            var vx = b.x - cam.x;
+            var vy = b.y - camY;
+            var vz = b.z - cam.z;
+
+            // a espacio de camara
+            var cx = vx * cosA + vz * sinA;
+            var cz = -vx * sinA + vz * cosA;
+
+            // El punto ideal de foco es (0, 0, -FOCO): ahi el bloque esta
+            // centrado y a la distancia justa. Medimos cuanto se desvia de
+            // ESE punto, no la distancia cruda a la camara — si no, en su
+            // propia estacion ya arrancaba con desenfoque.
+            var dx = cx;
+            var dy = vy;
+            var dz = cz + FOCO;
+            var desvio = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            var vis = (cz > -40) ? 0 : clamp(1 - desvio / ALCANCE, 0, 1);
+
+            var el = bloques[k];
+            el.style.opacity = vis;
+            el.style.visibility = vis > 0.02 ? 'visible' : 'hidden';
+            el.style.pointerEvents = vis > 0.9 ? 'auto' : 'none';
+            if (vis > 0.45) cargarIframes(el);
+
+            var blur = Math.round((1 - vis) * 8);
+            if (blurPrev[k] !== blur) {
+                el.style.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
+                blurPrev[k] = blur;
+            }
+        }
+
+        dots.classList.toggle('on', p > 0.005 && p < 0.995);
+        var actual = estacionDe(p);
+        for (var m = 0; m < dotEls.length; m++) {
+            dotEls[m].classList.toggle('here', m === actual);
+        }
+
+        ticking = false;
+    }
+
+    // Ir a una estacion puntual: apuntamos al comienzo de su estadia, que
+    // es donde la parada esta enfocada y el contenido empieza a desplegarse.
+    function irAEstacion(i) {
+        var maxScroll = Math.max(1, track.offsetHeight - window.innerHeight);
+        var destino = 0;
+        for (var k = 0; k < FASES.length; k++) {
+            if (FASES[k].tipo === 'estadia' && FASES[k].est === i) {
+                destino = FASES[k].ini;
+                break;
+            }
+        }
+        window.scrollTo({ top: destino * maxScroll, behavior: 'smooth' });
+    }
+    document.querySelectorAll('[data-ir-a-estacion]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            irAEstacion(parseInt(el.dataset.irAEstacion, 10) || 0);
+        });
+    });
+
+    window.addEventListener('scroll', function () {
+        if (!ticking) { window.requestAnimationFrame(frame); ticking = true; }
+    }, { passive: true });
+    window.addEventListener('resize', function () { window.requestAnimationFrame(frame); });
+    frame();
+})();
+</script>
+
+<script>
         // Acordeón principal (Argentina / Mundo): el script.js global ya los maneja.
         // Solo necesitamos evitar que script.js cierre los <details> padre
         // cuando se abre un sub-opción — por eso los sub-items son <div>, no <details>.
@@ -1371,9 +1800,23 @@
             });
         });
 
-    </script>
 
-    <script>
+    // Portado de script.js: un solo <details> abierto a la vez. No cargamos
+    // script.js entero porque su motor de scroll escribe --scroll-progress
+    // en TODOS los .efecto-shrink-container segun su posicion en el
+    // documento, y pelearia con el recorrido 3D por la misma propiedad.
+    document.querySelectorAll('details').forEach(function (detail) {
+        detail.addEventListener('toggle', function () {
+            if (detail.open) {
+                detail.parentElement.querySelectorAll('details').forEach(function (hermano) {
+                    if (hermano !== detail) hermano.open = false;
+                });
+            }
+        });
+    });
+</script>
+
+<script>
         // Botón Mercado Pago — libro
         const btnMpLibro = document.getElementById('btn-mp-libro');
         if (btnMpLibro) {
@@ -1417,14 +1860,9 @@
                 document.getElementById('transferencia-confirmacion').style.display = 'block';
             });
         }
-    </script>
+</script>
 
-    <!-- ══════════════════════════════
-         CHECKOUT DEL SEMINARIO (curso "lilith")
-         Misma lógica y mismas Cloud Functions que /escuela/abierta/,
-         adaptada a un único curso.
-    ══════════════════════════════ -->
-    <script type="module">
+<script type="module">
         import { app, auth, db } from '../firebase.js';
         import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -1613,6 +2051,7 @@
         document.getElementById('wa-comprobante-lilith')?.addEventListener('click', () => {
             if (window.gtag) gtag('event', 'pago_comprobante', { curso: CURSO.id, metodo: 'transferencia', regalo: !!chkRegalo?.checked });
         });
-    </script>
+</script>
+
 </body>
 </html>
