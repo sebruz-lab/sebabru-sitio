@@ -231,7 +231,7 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
   let inv;
   await _db.runTransaction(async tx => {
     const snap = await tx.get(invRef);
-    if (!snap.exists()) {
+    if (!snap.exists) {
       throw new functions.https.HttpsError('not-found', 'Invitación no encontrada.');
     }
     inv = snap.data();
@@ -447,7 +447,7 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
     } catch (e) { /* token invalido -> se trata como anonimo */ }
   }
 
-  if (!userEmail && !(await checkRateLimit('crearPago', req, 15))) {
+  if (!(await checkRateLimit('crearPago', req, 15))) {
     return res.status(429).json({ error: { status: 'RESOURCE_EXHAUSTED', message: 'Demasiados intentos. Probá de nuevo en unos minutos.' } });
   }
 
@@ -750,8 +750,15 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
     }
 
     const esRegalo = payment.metadata?.regalo === 'true';
+    // Pago sin cuenta asociada (metaEmail vacío): no hay forma de confirmar
+    // que quien llama a este endpoint con el payment_id (visible en la URL
+    // de vuelta de MP) es realmente quien pagó. Lo tratamos igual que un
+    // regalo: se genera/recupera un código de un solo uso en "regalos" (con
+    // su propio chequeo de "ya usado") en vez de otorgar el curso directo a
+    // cualquiera que llegue con el payment_id.
+    const esAnonima = !metaEmail;
 
-    if (esRegalo) {
+    if (esRegalo || esAnonima) {
       const pagoRef = _db.collection('pagos_procesados').doc(String(paymentId));
       const cursoNombre = payment.metadata?.curso_nombre || curso_id;
       const codigo = await asegurarRegalo(pagoRef, {
@@ -800,7 +807,7 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
     } catch (e) { /* token invalido -> se trata como anonimo */ }
   }
 
-  if (!userEmail && !(await checkRateLimit('crearPagoPaypal', req, 15))) {
+  if (!(await checkRateLimit('crearPagoPaypal', req, 15))) {
     return res.status(429).json({ error: { status: 'RESOURCE_EXHAUSTED', message: 'Demasiados intentos. Probá de nuevo en unos minutos.' } });
   }
 
@@ -980,6 +987,10 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
 // -------------------------------------------------------
 exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
   ensureInit();
+
+  if (!(await checkRateLimit('exitoPaypal', req, 20))) {
+    return res.status(429).send('Demasiados intentos. Probá de nuevo en unos minutos.');
+  }
 
   const orderId = req.query.token;
   if (!orderId) return res.redirect(`${process.env.SITE_URL}/escuela/abierta/`);

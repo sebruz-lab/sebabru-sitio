@@ -3,7 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /invitaciones/{token} {
-      allow read: if true;
+      // Consultar una invitación puntual (token ya conocido) sigue siendo
+      // pública: lo necesita la página de canje sin que la persona esté
+      // logueada todavía. Listar la colección completa (y así enumerar
+      // todos los tokens/emails invitados) queda restringido a admins.
+      allow get: if true;
+      allow list: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
       // Admins: acceso total. Usuarios: solo pueden marcar su propia invitación como usada.
       allow create, delete: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];

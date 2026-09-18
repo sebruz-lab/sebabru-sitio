@@ -412,7 +412,7 @@
         <div class="card">
             <p class="card-title">Cargar videos de un curso (Formación Abierta)</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:16px;">
-                Pegá una URL o ID de YouTube por línea, en el orden en que deben aparecer las clases (la clase 1 es la que se muestra gratis). Al guardar, reemplaza la lista completa de videos de ese curso.
+                Pegá una URL o ID de YouTube, o un GUID de video de Bunny, por línea o separados por coma, en el orden en que deben aparecer las clases (la clase 1 es la que se muestra gratis, salvo en pluton26 donde la clase 1 ya está fija en la página y acá van solo las clases 2 en adelante). Al guardar, reemplaza la lista completa de videos de ese curso.
             </p>
             <div class="input-row" style="margin-bottom:14px;">
                 <select id="vid-curso"></select>
@@ -1101,11 +1101,11 @@
         const btn = document.getElementById('btn-guardar-videos');
         const msg = document.getElementById('videos-msg');
 
-        const lineas = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+        const lineas = textarea.value.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
         const videos = lineas.map(extraerVideoId);
 
         if (videos.some(v => !v)) {
-            msg.innerHTML = '<div class="alert alert-error">No pude reconocer alguna de las líneas como un video de YouTube válido. Revisá el formato.</div>';
+            msg.innerHTML = '<div class="alert alert-error">No pude reconocer alguna de las líneas como un video válido (YouTube o Bunny). Revisá el formato.</div>';
             return;
         }
         if (videos.length === 0) {

@@ -63,14 +63,16 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </style>
     <!-- Resto del CSS: no bloqueante -->
     <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="style.css?v=3" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css?v=3"></noscript>
+    <link rel="preload" href="style.css?v=14" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.css?v=14"></noscript>
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 </head>
 <body>
   <div id="fixed-background"></div>
 
 <div class="luciernagas-container"></div>
+
+<div id="scroll-idle-hint" class="scroll-idle-hint" aria-hidden="true"><span class="flecha-titila">&darr;</span></div>
 
   
 
@@ -97,31 +99,72 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </ul>
 </nav>
     
-   <header class="main-header">
-    <h1>Seba Bru</h1>
-    <h3>Astrología de los devenires</h3> </header>
+   <div class="escena-track" id="escena-track">
+    <div class="escena" id="escena">
 
-    <main>
-        <section class="main-sections">
-            <a href="#formaciones" class="section-block block-formaciones">
-               <h3>Formaciones</h3>
-            </a>
-            <a href="#podcast" class="section-block block-contenido">
-               
-                <h3>Contenido</h3>
-            </a>
-            <a href="#consultas" class="section-block block-consultas">
-                
-                <h3>Consultas</h3>
-            </a>
-            <a href="#bios" class="section-block block-bios">
-    
-                <h3>bios</h3>
-            </a>
-        </section>
-    </main>
+        <div class="capa-lejana" aria-hidden="true">
+            <svg class="starfield" width="3000" height="3000" viewBox="-1500 -1500 3000 3000">
+                <circle cx="-1180" cy="-620" r="1.6"></circle><circle cx="-820" cy="-720" r="2"></circle>
+                <circle cx="-360" cy="-780" r="1.4"></circle><circle cx="140" cy="-680" r="1.8"></circle>
+                <circle cx="620" cy="-760" r="1.5"></circle><circle cx="1040" cy="-560" r="2"></circle>
+                <circle cx="1240" cy="-240" r="1.4"></circle><circle cx="-1280" cy="-180" r="1.7"></circle>
+                <circle cx="-980" cy="120" r="1.5"></circle><circle cx="-1180" cy="460" r="1.8"></circle>
+                <circle cx="-720" cy="720" r="1.5"></circle><circle cx="-260" cy="820" r="1.6"></circle>
+                <circle cx="240" cy="760" r="1.4"></circle><circle cx="760" cy="700" r="1.9"></circle>
+                <circle cx="1160" cy="500" r="1.5"></circle><circle cx="1260" cy="140" r="1.6"></circle>
+                <circle cx="-560" cy="-1020" r="1.3"></circle><circle cx="420" cy="-1160" r="1.4"></circle>
+                <circle cx="-120" cy="-1380" r="1.3"></circle><circle cx="900" cy="-1220" r="1.5"></circle>
+                <circle cx="-880" cy="-1480" r="1.2"></circle><circle cx="560" cy="-1580" r="1.3"></circle>
+                <circle cx="-420" cy="-1780" r="1.4"></circle><circle cx="80" cy="-1900" r="1.2"></circle>
+                <circle cx="1080" cy="-1980" r="1.3"></circle><circle cx="-1040" cy="-2140" r="1.4"></circle>
+                <circle cx="-680" cy="-2380" r="1.5"></circle><circle cx="320" cy="-2460" r="1.3"></circle>
+                <circle cx="820" cy="-2680" r="1.4"></circle><circle cx="-260" cy="-2860" r="1.6"></circle>
+                <circle cx="240" cy="-3080" r="1.3"></circle><circle cx="-980" cy="-3260" r="1.5"></circle>
+            </svg>
+        </div>
 
-    <section class="efecto-shrink-container" id="escuela-abierta">
+        <div class="universo" id="universo">
+            <svg class="starfield" width="2800" height="4000" viewBox="-1400 -3600 2800 4000" aria-hidden="true">
+                <polyline points="0,0 680,-300 -620,-560 520,-880 -720,-1180 380,-1450 -500,-1750 600,-2000 -650,-2300 350,-2600 -550,-2900 500,-3200 0,-3500"></polyline>
+                <circle cx="-900" cy="-500" r="2.4"></circle><circle cx="-300" cy="-650" r="2"></circle>
+                <circle cx="250" cy="-1050" r="2.2"></circle><circle cx="800" cy="-1400" r="2"></circle>
+                <circle cx="1050" cy="-1650" r="2.3"></circle><circle cx="-1100" cy="-1900" r="2"></circle>
+                <circle cx="-700" cy="-2150" r="2.2"></circle><circle cx="-200" cy="-2450" r="1.8"></circle>
+                <circle cx="200" cy="950" r="2"></circle><circle cx="800" cy="800" r="2.3"></circle>
+                <circle cx="1100" cy="450" r="2"></circle><circle cx="-700" cy="850" r="2.1"></circle>
+                <circle cx="150" cy="-110" r="1.7"></circle><circle cx="-960" cy="-1150" r="2"></circle>
+            </svg>
+
+            <div class="bloque bloque--intro" id="bloque-intro" data-x="0" data-y="0">
+                <header class="main-header">
+                    <h1>Seba Bru</h1>
+                    <h3>Astrología de los devenires</h3>
+                </header>
+
+                <main>
+                    <section class="main-sections">
+                        <a href="#formaciones" class="section-block block-formaciones">
+                           <h3>Formaciones</h3>
+                        </a>
+                        <a href="#podcast" class="section-block block-contenido">
+
+                            <h3>Contenido</h3>
+                        </a>
+                        <a href="#consultas" class="section-block block-consultas">
+
+                            <h3>Consultas</h3>
+                        </a>
+                        <a href="#bios" class="section-block block-bios">
+
+                            <h3>bios</h3>
+                        </a>
+                    </section>
+
+                    <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
+                </main>
+            </div>
+
+    <section class="efecto-shrink-container bloque" id="escuela-abierta" data-x="420" data-y="450">
     <div class="efecto-shrink-sticky">
 
         <img src="img/abierta.webp" alt="Escuela Abierta" class="efecto-imagen" fetchpriority="high">
@@ -140,7 +183,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-         <section class="efecto-shrink-container" id="seccion-luna-negra">
+         <section class="efecto-shrink-container bloque" id="seccion-luna-negra" data-x="-310" data-y="900">
     <div class="efecto-shrink-sticky">
         
         <img src="img/portada.webp" alt="Portada del libro Luna Negra" class="efecto-imagen" loading="lazy">
@@ -173,7 +216,11 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
      
-  <section class="efecto-shrink-container seccion-mercurio-animada" id="astro-cotidiana-mercurio">
+  
+
+
+
+<section class="efecto-shrink-container seccion-mercurio-animada bloque" id="astro-cotidiana-mercurio" data-x="37" data-y="1350">
     <div class="efecto-shrink-sticky">
 
         <div class="texto-mercurio-sutil-wrapper">
@@ -189,7 +236,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-<section class="efecto-shrink-container layout-wide-visual" id="podcast">
+<section class="efecto-shrink-container layout-wide-visual bloque" id="podcast" data-x="256" data-y="1800">
     <div class="efecto-shrink-sticky">
         
         <div class="efecto-visual">
@@ -241,7 +288,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-<section id="instagram-section" style="padding: 60px 20px; max-width: 460px; margin: 0 auto;">
+<section id="instagram-section" class="bloque" data-x="-414" data-y="2250" style="padding: 60px 20px; max-width: 460px; margin: 0 auto;">
     <h2 style="color: var(--contenido-color); text-align: center; margin-bottom: 30px;">Instagram</h2>
     <div style="border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-height: 560px;">
         <blockquote class="instagram-media" data-instgrm-captioned
@@ -252,57 +299,38 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
- <section class="efecto-shrink-container layout-wide-visual" id="seccion-lunas">
-    <div class="efecto-shrink-sticky">
-        
+ <section class="efecto-shrink-container bloque" id="seccion-lunas" data-x="354" data-y="2700">
+    <div class="efecto-shrink-sticky lunas-simple">
+
         <div class="efecto-visual">
-            
+
             <button class="flecha-carrusel flecha-izq">❮</button>
-            
+
             <div class="carrusel-horizontal">
                 <article class="tarjeta-carrusel">
                     <img src="img/nueva.webp" width="1081" height="1351" alt="Luna Nueva" class="imagen-luna" loading="lazy">
                     <div class="contenido-tarjeta">
-                        <h3>Luna Nueva</h3>
-                        <a href="https://sebabru.com/lunanueva" target="_blank" rel="noopener noreferrer", class="btn-luna", alt="Luna Nueva">leelo</a>
+                        <p>Leé el informe de la última Luna Nueva</p>
+                        <a href="https://sebabru.com/lunanueva" target="_blank" rel="noopener noreferrer" class="btn-luna">Ver más</a>
                     </div>
                 </article>
                 <article class="tarjeta-carrusel">
                     <img src="img/llena.webp" width="1081" height="1351" alt="Luna Llena" class="imagen-luna" loading="lazy">
                     <div class="contenido-tarjeta">
-                        <h3>Luna Llena</h3>
-                        <a href="https://sebabru.com/lunallena" class="btn-luna">leelo</a>
+                        <p>Leé el informe de la última Luna Llena</p>
+                        <a href="https://sebabru.com/lunallena" target="_blank" rel="noopener noreferrer" class="btn-luna">Ver más</a>
                     </div>
                 </article>
             </div>
-            
+
             <button class="flecha-carrusel flecha-der">❯</button>
-            
+
         </div>
-        
-        <div class="efecto-texto">
-            <h2>Informes de Lunas</h2>
-            <p>Cada lunación elaboro un informe que publico en Instagram, en la comunidad y también lo subo a esta página. Accedé a él de la forma que más quieras.</p>
-            <div class="grupo-botones-sutiles">
-                <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-sutil">
-                    📲 Sumate a la comunidad
-                </a>
-                <a href="https://sebabru.com/lunanueva" target="_blank" rel="noopener noreferrer" class="btn-sutil">
-                    🌑 Luna nueva
-                </a>
-                <a href="https://sebabru.com/lunallena" target="_blank" rel="noopener noreferrer" class="btn-sutil">
-                    🌕 Luna llena
-                </a>
-                <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" rel="noopener noreferrer" class="btn-sutil">
-                    📷 Instagram
-                </a>
-            </div>
-        </div>
-        
+
     </div>
 </section>
 
-     <section class="comunidad-banner fade-in-element">
+     <section class="comunidad-banner bloque bloque--estacion" id="comunidad-banner" data-x="-109" data-y="3150">
     <div class="comunidad-card">
         
         <h2>Sumate a la Comunidad Astrológica</h2>
@@ -322,7 +350,11 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
 </section>
 
 
-<section class="efecto-shrink-container glifo-section" id="construccion-neptuno">
+
+
+       
+
+<section class="efecto-shrink-container glifo-section bloque" id="construccion-neptuno" data-x="-194" data-y="3600">
     <div class="efecto-shrink-sticky">
         
         <div class="neptuno-content-wrapper">
@@ -338,7 +370,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-       <section class="efecto-shrink-container" id="consultas">
+<section class="efecto-shrink-container bloque" id="consultas" data-x="395" data-y="4050">
     <div class="efecto-shrink-sticky">
         
         <img src="img/consultas.webp" alt="Consultas Astrológicas" class="efecto-imagen" loading="lazy">
@@ -374,7 +406,11 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-<section class="efecto-shrink-container seccion-sol-animada" id="animacion-sol">
+
+
+
+
+<section class="efecto-shrink-container seccion-sol-animada bloque" id="animacion-sol" data-x="-388" data-y="4500">
     <div class="efecto-shrink-sticky">
 
         <div class="sol-anim-wrapper">
@@ -386,7 +422,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-<section class="efecto-shrink-container" id="bios">
+<section class="efecto-shrink-container bloque" id="bios" data-x="178" data-y="4950">
     <div class="efecto-shrink-sticky">
         
         <img src="img/seba.webp" alt="Foto de Sebastián Bru" class="efecto-imagen" loading="lazy">
@@ -416,7 +452,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </div>
 </section>
 
-<section class="efecto-shrink-container glifo-section" id="construccion-jupiter">
+<section class="efecto-shrink-container glifo-section bloque" id="construccion-jupiter" data-x="126" data-y="5400">
     <div class="efecto-shrink-sticky">
         
         <div class="jupiter-content-wrapper">
@@ -431,6 +467,32 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
 
     </div>
 </section>
+
+
+
+
+
+        </div>
+    </div>
+   </div>
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
 
   <section id="formaciones" class="section-formaciones fade-in-element">
     <div class="formaciones-layout">
@@ -813,7 +875,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
 
   gtag('config', 'G-GDLRMR5D57');
 </script>
-    <script src="script.js?v=3" defer></script>
+    <script src="script.js?v=14" defer></script>
 <style>
 .yt-facade {
     position: relative;
@@ -883,16 +945,21 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     const igSection = document.getElementById('instagram-section');
     if (!igSection) return;
     let loaded = false;
-    const observer = new IntersectionObserver(function(entries) {
-        if (loaded || !entries[0].isIntersecting) return;
+    function cargarEmbed() {
+        if (loaded) return;
         loaded = true;
         const s = document.createElement('script');
         s.src = '//www.instagram.com/embed.js';
         s.async = true;
         document.body.appendChild(s);
-        observer.disconnect();
-    }, { rootMargin: '300px' });
-    observer.observe(igSection);
+        window.removeEventListener('scroll', cargarEmbed);
+    }
+    // Dispara la carga apenas la persona empieza a scrollear (no antes,
+    // para no competirle ancho de banda al primer texto/botones; ni recién
+    // al llegar al bloque, porque ahí ya se nota la espera dentro del
+    // recorrido). { passive: true } y sin throttle: solo nos importa la
+    // primera vez que se dispara.
+    window.addEventListener('scroll', cargarEmbed, { passive: true });
 })();
 </script>
 </body>

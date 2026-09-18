@@ -72,3 +72,7 @@ node_modules/
 client_secret_*.json
 seguridad.json
 
+# Backups/carpetas viejas que a veces se copian acá con secretos adentro
+Old/
+**/.env
+

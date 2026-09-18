@@ -569,46 +569,49 @@
         // Importamos la lógica de la escuela (menú móvil, etc)
         import '../escuela.js'; 
 
+        let accesoConcedido = false;
+
+        function mostrarError() {
+            if (accesoConcedido) return;
+            document.getElementById('spinner-icon').style.display = 'none';
+            document.getElementById('status-text').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+        }
+
+        setTimeout(mostrarError, 12000);
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // ¡ACÁ ESTABA EL ERROR! Ahora buscamos por el EMAIL exacto del usuario
                     const userEmail = user.email.toLowerCase().trim();
                     const docRef = doc(db, "usuarios", userEmail);
                     const docSnap = await getDoc(docRef);
 
-                    if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        
-                        // Chequeamos si tiene "introduccion" en su lista
-                        if (userData.cursos && userData.cursos.includes('introduccion')) {
-                            const _obs = new IntersectionObserver(entries => {
-                                entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
-                            }, { rootMargin: '200px' });
-                            document.querySelectorAll('iframe[data-src]').forEach(iframe => {
-                                if (!iframe.closest('details')) { _obs.observe(iframe); }
+                    if (docSnap.exists() && docSnap.data().cursos?.includes('introduccion')) {
+                        accesoConcedido = true;
+                        const _obs = new IntersectionObserver(entries => {
+                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
+                        }, { rootMargin: '200px' });
+                        document.querySelectorAll('iframe[data-src]').forEach(iframe => {
+                            if (!iframe.closest('details')) { _obs.observe(iframe); }
+                        });
+                        document.querySelectorAll('details').forEach(d => {
+                            d.addEventListener('toggle', () => {
+                                if (d.open) d.querySelectorAll('iframe[data-src]').forEach(iframe => { iframe.src = iframe.dataset.src; });
                             });
-                            document.querySelectorAll('details').forEach(d => {
-                                d.addEventListener('toggle', () => {
-                                    if (d.open) d.querySelectorAll('iframe[data-src]').forEach(iframe => { iframe.src = iframe.dataset.src; });
-                                });
-                            });
-                            document.getElementById('security-overlay').style.display = 'none';
-                        } else {
-                            alert("No tenés acceso a esta clase.");
-                            window.location.href = "../index.html"; 
-                        }
+                        });
+                        document.getElementById('security-overlay').style.display = 'none';
                     } else {
-                        // Está logueado pero no se encontró su email en la base de datos
-                        window.location.href = "../index.html";
+                        accesoConcedido = true;
+                        window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('Introduccion a la Astrologia');
                     }
                 } catch (error) {
                     console.error("Error al verificar el acceso:", error);
-                    window.location.href = "../index.html";
+                    mostrarError();
                 }
             } else {
-                // No inició sesión
-                window.location.href = "../index.html"; 
+                accesoConcedido = true;
+                window.location.href = "../index.html";
             }
         });
     </script>

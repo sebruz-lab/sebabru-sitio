@@ -8,9 +8,42 @@ import {
     GoogleAuthProvider,
     signInWithPopup 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; 
+import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const googleProvider = new GoogleAuthProvider();
+
+// Detecta si un video guardado en cursos/{id}.videos es un GUID de Bunny
+// (formato UUID) o un ID de YouTube, y arma la URL de embed correspondiente.
+// Así los GUIDs de Bunny ya no viajan en el HTML estático de cada página:
+// solo se conocen recién acá, después de confirmar en Firestore que el
+// usuario logueado es dueño del curso (protegido por firestore.rules).
+export function videoEntryToSrc(entry, libraryId, bunnyHost = 'player.mediadelivery.net') {
+    if (/^https?:\/\//.test(entry)) return entry;
+    const esGuidBunny = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(entry);
+    if (esGuidBunny) {
+        return `https://${bunnyHost}/embed/${libraryId}/${entry}?autoplay=false&loop=false&muted=false&preload=false&responsive=true`;
+    }
+    return `https://www.youtube.com/embed/${entry}`;
+}
+
+// Trae cursos/{cursoId}.videos (solo lo puede leer quien ya compró el curso,
+// o un admin) y completa, en orden de aparición, el data-src de cada
+// iframe de clase que todavía no lo tenga. Se llama recién después de
+// confirmar el acceso, para no exponer nunca los IDs de video sin login.
+export async function poblarVideosClases(cursoId, libraryId, bunnyHost) {
+    try {
+        const snap = await getDoc(doc(db, 'cursos', cursoId));
+        const videos = snap.exists() ? [...(snap.data().videos || [])] : [];
+        document.querySelectorAll('.clase-item').forEach(clase => {
+            const iframe = clase.querySelector('iframe:not([data-src])');
+            if (!iframe) return;
+            const entry = videos.shift();
+            if (entry) iframe.dataset.src = videoEntryToSrc(entry, libraryId, bunnyHost);
+        });
+    } catch (e) {
+        console.error('Error cargando videos del curso:', e);
+    }
+}
 
 // --- DIAGNÓSTICO Y LIMPIEZA ---
 onSnapshotsInSync(db, () => {

@@ -69,7 +69,7 @@
                 </header>
                 
                 <div class="video-container">
-                <iframe data-src="https://iframe.mediadelivery.net/embed/580424/bbc5ea30-1f34-416d-8d35-ec3c1bf1a506?autoplay=false&loop=false&muted=false&preload=true&responsive=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
+                <iframe loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
                 </div>
                 <details class="material-desplegable" style="margin-top: 20px;">
                     <summary>Para buscar tu grado Sabiano en el libro de Dane Rudhyar</summary>
@@ -101,7 +101,7 @@
                 </header>
                 
                 <div class="video-container">
-                    <iframe  data-src="https://iframe.mediadelivery.net/embed/580424/f1878a2c-aef7-4ff4-8ae8-d950856d347b?autoplay=true&loop=false&muted=false&preload=true&responsive=true" loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe> </iframe>
+                    <iframe loading="lazy" style="border:0;position:absolute;top:0;height:100%;width:100%;" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen="true"></iframe>
                 </div>
                                 <details class="material-desplegable" style="margin-top: 20px;">
     <summary>📖 El libro de Carutti </summary>
@@ -124,11 +124,10 @@
     </header>
     
     <div class="video-container">
-        <iframe 
-            data-src="https://iframe.mediadelivery.net/embed/580424/6ec37528-79a9-44ad-aefc-16b35dd3fab6?autoplay=true&loop=false&muted=false&preload=true&responsive=true" 
-            loading="lazy" 
-            style="border:0;position:absolute;top:0;height:100%;width:100%;" 
-            allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" 
+        <iframe
+            loading="lazy"
+            style="border:0;position:absolute;top:0;height:100%;width:100%;"
+            allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
             allowfullscreen="true">
         </iframe>
     </div>
@@ -167,11 +166,10 @@
     </header>
     
     <div class="video-container">
-        <iframe 
-            data-src="https://iframe.mediadelivery.net/embed/580424/022450bb-8b02-418c-b7e6-51c198db8fef?autoplay=false&loop=false&muted=false&preload=true&responsive=true" 
-           loading="lazy" 
-            style="border:0;position:absolute;top:0;height:100%;width:100%;" 
-            allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" 
+        <iframe
+           loading="lazy"
+            style="border:0;position:absolute;top:0;height:100%;width:100%;"
+            allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
             allowfullscreen="true">
         </iframe>
     </div>
@@ -180,13 +178,14 @@
         </main>
     </div>
 
-    <script type="module" src="../escuela.js"></script>
+    <script type="module" src="../escuela.js?v=2"></script>
 
     <script type="module">
         // ATENCIÓN: Si tu firebase.js está en la raiz, cambiá '../' por '../../'
-        import { auth, db } from '../firebase.js'; 
+        import { auth, db } from '../firebase.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { poblarVideosClases } from '../escuela.js?v=2';
 
         const overlay = document.getElementById('security-overlay');
         const statusText = document.getElementById('status-text');
@@ -219,6 +218,7 @@
                         // VERIFICAMOS "cosito"
                         if (cursos.includes('cosito')) {
                             console.log("Acceso permitido.");
+                            await poblarVideosClases('cosito', 580424, 'iframe.mediadelivery.net');
                             const _obs = new IntersectionObserver(entries => {
                                 entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
                             }, { rootMargin: '200px' });
@@ -233,15 +233,9 @@
                             clearTimeout(safetyTimer);
                             overlay.style.display = 'none';
                         } else {
-                            // ❌ SIN PERMISO
-                            console.warn("Acceso denegado: falta el permiso 'cosito'");
                             clearTimeout(safetyTimer);
-                            spinner.style.display = 'none';
-                            statusText.innerText = "No tienes acceso a este curso.";
-                            errorMsg.style.display = 'block';
-                            
-                            // Opcional: Redirigir automáticamente
-                            setTimeout(() => { window.location.href = "../index.html"; }, 3000);
+                            const userEmail = user.email.toLowerCase().trim();
+                            window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('Cosito');
                         }
                     } else {
                         throw new Error("El usuario no tiene ficha en la base de datos.");

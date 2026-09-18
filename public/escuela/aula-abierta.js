@@ -14,6 +14,7 @@ import {
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 import { app, auth, db } from './firebase.js';
+import { videoEntryToSrc } from './escuela.js?v=2';
 
 const OBTENER_MUESTRA_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/obtenerMuestra';
 const CREAR_PAGO_PAYPAL_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal';
@@ -462,7 +463,21 @@ export function initAula(slug, opts = {}) {
 
     const primerIframe = primeraCont?.querySelector('iframe');
     if (primerIframe && primerIframe.hasAttribute('data-src')) {
-      // Bunny: revela todos los iframes con lazy-load por IntersectionObserver.
+      // Bunny: la Clase 1 (muestra gratis) ya trae su data-src público.
+      // El resto de las clases NO viaja en el HTML: se completan recién acá,
+      // leyendo cursos/{slug}.videos (protegido por firestore.rules: solo
+      // quien ya compró el curso, o un admin, puede leerlo).
+      try {
+        const cursoSnap = await getDoc(doc(db, 'cursos', slug));
+        const videos = [...(cursoSnap.data()?.videos || [])];
+        clases.slice(1).forEach(clase => {
+          const iframe = contenedorDe(clase)?.querySelector('iframe:not([data-src])');
+          if (!iframe) return;
+          const entry = videos.shift();
+          if (entry) iframe.dataset.src = videoEntryToSrc(entry, 615375);
+        });
+      } catch (e) { /* si falla, al menos la clase 1 sigue disponible */ }
+
       const obs = new IntersectionObserver(entries => {
         entries.forEach(e => {
           if (e.isIntersecting) { e.target.src = e.target.dataset.src; obs.unobserve(e.target); }

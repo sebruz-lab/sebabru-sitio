@@ -56,8 +56,7 @@
                     <h2><span class="num">#1</span> Clase 1</h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe data-src="https://player.mediadelivery.net/embed/615375/a868c505-b9b9-455f-a7bf-dfc6fa022d33?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
-                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
@@ -67,8 +66,7 @@
                     <h2><span class="num">#2</span> Clase 2</h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe data-src="https://player.mediadelivery.net/embed/615375/96db5abe-8b60-4a34-a58c-71270aa2d9d5?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
-                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
@@ -77,8 +75,7 @@
                     <h2><span class="num">#3</span> Clase 3</h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe data-src="https://player.mediadelivery.net/embed/615375/381043fa-f275-4bf7-9967-5860b99a237e?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
-                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
@@ -87,8 +84,7 @@
                     <h2><span class="num">#4</span> Clase 4</h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe data-src="https://player.mediadelivery.net/embed/615375/c635679f-f920-4253-b09b-841aa747e362?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
-                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
@@ -97,19 +93,30 @@
                     <h2><span class="num">#5</span> Clase 5</h2>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe data-src="https://player.mediadelivery.net/embed/615375/4ce97251-7706-467e-9a45-c2a5b0df5261?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
-                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
         </main>
     </div>
 
-    <script type="module" src="../escuela.js"></script>
+    <script type="module" src="../escuela.js?v=2"></script>
     <script type="module">
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { auth, db } from '../firebase.js';
+        import { poblarVideosClases } from '../escuela.js?v=2';
+
+        let accesoConcedido = false;
+
+        function mostrarError() {
+            if (accesoConcedido) return;
+            document.getElementById('spinner-icon').style.display = 'none';
+            document.getElementById('status-text').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+        }
+
+        setTimeout(mostrarError, 12000);
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -118,20 +125,23 @@
                     const docSnap = await getDoc(doc(db, "usuarios", userEmail));
 
                     if (docSnap.exists() && docSnap.data().cursos?.includes('saturnoluna')) {
+                        accesoConcedido = true;
+                        await poblarVideosClases('saturnoluna', 615375);
                         const _obs = new IntersectionObserver(entries => {
                             entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
                         }, { rootMargin: '200px' });
                         document.querySelectorAll('iframe[data-src]').forEach(iframe => { _obs.observe(iframe); });
                         document.getElementById('security-overlay').style.display = 'none';
                     } else {
-                        alert("No tenes acceso a este seminario.");
-                        window.location.href = "../index.html";
+                        accesoConcedido = true;
+                        window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('Saturno y la Luna');
                     }
                 } catch (e) {
                     console.error("Error al verificar el acceso:", e);
-                    window.location.href = "../index.html";
+                    mostrarError();
                 }
             } else {
+                accesoConcedido = true;
                 window.location.href = "../index.html";
             }
         });

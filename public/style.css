@@ -404,13 +404,39 @@ a:hover {
     flex-wrap: wrap; gap: 20px; text-align: center;
 }
 
+/* Flechita que titila: invita a seguir scrolleando (mismo lenguaje que
+   usa /escuela/abierta), pero acá solo aparece si la persona queda
+   quieta 5s — la muestra/oculta script.js agregando/sacando .visible. */
+@keyframes titila { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(3px); } }
+.flecha-titila { display: inline-block; animation: titila 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .flecha-titila { animation: none; opacity: 0.8; } }
+
+.scroll-idle-hint {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    z-index: 500; font-size: 1.4rem; color: rgba(224,230,237,0.55);
+    opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+}
+.scroll-idle-hint.visible { opacity: 1; }
+
 /* Animación genérica de entrada */
 .fade-in-element {
-    opacity: 0; transform: scale(0.85) translateY(30px); 
+    opacity: 0; transform: scale(0.85) translateY(30px);
     filter: blur(5px); transition: opacity 1.2s ease-out, transform 1.2s cubic-bezier(0.23, 1, 0.32, 1), filter 1s ease-out;
     will-change: transform, opacity;
 }
 .fade-in-element.is-visible { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+
+@media (max-width: 768px) {
+    /* En mobile sacamos el blur animado (caro para el GPU) y el scale, y
+       dejamos un desplazamiento más corto con el mismo easing que usa el
+       recorrido de /escuela/abierta, para que se sienta más orgánico. */
+    .fade-in-element {
+        transform: translateY(18px);
+        filter: none;
+        transition: opacity 0.9s cubic-bezier(0.23, 1, 0.32, 1), transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .fade-in-element.is-visible { transform: translateY(0); }
+}
 
 /* Footer */
 .main-footer {
@@ -488,14 +514,28 @@ a.block-bios        { --section-c: var(--secondary-color); }
     .main-sections { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
 
+.deslizar-hint {
+    text-align: center;
+    width: fit-content;
+    margin: 24px auto 0;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(224,230,237,0.45);
+}
+.deslizar-hint .flecha-titila { margin-left: 4px; }
+
 /* =========================================
    7. EFECTO CINEMÁTICO (SCROLL LINKED)
    ========================================= */
 .efecto-shrink-container {
-    height: 190vh; 
+    height: 190vh;
     position: relative;
     background-color: transparent;
-    --scroll-progress: 0; 
+    --scroll-progress: 0;
+    --progreso-mobile: 0;
 }
 
 .efecto-shrink-sticky {
@@ -533,8 +573,8 @@ a.block-bios        { --section-c: var(--secondary-color); }
 .efecto-texto {
     position: absolute; 
     z-index: 1; 
-    max-width: 420px; 
-    max-height: 70vh;
+    max-width: 380px;
+    max-height: 60vh;
     padding: 30px; 
     padding-bottom: 180px !important; 
     overflow-y: auto; 
@@ -565,37 +605,81 @@ a.block-bios        { --section-c: var(--secondary-color); }
 
 .layout-wide-visual .efecto-texto {
     transform: translateX(calc(105% - (40% * var(--scroll-progress))));
-    max-width: 450px;
+    max-width: 400px;
 }
 
 /* =========================================
    AJUSTES RESPONSIVE (CELULAR)
    ========================================= */
 @media (max-width: 768px) {
-    /* Ajuste Standard Móvil */
+    /* Layout fijo en mobile: 10% de margen arriba, la imagen ocupa del 80%
+       al 25% de la pantalla a medida que se enfoca, y la caja de texto
+       tiene una altura fija del 55% (no anima su tamaño) — al achicarse la
+       imagen, el flujo normal deja ver la caja de texto que ya estaba ahí
+       debajo, sin superponerse. */
+    .efecto-shrink-sticky {
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100vh !important;
+        padding-top: 10vh;
+        overflow: hidden;
+    }
+
     .efecto-imagen, .efecto-visual, .video-container {
-        max-width: 320px;
-        transform: scale(calc(1 - (0.35 * var(--scroll-progress)))) translateY(calc(-25vh * var(--scroll-progress)));
+        width: min(85vw, 340px);
+        max-width: min(85vw, 340px);
+        aspect-ratio: auto;
+        height: calc(80vh - (55vh * var(--progreso-mobile))); /* 80vh -> 25vh */
+        object-fit: contain; /* que entre el ancho completo, sin recortar los costados al achicarse */
+        flex-shrink: 0;
+        transform: none;
     }
-    
+
     .efecto-texto {
+        position: relative;
         max-width: 90%;
+        height: 55vh;
+        max-height: 55vh;
         text-align: center;
-        transform: translateY(calc(100% - (40% * var(--scroll-progress))));
+        transform: none;
+        flex-shrink: 0;
     }
 
-    /* Ajuste Especial Wide (Lunas/Podcast) Móvil */
+    /* Ajuste Especial Wide (Lunas/Podcast) Móvil — proporción invertida:
+       el carrusel (video/imagen) necesita más lugar para ser usable que
+       una imagen fija, así que termina ocupando el 55% (en vez del 25%) y
+       el texto el 25% (en vez del 55%). Estas dos selectores son más
+       específicos que las reglas generales de arriba, así que sin este
+       reset seguían con el transform de desktop (translateX) puesto por
+       encima del nuevo layout — por eso antes se veían corridos hacia los
+       costados. */
     .layout-wide-visual .efecto-visual {
-        transform: 
-            scale(calc(1 - (0.5 * var(--scroll-progress)))) 
-            translateY(calc(-15vh * var(--scroll-progress)));
+        height: calc(80vh - (25vh * var(--progreso-mobile))); /* 80vh -> 55vh */
+        transform: none;
     }
-
     .layout-wide-visual .efecto-texto {
-        transform: translateY(calc(100% - (32% * var(--scroll-progress))));
-        padding-bottom: 250px !important;
+        position: relative;
+        height: 25vh;
+        max-height: 25vh;
+        transform: none;
     }
 }
+
+/* Bloque de Lunas simplificado: sin caja de texto, solo el carrusel con
+   una línea corta + "Ver más" por tarjeta. Estático (sin la animación de
+   achicarse/deslizarse), igual en compu y en celu. */
+#seccion-lunas .efecto-visual {
+    transform: none !important;
+    height: auto !important;
+    aspect-ratio: 4 / 5 !important;
+    width: min(90vw, 420px) !important;
+    max-width: min(90vw, 420px) !important;
+}
+#seccion-lunas .contenido-tarjeta p {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+}
+
 /* =========================================
    8. CARRUSELES Y TARJETAS VISUALES
    ========================================= */
@@ -891,17 +975,62 @@ a.section-block:hover h3 {
 }
 
 /* Agregamos un colchón de espacio al final de todos los textos con scroll */
-.subsection, 
-.efecto-texto, 
-.formaciones-texto, 
+.subsection,
+.efecto-texto,
+.formaciones-texto,
 .card-text-scroll {
     padding-bottom: 180px !important; /* Un respiro de 120px para que nada quede pegado */
 }
 
-/* Ajuste específico para que la flechita indicadora no moleste */
-.subsection::after, 
-.efecto-texto::after {
-    bottom: 20px; /* La subimos un poquito para que flote con más gracia */
+/* Vidrio esmerilado: como la scrollbar nativa de estas cajas está oculta
+   a propósito (scrollbar-width:none más arriba), las separamos del fondo
+   con un panel sutil para que se note que son una caja con más contenido. */
+.formaciones-texto { position: relative; }
+.subsection,
+.efecto-texto,
+.formaciones-texto {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* Flechita que indica que hay más contenido para scrollear dentro de la
+   caja — solo si de verdad hace falta (clase .tiene-overflow, calculada
+   por script.js contra el alto real del contenido). Se desvanece apenas
+   la persona empieza a scrollearla (clase .scrolling). */
+.subsection::after,
+.efecto-texto::after,
+.formaciones-texto::after {
+    content: '\2193';
+    position: absolute;
+    left: 50%; bottom: 20px; transform: translateX(-50%);
+    font-size: 1.1rem; color: rgba(224,230,237,0.6);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+/* Solo se anima (y solo entonces existe el "titila") cuando de verdad
+   sobra contenido — si no, ni siquiera corre la animación. */
+.subsection.tiene-overflow::after,
+.efecto-texto.tiene-overflow::after,
+.formaciones-texto.tiene-overflow::after {
+    opacity: 1; visibility: visible;
+    animation: titila 1.6s ease-in-out infinite;
+}
+.subsection.tiene-overflow.scrolling::after,
+.efecto-texto.tiene-overflow.scrolling::after,
+.formaciones-texto.tiene-overflow.scrolling::after {
+    opacity: 0; visibility: hidden;
+    animation: none;
+}
+
+/* En Escuela Abierta esa cajita ya termina en un botón propio ("Ver los
+   cursos"); la flechita ahí se pisaba con el botón, así que se saca. */
+#escuela-abierta .efecto-texto::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+    .subsection::after, .efecto-texto::after, .formaciones-texto::after { animation: none; }
 }
 
 /* Si tenés elementos con listas (como el de las librerías), les damos margen extra */
@@ -1516,8 +1645,85 @@ a.section-block:hover h3 {
         grid-template-columns: 1fr; /* Apila Spotify arriba y YouTube abajo */
         gap: 40px;
     }
-    
+
     .podcast-header h2 {
         font-size: 1.6rem;
+    }
+}
+
+/* =========================================
+   RECORRIDO ESPACIAL DE LA HOME
+   Mismo mecanismo que /escuela/abierta: la "cámara" viaja por puntos 2D
+   (data-x/data-y en cada .bloque) en vez de bajar en línea recta. El
+   contenido de cada sección no cambió (imagen+texto, glifos animados,
+   carruseles); acá solo se las reposiciona como tarjetas flotantes y se
+   les sigue entregando --scroll-progress, ahora calculado por cercanía
+   de cámara en vez de por scroll lineal dentro de un contenedor de
+   190vh. Motor en script.js (función frame()).
+   ========================================= */
+.escena-track { position: relative; height: 1100vh; }
+.escena {
+    position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
+    background: radial-gradient(120% 80% at 50% 32%, #0d0d15 0%, var(--bg-base) 68%);
+}
+.capa-lejana, .universo { position: absolute; inset: 0; will-change: transform; }
+.capa-lejana { z-index: 0; }
+.universo { z-index: 1; }
+
+.starfield { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: visible; }
+.capa-lejana .starfield circle { fill: #f0e4c4; opacity: 0.16; }
+.universo .starfield circle { fill: #f0e4c4; opacity: 0.3; }
+.universo .starfield polyline { fill: none; stroke: rgba(240,228,196,0.16); stroke-width: 1.4; stroke-dasharray: 3 11; }
+
+.bloque {
+    position: absolute !important; left: 50% !important; top: 50% !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.12s linear;
+    width: min(90vw, 720px);
+    z-index: 2;
+}
+.bloque--intro { width: min(92vw, 920px); text-align: center; }
+.bloque--intro .main-header { padding: 0 0 1rem; }
+.bloque--intro main { padding: 10px 0 0; }
+
+.bloque--estacion {
+    background: rgba(13,13,19,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 34px 30px;
+    width: min(90vw, 560px); text-align: center;
+}
+
+#instagram-section.bloque { width: min(90vw, 460px); }
+
+/* Las cajas de imagen+texto y los glifos mantienen todo su estilo de
+   siempre — acá solo se neutraliza el "sticky + 190vh/180vh" que usaban
+   para animarse con scroll lineal, porque ese rol ahora lo cumple la
+   ventana fija .escena. Neptuno/Júpiter tenían además su propia regla
+   vieja por #id (height:180vh; position:relative; left:-20px) que le
+   ganaba en especificidad a estas reglas de acá — por eso el !important
+   de arriba en .bloque, que ahora manda siempre pase lo que pase con
+   esas reglas viejas. */
+.efecto-shrink-container.bloque {
+    height: auto;
+    width: min(94vw, 920px);
+}
+#construccion-neptuno.bloque, #construccion-jupiter.bloque {
+    width: min(90vw, 620px); height: auto;
+}
+.efecto-shrink-container.bloque .efecto-shrink-sticky,
+#construccion-neptuno.bloque .efecto-shrink-sticky,
+#construccion-jupiter.bloque .efecto-shrink-sticky {
+    position: static; height: auto; min-height: 58vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .escena-track { height: auto; }
+    .escena { position: static; height: auto; overflow: visible; }
+    .capa-lejana { display: none; }
+    .universo { position: static; transform: none !important; }
+    .bloque {
+        position: static; transform: none !important; opacity: 1 !important;
+        pointer-events: auto !important; margin: 0 auto 60px;
     }
 }
