@@ -13,6 +13,7 @@ const CURSO_URLS = {
   pluton26:  '/escuela/abierta/pluton26/',
   lilith:    '/escuela/abierta/lilith/',
   lunas26:   '/escuela/lunas26/',
+  quiron:    '/escuela/quiron/',
 };
 
 const PRECIOS = {

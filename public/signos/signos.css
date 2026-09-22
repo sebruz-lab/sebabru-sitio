@@ -705,3 +705,62 @@
 .signo-card.virgo-theme:hover .signo-card-symbol,
 .signo-card.virgo-theme:hover h3 { color: var(--virgo-primary); }
 .signo-card.virgo-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 155, 149, 0.5); }
+
+/* =========================================
+   LIBRA THEME
+   ========================================= */
+:root {
+    --libra-primary: #c97b9e;
+    --libra-bg-light: rgba(180, 100, 140, 0.15);
+}
+
+.signo-header.libra-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.libra-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--libra-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.libra-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.libra-theme:hover summary .icon-initial svg,
+.desplegable-item.libra-theme[open] summary .icon-initial svg {
+    fill: var(--libra-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(180, 100, 140, 0.5));
+}
+.desplegable-item.libra-theme:hover summary h3,
+.desplegable-item.libra-theme[open] summary h3 {
+    color: var(--libra-primary);
+    text-shadow: 0 0 10px rgba(180, 100, 140, 0.3);
+}
+.desplegable-item.libra-theme:hover summary .caret,
+.desplegable-item.libra-theme[open] summary .caret {
+    color: var(--libra-primary);
+}
+.desplegable-item.libra-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(180, 100, 140, 0.15);
+    border-color: rgba(180, 100, 140, 0.3);
+}
+
+.visualizacion.libra {
+    background-color: var(--libra-bg-light);
+    border-left: 4px solid var(--libra-primary);
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+.visualizacion.libra p { margin: 0; color: var(--text-light); }
+
+.signo-card.libra-theme:hover .signo-card-symbol,
+.signo-card.libra-theme:hover h3 { color: var(--libra-primary); }
+.signo-card.libra-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(180, 100, 140, 0.5); }

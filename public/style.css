@@ -566,7 +566,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
     /* PC Standard: Se mueve un 60% a la izquierda */
     transform: 
         scale(calc(1 - (0.35 * var(--scroll-progress)))) 
-        translateX(calc(-60% * var(--scroll-progress)));
+        translateX(calc(-68% * var(--scroll-progress)));
 }
 
 /* --- EL TEXTO --- */
@@ -600,7 +600,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
     max-width: 550px; 
     transform: 
         scale(calc(1 - (0.4 * var(--scroll-progress)))) 
-        translateX(calc(-65% * var(--scroll-progress)));
+        translateX(calc(-73% * var(--scroll-progress)));
 }
 
 .layout-wide-visual .efecto-texto {
@@ -622,6 +622,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
         justify-content: flex-start;
         height: 100vh !important;
         padding-top: 10vh;
+        gap: 3vh;
         overflow: hidden;
     }
 
@@ -1371,7 +1372,7 @@ a.section-block:hover h3 {
     transform-origin: -40vw 50%;
     
     /* Rotación de abajo (45deg) a arriba (-45deg) */
-    transform: translateY(-50%) rotate(calc(45deg - (90deg * var(--scroll-progress))));
+    transform: translateY(-50%) rotate(calc(30deg - (60deg * var(--scroll-progress))));
     
     will-change: transform;
 }
@@ -1383,7 +1384,7 @@ a.section-block:hover h3 {
     overflow: visible;
     
     /* CONTRA-ROTACIÓN: Para mantener el glifo erguido durante el viaje */
-    transform: rotate(calc(-45deg + (90deg * var(--scroll-progress))));
+    transform: rotate(calc(-30deg + (60deg * var(--scroll-progress))));
     
     will-change: transform;
 }
@@ -1409,7 +1410,7 @@ a.section-block:hover h3 {
    Queremos que termine de dibujarse justo cuando llega al centro (0.5 progress).
    Usamos un multiplicador alto (6.6) para que se complete rápido en ese tramo. */
 .mercurio-path-draw {
-    stroke-dashoffset: calc(4500 - (4500 * clamp(0, var(--scroll-progress) * 1.66, 1)));
+    stroke-dashoffset: calc(4500 - (4500 * clamp(0, var(--scroll-progress) * 1.3, 1)));
 }
 
 /* --- 4. EFECTO FINAL: EL RELLENO #f56d96 SUTIL ---
@@ -1450,7 +1451,7 @@ a.section-block:hover h3 {
     transform-origin: -30vw 50%;
     
     /* Rotación de abajo (45deg) a arriba (-45deg) */
-    transform: translateY(-50%) rotate(calc(45deg - (90deg * var(--scroll-progress))));
+    transform: translateY(-50%) rotate(calc(30deg - (60deg * var(--scroll-progress))));
     will-change: transform;
 }
 
@@ -1461,7 +1462,7 @@ a.section-block:hover h3 {
     overflow: visible;
     
     /* CONTRA-ROTACIÓN para que el Sol no gire sobre sí mismo */
-    transform: rotate(calc(-45deg + (90deg * var(--scroll-progress))));
+    transform: rotate(calc(-30deg + (60deg * var(--scroll-progress))));
     will-change: transform;
 }
 
@@ -1482,7 +1483,7 @@ a.section-block:hover h3 {
 
 /* Vinculamos al scroll (termina en el 50% del recorrido, el pico del arco) */
 .sol-path-draw {
-    stroke-dashoffset: calc(4500 - (4500 * clamp(0, var(--scroll-progress) * 1.66, 1)));
+    stroke-dashoffset: calc(4500 - (4500 * clamp(0, var(--scroll-progress) * 1.3, 1)));
 }
 
 /* --- EFECTO FINAL: EL RELLENO SUTIL --- */
@@ -1502,10 +1503,10 @@ a.section-block:hover h3 {
     .sol-anim-wrapper {
         /* En celular hacemos el péndulo por abajo como en Mercurio */
         transform-origin: 50% -30vh;
-        transform: translateY(-50%) rotate(calc(-45deg + (90deg * var(--scroll-progress))));
+        transform: translateY(-50%) rotate(calc(-30deg + (60deg * var(--scroll-progress))));
     }
     .sol-anim-svg {
-        transform: rotate(calc(45deg - (90deg * var(--scroll-progress))));
+        transform: rotate(calc(30deg - (60deg * var(--scroll-progress))));
     }
 }
 /* =========================================
@@ -1661,7 +1662,7 @@ a.section-block:hover h3 {
    de cámara en vez de por scroll lineal dentro de un contenedor de
    190vh. Motor en script.js (función frame()).
    ========================================= */
-.escena-track { position: relative; height: 1100vh; }
+.escena-track { position: relative; height: 1500vh; }
 .escena {
     position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
     background: radial-gradient(120% 80% at 50% 32%, #0d0d15 0%, var(--bg-base) 68%);

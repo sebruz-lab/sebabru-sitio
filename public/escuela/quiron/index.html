@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Luna en la carta natal 2026 | Aula Virtual</title>
+    <title>Neptuno, Urano y Quiron | Aula Virtual</title>
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="../../style.css">
     <link rel="stylesheet" href="../escuela.css?v=5">
@@ -20,7 +20,7 @@
     </div>
 
     <div class="mobile-header">
-        <span class="mobile-title">La Luna en la carta natal</span>
+        <span class="mobile-title">Neptuno, Urano y Quiron</span>
         <button class="hamburger-btn" id="menu-toggle">
             <i class="fa-solid fa-bars"></i> Menu
         </button>
@@ -30,27 +30,15 @@
         <aside class="sidebar-panel" id="sidebar">
             <div class="sidebar-content">
                 <div class="sidebar-header">
-                    <h3>La Luna en la carta natal</h3>
-                    <p>Taller sincronico 2026</p>
+                    <h3>Neptuno, Urano y Quiron</h3>
+                    <p>Seminario</p>
                 </div>
 
-                <a href="https://docs.google.com/document/d/1kxsiX21vaxsbHW6PTX3KhyLBM2DcnQJn?rtpof=true&usp=drive_fs"
+                <a href="https://drive.google.com/open?id=1HupcZ7NrjHxRIWBAPuWO_5bvNGEt_IMa&usp=drive_fs"
                    target="_blank" rel="noopener"
                    class="btn-sidebar-main"
-                   style="background-color:var(--secondary-color,#4a4a4a); border:1px solid rgba(255,255,255,0.2); margin-bottom:10px;">
-                    <i class="fa-solid fa-book-open"></i> Material de lectura 1
-                </a>
-                <a href="https://docs.google.com/document/d/1TxqYpj_1RgiSUGIXyK8kvF81adtjOwW_?rtpof=true&usp=drive_fs"
-                   target="_blank" rel="noopener"
-                   class="btn-sidebar-main"
-                   style="background-color:var(--secondary-color,#4a4a4a); border:1px solid rgba(255,255,255,0.2); margin-bottom:10px;">
-                    <i class="fa-solid fa-book-open"></i> Material de lectura 2
-                </a>
-                <a href="https://drive.google.com/open?id=1ES82k5Qimv2RR0avtXTFpNVr8w64c133&usp=drive_fs"
-                   target="_blank" rel="noopener"
-                   class="btn-sidebar-main"
-                   style="margin-bottom:10px;">
-                    <i class="fa-solid fa-users"></i> Cartas del grupo
+                   style="margin-bottom: 10px;">
+                    <i class="fa-solid fa-folder-open"></i> Material Complementario
                 </a>
 
                 <nav class="auto-nav">
@@ -63,33 +51,14 @@
         </aside>
 
         <main class="main-content">
-            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+            <article class="clase-item" id="clase-1" data-titulo="Neptuno 1">
                 <header class="clase-header">
-                    <h2><span class="num">#1</span> Clase 1</h2>
+                    <h2><span class="num">#1</span> Neptuno 1</h2>
+                    <p style="opacity:0.55; font-size:0.88rem; margin-top:4px;">Desarrollo del signo y recorrido de Aries a Leo</p>
                 </header>
                 <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen="true"></iframe>
-                </div>
-            </article>
-
-            <article class="clase-item" id="clase-2" data-titulo="Luna en Aries">
-                <header class="clase-header">
-                    <h2><span class="num">#2</span> Luna en Aries</h2>
-                </header>
-                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
-                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
-                </div>
-            </article>
-
-            <article class="clase-item" id="clase-3" data-titulo="Tauro, Geminis y Cancer">
-                <header class="clase-header">
-                    <h2><span class="num">#3</span> Tauro, Geminis y Cancer</h2>
-                </header>
-                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                    <iframe data-src="https://player.mediadelivery.net/embed/615375/9c448f54-67a1-46e7-8387-f25d4da0f044?autoplay=false&loop=false&muted=false&preload=false&responsive=true"
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
@@ -120,9 +89,9 @@
                     const userEmail = user.email.toLowerCase().trim();
                     const docSnap = await getDoc(doc(db, "usuarios", userEmail));
 
-                    if (docSnap.exists() && docSnap.data().cursos?.includes('lunas26')) {
+                    if (docSnap.exists() && docSnap.data().cursos?.includes('quiron')) {
                         accesoConcedido = true;
-                        await poblarVideosClases('lunas26', 615375);
+                        await poblarVideosClases('quiron', 615375);
                         const _obs = new IntersectionObserver(entries => {
                             entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
                         }, { rootMargin: '200px' });
@@ -130,7 +99,7 @@
                         document.getElementById('security-overlay').style.display = 'none';
                     } else {
                         accesoConcedido = true;
-                        window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('La Luna en la carta natal 2026');
+                        window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('Neptuno, Urano y Quiron');
                     }
                 } catch (e) {
                     console.error("Error al verificar el acceso:", e);

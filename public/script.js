@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // RESISTENCIA más chico = más pesado/lento. Por eso el recorrido tiene
     // su propio loop de rAF que sigue corriendo incluso con el scroll
     // parado, para terminar de alcanzar el objetivo.
-    const RESISTENCIA = 0.06;
+    const RESISTENCIA = 0.035;
     let segActual = null;
 
     function clamp01(v) { return Math.max(0, Math.min(1, v)); }
@@ -88,7 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // tocar — es la que andaba bien. A propósito NO
                     // comparte código con la rama de abajo, para que un
                     // futuro ajuste ahí nunca pueda volver a afectar esto.
-                    const localGlifo = clamp01(seg - (k - 0.5));
+                    // Júpiter es el último bloque: la cámara se frena en seg = NB-1,
+                    // así que con la ventana normal nunca pasaba del 50% y el
+                    // glifo quedaba sin cerrar. Ahí la ventana termina en k.
+                    const ultimo = k === NB - 1;
+                    const localGlifo = ultimo
+                        ? clamp01((seg - (k - 0.6)) / 0.6)
+                        : clamp01((seg - (k - 0.6)) / 1.2);
                     b.style.setProperty('--scroll-progress', easeInOut(localGlifo));
                 } else {
                     // Imagen+texto en DESKTOP (--scroll-progress): arranca
@@ -108,10 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // justo al enfocar) pero con su propia ventana, mucho
                     // más angosta — la imagen se achica recién cuando la
                     // cámara está prácticamente encima del bloque.
-                    const DWELL_MOBILE = 0.75; // fracción del acercamiento parado en la imagen (mobile)
+                    const DWELL_MOBILE = 0.3; // fracción del acercamiento parado en la imagen (mobile)
                     const ventanaMobile = 1 - DWELL_MOBILE;
                     const localMobile = clamp01((seg - (k - ventanaMobile)) / ventanaMobile);
-                    b.style.setProperty('--progreso-mobile', easeInOut(localMobile));
+                    b.style.setProperty('--progreso-mobile', localMobile * localMobile * (3 - 2 * localMobile));
                 }
             }
         }

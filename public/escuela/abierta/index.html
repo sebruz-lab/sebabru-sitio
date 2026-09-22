@@ -48,12 +48,13 @@
         .tope {
             position: fixed; top: 0; left: 0; right: 0; z-index: 30;
             display: flex; justify-content: space-between; align-items: center; gap: 12px;
-            padding: 16px max(64px, 9vw) 0 max(20px, 5vw);
+            padding: 16px max(20px, 5vw) 0 max(20px, 5vw);
             font-size: 0.78rem; letter-spacing: 0.03em;
             background: linear-gradient(to bottom, rgba(8,8,11,0.85), rgba(8,8,11,0));
             pointer-events: none;
         }
         .tope-izq { display: flex; align-items: center; gap: 12px; }
+        .tope-der { display: flex; align-items: center; }
         .tope a, .tope button { pointer-events: auto; }
         .tope .marca { font-family: 'Outfit', sans-serif; color: var(--ink-dim); text-decoration: none; }
         .tope .sesion {
@@ -63,33 +64,23 @@
         }
         .tope .sesion:hover { color: var(--ink); border-color: rgba(255,255,255,0.25); }
 
-        /* ---------- Menu hamburguesa (portado de la home, CSS puro) ---------- */
-        .hamburger-menu { position: fixed; top: 20px; right: 20px; z-index: 100000; }
-        .menu-toggle { display: none; }
-        .menu-button {
-            display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end;
-            width: 28px; height: 20px; cursor: pointer; position: relative; z-index: 100001;
-        }
-        .menu-button .bar { width: 6px; height: 6px; background: rgba(224,230,237,0.85); border-radius: 50%; transition: all 0.4s cubic-bezier(.23,1,.32,1); }
-        .menu-button:hover .bar { background: var(--star); box-shadow: 0 0 10px rgba(240,228,196,0.5); }
-        .menu-toggle:checked + .menu-button .bar { border-radius: 2px; background: var(--star); }
-        .menu-toggle:checked + .menu-button .bar:nth-child(1) { width: 100%; transform: translateY(7px) rotate(45deg); }
-        .menu-toggle:checked + .menu-button .bar:nth-child(2) { opacity: 0; transform: scale(0); }
-        .menu-toggle:checked + .menu-button .bar:nth-child(3) { width: 100%; transform: translateY(-7px) rotate(-45deg); }
-        .menu-list {
-            list-style: none; padding: 0; margin: 0;
+        /* ---------- Panel "Mis cursos" (misma estetica que el menu hamburguesa) ---------- */
+        .panel-mis {
             position: fixed; top: 0; right: -100%; width: 320px; height: 100vh; height: 100svh;
             background: rgba(10,10,15,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px;
-            transition: right 0.6s cubic-bezier(.23,1,.32,1); z-index: 99999;
+            transition: right 0.6s cubic-bezier(.23,1,.32,1); z-index: 100001;
             border-left: 1px solid rgba(255,255,255,0.06); box-shadow: -10px 0 30px rgba(0,0,0,0.5);
         }
-        .menu-toggle:checked ~ .menu-list { right: 0; }
-        .menu-list li { width: 100%; text-align: center; padding: 11px 0; opacity: 0; transform: translateX(20px); transition: all 0.4s ease; }
-        .menu-toggle:checked ~ .menu-list li { opacity: 1; transform: translateX(0); }
-        .menu-list li a { color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 400; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.35; display: block; padding: 0 14px; transition: color 0.3s ease; }
-        .menu-list li a:hover { color: var(--star); }
-        @media (max-width: 768px) { .menu-list { width: 100%; } }
+        .panel-mis.open { right: 0; }
+        .panel-mis-cerrar { position: absolute; top: 14px; right: 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 1.8rem; cursor: pointer; line-height: 1; }
+        .panel-mis-kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; margin: 0 0 14px; }
+        .panel-mis a { display: block; padding: 11px 14px; text-align: center; color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.35; opacity: 0.4; transition: color 0.3s ease, opacity 0.3s ease; }
+        .panel-mis a:hover { opacity: 0.85; }
+        .panel-mis a.mio { opacity: 1; color: var(--star); }
+        .panel-mis-logout { margin-top: 26px; background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); border-radius: 999px; padding: 9px 20px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.06em; }
+        .panel-mis-logout:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+        @media (max-width: 768px) { .panel-mis { width: 100%; } }
 
         /* ---------- Intro ---------- */
         .intro {
@@ -293,15 +284,6 @@
         .pie a:hover { color: var(--star); }
 
         /* ---------- Boton persistente + drawer ---------- */
-        .btn-lista {
-            position: fixed; right: 16px; bottom: 16px; z-index: 40;
-            background: rgba(18,18,24,0.85); backdrop-filter: blur(10px);
-            border: 1px solid var(--rule); color: var(--ink);
-            padding: 12px 17px; border-radius: 999px; cursor: pointer;
-            font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.04em;
-            display: flex; align-items: center; gap: 9px;
-        }
-        .btn-lista:hover { border-color: rgba(255,255,255,0.25); }
 
         .drawer { position: fixed; inset: 0; z-index: 50; background: rgba(4,4,6,0.55); backdrop-filter: blur(3px); display: flex; justify-content: flex-end; }
         .drawer[hidden] { display: none; }
@@ -439,7 +421,6 @@
         <div class="tope-izq">
             <a href="/" class="marca">Seba Bru</a>
             <button id="btn-login" class="sesion" style="display:none;">Ingresar</button>
-            <button id="btn-logout" class="sesion" style="display:none;">Cerrar sesión</button>
         </div>
 
         <!-- Indice de cursos: entre "Ingresar" y el menu hamburgues, para ir
@@ -456,25 +437,12 @@
             </svg>
             <p class="ilbl" id="ilbl"></p>
         </div>
-    </div>
 
-    <nav class="hamburger-menu">
-        <input type="checkbox" id="menu-toggle" class="menu-toggle">
-        <label for="menu-toggle" class="menu-button" aria-label="Abrir menú">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </label>
-        <ul class="menu-list">
-            <li><a href="/">Inicio</a></li>
-            <li><a href="#luna">La Luna en la carta natal</a></li>
-            <li><a href="#tarot">Tarot &mdash; Mazo Rider-Waite</a></li>
-            <li><a href="#signos">Signos</a></li>
-            <li><a href="#casas">Casas y ascendentes</a></li>
-            <li><a href="#pluton26">Plutón y los Nodos Lunares</a></li>
-            <li><a href="#lilith">Luna Negra · Lilith en la carta natal</a></li>
-        </ul>
-    </nav>
+        <div class="tope-der">
+            <button id="btn-ver-todos" class="sesion" style="display:none;">Ver todos los cursos</button>
+            <button id="btn-mis-cursos" class="sesion" style="display:none;">Mis cursos</button>
+        </div>
+    </div>
 
     <!-- ==================== INTRO ==================== -->
     <header class="intro wrap-x">
@@ -971,7 +939,6 @@
     </footer>
 
     <!-- ==================== BOTON PERSISTENTE + DRAWER ==================== -->
-    <button class="btn-lista" id="btn-lista"><i class="fa-solid fa-list-ul"></i> Ver todos los cursos</button>
 
     <div class="drawer" id="drawer-lista" hidden>
         <div class="drawer-panel">
@@ -988,6 +955,18 @@
             <a href="#escena-track" class="drawer-reset" id="drawer-reset">Reiniciar el recorrido</a>
         </div>
     </div>
+
+    <nav class="panel-mis" id="panel-mis" aria-label="Mis cursos">
+        <button class="panel-mis-cerrar" id="panel-mis-cerrar" aria-label="Cerrar">&times;</button>
+        <p class="panel-mis-kicker">Mis cursos</p>
+        <a href="#luna" data-curso="luna">La Luna en la carta natal</a>
+        <a href="#tarot" data-curso="tarot">Tarot &mdash; Mazo Rider-Waite</a>
+        <a href="#signos" data-curso="signos">Signos</a>
+        <a href="#casas" data-curso="casas">Casas y ascendentes</a>
+        <a href="#pluton26" data-curso="pluton26">Plutón y los Nodos Lunares</a>
+        <a href="#lilith" data-curso="lilith">Luna Negra · Lilith en la carta natal</a>
+        <button class="panel-mis-logout" id="btn-logout">Cerrar sesión</button>
+    </nav>
 
     <!-- ==================== MODAL DE LOGIN ==================== -->
     <div id="login-modal" class="modal-overlay">
@@ -1175,14 +1154,6 @@
             pt.addEventListener('mouseenter', function () { ilbl.textContent = nombreDe(pt.dataset.curso); });
         });
 
-        // Cerrar el menu hamburguesa al elegir una opcion
-        document.querySelectorAll('.menu-list a').forEach(function (a) {
-            a.addEventListener('click', function () {
-                var mt = document.getElementById('menu-toggle');
-                if (mt) mt.checked = false;
-            });
-        });
-
         // Arrancar arriba salvo link directo a un curso (#luna, etc.)
         var hashInicial = location.hash.replace('#', '');
         var esCursoInicial = !!hashInicial && BLOQUES.some(function (b) {
@@ -1216,7 +1187,7 @@
         var drawer = document.getElementById('drawer-lista');
         function openDrawer() { drawer.hidden = false; requestAnimationFrame(function () { drawer.classList.add('open'); }); }
         function closeDrawer() { drawer.classList.remove('open'); setTimeout(function () { drawer.hidden = true; }, 280); }
-        document.getElementById('btn-lista').addEventListener('click', openDrawer);
+        document.getElementById('btn-ver-todos').addEventListener('click', openDrawer);
         document.getElementById('drawer-close').addEventListener('click', closeDrawer);
         drawer.addEventListener('click', function (e) { if (e.target === drawer) closeDrawer(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
@@ -1246,7 +1217,9 @@
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             document.getElementById('btn-login').style.display  = user ? 'none' : 'inline-block';
-            document.getElementById('btn-logout').style.display = user ? 'inline-block' : 'none';
+            document.getElementById('btn-mis-cursos').style.display = user ? 'inline-block' : 'none';
+            document.getElementById('btn-ver-todos').style.display = user ? 'none' : 'inline-block';
+            if (!user) cerrarPanelMis();
 
             if (user) {
                 CURSOS.forEach(c => {
@@ -1256,6 +1229,11 @@
                 try {
                     const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
                     const cursos = snap.exists() ? (snap.data().cursos || []) : [];
+                    document.querySelectorAll('#panel-mis a[data-curso]').forEach(a => {
+                        const mio = cursos.includes(a.dataset.curso);
+                        a.classList.toggle('mio', mio);
+                        a.setAttribute('href', mio ? a.dataset.curso + '/' : '#' + a.dataset.curso);
+                    });
                     CURSOS.forEach(c => {
                         if (cursos.includes(c.id)) {
                             document.getElementById(`seccion-compra-${c.id}`)?.style.setProperty('display', 'none');
@@ -1276,6 +1254,12 @@
         const abrirModal  = () => modal.classList.add('active');
         const cerrarModal = () => modal.classList.remove('active');
         document.getElementById('btn-login').addEventListener('click', abrirModal);
+        const panelMis = document.getElementById('panel-mis');
+        function cerrarPanelMis() { panelMis.classList.remove('open'); }
+        document.getElementById('btn-mis-cursos').addEventListener('click', () => panelMis.classList.add('open'));
+        document.getElementById('panel-mis-cerrar').addEventListener('click', cerrarPanelMis);
+        panelMis.querySelectorAll('a').forEach(a => a.addEventListener('click', cerrarPanelMis));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarPanelMis(); });
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
         document.getElementById('close-modal').addEventListener('click', cerrarModal);
         modal.addEventListener('click', e => { if (e.target === modal) cerrarModal(); });

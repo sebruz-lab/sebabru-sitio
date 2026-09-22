@@ -54,6 +54,13 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
 }
 
+// Al volver con "atrás" el navegador restaura la página tal cual estaba
+// (bfcache), con el overlay "Ingresando..." todavía prendido.
+window.addEventListener('pageshow', (e) => {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay && e.persisted) overlay.style.display = 'none';
+});
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTOS DE LA INTERFAZ ---

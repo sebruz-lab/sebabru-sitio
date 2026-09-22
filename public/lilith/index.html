@@ -737,6 +737,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                     <button type="button" data-ir-a-estacion="4">Un curso</button>
                     <button type="button" data-ir-a-estacion="3">Un video</button>
                 </nav>
+                <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
                             </section>
             </article>
 
@@ -1743,6 +1744,20 @@ html, body { margin: 0; padding: 0; background: #000; }
         el.addEventListener('click', function () {
             irAEstacion(parseInt(el.dataset.irAEstacion, 10) || 0);
         });
+    });
+
+    // Al tocar/scrollear el texto de una estacion, la camara se alinea
+    // suavemente al comienzo de esa estacion (mismo patron que el home,
+    // ver script.js) — reusa irAEstacion, no toca frame()/FASES/ESTACIONES.
+    document.querySelectorAll('.efecto-texto').forEach(function (caja) {
+        function alinearCamara() {
+            var bloqueEl = caja.closest('.bloque');
+            if (bloqueEl && bloqueEl.dataset.i !== undefined) {
+                irAEstacion(parseInt(bloqueEl.dataset.i, 10) || 0);
+            }
+        }
+        caja.addEventListener('wheel', alinearCamara, { passive: true });
+        caja.addEventListener('touchstart', alinearCamara, { passive: true });
     });
 
     window.addEventListener('scroll', function () {
