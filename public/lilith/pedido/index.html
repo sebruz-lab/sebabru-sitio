@@ -6,6 +6,13 @@
     <title>Datos de envío | Luna Negra</title>
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-GDLRMR5D57');
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -222,6 +229,9 @@
 
         if (metodo === 'mp') {
             document.getElementById('metodo-texto').textContent = 'Pago con Mercado Pago recibido';
+            // Mercado Pago ya confirmo el pago del lado del gateway antes de
+            // mandar para aca (back_url de exito) — es el punto real de venta.
+            if (window.gtag) gtag('event', 'compra_confirmada', { curso: 'libro-lilith', metodo: 'mp', value: 35000, currency: 'ARS' });
         } else if (metodo === 'transferencia') {
             document.getElementById('metodo-texto').textContent = 'Transferencia bancaria';
             document.getElementById('transfer-nota').style.display = 'block';

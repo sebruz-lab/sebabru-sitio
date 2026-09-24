@@ -1342,6 +1342,17 @@
             });
         });
 
+        // Si la persona vuelve con "atras" despues de ir a pagar (Mercado
+        // Pago/PayPal), el navegador puede restaurar esta pagina desde el
+        // bfcache con el overlay "Preparando tu pago..." todavia visible.
+        // Lo apagamos al volver.
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                const loading = document.getElementById('loading-pago');
+                if (loading) loading.style.display = 'none';
+            }
+        });
+
         // Eventos GA4 por curso y metodo (senal intermedia entre "entro" y "compro").
         CURSOS.forEach(c => {
             const esRegalo = () => !!document.getElementById(`regalo-${c.id}`)?.checked;
