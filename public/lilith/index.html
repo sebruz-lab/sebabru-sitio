@@ -761,7 +761,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
             </section>
             <section class="section-container fade-in-element" id="comprar" style="padding: 60px 20px; text-align: center;">
-                <h2 class="luna-accent" style="text-align: center;">Dónde comprar el libro</h2>
+                <h2 class="luna-accent" style="text-align: center;">Cómo comprar el libro</h2>
                 <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
                     Seleccioná tu región y desplegá las opciones disponibles.
                 </p>
@@ -1605,13 +1605,15 @@ html, body { margin: 0; padding: 0; background: #000; }
 
     var blurPrev = [];
 
-    // Resistencia del scroll: igual que en el home (script.js), el
-    // recorrido persigue con un poco de peso el punto que marca el
-    // scroll en vez de saltar directo — RESISTENCIA mas chico = mas
-    // pesado/lento. pActual se actualiza en un rAF propio que sigue
-    // corriendo aunque el scroll este quieto, para terminar de alcanzar
-    // el objetivo.
-    var RESISTENCIA = 0.035;
+    // Resistencia del scroll: mismo mecanismo que el home (persigue con
+    // peso el punto que marca el scroll en vez de saltar directo;
+    // pActual se actualiza en un rAF propio que sigue corriendo aunque
+    // el scroll este quieto), pero con un numero propio — el recorrido
+    // de esta pagina es mucho mas corto que el de la home (675vh contra
+    // 1500vh), asi que la misma resistencia del home se sentia pesada
+    // para tan poco recorrido, sobre todo para salir del titulo.
+    // RESISTENCIA mas chico = mas pesado/lento.
+    var RESISTENCIA = 0.09;
     var pActual = null;
 
     function cargarIframes(el) {
@@ -1770,14 +1772,28 @@ html, body { margin: 0; padding: 0; background: #000; }
         });
     });
 
-    // Al tocar/scrollear el texto de una estacion, la camara se alinea
-    // suavemente al comienzo de esa estacion (mismo patron que el home,
-    // ver script.js) — reusa irAEstacion, no toca frame()/FASES/ESTACIONES.
+    // Al tocar/scrollear el texto de una estacion, la camara se alinea a
+    // esa estacion — pero NO al comienzo de la estadia (ahi el texto
+    // recien empieza a aparecer, con la imagen todavia tapando todo), eso
+    // hacia que intentar leer te devolviera siempre a la imagen. Alinea
+    // en cambio cerca del final de la estadia, donde el texto ya esta
+    // practicamente en su maxima opacidad.
+    function irAFocoDeEstacion(i) {
+        var maxScroll = Math.max(1, track.offsetHeight - window.innerHeight);
+        var destino = 0;
+        for (var k = 0; k < FASES.length; k++) {
+            if (FASES[k].tipo === 'estadia' && FASES[k].est === i) {
+                destino = FASES[k].ini + (FASES[k].fin - FASES[k].ini) * 0.95;
+                break;
+            }
+        }
+        window.scrollTo({ top: destino * maxScroll, behavior: 'smooth' });
+    }
     document.querySelectorAll('.efecto-texto').forEach(function (caja) {
         function alinearCamara() {
             var bloqueEl = caja.closest('.bloque');
             if (bloqueEl && bloqueEl.dataset.i !== undefined) {
-                irAEstacion(parseInt(bloqueEl.dataset.i, 10) || 0);
+                irAFocoDeEstacion(parseInt(bloqueEl.dataset.i, 10) || 0);
             }
         }
         caja.addEventListener('wheel', alinearCamara, { passive: true });
