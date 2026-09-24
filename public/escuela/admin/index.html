@@ -420,6 +420,16 @@
                     <i class="fa-solid fa-arrow-rotate-right"></i> Ver videos actuales
                 </button>
             </div>
+
+            <div class="input-row" style="margin-bottom:20px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px;">
+                <input type="text" id="vid-nueva-clase" placeholder="URL o ID de la clase nueva (se agrega al final, sin tocar las demás)"
+                    style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); padding:10px 13px; border-radius:8px; font-size:0.85rem; font-family:monospace;">
+                <button class="btn btn-primary" id="btn-agregar-clase">
+                    <i class="fa-solid fa-plus"></i> Agregar clase
+                </button>
+            </div>
+
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:10px;">Para reordenar o corregir la lista completa, usá el cuadro de abajo (esto sí reemplaza todo):</p>
             <textarea id="vid-lista" rows="8" placeholder="https://youtu.be/-gs3kRKh2TI&#10;https://youtu.be/WoZFbKXO1OI&#10;..."
                 style="width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); padding:10px 13px; border-radius:8px; font-size:0.85rem; font-family:monospace; resize:vertical;"></textarea>
             <button class="btn btn-primary" id="btn-guardar-videos" style="margin-top:12px;">
@@ -437,7 +447,7 @@
     import { getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import {
-        doc, getDoc, setDoc, updateDoc, deleteDoc,
+        doc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion,
         collection, getDocs, addDoc, Timestamp, orderBy, query, limit
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -1094,6 +1104,38 @@
         } catch (e) {
             msg.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
         }
+    });
+
+    // Agrega UNA clase al final de cursos/{id}.videos sin tocar las demas
+    // (arrayUnion es atomico: no hace falta leer la lista antes, asi que
+    // no hay riesgo de pisar un video que otra pestaña haya agregado
+    // mientras tanto). Pensado para el uso semanal: cargar una clase por
+    // vez, varias veces por semana, sin repegar la lista completa.
+    document.getElementById('btn-agregar-clase').addEventListener('click', async () => {
+        const cursoId = document.getElementById('vid-curso').value;
+        const input = document.getElementById('vid-nueva-clase');
+        const btn = document.getElementById('btn-agregar-clase');
+        const msg = document.getElementById('videos-msg');
+
+        const nuevoId = extraerVideoId(input.value.trim());
+        if (!nuevoId) {
+            msg.innerHTML = '<div class="alert alert-error">No reconocí eso como un video valido (YouTube o Bunny). Revisá el formato.</div>';
+            return;
+        }
+
+        const nombreCurso = CURSOS.find(c => c.id === cursoId)?.nombre || cursoId;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Agregando...';
+        try {
+            await setDoc(doc(db, 'cursos', cursoId), { videos: arrayUnion(nuevoId) }, { merge: true });
+            msg.innerHTML = `<div class="alert alert-success"><i class="fa-solid fa-check"></i> Clase agregada a <strong>${nombreCurso}</strong>.</div>`;
+            input.value = '';
+            document.getElementById('btn-cargar-videos-actuales').click();
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar clase';
     });
 
     document.getElementById('btn-guardar-videos').addEventListener('click', async () => {
