@@ -710,8 +710,8 @@
    LIBRA THEME
    ========================================= */
 :root {
-    --libra-primary: #c97b9e;
-    --libra-bg-light: rgba(180, 100, 140, 0.15);
+    --libra-primary: #c9a83e;
+    --libra-bg-light: rgba(201, 168, 62, 0.15);
 }
 
 .signo-header.libra-theme {
@@ -734,12 +734,12 @@
 .desplegable-item.libra-theme[open] summary .icon-initial svg {
     fill: var(--libra-primary);
     transform: scale(1.1);
-    filter: drop-shadow(0 0 5px rgba(180, 100, 140, 0.5));
+    filter: drop-shadow(0 0 5px rgba(201, 168, 62, 0.5));
 }
 .desplegable-item.libra-theme:hover summary h3,
 .desplegable-item.libra-theme[open] summary h3 {
     color: var(--libra-primary);
-    text-shadow: 0 0 10px rgba(180, 100, 140, 0.3);
+    text-shadow: 0 0 10px rgba(201, 168, 62, 0.3);
 }
 .desplegable-item.libra-theme:hover summary .caret,
 .desplegable-item.libra-theme[open] summary .caret {
@@ -747,8 +747,8 @@
 }
 .desplegable-item.libra-theme[open] {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
-                0 0 20px rgba(180, 100, 140, 0.15);
-    border-color: rgba(180, 100, 140, 0.3);
+                0 0 20px rgba(201, 168, 62, 0.15);
+    border-color: rgba(201, 168, 62, 0.3);
 }
 
 .visualizacion.libra {
@@ -763,4 +763,4 @@
 
 .signo-card.libra-theme:hover .signo-card-symbol,
 .signo-card.libra-theme:hover h3 { color: var(--libra-primary); }
-.signo-card.libra-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(180, 100, 140, 0.5); }
+.signo-card.libra-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(201, 168, 62, 0.5); }
