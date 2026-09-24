@@ -599,6 +599,8 @@ html, body { margin: 0; padding: 0; background: #000; }
     max-height: 82vh;
     overflow-y: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     backface-visibility: hidden;
     will-change: opacity, filter;
     text-align: center;
@@ -757,11 +759,11 @@ html, body { margin: 0; padding: 0; background: #000; }
             </article>
 
             <article class="bloque" data-i="2">
-            <section class="libro-hero-img" id="libro-hero">
-                <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
-            </section>
             <section class="section-container fade-in-element" id="comprar" style="padding: 60px 20px; text-align: center;">
                 <h2 class="luna-accent" style="text-align: center;">Cómo comprar el libro</h2>
+                <section class="libro-hero-img" id="libro-hero">
+                    <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
+                </section>
                 <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
                     Seleccioná tu región y desplegá las opciones disponibles.
                 </p>

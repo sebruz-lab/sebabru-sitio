@@ -577,8 +577,10 @@ a.block-bios        { --section-c: var(--secondary-color); }
     max-height: 60vh;
     padding: 30px; 
     padding-bottom: 180px !important; 
-    overflow-y: auto; 
+    overflow-y: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     transition: none !important;
     will-change: transform, opacity;
     opacity: var(--scroll-progress);
