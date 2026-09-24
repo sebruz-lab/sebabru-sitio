@@ -1789,15 +1789,17 @@ html, body { margin: 0; padding: 0; background: #000; }
         }
         window.scrollTo({ top: destino * maxScroll, behavior: 'smooth' });
     }
+    // Solo "wheel" (mouse/trackpad). En touch NO lo enganchamos: un
+    // scrollTo() por JS arrancando justo en touchstart compite con el
+    // arrastre nativo del dedo mientras la persona todavia esta
+    // scrolleando el texto, y se siente como que el scroll "no responde".
     document.querySelectorAll('.efecto-texto').forEach(function (caja) {
-        function alinearCamara() {
+        caja.addEventListener('wheel', function () {
             var bloqueEl = caja.closest('.bloque');
             if (bloqueEl && bloqueEl.dataset.i !== undefined) {
                 irAFocoDeEstacion(parseInt(bloqueEl.dataset.i, 10) || 0);
             }
-        }
-        caja.addEventListener('wheel', alinearCamara, { passive: true });
-        caja.addEventListener('touchstart', alinearCamara, { passive: true });
+        }, { passive: true });
     });
 
     // El recorrido corre en su propio loop continuo (no solo al
