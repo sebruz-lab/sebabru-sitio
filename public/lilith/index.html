@@ -1548,7 +1548,16 @@ html, body { margin: 0; padding: 0; background: #000; }
     for (var q = 0; q < N; q++) dots.appendChild(document.createElement('span'));
     var dotEls = Array.prototype.slice.call(dots.querySelectorAll('span'));
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // En celular el recorrido 3D queda desactivado: el scroll tactil
+    // anidado dentro de un elemento con "perspective" no se reconoce de
+    // forma confiable en varios navegadores moviles (la caja tiene todo
+    // el CSS correcto para scrollear, pero el gesto nunca llega a
+    // capturarla) — no es algo que una propiedad CSS pueda arreglar. En
+    // vez de pelear contra eso, en celular mostramos todo apilado con
+    // scroll de pagina normal, igual que ya se hacia para
+    // prefers-reduced-motion. En compu el recorrido 3D sigue intacto.
+    var esCelular = window.innerWidth <= 768;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || esCelular) {
         viewport.style.position = 'static';
         viewport.style.height = 'auto';
         viewport.style.perspective = 'none';
@@ -1556,12 +1565,55 @@ html, body { margin: 0; padding: 0; background: #000; }
         world.style.transform = 'none';
         esfera.style.display = 'none';
         polvo.style.display = 'none';
+        dots.style.display = 'none';
         track.style.height = 'auto';
         bloques.forEach(function (b) {
-            b.style.position = 'static';
+            // style.css (compartido con la home) trae ".bloque { position:
+            // absolute !important; left/top: 50% !important; margin: 0
+            // !important; }" de SU PROPIO recorrido (mismo nombre de
+            // clase) — un style.position= comun pierde contra eso, hace
+            // falta !important para ganarle.
+            b.style.setProperty('position', 'static', 'important');
+            b.style.setProperty('left', 'auto', 'important');
+            b.style.setProperty('top', 'auto', 'important');
+            b.style.setProperty('margin', '60px auto', 'important');
             b.style.transform = 'none';
             b.style.maxHeight = 'none';
-            b.style.margin = '60px auto';
+            b.style.overflow = 'visible';
+            b.style.opacity = '1';
+            b.style.filter = 'none';
+            b.style.pointerEvents = 'auto';
+            // El efecto imagen->texto depende de --scroll-progress, que
+            // viene de frame() (no corre aca). Se muestra todo destapado
+            // y en flujo normal, sin depender de esa variable.
+            b.querySelectorAll('.efecto-shrink-container, .efecto-shrink-sticky, .efecto-texto, .efecto-imagen, .efecto-visual').forEach(function (el2) {
+                el2.style.setProperty('height', 'auto', 'important');
+                el2.style.setProperty('max-height', 'none', 'important');
+                el2.style.setProperty('position', 'static', 'important');
+                el2.style.setProperty('transform', 'none', 'important');
+                el2.style.setProperty('opacity', '1', 'important');
+            });
+        });
+        // Sin frame() corriendo no hay quien cargue los videos por
+        // cercania: los cargamos con un IntersectionObserver simple.
+        var obsFallback = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+                if (en.isIntersecting && en.target.dataset.src) {
+                    en.target.src = en.target.dataset.src;
+                    en.target.removeAttribute('data-src');
+                    obsFallback.unobserve(en.target);
+                }
+            });
+        }, { rootMargin: '200px' });
+        document.querySelectorAll('iframe[data-src]').forEach(function (ifr) { obsFallback.observe(ifr); });
+        // Los accesos del hero ("Un libro", etc.) ya no pueden usar
+        // irAEstacion (necesita FASES, que aca no se arma) — hacen scroll
+        // simple al bloque correspondiente.
+        document.querySelectorAll('[data-ir-a-estacion]').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var idx = parseInt(el.dataset.irAEstacion, 10) || 0;
+                if (bloques[idx]) bloques[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
         });
         return;
     }
