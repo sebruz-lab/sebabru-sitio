@@ -557,87 +557,57 @@
 /* ════════ Capa 3D del prototipo ════════ */
 html, body { margin: 0; padding: 0; background: #000; }
 
-/* 5 estadias + 4 viajes: hace falta mas recorrido que antes, porque cada
-   parada ahora tiene su propio tramo donde se despliega el contenido. */
-.track { position: relative; height: 675vh; }
-
-.viewport {
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100vh;
-    overflow: hidden;
+/* ─── Recorrido espacial 2D, igual mecanismo que la home (mismo
+       #escena-track/.escena/.capa-lejana/.universo/.bloque[data-x][data-y],
+       misma funcion frame() con resistencia+DWELL en script propio de esta
+       pagina). El 3D con perspective se saco por completo: el scroll
+       tactil anidado (leer el texto largo, la caja de compra) no se
+       reconocia de forma confiable en celulares reales dentro de un
+       contexto con "perspective" — con translate() 2D no pasa. ─── */
+.escena-track { position: relative; height: 500vh; }
+.escena {
+    position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
     background: #000;
-    perspective: 1400px;
-    perspective-origin: 50% 50%;
 }
-
-.world {
-    position: absolute; left: 50%; top: 50%;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
-    will-change: transform;
-}
-
-.esfera {
-    position: absolute; left: 0; top: 0;
-    /* Clave: con el origen en el centro, el translate(-50%,-50%) se mide
-       desde un punto que despues rota, y el objeto termina desplazado
-       (tamaño/2)·(1−cos yaw). Con el origen en 0 0 el centro cae exacto
-       en las coordenadas del mundo. */
-    transform-origin: 0 0;
-    border-radius: 50%;
-    background: radial-gradient(circle at 42% 36%, #17171b 0%, #0b0b0e 34%, #050506 62%, #000 100%);
-    box-shadow: inset -80px -80px 260px rgba(0,0,0,0.95), 0 0 300px 60px rgba(255,255,255,0.022);
-}
-
-.polvo { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
-.polvo i { position: absolute; left: 0; top: 0; width: 2px; height: 2px; border-radius: 50%; background: #fff; }
+.capa-lejana, .universo { position: absolute; inset: 0; will-change: transform; }
+.capa-lejana { z-index: 0; }
+.universo { z-index: 1; }
 
 .bloque {
-    position: absolute; left: 0; top: 0;
-    transform-origin: 0 0;   /* ver comentario en .esfera */
+    position: absolute !important; left: 50% !important; top: 50% !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%);
+    opacity: 0; pointer-events: none;
     width: min(92vw, 640px);
+    text-align: center;
+    z-index: 2;
+}
+.bloque--intro { width: min(92vw, 640px); }
+/* #comprar y #video-bloque tienen mucho mas contenido del que entra en
+   una pantalla (acordeon de 15 tiendas, tablas largas) — a diferencia de
+   los .efecto-shrink-container (que resuelven esto con el scroll interno
+   de .efecto-texto), estos necesitan su propio scroll interno. Ya no
+   viven dentro de un contexto 3D con "perspective", asi que el scroll
+   tactil anidado ahora se reconoce bien en celular real. */
+.bloque--ancho {
+    width: min(94vw, 900px);
     max-height: 82vh;
     overflow-y: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-    backface-visibility: hidden;
-    will-change: opacity, filter;
-    text-align: center;
 }
-.bloque::-webkit-scrollbar { display: none; }
-.bloque table { margin-left: auto; margin-right: auto; }
+.bloque--ancho::-webkit-scrollbar { display: none; }
 
-/* ─── El efecto de main (imagen enfocada → se corre → aparece el texto)
-       se conserva tal cual: NO pisamos los transform de .efecto-imagen ni
-       de .efecto-texto. Lo unico que ajustamos es la geometria del
-       contenedor, porque en la pagina real mide 190vh y acá tiene que
-       entrar en una tarjeta. El --scroll-progress lo maneja el recorrido
-       durante la estadia en cada parada (ver frame()). ─── */
-/* El efecto de main necesita un escenario del ancho de la pantalla: el
-   texto se desplaza con translateX relativo a SU PROPIO ancho (de 100% a
-   45%), asi que en una tarjeta angosta se sale de la caja y el overflow
-   lo corta. Le damos al bloque el mismo espacio que tiene en main y NO
-   tocamos ni la imagen ni el texto: que hagan exactamente lo de siempre,
-   en compu y en celular. */
-.bloque:has(.efecto-shrink-container) {
+.efecto-shrink-container.bloque {
     width: min(96vw, 1100px);
-    max-height: none;
-    overflow: visible;
+    height: auto;
 }
-.bloque .efecto-shrink-container {
-    position: static !important;
-    height: auto !important;
-}
-.bloque .efecto-shrink-sticky {
-    position: relative !important;
-    top: auto !important;
-    height: 85vh !important;
+.efecto-shrink-container.bloque .efecto-shrink-sticky {
+    position: static; height: auto; min-height: 58vh;
 }
 
-/* Lo unico que agregamos es el glossy detras del texto. No uso
-   backdrop-filter: adentro de un elemento con opacity animada y
-   transform 3D los navegadores lo descartan. */
+/* Lo unico que agregamos es el glossy detras del texto. */
 .bloque .efecto-texto {
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.08);
@@ -660,10 +630,6 @@ html, body { margin: 0; padding: 0; background: #000; }
     overflow: visible !important;
 }
 .bloque .lilith-banner::before { display: none; }
-.bloque .parallax-divider {
-    background-attachment: scroll !important;
-    padding: 20px !important;
-}
 .bloque .section-container { padding: 24px !important; max-width: none !important; }
 .bloque .compra-accordion { margin-top: 18px; }
 
@@ -681,16 +647,6 @@ html, body { margin: 0; padding: 0; background: #000; }
     transition: color 0.3s ease;
 }
 .accesos button:hover { color: #fff; }
-
-/* ─── Progreso ─── */
-.dots {
-    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-    display: flex; gap: 10px; z-index: 5;
-    opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
-}
-.dots.on { opacity: 1; }
-.dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.22); transition: background 0.3s, transform 0.3s; }
-.dots span.here { background: #fff; transform: scale(1.5); }
 
 /* ─── Cierre: fuera del recorrido, flujo normal. Hay que neutralizar los
        efectos que dependen de --scroll-progress / de script.js, que aca no
@@ -724,27 +680,25 @@ html, body { margin: 0; padding: 0; background: #000; }
         </ul>
     </nav>
 
-<div class="track" id="track">
-    <div class="viewport" id="viewport">
-        <div class="world" id="world">
-            <div class="esfera" id="esfera"></div>
-            <div class="polvo" id="polvo"></div>
+<div class="escena-track" id="escena-track">
+    <section class="escena" id="escena" aria-label="Recorrido por el libro">
+        <div class="capa-lejana" id="capa-lejana" aria-hidden="true"></div>
+        <div class="universo" id="universo">
 
-            <article class="bloque" data-i="0">
+            <article class="bloque bloque--intro" id="bloque-hero" data-x="0" data-y="0">
             <section class="lilith-banner">
                 <h1>Luna Negra</h1>
                 <h2>Lilith en la Carta Natal o la potencia del vacío</h2>
                 <nav class="accesos">
-                    <button type="button" data-ir-a-estacion="2">Un libro</button>
-                    <button type="button" data-ir-a-estacion="4">Un curso</button>
-                    <button type="button" data-ir-a-estacion="3">Un video</button>
+                    <button type="button" data-ir-a-bloque="comprar">Un libro</button>
+                    <button type="button" data-ir-a-bloque="seminario">Un curso</button>
+                    <button type="button" data-ir-a-bloque="video-bloque">Un video</button>
                 </nav>
                 <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
                             </section>
             </article>
 
-            <article class="bloque" data-i="1">
-            <section class="efecto-shrink-container" id="sinopsis">
+            <section class="efecto-shrink-container bloque" id="sinopsis" data-x="420" data-y="-450">
                 <div class="efecto-shrink-sticky">
                     <img src="../libros/img/LN1.jpeg" alt="Luna Negra Libro" class="efecto-imagen">
                     <div class="efecto-texto">
@@ -756,10 +710,8 @@ html, body { margin: 0; padding: 0; background: #000; }
                     </div>
                 </div>
             </section>
-            </article>
 
-            <article class="bloque" data-i="2">
-            <section class="section-container fade-in-element" id="comprar" style="padding: 60px 20px; text-align: center;">
+            <section class="section-container fade-in-element bloque bloque--ancho" id="comprar" data-x="-310" data-y="-900" style="padding: 60px 20px; text-align: center;">
                 <h2 class="luna-accent" style="text-align: center;">Cómo comprar el libro</h2>
                 <section class="libro-hero-img" id="libro-hero">
                     <img src="../img/libroln.webp" alt="Luna Negra, Lilith en la carta natal — libro" loading="lazy">
@@ -935,9 +887,8 @@ html, body { margin: 0; padding: 0; background: #000; }
 
                 </div>
             </section>
-            </article>
 
-            <article class="bloque" data-i="3">
+            <article class="bloque bloque--ancho" id="video-bloque" data-x="37" data-y="-1350">
             <section class="section-container video-section fade-in-element" id="video">
                 <div class="video-container">
                     <iframe
@@ -1284,14 +1235,11 @@ html, body { margin: 0; padding: 0; background: #000; }
             </section>
             </article>
 
-            <article class="bloque" data-i="4">
-            <section class="parallax-divider">
-                <h2 class="parallax-title">Formación abierta</h2>
-            </section>
-            <section class="efecto-shrink-container" id="seminario">
+            <section class="efecto-shrink-container bloque" id="seminario" data-x="256" data-y="-1800">
                 <div class="efecto-shrink-sticky">
                     <img src="../img/seminarioln.webp" alt="Seminario Luna Negra" class="efecto-imagen">
                     <div class="efecto-texto">
+                        <p class="parallax-title" style="color:var(--luna-theme); text-transform:uppercase; letter-spacing:0.12em; font-size:0.8rem; margin:0 0 8px;">Formación abierta</p>
                         <h3>🌚 Seminario</h3>
                         <h2>Luna Negra · Lilith en la carta natal</h2>
                         <p>Este seminario de seis encuentros está pensado tanto para astrólogxs profesionales como para personas curiosas que quieren conocer cómo funciona este punto astrológico en su propia carta natal. En estos seis encuentros, abordaremos sus mitos, sus arquetipos, y su funcionamiento dentro de la carta natal: cómo pensarla, cómo servirnos de ella para el autoconocimiento y cómo utilizarla en una lectura. También recorreremos sus particularidades por signos, casas y aspectos.</p>
@@ -1412,11 +1360,9 @@ html, body { margin: 0; padding: 0; background: #000; }
                     </div>
                 </div>
             </section>
-            </article>
-        </div>
-    </div>
 
-    <div class="dots" id="dots"></div>
+        </div>
+    </section>
 </div>
 
 <div class="cierre">
@@ -1430,7 +1376,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
             <section class="section-container" style="padding: 20px 20px 90px; text-align: center;">
                 <div class="grupo-botones-sutiles" style="justify-content:center;">
-                    <button type="button" class="btn-sutil" data-ir-a-estacion="2" style="cursor:pointer; font-family:inherit;">Comprar el libro</button>
+                    <button type="button" class="btn-sutil" data-ir-a-bloque="comprar" style="cursor:pointer; font-family:inherit;">Comprar el libro</button>
                 </div>
             </section>
 
@@ -1480,195 +1426,89 @@ html, body { margin: 0; padding: 0; background: #000; }
 (function () {
     'use strict';
 
-    // ══════════ CONSTANTES DE AJUSTE ══════════
-    var ESFERA_R = 2600;   // radio visual de la esfera
-    var FOCO     = 620;    // distancia camara → bloque cuando esta enfocado
-    var ALCANCE  = 1400;   // cuanto se puede desviar del foco antes de desaparecer
-    var PERSP    = 1400;
-
-    var ESTACIONES = [
-        { ang:   0, rad: 4300, y:    0 },  // cabecera
-        { ang: 110, rad: 3050, y: -380 },  // tapa + donde comprar el libro
-        { ang: 215, rad: 1750, y:  260 },  // sinopsis (adentro de la esfera)
-        { ang: 330, rad: 3700, y: -620 },  // video + donde esta lilith (salimos)
-        { ang: 440, rad: 1600, y:  340 }   // formacion abierta + seminario (profundo)
-    ];
-
-    var RAD = Math.PI / 180;
-    var track    = document.getElementById('track');
-    var viewport = document.getElementById('viewport');
-    var world    = document.getElementById('world');
-    var esfera   = document.getElementById('esfera');
-    var polvo    = document.getElementById('polvo');
-    var dots     = document.getElementById('dots');
-    var bloques  = Array.prototype.slice.call(document.querySelectorAll('.bloque'));
-    var N = ESTACIONES.length;
-
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-    function lerp(a, b, t) { return a + (b - a) * t; }
     function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-    function posCamara(ang, rad) {
-        return { x: Math.sin(ang * RAD) * rad, z: Math.cos(ang * RAD) * rad };
-    }
+    function clamp01(v) { return Math.max(0, Math.min(1, v)); }
 
-    esfera.style.width  = (ESFERA_R * 2) + 'px';
-    esfera.style.height = (ESFERA_R * 2) + 'px';
+    var escenaTrack = document.getElementById('escena-track');
+    var escena = document.getElementById('escena');
+    var universo = document.getElementById('universo');
+    var capaLejana = document.getElementById('capa-lejana');
+    var BLOQUES = Array.prototype.slice.call(escenaTrack.querySelectorAll('.bloque'));
+    var POS = BLOQUES.map(function (b) { return [parseFloat(b.dataset.x) || 0, parseFloat(b.dataset.y) || 0]; });
+    var NB = BLOQUES.length;
+    var PARALLAX_MAPA = 0.45;
 
-    // Cada bloque se planta justo delante de la camara de su estacion.
-    var POS = [];
-    ESTACIONES.forEach(function (st, i) {
-        var cam = posCamara(st.ang, st.rad);
-        var dirX = -Math.sin(st.ang * RAD);
-        var dirZ = -Math.cos(st.ang * RAD);
-        var p = { x: cam.x + dirX * FOCO, y: st.y, z: cam.z + dirZ * FOCO, yaw: st.ang };
-        POS.push(p);
-        if (bloques[i]) {
-            bloques[i].style.transform =
-                'translate3d(' + p.x + 'px,' + p.y + 'px,' + p.z + 'px) ' +
-                'rotateY(' + p.yaw + 'deg) translate(-50%,-50%)';
-        }
-    });
-
-    var CANT_POLVO = window.innerWidth < 700 ? 70 : 160;
-    (function sembrarPolvo() {
-        var frag = document.createDocumentFragment();
-        for (var i = 0; i < CANT_POLVO; i++) {
-            var a = Math.random() * 360;
-            var r = 1600 + Math.random() * 5600;
-            var p = posCamara(a, r);
-            var y = (Math.random() - 0.5) * 4200;
-            var d = document.createElement('i');
-            d.style.transform = 'translate3d(' + p.x + 'px,' + y + 'px,' + p.z + 'px)';
-            d.style.opacity = (0.25 + Math.random() * 0.55).toFixed(2);
-            frag.appendChild(d);
-        }
-        polvo.appendChild(frag);
-    })();
-
-    for (var q = 0; q < N; q++) dots.appendChild(document.createElement('span'));
-    var dotEls = Array.prototype.slice.call(dots.querySelectorAll('span'));
-
-    // En celular el recorrido 3D queda desactivado: el scroll tactil
-    // anidado dentro de un elemento con "perspective" no se reconoce de
-    // forma confiable en varios navegadores moviles (la caja tiene todo
-    // el CSS correcto para scrollear, pero el gesto nunca llega a
-    // capturarla) — no es algo que una propiedad CSS pueda arreglar. En
-    // vez de pelear contra eso, en celular mostramos todo apilado con
-    // scroll de pagina normal, igual que ya se hacia para
-    // prefers-reduced-motion. En compu el recorrido 3D sigue intacto.
-    var esCelular = window.innerWidth <= 768;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || esCelular) {
-        viewport.style.position = 'static';
-        viewport.style.height = 'auto';
-        viewport.style.perspective = 'none';
-        world.style.position = 'static';
-        world.style.transform = 'none';
-        esfera.style.display = 'none';
-        polvo.style.display = 'none';
-        dots.style.display = 'none';
-        track.style.height = 'auto';
-        bloques.forEach(function (b) {
-            // style.css (compartido con la home) trae ".bloque { position:
-            // absolute !important; left/top: 50% !important; margin: 0
-            // !important; }" de SU PROPIO recorrido (mismo nombre de
-            // clase) — un style.position= comun pierde contra eso, hace
-            // falta !important para ganarle.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        escenaTrack.style.height = 'auto';
+        escena.style.position = 'static';
+        escena.style.height = 'auto';
+        universo.style.position = 'static';
+        BLOQUES.forEach(function (b) {
             b.style.setProperty('position', 'static', 'important');
-            b.style.setProperty('left', 'auto', 'important');
-            b.style.setProperty('top', 'auto', 'important');
-            b.style.setProperty('margin', '60px auto', 'important');
             b.style.transform = 'none';
-            b.style.maxHeight = 'none';
-            b.style.overflow = 'visible';
             b.style.opacity = '1';
-            b.style.filter = 'none';
-            b.style.pointerEvents = 'auto';
-            // El efecto imagen->texto depende de --scroll-progress, que
-            // viene de frame() (no corre aca). Se muestra todo destapado
-            // y en flujo normal, sin depender de esa variable.
-            b.querySelectorAll('.efecto-shrink-container, .efecto-shrink-sticky, .efecto-texto, .efecto-imagen, .efecto-visual').forEach(function (el2) {
-                el2.style.setProperty('height', 'auto', 'important');
-                el2.style.setProperty('max-height', 'none', 'important');
-                el2.style.setProperty('position', 'static', 'important');
-                el2.style.setProperty('transform', 'none', 'important');
-                el2.style.setProperty('opacity', '1', 'important');
-            });
+            b.style.margin = '60px auto';
         });
-        // Sin frame() corriendo no hay quien cargue los videos por
-        // cercania: los cargamos con un IntersectionObserver simple.
-        var obsFallback = new IntersectionObserver(function (entries) {
-            entries.forEach(function (en) {
-                if (en.isIntersecting && en.target.dataset.src) {
-                    en.target.src = en.target.dataset.src;
-                    en.target.removeAttribute('data-src');
-                    obsFallback.unobserve(en.target);
-                }
-            });
-        }, { rootMargin: '200px' });
-        document.querySelectorAll('iframe[data-src]').forEach(function (ifr) { obsFallback.observe(ifr); });
-        // Los accesos del hero ("Un libro", etc.) ya no pueden usar
-        // irAEstacion (necesita FASES, que aca no se arma) — hacen scroll
-        // simple al bloque correspondiente.
-        document.querySelectorAll('[data-ir-a-estacion]').forEach(function (el) {
-            el.addEventListener('click', function () {
-                var idx = parseInt(el.dataset.irAEstacion, 10) || 0;
-                if (bloques[idx]) bloques[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+        document.querySelectorAll('iframe[data-src]').forEach(function (ifr) {
+            ifr.src = ifr.dataset.src;
+            ifr.removeAttribute('data-src');
         });
         return;
     }
 
-    // ─── Linea de tiempo: estadia(0), viaje(0→1), estadia(1), ... ───
-    var PESO_VIAJE   = 0.9;
-    var PESO_ESTADIA = 0.72;   // 60% de lo que duraba antes
-    var FASES = [];
-    (function armarFases() {
-        FASES.push({ tipo: 'estadia', est: 0, peso: PESO_ESTADIA });
-        for (var i = 1; i < N; i++) {
-            FASES.push({ tipo: 'viaje', de: i - 1, a: i, peso: PESO_VIAJE });
-            FASES.push({ tipo: 'estadia', est: i, peso: PESO_ESTADIA });
-        }
-        var acum = 0, total = 0;
-        FASES.forEach(function (f) { total += f.peso; });
-        FASES.forEach(function (f) {
-            f.ini = acum / total;
-            acum += f.peso;
-            f.fin = acum / total;
-        });
-    })();
-
-    function faseEn(p) {
-        for (var i = 0; i < FASES.length; i++) {
-            var f = FASES[i];
-            if (p <= f.fin || i === FASES.length - 1) {
-                var span = f.fin - f.ini;
-                return {
-                    tipo: f.tipo, est: f.est, de: f.de, a: f.a,
-                    t: span > 0 ? clamp((p - f.ini) / span, 0, 1) : 0
-                };
-            }
-        }
-        return { tipo: 'estadia', est: N - 1, t: 1 };
-    }
-
-    // Indice de estacion actual (para los puntitos y para irAEstacion).
-    function estacionDe(p) {
-        var f = faseEn(p);
-        return f.tipo === 'estadia' ? f.est : f.a;
-    }
-
-    var blurPrev = [];
-
-    // Resistencia del scroll: mismo mecanismo que el home (persigue con
-    // peso el punto que marca el scroll en vez de saltar directo;
-    // pActual se actualiza en un rAF propio que sigue corriendo aunque
-    // el scroll este quieto), pero con un numero propio — el recorrido
-    // de esta pagina es mucho mas corto que el de la home (675vh contra
-    // 1500vh), asi que la misma resistencia del home se sentia pesada
-    // para tan poco recorrido, sobre todo para salir del titulo.
-    // RESISTENCIA mas chico = mas pesado/lento.
+    // Resistencia del scroll: mismo mecanismo que la home (script.js) — el
+    // recorrido persigue con peso el punto que marca el scroll en vez de
+    // saltar directo. RESISTENCIA mas chico = mas pesado/lento. El
+    // recorrido de esta pagina es corto (5 paradas), por eso usa una
+    // resistencia mas liviana que la de la home.
     var RESISTENCIA = 0.09;
-    var pActual = null;
+    var segActual = null;
+
+    function frameRecorrido() {
+        var scrollable = escenaTrack.offsetHeight - window.innerHeight;
+        var p = scrollable > 0 ? clamp01(-escenaTrack.getBoundingClientRect().top / scrollable) : 0;
+        var segCrudo = p * (NB - 1);
+
+        if (segActual === null) segActual = segCrudo;
+        segActual += (segCrudo - segActual) * RESISTENCIA;
+        var seg = segActual;
+
+        var i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
+        var fe = easeInOut(f);
+        var camX = POS[i][0] + (POS[j][0] - POS[i][0]) * fe;
+        var camY = POS[i][1] + (POS[j][1] - POS[i][1]) * fe;
+
+        universo.style.transform = 'translate(' + (-camX).toFixed(1) + 'px,' + (-camY).toFixed(1) + 'px)';
+        if (capaLejana) {
+            capaLejana.style.transform = 'translate(' + (-camX * PARALLAX_MAPA).toFixed(1) + 'px,' + (-camY * PARALLAX_MAPA).toFixed(1) + 'px)';
+        }
+
+        for (var k = 0; k < NB; k++) {
+            var dx = camX - POS[k][0], dy = camY - POS[k][1];
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var D_MESETA = 60;
+            var vis = clamp01(1 - Math.max(0, d - D_MESETA) / 470);
+            var b = BLOQUES[k];
+            b.style.opacity = vis;
+            b.style.visibility = vis > 0.03 ? 'visible' : 'hidden';
+            b.style.transform = 'translate(-50%,-50%) translate(' + POS[k][0] + 'px,' + POS[k][1] + 'px) scale(' + (0.92 + 0.08 * vis).toFixed(3) + ')';
+            b.style.pointerEvents = vis > 0.6 ? 'auto' : 'none';
+
+            if (b.classList.contains('efecto-shrink-container')) {
+                var DWELL_IMG_TEXTO = 0.6;
+                var ventana = 1 - DWELL_IMG_TEXTO;
+                var localImgTexto = clamp01((seg - (k - ventana)) / ventana);
+                b.style.setProperty('--scroll-progress', easeInOut(localImgTexto));
+
+                var DWELL_MOBILE = 0.3;
+                var ventanaMobile = 1 - DWELL_MOBILE;
+                var lMob = clamp01((seg - (k - ventanaMobile)) / ventanaMobile);
+                b.style.setProperty('--progreso-mobile', lMob * lMob * (3 - 2 * lMob));
+            }
+
+            if (vis > 0.45) cargarIframes(b);
+        }
+    }
 
     function cargarIframes(el) {
         var pendientes = el.querySelectorAll('iframe[data-src]');
@@ -1678,192 +1518,45 @@ html, body { margin: 0; padding: 0; background: #000; }
         }
     }
 
-    function frame() {
-        var vh = window.innerHeight;
-        var maxScroll = Math.max(1, track.offsetHeight - vh);
-        var scrollY = window.scrollY || window.pageYOffset;
-
-        if (scrollY < maxScroll) {
-            viewport.style.position = 'fixed';
-            viewport.style.top = '0px';
-        } else {
-            viewport.style.position = 'absolute';
-            viewport.style.top = maxScroll + 'px';
-        }
-
-        var pCrudo = clamp(scrollY / maxScroll, 0, 1);
-        if (pActual === null) pActual = pCrudo;
-        pActual += (pCrudo - pActual) * RESISTENCIA;
-        var p = pActual;
-
-        // El recorrido alterna viaje y estadia. Durante la estadia la
-        // camara no se mueve: ahi es donde corre el efecto de main
-        // (--scroll-progress de 0 a 1) y el contenido se despliega.
-        var f = faseEn(p);
-        var ang, rad, camY, avanceLocal;
-
-        if (f.tipo === 'estadia') {
-            var e = ESTACIONES[f.est];
-            ang = e.ang; rad = e.rad; camY = e.y;
-            avanceLocal = f.t;
-        } else {
-            var a = ESTACIONES[f.de], b = ESTACIONES[f.a];
-            var t = easeInOut(f.t);
-            ang  = lerp(a.ang, b.ang, t);
-            rad  = lerp(a.rad, b.rad, t);
-            camY = lerp(a.y,   b.y,   t);
-            avanceLocal = 0;
-        }
-
-        // Cada bloque recibe su propio --scroll-progress: 1 si ya pasamos
-        // su parada, el avance de la estadia si estamos en ella, 0 si aun
-        // no llegamos (imagen enfocada, texto todavia no).
-        //
-        // OJO: hay que escribirlo sobre el .efecto-shrink-container, no
-        // sobre el bloque. style.css declara "--scroll-progress: 0" en esa
-        // misma regla, y una declaracion propia le gana al valor heredado
-        // del padre. script.js hace exactamente esto en el home.
-        // --progreso-mobile: mismo patron que el home (DWELL_MOBILE +
-        // easing suave tipo smoothstep) para el layout de celular, que
-        // depende de esta variable (imagen 80vh -> 25vh). Sin esto la
-        // imagen nunca se achica en mobile.
-        var DWELL_MOBILE = 0.3;
-        var ventanaMobile = 1 - DWELL_MOBILE;
-        for (var s = 0; s < bloques.length; s++) {
-            var prog, progMobile;
-            if (f.tipo === 'estadia') {
-                if (s < f.est) { prog = 1; progMobile = 1; }
-                else if (s === f.est) {
-                    prog = easeInOut(avanceLocal);
-                    var lMob = clamp((avanceLocal - DWELL_MOBILE) / ventanaMobile, 0, 1);
-                    progMobile = lMob * lMob * (3 - 2 * lMob);
-                } else { prog = 0; progMobile = 0; }
-            } else {
-                prog = s <= f.de ? 1 : 0;
-                progMobile = prog;
-            }
-            bloques[s].style.setProperty('--scroll-progress', prog);
-            bloques[s].style.setProperty('--progreso-mobile', progMobile);
-            var conts = bloques[s].querySelectorAll('.efecto-shrink-container');
-            for (var c = 0; c < conts.length; c++) {
-                conts[c].style.setProperty('--scroll-progress', prog);
-                conts[c].style.setProperty('--progreso-mobile', progMobile);
-            }
-        }
-
-        var cam  = posCamara(ang, rad);
-
-        world.style.transform =
-            'rotateY(' + (-ang) + 'deg) ' +
-            'translate3d(' + (-cam.x) + 'px,' + (-camY) + 'px,' + (-cam.z) + 'px)';
-
-        esfera.style.transform =
-            'translate3d(0,0,0) rotateY(' + ang + 'deg) translate(-50%,-50%)';
-
-        var adentro = clamp(1 - rad / ESFERA_R, 0, 1);
-        polvo.style.opacity = (1 - adentro).toFixed(3);
-
-        var cosA = Math.cos(-ang * RAD);
-        var sinA = Math.sin(-ang * RAD);
-
-        for (var k = 0; k < bloques.length; k++) {
-            var b = POS[k];
-            var vx = b.x - cam.x;
-            var vy = b.y - camY;
-            var vz = b.z - cam.z;
-
-            // a espacio de camara
-            var cx = vx * cosA + vz * sinA;
-            var cz = -vx * sinA + vz * cosA;
-
-            // El punto ideal de foco es (0, 0, -FOCO): ahi el bloque esta
-            // centrado y a la distancia justa. Medimos cuanto se desvia de
-            // ESE punto, no la distancia cruda a la camara — si no, en su
-            // propia estacion ya arrancaba con desenfoque.
-            var dx = cx;
-            var dy = vy;
-            var dz = cz + FOCO;
-            var desvio = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-            var vis = (cz > -40) ? 0 : clamp(1 - desvio / ALCANCE, 0, 1);
-
-            var el = bloques[k];
-            el.style.opacity = vis;
-            el.style.visibility = vis > 0.02 ? 'visible' : 'hidden';
-            el.style.pointerEvents = vis > 0.9 ? 'auto' : 'none';
-            if (vis > 0.45) cargarIframes(el);
-
-            var blur = Math.round((1 - vis) * 8);
-            if (blurPrev[k] !== blur) {
-                el.style.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
-                blurPrev[k] = blur;
-            }
-        }
-
-        dots.classList.toggle('on', p > 0.005 && p < 0.995);
-        var actual = estacionDe(p);
-        for (var m = 0; m < dotEls.length; m++) {
-            dotEls[m].classList.toggle('here', m === actual);
-        }
-    }
-
-    // Ir a una estacion puntual: apuntamos al comienzo de su estadia, que
-    // es donde la parada esta enfocada y el contenido empieza a desplegarse.
-    function irAEstacion(i) {
-        var maxScroll = Math.max(1, track.offsetHeight - window.innerHeight);
-        var destino = 0;
-        for (var k = 0; k < FASES.length; k++) {
-            if (FASES[k].tipo === 'estadia' && FASES[k].est === i) {
-                destino = FASES[k].ini;
-                break;
-            }
-        }
-        window.scrollTo({ top: destino * maxScroll, behavior: 'smooth' });
-    }
-    document.querySelectorAll('[data-ir-a-estacion]').forEach(function (el) {
-        el.addEventListener('click', function () {
-            irAEstacion(parseInt(el.dataset.irAEstacion, 10) || 0);
-        });
-    });
-
-    // Al tocar/scrollear el texto de una estacion, la camara se alinea a
-    // esa estacion — pero NO al comienzo de la estadia (ahi el texto
-    // recien empieza a aparecer, con la imagen todavia tapando todo), eso
-    // hacia que intentar leer te devolviera siempre a la imagen. Alinea
-    // en cambio cerca del final de la estadia, donde el texto ya esta
-    // practicamente en su maxima opacidad.
-    function irAFocoDeEstacion(i) {
-        var maxScroll = Math.max(1, track.offsetHeight - window.innerHeight);
-        var destino = 0;
-        for (var k = 0; k < FASES.length; k++) {
-            if (FASES[k].tipo === 'estadia' && FASES[k].est === i) {
-                destino = FASES[k].ini + (FASES[k].fin - FASES[k].ini) * 0.95;
-                break;
-            }
-        }
-        window.scrollTo({ top: destino * maxScroll, behavior: 'smooth' });
-    }
-    // Solo "wheel" (mouse/trackpad). En touch NO lo enganchamos: un
-    // scrollTo() por JS arrancando justo en touchstart compite con el
-    // arrastre nativo del dedo mientras la persona todavia esta
-    // scrolleando el texto, y se siente como que el scroll "no responde".
-    document.querySelectorAll('.efecto-texto').forEach(function (caja) {
-        caja.addEventListener('wheel', function () {
-            var bloqueEl = caja.closest('.bloque');
-            if (bloqueEl && bloqueEl.dataset.i !== undefined) {
-                irAFocoDeEstacion(parseInt(bloqueEl.dataset.i, 10) || 0);
-            }
-        }, { passive: true });
-    });
-
     // El recorrido corre en su propio loop continuo (no solo al
     // scrollear): la resistencia necesita seguir animando unos frames
     // mas despues de que el scroll se detiene, para terminar de
-    // alcanzar la posicion (igual que el home).
+    // alcanzar la posicion (igual que la home).
     (function loop() {
-        frame();
+        frameRecorrido();
         window.requestAnimationFrame(loop);
     })();
+
+    // Lleva la camara a un bloque puntual (botones "Un libro/curso/video"
+    // y el link "Comprar el libro"). Aterriza exactamente en seg===idx,
+    // el pico de foco del bloque — con la ventana DWELL de arriba, ahi el
+    // texto ya esta al 100% de opacidad (mismo goToBloque que la home).
+    function goToBloque(id) {
+        var idx = BLOQUES.findIndex(function (b) { return b.id === id; });
+        if (idx < 0) return false;
+        var scrollable = escenaTrack.offsetHeight - window.innerHeight;
+        window.scrollTo({
+            top: escenaTrack.offsetTop + scrollable * (idx / (NB - 1)),
+            behavior: 'smooth'
+        });
+        return true;
+    }
+    document.querySelectorAll('[data-ir-a-bloque]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            goToBloque(el.dataset.irABloque);
+        });
+    });
+
+    // Al scrollear el texto de un bloque con el mouse/trackpad, la camara
+    // se realinea a su foco (mismo patron que la home). Solo "wheel": en
+    // touch, arrancar un scrollTo() en touchstart compite con el
+    // arrastre nativo del dedo y se siente como que el scroll no responde.
+    escenaTrack.querySelectorAll('.efecto-texto').forEach(function (caja) {
+        caja.addEventListener('wheel', function () {
+            var bloqueEl = caja.closest('.bloque');
+            if (bloqueEl && bloqueEl.id) goToBloque(bloqueEl.id);
+        }, { passive: true });
+    });
 })();
 </script>
 
