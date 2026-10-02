@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const POS = BLOQUES.map(b => [parseFloat(b.dataset.x) || 0, parseFloat(b.dataset.y) || 0]);
     const NB = BLOQUES.length;
     const PARALLAX_MAPA = 0.45;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Resistencia del scroll: en vez de saltar directo a la posición que
     // marca el scroll, el recorrido persigue ese punto con un poco de
@@ -145,11 +146,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // El recorrido corre en su propio loop continuo (no solo al scrollear):
     // la "resistencia" necesita seguir animando unos frames más después de
     // que el scroll se detiene, para terminar de alcanzar la posición.
-    if (escenaTrack) {
+    if (escenaTrack && !reduce) {
         (function loopRecorrido() {
             frameRecorrido();
             requestAnimationFrame(loopRecorrido);
         })();
+    }
+
+    // Con el movimiento reducido activado, la cámara no corre — en vez de
+    // dejar los bloques fijos en su primer instante (imagen tapando todo,
+    // texto en 0%), volvemos al mecanismo lineal de siempre: cada sección
+    // es su propio sticky y --scroll-progress se calcula por la posición
+    // de ESA sección en la página (no por la cámara). El CSS que recibe
+    // esto ya estaba ahí desde antes del recorrido espacial — nunca se
+    // tocó, solo quedaba tapado por los estilos del .bloque.
+    if (reduce) {
+        let tickingReduce = false;
+        function frameReduce() {
+            document.querySelectorAll('.efecto-shrink-container').forEach((container) => {
+                const rect = container.getBoundingClientRect();
+                let progress = -rect.top / (rect.height - window.innerHeight);
+                progress = clamp01(progress);
+                container.style.setProperty('--scroll-progress', progress);
+            });
+            tickingReduce = false;
+        }
+        window.addEventListener('scroll', () => {
+            if (!tickingReduce) {
+                window.requestAnimationFrame(frameReduce);
+                tickingReduce = true;
+            }
+        }, { passive: true });
+        frameReduce(); // primer paint
     }
 
     // Lleva la cámara del recorrido a un bloque puntual (usado por los

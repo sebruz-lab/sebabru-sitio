@@ -1721,12 +1721,49 @@ a.section-block:hover h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    /* Aplanar el wrapper del viaje */
     .escena-track { height: auto; }
     .escena { position: static; height: auto; overflow: visible; }
     .capa-lejana { display: none; }
+    .universo .starfield { display: none; }
     .universo { position: static; transform: none !important; }
+
+    /* Bloques: flujo normal, sin centrado automático */
     .bloque {
-        position: static; transform: none !important; opacity: 1 !important;
-        pointer-events: auto !important; margin: 0 auto 60px;
+        position: static !important; left: auto !important; top: auto !important;
+        transform: none !important; opacity: 1 !important; visibility: visible !important;
+        pointer-events: auto !important; margin: 0 !important;
+    }
+    /* Intro: pantalla completa, alineada arriba-izquierda */
+    #bloque-intro {
+        display: flex !important; flex-direction: column;
+        align-items: flex-start; justify-content: flex-start;
+        width: 100% !important; min-height: 100vh;
+        padding: 60px 5vw; box-sizing: border-box;
+    }
+    /* Secciones cinematicas (imagen+texto, glifos): en vez del layout chico
+       y estatico que probamos primero, volvemos al mecanismo lineal de
+       siempre — cada seccion es su propio sticky de pantalla completa y
+       el scroll de la pagina (no la camara) dispara la imagen que se
+       corre para revelar el texto. Alcanza con des-pisar los overrides
+       que la version espacial le agrega a .bloque (abajo), porque las
+       reglas de base de .efecto-shrink-container/.efecto-imagen/
+       .efecto-texto (mas arriba en este archivo, o las reglas viejas por
+       #id de Neptuno/Jupiter) ya implementan exactamente ese efecto —
+       nunca se tocaron, solo quedaban tapadas. El JS que calcula
+       --scroll-progress para este modo esta en script.js, gateado por
+       prefers-reduced-motion. */
+    .efecto-shrink-container.bloque,
+    #construccion-neptuno.bloque,
+    #construccion-jupiter.bloque {
+        height: 190vh !important;
+        width: 100% !important;
+    }
+    #construccion-neptuno.bloque, #construccion-jupiter.bloque { height: 180vh !important; }
+    .efecto-shrink-container.bloque .efecto-shrink-sticky,
+    #construccion-neptuno.bloque .efecto-shrink-sticky,
+    #construccion-jupiter.bloque .efecto-shrink-sticky {
+        position: sticky !important; top: 0 !important; height: 100vh !important;
+        min-height: 0 !important; overflow: hidden !important;
     }
 }
