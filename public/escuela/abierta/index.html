@@ -312,7 +312,8 @@
         .reduce .universo .starfield { display: none; }
         .reduce .bloque {
             position: static; left: auto; top: auto; transform: none !important;
-            opacity: 1; pointer-events: auto; width: min(90vw, 520px); margin: 9vh auto;
+            opacity: 1; pointer-events: auto; width: min(90vw, 520px); margin: 9vh auto !important;
+            max-height: 70vh; overflow-y: auto; scrollbar-width: thin;
         }
         .reduce .bcard-track { height: auto; overflow: visible; flex-direction: column; }
         .reduce .bpanel { overflow: visible; }
