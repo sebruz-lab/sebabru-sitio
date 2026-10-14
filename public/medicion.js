@@ -98,7 +98,12 @@
                 obs.unobserve(en.target);
             });
         }, { threshold: 0.2 });
-        for (var i = 0; i < els.length; i++) obs.observe(els[i]);
+        for (var i = 0; i < els.length; i++) {
+            // Si recorrido.js ya lo mostro antes de que esto cargara (ej.
+            // entrada directa por /lilith/#curso), se mide ahora.
+            if (els[i].__visto) medirVisible(els[i]);
+            obs.observe(els[i]);
+        }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observarVisibles);
     else observarVisibles();
