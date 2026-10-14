@@ -1,11 +1,11 @@
 // public/escuela/aula-abierta.js
 //
 // Gating compartido para las aulas de Formacion Abierta:
-// - Sin login: se ve el temario completo y la Clase 1 se reproduce directo
-//   (es el regalo: no se pide cuenta para verla). El resto, con candado.
-// - Logueado sin haber comprado: la Clase 1 se reproduce directo, el resto
-//   queda con candado + boton para comprar. Se marca el mail como interesado
-//   en el curso (usuarios/{email}.interesados).
+// - Sin haber comprado (con o sin login): se ve el temario completo y la
+//   Clase 1 tiene un boton "Mirar clase gratis" que la carga al tocarlo,
+//   sin pedir cuenta (es el regalo). El resto, con candado.
+//   Si hay sesion, al verla se marca el mail como interesado en el curso
+//   (usuarios/{email}.interesados).
 // - Logueado y con el curso comprado: se desbloquea todo.
 import {
   onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
@@ -497,11 +497,8 @@ export function initAula(slug, opts = {}) {
     gate.innerHTML = `
       <i class="fa-solid fa-circle-play"></i>
       <span>Mirar clase gratis</span>
-      <span class="gate-sub">Iniciá sesión para verla &mdash; es gratis</span>`;
-    gate.addEventListener('click', () => {
-      if (auth.currentUser) revelarMuestra();
-      else abrirModal();
-    });
+      <span class="gate-sub">Es gratis, no hace falta cuenta</span>`;
+    gate.addEventListener('click', () => revelarMuestra());
     cont.appendChild(gate);
   }
 
@@ -550,10 +547,9 @@ export function initAula(slug, opts = {}) {
 
   onAuthStateChanged(auth, async (user) => {
     actualizarAvisoLogin(!!user);
-    // Sin sesion, la Clase 1 se ve igual (antes pedia iniciar sesion:
-    // prepararGate). Si mas adelante se quiere volver a pedir cuenta para
-    // la clase gratis, alcanza con cambiar revelarMuestra() por prepararGate().
-    if (!user) { await revelarMuestra(); ocultarOverlay(); return; }
+    // Quien no compro (con o sin sesion) ve el boton "Mirar clase gratis":
+    // la clase carga recien cuando la persona decide verla, sin pedir cuenta.
+    if (!user) { prepararGate(); ocultarOverlay(); return; }
 
     try {
       const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
@@ -561,11 +557,11 @@ export function initAula(slug, opts = {}) {
       if (cursos.includes(slug)) {
         await desbloquearTodo();
       } else {
-        await revelarMuestra();
+        prepararGate();
       }
     } catch (e) {
       // Sin datos de usuario (o error de red): tratamos como no-comprador.
-      await revelarMuestra();
+      prepararGate();
     }
     ocultarOverlay();
   });

@@ -291,8 +291,8 @@ async function chequearCompraLilith(browser) {
     }
 }
 
-// Cada aula, sin sesion iniciada: la Clase 1 tiene que estar lista para
-// reproducir (es el regalo), sin pedir cuenta.
+// Cada aula, sin sesion iniciada: el boton "Mirar clase gratis" tiene que
+// cargar la Clase 1 sin pedir cuenta (es el regalo).
 async function chequearAulasSinLogin(browser) {
     const area = 'Clase gratis sin iniciar sesión';
     const servidorTxt = readFileSync(join(RAIZ, 'functions', 'index.js'), 'utf8');
@@ -304,6 +304,12 @@ async function chequearAulasSinLogin(browser) {
         const { page, reg } = await nuevaPagina(browser);
         try {
             await page.goto(`${SITIO}/escuela/abierta/${slug}/`, { waitUntil: 'load', timeout: 45000 });
+            let boton = null;
+            for (let i = 0; i < 20 && !boton; i++) { await espera(500); boton = await page.$('.clase-gate-play'); }
+            if (!boton) { falla(area, `\`${slug}\`: no aparece el botón "Mirar clase gratis"`); await page.close(); continue; }
+            await page.evaluate(() => document.querySelector('.clase-gate-play').click());
+            const modalLogin = await page.evaluate(() => !!document.querySelector('#aula-login-modal.active'));
+            if (modalLogin) { falla(area, `\`${slug}\`: el botón pide iniciar sesión`); await page.close(); continue; }
             let st = null;
             for (let i = 0; i < 20; i++) {
                 await espera(500);
@@ -316,9 +322,8 @@ async function chequearAulasSinLogin(browser) {
                 if (st.problema || (st.src && st.visible)) break;
             }
             if (st.problema) falla(area, `\`${slug}\`: ${st.problema}`);
-            else if (st.pideLogin) falla(area, `\`${slug}\`: pide iniciar sesión para ver la clase 1`);
-            else if (!st.src || !st.visible) falla(area, `\`${slug}\`: la clase 1 no cargó el video`);
-            else ok(area, `\`${slug}\`: la clase 1 se ve sin cuenta`);
+            else if (!st.src || !st.visible) falla(area, `\`${slug}\`: al tocar "Mirar clase gratis" no cargó el video`);
+            else ok(area, `\`${slug}\`: "Mirar clase gratis" carga la clase 1 sin cuenta`);
         } catch (e) { falla(area, `\`${slug}\`: no cargó: ${e.message.split('\n')[0]}`); }
         await page.close();
     }
