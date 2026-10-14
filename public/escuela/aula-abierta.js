@@ -496,8 +496,7 @@ export function initAula(slug, opts = {}) {
     gate.className = 'clase-gate-play';
     gate.innerHTML = `
       <i class="fa-solid fa-circle-play"></i>
-      <span>Mirar clase gratis</span>
-      <span class="gate-sub">Es gratis, no hace falta cuenta</span>`;
+      <span>Mirar clase gratis</span>`;
     gate.addEventListener('click', () => revelarMuestra());
     cont.appendChild(gate);
   }
