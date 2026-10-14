@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
-<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../style.css?v=23">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <!-- Google tag (gtag.js) -->
@@ -86,6 +86,36 @@ html, body { margin: 0; padding: 0; background: #000; }
    esta pagina (el h2 global del sitio fuerza uppercase). */
 #seminario-linaje .efecto-texto h2 { text-transform: none; letter-spacing: 0.01em; }
 #casas-derivadas h2 { text-transform: none; }
+
+/* Movimiento reducido: sin camara, mismo criterio que la home y /lilith.
+   Bloques en flujo normal y centrados; el de imagen+texto vuelve al
+   mecanismo lineal (sticky de pantalla completa, el scroll corre la
+   imagen) con --scroll-progress calculado en el script de abajo. */
+@media (prefers-reduced-motion: reduce) {
+    .escena-track { height: auto; }
+    .escena { position: static; height: auto; overflow: visible; }
+    .capa-lejana { display: none; }
+    .universo { position: static; transform: none !important; }
+
+    .bloque {
+        position: static !important; left: auto !important; top: auto !important;
+        transform: none !important; opacity: 1 !important; visibility: visible !important;
+        pointer-events: auto !important;
+        margin: 60px auto !important;
+    }
+    .bloque--intro {
+        min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+        margin-top: 0 !important;
+    }
+
+    .efecto-shrink-container.bloque {
+        height: 190vh !important; width: 100% !important; margin: 0 !important;
+    }
+    .efecto-shrink-container.bloque .efecto-shrink-sticky {
+        position: sticky !important; top: 0 !important; height: 100vh !important;
+        min-height: 0 !important; overflow: hidden !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -176,17 +206,30 @@ html, body { margin: 0; padding: 0; background: #000; }
     var NB = BLOQUES.length;
     var PARALLAX_MAPA = 0.45;
 
+    // Movimiento reducido: el layout lo resuelve el CSS; aca solo se
+    // calcula --scroll-progress de la imagen+texto por la posicion de esa
+    // seccion en la pagina (mismo calculo que la home y /lilith).
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        escenaTrack.style.height = 'auto';
-        escena.style.position = 'static';
-        escena.style.height = 'auto';
-        universo.style.position = 'static';
-        BLOQUES.forEach(function (b) {
-            b.style.setProperty('position', 'static', 'important');
-            b.style.transform = 'none';
-            b.style.opacity = '1';
-            b.style.margin = '60px auto';
-        });
+        var shrinks = document.querySelectorAll('.efecto-shrink-container');
+        var tickingReduce = false;
+        function frameReduce() {
+            for (var s = 0; s < shrinks.length; s++) {
+                var rect = shrinks[s].getBoundingClientRect();
+                var pr = clamp01(-rect.top / (rect.height - window.innerHeight));
+                shrinks[s].style.setProperty('--scroll-progress', pr);
+                shrinks[s].style.setProperty('--progreso-mobile', pr * pr * (3 - 2 * pr));
+            }
+            tickingReduce = false;
+        }
+        window.addEventListener('scroll', function () {
+            if (!tickingReduce) {
+                window.requestAnimationFrame(frameReduce);
+                tickingReduce = true;
+            }
+        }, { passive: true });
+        window.addEventListener('resize', frameReduce);
+        frameReduce();
+
         document.querySelectorAll('iframe[data-src]').forEach(function (ifr) {
             ifr.src = ifr.dataset.src;
             ifr.removeAttribute('data-src');

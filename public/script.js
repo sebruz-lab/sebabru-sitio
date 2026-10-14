@@ -187,7 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // links internos de más abajo). Devuelve false si el id no es un
     // bloque del recorrido, para que el link siga su comportamiento normal.
     function goToBloque(id) {
-        if (!escenaTrack) return false;
+        // Con movimiento reducido no hay camara: el link sigue con el
+        // scroll comun hasta la seccion.
+        if (!escenaTrack || reduce) return false;
         const idx = BLOQUES.findIndex(b => b.id === id);
         if (idx < 0) return false;
         const scrollable = escenaTrack.offsetHeight - window.innerHeight;
@@ -200,8 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Al tocar/scrollear el texto de un bloque del recorrido, la cámara se
     // alinea suavemente a la posición final de ese bloque — cada vez, no
-    // solo la primera (probando qué tan bien se siente así).
-    if (escenaTrack) {
+    // solo la primera (probando qué tan bien se siente así). Con
+    // movimiento reducido no: ahí cada sección se scrollea sola.
+    if (escenaTrack && !reduce) {
         escenaTrack.querySelectorAll('.efecto-texto').forEach(caja => {
             function alinearCamara() {
                 const bloqueEl = caja.closest('.bloque');
