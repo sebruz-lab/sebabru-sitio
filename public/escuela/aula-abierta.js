@@ -26,6 +26,7 @@ const PRECIOS = {
   casas:     { ars: 60000, usd: 50, nombre: 'Casas y ascendentes' },
   pluton26:  { ars: 80000, usd: 70, nombre: 'Plutón y los Nodos Lunares' },
   lilith:    { ars: 80000, usd: 50, nombre: 'Luna Negra · Lilith en la carta natal' },
+  linaje:    { ars: 60000, usd: 50, nombre: 'Linaje, clan y genealogía a través de las casas' },
 };
 
 const MODAL_HTML = `
@@ -184,8 +185,9 @@ function bloquearClase(clase) {
 
 function quitarCandado(clase) {
   delete clase.dataset.bloqueada;
-  const c = clase.querySelector('.clase-candado');
+  const c = clase.querySelector('.clase-candado:not(.clase-proximamente)');
   if (c) c.remove();
+  if (clase.querySelector('.clase-proximamente')) return;
   const iframe = contenedorDe(clase)?.querySelector('iframe');
   if (iframe) iframe.style.display = 'block';
 }
@@ -545,8 +547,21 @@ export function initAula(slug, opts = {}) {
         const cursoSnap = await getDoc(doc(db, 'cursos', slug));
         const videos = cursoSnap.data()?.videos || [];
         document.querySelectorAll('iframe[data-video]').forEach((iframe, i) => {
-          iframe.style.display = 'block';
-          if (videos[i]) iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
+          if (videos[i]) {
+            iframe.style.display = 'block';
+            iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
+          } else {
+            // Clase que todavia no se subio (cursos que se van completando,
+            // ej. linaje): en vez de un cuadro negro vacio, "Proximamente".
+            iframe.style.display = 'none';
+            const cont = iframe.parentElement;
+            if (cont && !cont.querySelector('.clase-proximamente')) {
+              const aviso = document.createElement('div');
+              aviso.className = 'clase-candado clase-proximamente';
+              aviso.innerHTML = '<i class="fa-regular fa-clock"></i><p>Próximamente</p>';
+              cont.appendChild(aviso);
+            }
+          }
         });
       } catch (e) { /* si falla, al menos queda desbloqueado visualmente */ }
     }

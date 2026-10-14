@@ -12,6 +12,7 @@ const CURSO_URLS = {
   casas:     '/escuela/abierta/casas/',
   pluton26:  '/escuela/abierta/pluton26/',
   lilith:    '/escuela/abierta/lilith/',
+  linaje:    '/escuela/abierta/linaje/',
   lunas26:   '/escuela/lunas26/',
   quiron:    '/escuela/quiron/',
 };
@@ -23,6 +24,7 @@ const PRECIOS = {
   casas:     { ars: 60000, usd: 50 },
   pluton26:  { ars: 80000, usd: 70 },
   lilith:    { ars: 80000, usd: 50 },
+  linaje:    { ars: 60000, usd: 50 },
 };
 
 let _db;
