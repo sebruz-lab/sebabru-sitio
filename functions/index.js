@@ -45,6 +45,65 @@ function sanitizeTexto(str, maxLen) {
   return str.replace(/[\r\n]+/g, ' ').trim().slice(0, maxLen);
 }
 
+// Origen de la compra: utm_source/medium/campaign y gclid que guarda
+// public/origen.js al aterrizar en el sitio (60 dias), mas la pagina de
+// llegada y la fecha. Llega del navegador: solo texto corto, campos fijos.
+const CAMPOS_ORIGEN = ['source', 'medium', 'campaign', 'gclid', 'landing', 'fecha'];
+function sanitizeOrigen(o) {
+  if (!o || typeof o !== 'object') return null;
+  const out = {};
+  for (const k of CAMPOS_ORIGEN) {
+    const v = sanitizeTexto(o[k], 200);
+    if (v) out[k] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+// Mercado Pago guarda la metadata plana: origen_source, origen_medium...
+function origenAMetadata(origen) {
+  const m = {};
+  if (origen) for (const k of CAMPOS_ORIGEN) if (origen[k]) m[`origen_${k}`] = origen[k];
+  return m;
+}
+function origenDeMetadata(meta) {
+  const o = {};
+  for (const k of CAMPOS_ORIGEN) if (meta && meta[`origen_${k}`]) o[k] = String(meta[`origen_${k}`]);
+  return Object.keys(o).length ? o : null;
+}
+
+function datosCompraMP(payment) {
+  const meta = payment.metadata || {};
+  return {
+    tipo: 'curso',
+    producto: meta.curso_id || null,
+    nombre: meta.curso_nombre || meta.curso_id || null,
+    metodo: 'mercadopago',
+    monto: payment.transaction_amount ?? null,
+    moneda: payment.currency_id || 'ARS',
+    email: (meta.user_email || payment.payer?.email || '').toLowerCase() || null,
+    regalo: meta.regalo === 'true',
+    codigoDescuento: meta.codigo_descuento || null,
+    estado: 'pagado',
+    pagoId: String(payment.id),
+    origen: origenDeMetadata(meta),
+  };
+}
+
+// Registro de cada compra en "compras" (lo lista /escuela/admin). Es un
+// agregado: si falla, el pago sigue su curso igual. create() es idempotente
+// por id: el webhook y verificarPagoMP pueden llegar los dos sin duplicar.
+async function registrarCompra(id, datos) {
+  try {
+    await _db.collection('compras').doc(id).create({
+      ...datos,
+      fecha: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    if (e.code !== 6 /* ALREADY_EXISTS */) {
+      functions.logger.error('No se pudo registrar la compra', { id, message: e.message });
+    }
+  }
+}
+
 const ALLOWED_ORIGINS = [
   'https://sebabru.com',
   'https://sebabru-e5563.web.app',
@@ -455,6 +514,7 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
   const { cursoId, codigoDescuento } = req.body.data || {};
   const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
   const regalo = req.body.data?.regalo === true;
+  const origen = sanitizeOrigen(req.body.data?.origen);
 
   const preciosBase = PRECIOS[cursoId];
   if (!cursoId || !cursoNombre || !preciosBase) {
@@ -493,6 +553,7 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
           user_email: userEmail || null,
           codigo_descuento: codigoData ? codigoDescuento.toUpperCase() : null,
           regalo: regalo ? 'true' : 'false',
+          ...origenAMetadata(origen),
         }
       }
     });
@@ -541,6 +602,10 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       functions.logger.error('Metadata incompleta en pago', { id: data.id });
       return res.status(200).send('OK');
     }
+
+    // Antes del chequeo de "ya procesado": verificarPagoMP puede haber
+    // llegado primero. registrarCompra no duplica.
+    await registrarCompra(`mp_${data.id}`, datosCompraMP(payment));
 
     const pagoRef = _db.collection('pagos_procesados').doc(String(data.id));
     const pagoSnap = await pagoRef.get();
@@ -750,6 +815,8 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
       return res.status(400).json({ error: 'Metadata de curso incompleta.' });
     }
 
+    await registrarCompra(`mp_${paymentId}`, datosCompraMP(payment));
+
     const esRegalo = payment.metadata?.regalo === 'true';
     // Pago sin cuenta asociada (metaEmail vacío): no hay forma de confirmar
     // que quien llama a este endpoint con el payment_id (visible en la URL
@@ -824,6 +891,7 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
   const codigoData = await validarCodigo(codigoDescuento, cursoId);
   const descuento = codigoData?.descuento || 0;
   const precioUsd = (preciosBase.usd * (1 - descuento / 100)).toFixed(2);
+  const origen = sanitizeOrigen(req.body.data?.origen);
 
   functions.logger.info('Iniciando crearPagoPaypal', { cursoId, userEmail, precioUsd, descuento });
 
@@ -855,6 +923,8 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
       userEmail,
       codigoDescuento: codigoData ? codigoDescuento.toUpperCase() : null,
       regalo,
+      precioUsd,
+      origen,
       status: 'pending',
       creadaEn: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -904,6 +974,7 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
           failure: `${process.env.SITE_URL}/lilith/`,
           pending: `${process.env.SITE_URL}/lilith/`
         },
+        metadata: { producto: 'libro-lilith', ...origenAMetadata(sanitizeOrigen(req.body?.origen)) },
       }
     });
 
@@ -935,6 +1006,8 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
   const esquina = sanitizeTexto(req.body?.esquina, 300);
   const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
   const metodo = sanitizeTexto(req.body?.metodo, 50) || 'desconocido';
+  const pagoId = sanitizeTexto(req.body?.pagoId, 100) || null;
+  const origen = sanitizeOrigen(req.body?.origen);
 
   if (!nombre || !esquina || !email) {
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
@@ -948,8 +1021,27 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
       esquina,
       email,
       metodo,
+      pagoId,
+      origen,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    await registrarCompra(`pedido_${pedidoId}`, {
+      tipo: 'libro',
+      producto: 'libro-lilith',
+      nombre: 'Libro Luna Negra',
+      metodo: metodo === 'mp' ? 'mercadopago' : metodo,
+      monto: metodo === 'mp' ? 35000 : metodo === 'transferencia' ? 30000 : null,
+      moneda: 'ARS',
+      email,
+      estado: metodo === 'mp' ? 'pagado' : 'transferencia a confirmar',
+      pagoId,
+      origen,
+    });
+
+    const filaOrigen = origen
+      ? `<tr><td style="padding:10px;border-top:1px solid #eee;color:#888;">Origen</td><td style="padding:10px;border-top:1px solid #eee;">${escapeHtml([origen.source, origen.medium, origen.campaign].filter(Boolean).join(' / ') || (origen.gclid ? 'Google Ads (gclid)' : ''))}</td></tr>`
+      : '';
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -968,6 +1060,7 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
             <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Esquina de casa</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(esquina)}</td></tr>
             <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Email</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(email)}</td></tr>
             <tr><td style="padding:10px;color:#888;">Método de pago</td><td style="padding:10px;">${escapeHtml(metodo)}</td></tr>
+            ${filaOrigen}
           </table>
           <p style="color:#aaa;font-size:0.82em;margin-top:20px;">ID: ${pedidoId}</p>
         </div>
@@ -981,6 +1074,47 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
     functions.logger.error('Error en guardarPedido:', error.message);
     return res.status(500).json({ error: error.message });
   }
+});
+
+// -------------------------------------------------------
+// registrarTransferencia: la transferencia del curso se paga por fuera y
+// el comprobante va por WhatsApp; esto deja anotado en "compras" que
+// alguien aviso que transfirio (y de donde vino), para cruzarlo despues.
+// -------------------------------------------------------
+exports.registrarTransferencia = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('registrarTransferencia', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados intentos.' });
+  }
+
+  const cursoId = sanitizeTexto(req.body?.cursoId, 50);
+  const preciosBase = PRECIOS[cursoId];
+  if (!preciosBase) return res.status(400).json({ error: 'Curso inválido.' });
+
+  const codigoData = await validarCodigo(sanitizeTexto(req.body?.codigoDescuento, 30), cursoId);
+  const descuento = codigoData?.descuento || 0;
+  // Mismo calculo que el checkout: transferencia = 10% + el descuento del codigo.
+  const monto = Math.round(preciosBase.ars * (1 - (10 + descuento) / 100));
+
+  await registrarCompra(`transferencia_${uuidv4()}`, {
+    tipo: 'curso',
+    producto: cursoId,
+    nombre: sanitizeTexto(req.body?.cursoNombre, 200) || cursoId,
+    metodo: 'transferencia',
+    monto,
+    moneda: 'ARS',
+    email: null,
+    regalo: req.body?.regalo === true,
+    codigoDescuento: codigoData ? sanitizeTexto(req.body?.codigoDescuento, 30).toUpperCase() : null,
+    estado: 'transferencia avisada (a confirmar)',
+    origen: sanitizeOrigen(req.body?.origen),
+  });
+  return res.status(200).json({ ok: true });
 });
 
 // -------------------------------------------------------
@@ -1020,10 +1154,26 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       functions.logger.error('Orden PayPal no encontrada en Firestore', { orderId });
       return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
     }
-    const { cursoId, cursoNombre, userEmail, codigoDescuento, regalo } = ordenSnap.data();
+    const { cursoId, cursoNombre, userEmail, codigoDescuento, regalo, origen: origenCompra } = ordenSnap.data();
     const payerEmail = capture.payer?.email_address || null;
     const esAnonima = !userEmail;
     const porCodigo = regalo || esAnonima;
+
+    const cobrado = capture.purchase_units?.[0]?.payments?.captures?.[0]?.amount;
+    await registrarCompra(`paypal_${orderId}`, {
+      tipo: 'curso',
+      producto: cursoId || null,
+      nombre: cursoNombre || cursoId || null,
+      metodo: 'paypal',
+      monto: cobrado ? Number(cobrado.value) : null,
+      moneda: cobrado?.currency_code || 'USD',
+      email: (userEmail || payerEmail || '').toLowerCase() || null,
+      regalo: !!regalo,
+      codigoDescuento: codigoDescuento || null,
+      estado: 'pagado',
+      pagoId: `paypal_${orderId}`,
+      origen: origenCompra || null,
+    });
 
     if (codigoDescuento) {
       await _db.collection('codigos_descuento').doc(codigoDescuento).update({

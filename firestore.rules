@@ -100,6 +100,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /compras/{id} {
+      // Registro de cada compra con su origen (utm/gclid). Lo escriben solo
+      // las Cloud Functions (Admin SDK); lo leen lxs admins en /escuela/admin.
+      allow write: if false;
+      allow read: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
     match /pedidos/{id} {
       // Solo se escribe desde la Cloud Function guardarPedido (Admin SDK,
       // no pasa por estas reglas). Ningun cliente deberia escribir directo.

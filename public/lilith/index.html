@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="/origen.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luna Negra | Lilith en la Carta Natal</title>
@@ -1552,7 +1553,8 @@ html, body { margin: 0; padding: 0; background: #000; }
                 try {
                     const res = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoLibro', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ origen: window.sbOrigen ? window.sbOrigen() : null })
                     });
                     const data = await res.json();
                     if (data.init_point) {
@@ -1590,6 +1592,26 @@ html, body { margin: 0; padding: 0; background: #000; }
         ['btn-copiar-alias-libro', 'btn-copiar-alias-lilith'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) btn.addEventListener('click', () => copiarAlias(btn));
+        });
+
+        // Transferencia del seminario: al tocar "Enviar comprobante" queda
+        // anotada en el servidor (con su origen) para verla en el admin.
+        // Una vez por visita; el WhatsApp se abre igual aunque esto falle.
+        let transferenciaAvisada = false;
+        document.getElementById('wa-comprobante-lilith')?.addEventListener('click', () => {
+            if (transferenciaAvisada) return;
+            transferenciaAvisada = true;
+            fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarTransferencia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cursoId: 'lilith',
+                    cursoNombre: 'Luna Negra · Lilith en la carta natal',
+                    codigoDescuento: (document.getElementById('inp-codigo-lilith')?.value || '').trim() || null,
+                    regalo: !!document.getElementById('regalo-lilith')?.checked,
+                    origen: window.sbOrigen ? window.sbOrigen() : null
+                })
+            }).catch(() => {});
         });
 </script>
 
@@ -1743,7 +1765,7 @@ html, body { margin: 0; padding: 0; background: #000; }
             const regalo = !!chkRegalo?.checked;
             loadingLilith.style.display = 'flex';
             try {
-                const result = await crearPago({ cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo });
+                const result = await crearPago({ cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo, origen: window.sbOrigen?.() || null });
                 window.location.href = result.data.init_point;
             } catch (err) {
                 loadingLilith.style.display = 'none';
@@ -1762,7 +1784,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 const response = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ data: { cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo: !!regalo } })
+                    body: JSON.stringify({ data: { cursoId: CURSO.id, cursoNombre: CURSO.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo: !!regalo, origen: window.sbOrigen?.() || null } })
                 });
                 const data = await response.json();
                 if (data.result?.approve_url) { window.location.href = data.result.approve_url; }

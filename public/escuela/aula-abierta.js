@@ -326,8 +326,17 @@ function insertarCheckout(slug, primera, funcs) {
     });
   });
 
+  let transferenciaAvisada = false;
   document.querySelector('#checkout-aula .wa-comprobante')?.addEventListener('click', () => {
     if (window.gtag) window.gtag('event', 'pago_comprobante', { curso: slug, metodo: 'transferencia' });
+    // Queda anotada en el servidor (con su origen) para el admin.
+    if (transferenciaAvisada) return;
+    transferenciaAvisada = true;
+    fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarTransferencia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cursoId: slug, cursoNombre: PRECIOS[slug]?.nombre || slug, codigoDescuento: codigoAplicado?.codigo || null, origen: window.sbOrigen?.() || null })
+    }).catch(() => {});
   });
 
   let codigoAplicado = null;
@@ -369,7 +378,7 @@ function insertarCheckout(slug, primera, funcs) {
     const loading = document.getElementById('loading-pago-aula') || crearLoadingOverlay();
     loading.style.display = 'flex';
     try {
-      const result = await crearPagoFn({ cursoId: slug, cursoNombre: info.nombre, codigoDescuento: codigoAplicado?.codigo || null });
+      const result = await crearPagoFn({ cursoId: slug, cursoNombre: info.nombre, codigoDescuento: codigoAplicado?.codigo || null, origen: window.sbOrigen?.() || null });
       window.location.href = result.data.init_point;
     } catch (err) {
       loading.style.display = 'none';
@@ -388,7 +397,7 @@ function insertarCheckout(slug, primera, funcs) {
       const response = await fetch(CREAR_PAGO_PAYPAL_URL, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ data: { cursoId: slug, cursoNombre: info.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo: false } })
+        body: JSON.stringify({ data: { cursoId: slug, cursoNombre: info.nombre, codigoDescuento: codigoAplicado?.codigo || null, regalo: false, origen: window.sbOrigen?.() || null } })
       });
       const data = await response.json();
       if (data.result?.approve_url) { window.location.href = data.result.approve_url; }

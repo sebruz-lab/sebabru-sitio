@@ -141,7 +141,7 @@ function chequearPrecios() {
 // ---------------------------------------------------------------
 async function chequearServidor() {
     // OPTIONS = la consulta previa del navegador: no crea nada.
-    for (const fn of ['crearPago', 'crearPagoPaypal', 'crearPagoLibro', 'verificarPagoMP']) {
+    for (const fn of ['crearPago', 'crearPagoPaypal', 'crearPagoLibro', 'verificarPagoMP', 'guardarPedido', 'registrarTransferencia']) {
         try {
             const r = await fetch(`${FUNCIONES}/${fn}`, { method: 'OPTIONS', headers: { Origin: SITIO, 'Access-Control-Request-Method': 'POST' } });
             if (r.status === 204 || r.status === 200) ok('Servidor de pagos', `\`${fn}\` responde`);

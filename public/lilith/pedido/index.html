@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="/origen.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datos de envío | Luna Negra</title>
@@ -281,7 +282,11 @@
                 const res = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/guardarPedido', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, esquina, email, metodo })
+                    body: JSON.stringify({
+                        nombre, esquina, email, metodo,
+                        pagoId: params.get('payment_id') || params.get('collection_id') || null,
+                        origen: window.sbOrigen ? window.sbOrigen() : null
+                    })
                 });
                 const data = await res.json();
                 if (data.ok) {

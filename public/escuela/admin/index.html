@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="/origen.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin | Aula Virtual</title>
@@ -232,6 +233,9 @@
         <button class="tab-btn active" data-tab="buscar">
             <i class="fa-solid fa-magnifying-glass"></i> Buscar Usuario
         </button>
+        <button class="tab-btn" data-tab="compras">
+            <i class="fa-solid fa-receipt"></i> Compras
+        </button>
         <button class="tab-btn" data-tab="usuarios">
             <i class="fa-solid fa-users"></i> Todos los Usuarios
         </button>
@@ -264,6 +268,23 @@
             </div>
         </div>
         <div id="resultado-buscar"></div>
+    </div>
+
+    <!-- TAB: COMPRAS -->
+    <div id="tab-compras" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Compras y de dónde vinieron</p>
+            <p style="font-size:0.8rem; color:var(--muted); margin:0 0 12px;">
+                Pagos de Mercado Pago y PayPal, pedidos del libro y transferencias avisadas (a confirmar).
+                El origen es la última campaña (utm / gclid) con la que la persona llegó al sitio en los 60 días previos; "directo" si no vino de ninguna.
+            </p>
+            <div class="input-row">
+                <button class="btn btn-primary" id="btn-cargar-compras">
+                    <i class="fa-solid fa-arrow-rotate-right"></i> Cargar
+                </button>
+            </div>
+        </div>
+        <div id="resultado-compras"></div>
     </div>
 
     <!-- TAB: USUARIOS -->
@@ -526,6 +547,66 @@
             document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
         });
     });
+
+    // ── TAB: COMPRAS ──────────────────────────────────────────────
+    // "compras" la escriben solo las Cloud Functions (functions/index.js →
+    // registrarCompra). Todo lo que viene del navegador (utm, emails) se
+    // escapa antes de mostrarse.
+    document.getElementById('btn-cargar-compras').addEventListener('click', cargarCompras);
+    document.querySelector('[data-tab="compras"]').addEventListener('click', () => {
+        if (!document.querySelector('#resultado-compras table')) cargarCompras();
+    });
+
+    function textoOrigen(o) {
+        if (!o) return '<span style="color:#555">directo</span>';
+        const partes = [o.source, o.medium, o.campaign].filter(Boolean).map(escapeHtml);
+        let html = partes.length ? partes.join(' / ') : '';
+        if (o.gclid) html += `${html ? ' ' : ''}<span class="tag tag-curso" title="${escapeHtml(o.gclid)}">gclid</span>`;
+        const det = [o.landing && `llegó a ${o.landing}`, o.fecha && new Date(o.fecha).toLocaleDateString('es-AR')].filter(Boolean);
+        if (det.length) html += `<div style="font-size:0.72rem;color:var(--muted)">${escapeHtml(det.join(' · '))}</div>`;
+        return html || '<span style="color:#555">directo</span>';
+    }
+
+    async function cargarCompras() {
+        const container = document.getElementById('resultado-compras');
+        container.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+            const snap = await getDocs(query(collection(db, 'compras'), orderBy('fecha', 'desc'), limit(300)));
+            const compras = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (!compras.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-receipt"></i><p>Todavía no hay compras registradas (se registran desde el 14/10/2026)</p></div>';
+                return;
+            }
+            const metodos = { mercadopago: 'Mercado Pago', paypal: 'PayPal', transferencia: 'Transferencia' };
+            const rows = compras.map(c => {
+                const fecha = c.fecha?.seconds ? new Date(c.fecha.seconds * 1000) : null;
+                const monto = c.monto != null
+                    ? `${c.moneda === 'USD' ? 'USD ' : '$'}${Number(c.monto).toLocaleString('es-AR')}`
+                    : '—';
+                const aConfirmar = /confirmar/.test(c.estado || '');
+                return `
+                    <tr>
+                        <td style="font-size:0.78rem;color:var(--muted);white-space:nowrap">${fecha ? fecha.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
+                        <td><span class="tag tag-curso">${escapeHtml(c.nombre || c.producto || '—')}</span>${c.regalo ? ' 🎁' : ''}</td>
+                        <td style="font-size:0.8rem">${c.email ? escapeHtml(c.email) : '<span style="color:#555">—</span>'}</td>
+                        <td style="font-size:0.8rem">${escapeHtml(metodos[c.metodo] || c.metodo || '—')}<div style="font-size:0.72rem;color:${aConfirmar ? '#e0a040' : 'var(--muted)'}">${escapeHtml(c.estado || '')}${c.codigoDescuento ? ' · código ' + escapeHtml(c.codigoDescuento) : ''}</div></td>
+                        <td style="white-space:nowrap">${escapeHtml(monto)}</td>
+                        <td style="font-size:0.8rem">${textoOrigen(c.origen)}</td>
+                    </tr>`;
+            }).join('');
+            container.innerHTML = `
+                <div style="overflow-x:auto">
+                    <table class="user-table">
+                        <thead>
+                            <tr><th>Fecha</th><th>Producto</th><th>Email</th><th>Método</th><th>Monto</th><th>Origen</th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        } catch (e) {
+            container.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    }
 
     // ── TAB: BUSCAR USUARIO ───────────────────────────────────────
     document.getElementById('btn-buscar').addEventListener('click', buscarUsuario);

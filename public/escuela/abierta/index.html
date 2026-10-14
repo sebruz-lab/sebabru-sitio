@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="/origen.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escuela Abierta | Seba Bru</title>
@@ -1367,7 +1368,7 @@
                 const loading = document.getElementById('loading-pago');
                 loading.style.display = 'flex';
                 try {
-                    const result = await crearPago({ cursoId: c.id, cursoNombre: c.nombre, codigoDescuento: codigosAplicados[c.id]?.codigo || null, regalo });
+                    const result = await crearPago({ cursoId: c.id, cursoNombre: c.nombre, codigoDescuento: codigosAplicados[c.id]?.codigo || null, regalo, origen: window.sbOrigen?.() || null });
                     window.location.href = result.data.init_point;
                 } catch (err) {
                     loading.style.display = 'none';
@@ -1388,8 +1389,18 @@
                     setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar alias'; }, 2500);
                 });
             });
+            let transferenciaAvisada = false;
             document.querySelector(`#seccion-compra-${c.id} .wa-comprobante`)?.addEventListener('click', () => {
                 if (window.gtag) gtag('event', 'pago_comprobante', { curso: c.id, metodo: 'transferencia', regalo: esRegalo() });
+                // Queda anotada en el servidor (con su origen) para el admin.
+                if (!transferenciaAvisada) {
+                    transferenciaAvisada = true;
+                    fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarTransferencia', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cursoId: c.id, cursoNombre: c.nombre, codigoDescuento: codigosAplicados[c.id]?.codigo || null, regalo: esRegalo(), origen: window.sbOrigen?.() || null })
+                    }).catch(() => {});
+                }
             });
         });
 
@@ -1403,7 +1414,7 @@
                 const response = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ data: { cursoId, cursoNombre, codigoDescuento, regalo: !!regalo } })
+                    body: JSON.stringify({ data: { cursoId, cursoNombre, codigoDescuento, regalo: !!regalo, origen: window.sbOrigen?.() || null } })
                 });
                 const data = await response.json();
                 if (data.result?.approve_url) { window.location.href = data.result.approve_url; }
