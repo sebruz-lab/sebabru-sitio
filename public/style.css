@@ -1732,12 +1732,18 @@ a.section-block:hover h3 {
     .bloque {
         position: static !important; left: auto !important; top: auto !important;
         transform: none !important; opacity: 1 !important; visibility: visible !important;
-        pointer-events: auto !important; margin: 0 !important;
+        pointer-events: auto !important;
+        /* auto a los costados: los bloques angostos (Instagram 460px,
+           Comunidad 560px) se centran en vez de quedar pegados a la izquierda */
+        margin: 0 auto !important;
     }
-    /* Intro: pantalla completa, alineada arriba-izquierda */
+    #instagram-section.bloque { margin: 40px auto !important; }
+    /* Intro: pantalla completa, todo centrado (el header y los botones
+       tienen su propio text-align:center, pero sin align-items:center acá
+       la caja se achica a su contenido y queda pegada al borde izquierdo). */
     #bloque-intro {
         display: flex !important; flex-direction: column;
-        align-items: flex-start; justify-content: flex-start;
+        align-items: center; justify-content: flex-start;
         width: 100% !important; min-height: 100vh;
         padding: 60px 5vw; box-sizing: border-box;
     }
@@ -1765,5 +1771,25 @@ a.section-block:hover h3 {
     #construccion-jupiter.bloque .efecto-shrink-sticky {
         position: sticky !important; top: 0 !important; height: 100vh !important;
         min-height: 0 !important; overflow: hidden !important;
+    }
+
+    /* Mercurio: el texto (left:12vw) y el glifo (right:15vw) estan
+       posicionados en vw asumiendo una tarjeta angosta escalada por la
+       camara. A pantalla completa (sin camara) ese mismo offset se estira
+       contra los bordes reales del viewport y queda todo descentrado con
+       un hueco enorme en el medio. Los centramos como un par con flex,
+       sin tocar la rotacion del pendulo (se redeclara el mismo transform,
+       solo sacando el translateY que ya no hace falta con align-items). */
+    #astro-cotidiana-mercurio .efecto-shrink-sticky {
+        display: flex; flex-direction: row; justify-content: center;
+        align-items: center; gap: 40px; flex-wrap: wrap; padding: 0 20px;
+    }
+    #astro-cotidiana-mercurio .texto-mercurio-sutil-wrapper {
+        position: static; left: auto; top: auto; transform: none;
+        max-width: 320px;
+    }
+    #astro-cotidiana-mercurio .mercurio-anim-wrapper {
+        position: static; right: auto; top: auto;
+        transform: rotate(calc(30deg - (60deg * var(--scroll-progress))));
     }
 }

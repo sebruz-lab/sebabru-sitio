@@ -168,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let progress = -rect.top / (rect.height - window.innerHeight);
                 progress = clamp01(progress);
                 container.style.setProperty('--scroll-progress', progress);
+                // En ventanas angostas (<=768px) el CSS achica la imagen con
+                // --progreso-mobile, no con --scroll-progress.
+                container.style.setProperty('--progreso-mobile', progress * progress * (3 - 2 * progress));
             });
             tickingReduce = false;
         }

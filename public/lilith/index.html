@@ -13,7 +13,7 @@
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
-<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../style.css?v=23">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <!-- Google tag (gtag.js) -->
@@ -618,6 +618,15 @@ html, body { margin: 0; padding: 0; background: #000; }
     transform: none !important;
     filter: none !important;
 }
+/* Cuando el MISMO elemento es a la vez .bloque y .fade-in-element (ej.
+   #comprar), no se puede anular tambien opacity/transform: esos los usa
+   la camara para posicionarlo y desvanecerlo por distancia (inline, por
+   JS) — no es la animacion de entrada propia de fade-in-element como en
+   el caso de arriba. Solo neutralizamos filter (el blur fijo), que la
+   camara nunca toca. */
+.bloque.fade-in-element {
+    filter: none !important;
+}
 .bloque .video-container {
     transform: none !important;
     aspect-ratio: 16 / 9 !important;
@@ -660,6 +669,39 @@ html, body { margin: 0; padding: 0; background: #000; }
     filter: none !important;
 }
 .cierre .section-container { max-width: 900px; margin: 0 auto; }
+
+/* ─── Movimiento reducido: sin camara. Mismo criterio que la home
+       (style.css): los bloques van en flujo normal y centrados, y los de
+       imagen+texto vuelven al mecanismo lineal — cada uno es su propio
+       sticky de pantalla completa y el scroll de la pagina corre la
+       imagen para revelar el texto (el --scroll-progress lo escribe el
+       script de abajo, en su rama de movimiento reducido). ─── */
+@media (prefers-reduced-motion: reduce) {
+    .escena-track { height: auto; }
+    .escena { position: static; height: auto; overflow: visible; }
+    .capa-lejana { display: none; }
+    .universo { position: static; transform: none !important; }
+
+    .bloque {
+        position: static !important; left: auto !important; top: auto !important;
+        transform: none !important; opacity: 1 !important; visibility: visible !important;
+        pointer-events: auto !important;
+        margin: 60px auto !important;
+    }
+    .bloque--intro {
+        min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+        margin-top: 0 !important;
+    }
+    .bloque--ancho { max-height: none; overflow: visible; }
+
+    .efecto-shrink-container.bloque {
+        height: 190vh !important; width: 100% !important; margin: 0 !important;
+    }
+    .efecto-shrink-container.bloque .efecto-shrink-sticky {
+        position: sticky !important; top: 0 !important; height: 100vh !important;
+        min-height: 0 !important; overflow: hidden !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -889,7 +931,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 </section>
             </section>
 
-            <article class="bloque bloque--ancho" id="video-bloque" data-x="37" data-y="-1350">
+            <article class="bloque bloque--ancho" id="video-bloque" data-x="37" data-y="-1450">
             <section class="section-container video-section fade-in-element" id="video">
                 <div class="video-container">
                     <iframe
@@ -1236,7 +1278,7 @@ html, body { margin: 0; padding: 0; background: #000; }
             </section>
             </article>
 
-            <section class="efecto-shrink-container bloque" id="seminario" data-x="256" data-y="-1800">
+            <section class="efecto-shrink-container bloque" id="seminario" data-x="400" data-y="-2000">
                 <div class="efecto-shrink-sticky">
                     <img src="../img/seminarioln.webp" alt="Seminario Luna Negra" class="efecto-imagen">
                     <div class="efecto-texto">
@@ -1439,17 +1481,39 @@ html, body { margin: 0; padding: 0; background: #000; }
     var NB = BLOQUES.length;
     var PARALLAX_MAPA = 0.45;
 
+    // Movimiento reducido: la camara no corre. El layout lo resuelve el CSS
+    // (@media prefers-reduced-motion); aca solo calculamos --scroll-progress
+    // de cada imagen+texto por la posicion de ESA seccion en la pagina
+    // (mismo calculo que frameReduce de la home) y dejamos andar los
+    // botones "Un libro/curso/video" con un scroll comun.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        escenaTrack.style.height = 'auto';
-        escena.style.position = 'static';
-        escena.style.height = 'auto';
-        universo.style.position = 'static';
-        BLOQUES.forEach(function (b) {
-            b.style.setProperty('position', 'static', 'important');
-            b.style.transform = 'none';
-            b.style.opacity = '1';
-            b.style.margin = '60px auto';
+        var shrinks = document.querySelectorAll('.efecto-shrink-container');
+        var tickingReduce = false;
+        function frameReduce() {
+            for (var s = 0; s < shrinks.length; s++) {
+                var rect = shrinks[s].getBoundingClientRect();
+                var pr = clamp01(-rect.top / (rect.height - window.innerHeight));
+                shrinks[s].style.setProperty('--scroll-progress', pr);
+                shrinks[s].style.setProperty('--progreso-mobile', pr * pr * (3 - 2 * pr));
+            }
+            tickingReduce = false;
+        }
+        window.addEventListener('scroll', function () {
+            if (!tickingReduce) {
+                window.requestAnimationFrame(frameReduce);
+                tickingReduce = true;
+            }
+        }, { passive: true });
+        window.addEventListener('resize', frameReduce);
+        frameReduce();
+
+        document.querySelectorAll('[data-ir-a-bloque]').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var destino = document.getElementById(el.dataset.irABloque);
+                if (destino) destino.scrollIntoView({ block: 'start' });
+            });
         });
+
         document.querySelectorAll('iframe[data-src]').forEach(function (ifr) {
             ifr.src = ifr.dataset.src;
             ifr.removeAttribute('data-src');

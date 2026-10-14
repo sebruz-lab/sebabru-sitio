@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linaje, clan y genealogía a través de las casas | Seba Bru</title>
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/linaje/">
+<meta property="og:title" content="Linaje, clan y genealogía a través de las casas">
+<meta property="og:description" content="Un seminario para elaborar la relación entre la carta natal y la familia de orígen. Cinco encuentros a partir del 17/10.">
+<meta property="og:image" content="https://sebabru.com/img/linaje.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+<style>
+/* ════════ Recorrido espacial 2D, mismo mecanismo que /lilith (y que la
+   home): #escena-track/.escena/.capa-lejana/.universo/.bloque[data-x][data-y],
+   misma funcion frame() con resistencia, en el script propio de esta
+   pagina. Por ahora hay un solo bloque de contenido ademas de la
+   cabecera, pero la estructura es identica a la de /lilith para poder
+   sumar mas bloques despues sin rehacer nada. ════════ */
+html, body { margin: 0; padding: 0; background: #000; }
+
+.escena-track { position: relative; height: 440vh; }
+.escena {
+    position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
+    background: #000;
+}
+.capa-lejana, .universo { position: absolute; inset: 0; will-change: transform; }
+.capa-lejana { z-index: 0; }
+.universo { z-index: 1; }
+
+.bloque {
+    position: absolute !important; left: 50% !important; top: 50% !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%);
+    opacity: 0; pointer-events: none;
+    width: min(92vw, 640px);
+    text-align: center;
+    z-index: 2;
+}
+.bloque--intro { width: min(92vw, 640px); }
+
+.efecto-shrink-container.bloque {
+    width: min(96vw, 1100px);
+    height: auto;
+}
+.efecto-shrink-container.bloque .efecto-shrink-sticky {
+    position: static; height: auto; min-height: 58vh;
+}
+.bloque .efecto-texto {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+}
+
+/* Cabecera propia de Linaje: mismo lenguaje que .lilith-banner pero sin
+   imagen de fondo (la imagen de linaje.webp ya trae su propio titulo
+   dibujado adentro, y duplicaba el texto del h1 si se usaba de fondo). */
+.linaje-banner {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 18px;
+}
+.linaje-banner h1 {
+    color: #fff;
+    font-size: clamp(1.8rem, 4.5vw, 3rem);
+    margin: 0;
+    letter-spacing: 0.02em;
+    font-weight: 300;
+    text-transform: none;
+}
+
+/* Probando minusculas normales en vez de mayusculas forzadas, solo en
+   esta pagina (el h2 global del sitio fuerza uppercase). */
+#seminario-linaje .efecto-texto h2 { text-transform: none; letter-spacing: 0.01em; }
+#casas-derivadas h2 { text-transform: none; }
+</style>
+</head>
+<body>
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+        </ul>
+    </nav>
+
+    <div class="escena-track" id="escena-track">
+        <section class="escena" id="escena" aria-label="Recorrido por el seminario">
+            <div class="capa-lejana" id="capa-lejana" aria-hidden="true"></div>
+            <div class="universo" id="universo">
+
+                <article class="bloque bloque--intro" id="bloque-hero" data-x="0" data-y="0">
+                    <section class="linaje-banner">
+                        <h1>Linaje, clan y genealogía a través de las casas</h1>
+                        <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
+                    </section>
+                </article>
+
+                <section class="efecto-shrink-container bloque" id="seminario-linaje" data-x="700" data-y="-550">
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/linaje.webp" alt="Linaje, clan y genealogía a través de las casas" class="efecto-imagen">
+                        <div class="efecto-texto">
+                            <h2>Linaje, clan y genealogía a través de las casas</h2>
+                            <p><i>Un seminario para elaborar la relación entre la carta natal y la familia de orígen.</i></p>
+                            <p>El mapa del cielo nos habla de nuestra esencia, pero ¿qué nos dice de la sustancia con la que esa esencia se vuelve real, tangible, humana?</p>
+                            <p>Incorporando nuevos sentidos a la interpretación de las casas astrológicas podemos acompañar nuestras lecturas de cartas natales con una información que ahonde en la familia y en las raíces ancestrales. El objetivo del seminario es ampliar los recursos en nuestra mirada para identificar las recurrencias y sobrecargas que arrastramos de nuestro árbol y que se evidencian en la carta natal; así como los talentos y las potencias que deja a nuestro alcance nuestro origen familiar.</p>
+                            <p>¿Cómo nos sostiene nuestra tierra y qué sostenemos de nuestros antepasados? ¿Qué desórdenes podemos identificar en nuestra relación con el clan?</p>
+                            <p>Serán cinco encuentros de 2 horas, los sábados de 11 a 13 h, a partir del 17/10.</p>
+                            <p>Vamos a trabajar diferentes indicadores y modos de pensar y evaluar la relación con la familia y la posición que ocupamos en el linaje. Abordaremos una mirada profunda sobre los personajes de la familia y cómo encontrar los puntos pegados o sobrecargados en la memoria familiar. Nos detendremos especialmente en los vínculos fundamentales con la madre y el padre, diferenciando a los personajes y sus particularidades con la función psíquica con la que se relacionan; ensayando modos de separar la función de los personajes.</p>
+                            <p>La cursada estará a cargo de Sebastián Bru.</p>
+                            <h4>Intercambio:</h4>
+                            <p>Incluye materiales de lectura complementarios, un certificado de asistencia y accesos a las clases grabadas durante un año.</p>
+                            <h4>Valor:</h4>
+                            <p>Un pago de $70.000 (50u$d)- o dos cuotas de $40.000 (30u$d)</p>
+                            <div class="grupo-botones-sutiles">
+                                <a href="https://forms.gle/FqeAJ5QLRVvSaxRN7" class="btn-sutil" target="_blank" rel="noopener">Inscribirme</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <article class="bloque" id="casas-derivadas" data-x="-750" data-y="450">
+                    <img src="../img/derivadas.webp" alt="Tu familia a través de las casas derivadas" style="width:100%; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+                    <h2 style="margin-top:22px; color:#fff; font-weight:300; text-transform:none; letter-spacing:0.02em; font-size:1.4rem;">Tu familia a través de las casas derivadas</h2>
+                </article>
+
+                <article class="bloque" id="video-linaje" data-x="150" data-y="950">
+                    <div class="video-container" style="aspect-ratio:16/9; border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+                        <iframe data-src="https://www.youtube.com/embed/kZSS534IoqQ" width="100%" height="100%" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:block;"></iframe>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+    </div>
+
+    <footer class="main-footer">
+        <p>© 2026 Seba Bru Astrología.</p>
+    </footer>
+
+<script>
+(function () {
+    'use strict';
+
+    function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+    var escenaTrack = document.getElementById('escena-track');
+    var escena = document.getElementById('escena');
+    var universo = document.getElementById('universo');
+    var capaLejana = document.getElementById('capa-lejana');
+    var BLOQUES = Array.prototype.slice.call(escenaTrack.querySelectorAll('.bloque'));
+    var POS = BLOQUES.map(function (b) { return [parseFloat(b.dataset.x) || 0, parseFloat(b.dataset.y) || 0]; });
+    var NB = BLOQUES.length;
+    var PARALLAX_MAPA = 0.45;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        escenaTrack.style.height = 'auto';
+        escena.style.position = 'static';
+        escena.style.height = 'auto';
+        universo.style.position = 'static';
+        BLOQUES.forEach(function (b) {
+            b.style.setProperty('position', 'static', 'important');
+            b.style.transform = 'none';
+            b.style.opacity = '1';
+            b.style.margin = '60px auto';
+        });
+        document.querySelectorAll('iframe[data-src]').forEach(function (ifr) {
+            ifr.src = ifr.dataset.src;
+            ifr.removeAttribute('data-src');
+        });
+        return;
+    }
+
+    // Mismo mecanismo de resistencia que /lilith y la home: la camara
+    // persigue con peso el punto que marca el scroll en vez de saltar
+    // directo. Recorrido corto (2 paradas), resistencia liviana.
+    var RESISTENCIA = 0.09;
+    var segActual = null;
+
+    function frameRecorrido() {
+        var scrollable = escenaTrack.offsetHeight - window.innerHeight;
+        var p = scrollable > 0 ? clamp01(-escenaTrack.getBoundingClientRect().top / scrollable) : 0;
+        var segCrudo = p * (NB - 1);
+
+        if (segActual === null) segActual = segCrudo;
+        segActual += (segCrudo - segActual) * RESISTENCIA;
+        var seg = segActual;
+
+        var i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
+        var fe = easeInOut(f);
+        var camX = POS[i][0] + (POS[j][0] - POS[i][0]) * fe;
+        var camY = POS[i][1] + (POS[j][1] - POS[i][1]) * fe;
+
+        universo.style.transform = 'translate(' + (-camX).toFixed(1) + 'px,' + (-camY).toFixed(1) + 'px)';
+        if (capaLejana) {
+            capaLejana.style.transform = 'translate(' + (-camX * PARALLAX_MAPA).toFixed(1) + 'px,' + (-camY * PARALLAX_MAPA).toFixed(1) + 'px)';
+        }
+
+        for (var k = 0; k < NB; k++) {
+            var dx = camX - POS[k][0], dy = camY - POS[k][1];
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var D_MESETA = 60;
+            var vis = clamp01(1 - Math.max(0, d - D_MESETA) / 470);
+            var b = BLOQUES[k];
+            b.style.opacity = vis;
+            b.style.visibility = vis > 0.03 ? 'visible' : 'hidden';
+            b.style.transform = 'translate(-50%,-50%) translate(' + POS[k][0] + 'px,' + POS[k][1] + 'px) scale(' + (0.92 + 0.08 * vis).toFixed(3) + ')';
+            b.style.pointerEvents = vis > 0.6 ? 'auto' : 'none';
+
+            if (b.classList.contains('efecto-shrink-container')) {
+                var DWELL_IMG_TEXTO = 0.6;
+                var ventana = 1 - DWELL_IMG_TEXTO;
+                var localImgTexto = clamp01((seg - (k - ventana)) / ventana);
+                b.style.setProperty('--scroll-progress', easeInOut(localImgTexto));
+
+                var DWELL_MOBILE = 0.3;
+                var ventanaMobile = 1 - DWELL_MOBILE;
+                var lMob = clamp01((seg - (k - ventanaMobile)) / ventanaMobile);
+                b.style.setProperty('--progreso-mobile', lMob * lMob * (3 - 2 * lMob));
+            }
+
+            if (vis > 0.45) cargarIframes(b);
+        }
+    }
+
+    function cargarIframes(el) {
+        var pendientes = el.querySelectorAll('iframe[data-src]');
+        for (var n = 0; n < pendientes.length; n++) {
+            pendientes[n].src = pendientes[n].dataset.src;
+            pendientes[n].removeAttribute('data-src');
+        }
+    }
+
+    (function loop() {
+        frameRecorrido();
+        window.requestAnimationFrame(loop);
+    })();
+
+    function goToBloque(id) {
+        var idx = BLOQUES.findIndex(function (b) { return b.id === id; });
+        if (idx < 0) return false;
+        var scrollable = escenaTrack.offsetHeight - window.innerHeight;
+        window.scrollTo({
+            top: escenaTrack.offsetTop + scrollable * (idx / (NB - 1)),
+            behavior: 'smooth'
+        });
+        return true;
+    }
+    document.querySelectorAll('[data-ir-a-bloque]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            goToBloque(el.dataset.irABloque);
+        });
+    });
+
+    // Al scrollear el texto de un bloque con el mouse/trackpad, la camara
+    // se realinea a su foco (mismo patron que /lilith y la home).
+    escenaTrack.querySelectorAll('.efecto-texto').forEach(function (caja) {
+        caja.addEventListener('wheel', function () {
+            var bloqueEl = caja.closest('.bloque');
+            if (bloqueEl && bloqueEl.id) goToBloque(bloqueEl.id);
+        }, { passive: true });
+    });
+})();
+</script>
+</body>
+</html>
