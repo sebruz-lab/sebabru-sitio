@@ -1,8 +1,8 @@
 // public/escuela/aula-abierta.js
 //
 // Gating compartido para las aulas de Formacion Abierta:
-// - Sin login: se ve el temario completo y la Clase 1 se puede "desbloquear"
-//   iniciando sesion (login liviano, sirve para captar el mail de un lead).
+// - Sin login: se ve el temario completo y la Clase 1 se reproduce directo
+//   (es el regalo: no se pide cuenta para verla). El resto, con candado.
 // - Logueado sin haber comprado: la Clase 1 se reproduce directo, el resto
 //   queda con candado + boton para comprar. Se marca el mail como interesado
 //   en el curso (usuarios/{email}.interesados).
@@ -481,7 +481,8 @@ export function initAula(slug, opts = {}) {
     cont.querySelector('.clase-gate-play')?.remove();
     trackMuestra();
     medirPrimerPlay(iframe, slug, primera.id || 'clase-1');
-    marcarInteres();
+    // Marcar el mail como interesado necesita una cuenta: solo si hay sesion.
+    if (auth.currentUser) marcarInteres();
   }
 
   function prepararGate() {
@@ -549,7 +550,10 @@ export function initAula(slug, opts = {}) {
 
   onAuthStateChanged(auth, async (user) => {
     actualizarAvisoLogin(!!user);
-    if (!user) { prepararGate(); ocultarOverlay(); return; }
+    // Sin sesion, la Clase 1 se ve igual (antes pedia iniciar sesion:
+    // prepararGate). Si mas adelante se quiere volver a pedir cuenta para
+    // la clase gratis, alcanza con cambiar revelarMuestra() por prepararGate().
+    if (!user) { await revelarMuestra(); ocultarOverlay(); return; }
 
     try {
       const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));

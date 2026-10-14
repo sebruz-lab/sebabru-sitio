@@ -291,6 +291,39 @@ async function chequearCompraLilith(browser) {
     }
 }
 
+// Cada aula, sin sesion iniciada: la Clase 1 tiene que estar lista para
+// reproducir (es el regalo), sin pedir cuenta.
+async function chequearAulasSinLogin(browser) {
+    const area = 'Clase gratis sin iniciar sesión';
+    const servidorTxt = readFileSync(join(RAIZ, 'functions', 'index.js'), 'utf8');
+    const registrados = ((servidorTxt.match(/const CURSO_URLS\s*=\s*\{([\s\S]*?)\};/) || [])[1] || '');
+    const aulas = archivos(join(PUBLIC, 'escuela', 'abierta'), ['.html'])
+        .filter(r => r.endsWith('/index.html')).map(r => r.split('/')[0])
+        .filter(slug => registrados.includes(`'/escuela/abierta/${slug}/'`));
+    for (const slug of aulas) {
+        const { page, reg } = await nuevaPagina(browser);
+        try {
+            await page.goto(`${SITIO}/escuela/abierta/${slug}/`, { waitUntil: 'load', timeout: 45000 });
+            let st = null;
+            for (let i = 0; i < 20; i++) {
+                await espera(500);
+                st = await page.evaluate(() => {
+                    const f = document.querySelector('.clase-item iframe');
+                    if (!f) return { problema: 'no hay video en la clase 1' };
+                    const visible = getComputedStyle(f).display !== 'none' && f.getBoundingClientRect().height > 50;
+                    return { src: f.src || '', visible, pideLogin: !!document.querySelector('.clase-gate-play') };
+                });
+                if (st.problema || (st.src && st.visible)) break;
+            }
+            if (st.problema) falla(area, `\`${slug}\`: ${st.problema}`);
+            else if (st.pideLogin) falla(area, `\`${slug}\`: pide iniciar sesión para ver la clase 1`);
+            else if (!st.src || !st.visible) falla(area, `\`${slug}\`: la clase 1 no cargó el video`);
+            else ok(area, `\`${slug}\`: la clase 1 se ve sin cuenta`);
+        } catch (e) { falla(area, `\`${slug}\`: no cargó: ${e.message.split('\n')[0]}`); }
+        await page.close();
+    }
+}
+
 async function chequearLinaje(browser) {
     const area = '/linaje';
     for (const movimiento of ['no-preference', 'reduce']) {
@@ -356,6 +389,7 @@ if (!process.env.SOLO_ESTATICO) {
     try {
         await chequearCompraLilith(browser);
         await chequearLinaje(browser);
+        await chequearAulasSinLogin(browser);
         await chequearPaginas(browser, paginas);
     } finally {
         await browser.close();
