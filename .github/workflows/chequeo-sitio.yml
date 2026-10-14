@@ -1,0 +1,70 @@
+name: Chequeo del sitio
+
+# Revisa que sebabru.com funcione (ver .github/chequeo/chequeo.mjs):
+# todos los dias a las 8 de Argentina y despues de cada deploy. Si algo
+# falla, el run queda en rojo (GitHub manda mail) y se abre un issue con
+# el informe; cuando vuelve a andar, el issue se cierra solo.
+
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_run:
+    workflows: ["Deploy to Firebase Hosting on merge"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: chequeo-sitio
+  cancel-in-progress: true
+
+jobs:
+  chequeo:
+    # Despues de un deploy, solo si el deploy salio bien.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar Chrome para el chequeo
+        working-directory: .github/chequeo
+        run: npm install --no-audit --no-fund
+
+      - name: Esperar a que el deploy termine de propagarse
+        if: github.event_name == 'workflow_run'
+        run: sleep 60
+
+      - name: Chequear sebabru.com
+        id: chequeo
+        working-directory: .github/chequeo
+        run: node chequeo.mjs
+
+      - name: Avisar con un issue
+        if: failure() && steps.chequeo.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh issue list --state open --search "in:title Chequeo del sitio" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --body-file .github/chequeo/informe.md
+          else
+            gh issue create --title "🔴 Chequeo del sitio: hay problemas en sebabru.com" --body-file .github/chequeo/informe.md
+          fi
+
+      - name: Cerrar el aviso si ya anda todo
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh issue list --state open --search "in:title Chequeo del sitio" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue close "$num" --comment "🟢 El último chequeo pasó: sebabru.com vuelve a funcionar bien."
+          fi

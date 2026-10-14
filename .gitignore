@@ -76,3 +76,6 @@ seguridad.json
 Old/
 **/.env
 
+
+# Informe que genera el chequeo del sitio
+.github/chequeo/informe.md

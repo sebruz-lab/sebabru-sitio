@@ -1,0 +1,8 @@
+{
+  "name": "chequeo-sebabru",
+  "private": true,
+  "type": "module",
+  "description": "Chequeo automatico de sebabru.com (ver chequeo.mjs)",
+  "scripts": { "chequeo": "node chequeo.mjs" },
+  "dependencies": { "puppeteer": "^23.11.1" }
+}
