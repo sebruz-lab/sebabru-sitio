@@ -1,0 +1,46 @@
+/* =========================================
+   RECORRIDO ESPACIAL de /lilith y /linaje — VERSION PLANA
+   El recorrido animado (camara) solo corre si <html> tiene la clase
+   "recorrido". Esa clase la pone un script chico en el <head> de cada
+   pagina, y SOLO si no hay "reducir movimiento"; si despues el motor
+   (recorrido.js) no llega a arrancar, se la saca. Sin la clase, la
+   pagina queda en esta version plana: bloques en flujo normal,
+   centrados, todo visible y scrolleable — tambien sin JavaScript.
+   Los bloques de imagen+texto vuelven al mecanismo lineal de la home:
+   cada uno es su propio sticky de pantalla completa y el scroll de la
+   pagina corre la imagen para revelar el texto.
+   ========================================= */
+html:not(.recorrido) .escena-track { height: auto; }
+html:not(.recorrido) .escena { position: static; height: auto; overflow: visible; }
+html:not(.recorrido) .capa-lejana { display: none; }
+html:not(.recorrido) .universo { position: static; transform: none !important; }
+
+html:not(.recorrido) .bloque {
+    position: static !important; left: auto !important; top: auto !important;
+    transform: none !important; opacity: 1 !important; visibility: visible !important;
+    pointer-events: auto !important;
+    margin: 60px auto !important;
+    /* Al entrar por un ancla (#curso), que el menu fijo no tape el titulo */
+    scroll-margin-top: 70px;
+}
+html:not(.recorrido) .bloque--intro {
+    min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+    margin-top: 0 !important;
+}
+/* Bloques largos (compra del libro, video): en el recorrido tienen su
+   propio scroll interno; en la version plana se leen en la pagina. */
+html:not(.recorrido) .bloque--ancho { max-height: none; overflow: visible; }
+
+html:not(.recorrido) .efecto-shrink-container.bloque {
+    height: 190vh !important; width: 100% !important; margin: 0 !important;
+    scroll-margin-top: 0;
+    /* Sin JS que calcule el avance del scroll, el bloque queda en su
+       estado final (imagen corrida, texto visible). recorrido.js lo pisa
+       con el valor real apenas corre. */
+    --scroll-progress: 1;
+    --progreso-mobile: 1;
+}
+html:not(.recorrido) .efecto-shrink-container.bloque .efecto-shrink-sticky {
+    position: sticky !important; top: 0 !important; height: 100vh !important;
+    min-height: 0 !important; overflow: hidden !important;
+}

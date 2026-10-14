@@ -231,7 +231,22 @@
             document.getElementById('metodo-texto').textContent = 'Pago con Mercado Pago recibido';
             // Mercado Pago ya confirmo el pago del lado del gateway antes de
             // mandar para aca (back_url de exito) — es el punto real de venta.
-            if (window.gtag) gtag('event', 'compra_confirmada', { curso: 'libro-lilith', metodo: 'mp', value: 35000, currency: 'ARS' });
+            // Evento "purchase" de GA4, una sola vez por pago (no al recargar).
+            const pagoId = params.get('payment_id') || params.get('collection_id') || ('libro_' + Date.now());
+            let yaMedida = false;
+            try {
+                const medidas = JSON.parse(localStorage.getItem('sb_compras_medidas') || '[]');
+                yaMedida = medidas.includes(pagoId);
+                if (!yaMedida) {
+                    medidas.push(pagoId);
+                    localStorage.setItem('sb_compras_medidas', JSON.stringify(medidas.slice(-20)));
+                    localStorage.removeItem('sb_compra_pendiente');
+                }
+            } catch (e) {}
+            if (!yaMedida && window.gtag) gtag('event', 'purchase', {
+                transaction_id: pagoId, producto: 'libro-lilith', metodo: 'mp', value: 35000, currency: 'ARS',
+                items: [{ item_id: 'libro-lilith', item_name: 'Libro Luna Negra', price: 35000, quantity: 1 }]
+            });
         } else if (metodo === 'transferencia') {
             document.getElementById('metodo-texto').textContent = 'Transferencia bancaria';
             document.getElementById('transfer-nota').style.display = 'block';

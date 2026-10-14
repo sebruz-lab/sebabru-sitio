@@ -113,6 +113,55 @@ function abrirModal() {
   document.getElementById('aula-login-modal').classList.add('active');
 }
 
+// GA4 "clase_gratis_reproducida": el primer play de la clase gratis (una
+// vez por visita). YouTube avisa el play por su IFrame API (por eso el
+// iframe lleva enablejsapi=1); Bunny, por player.js.
+function cargarScript(src) {
+  return new Promise((ok, falla) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = ok; s.onerror = falla;
+    document.head.appendChild(s);
+  });
+}
+
+let apiYoutubeLista = null;
+function apiYoutube() {
+  if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if (!apiYoutubeLista) {
+    apiYoutubeLista = new Promise(ok => {
+      const previo = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (previo) previo(); ok(window.YT); };
+      cargarScript('https://www.youtube.com/iframe_api').catch(() => {});
+    });
+  }
+  return apiYoutubeLista;
+}
+
+function medirPrimerPlay(iframe, curso, claseId) {
+  let medido = false;
+  const enviar = () => {
+    if (medido) return;
+    medido = true;
+    if (window.gtag) window.gtag('event', 'clase_gratis_reproducida', { curso, clase_id: claseId });
+  };
+  if (iframe.src.includes('youtube.com')) {
+    apiYoutube().then(YT => {
+      new YT.Player(iframe, {
+        events: {
+          // Con autoplay puede que ya este reproduciendo cuando la API engancha.
+          onReady: e => { if (e.target.getPlayerState() === YT.PlayerState.PLAYING) enviar(); },
+          onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) enviar(); }
+        }
+      });
+    });
+  } else {
+    cargarScript('https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js').then(() => {
+      const player = new window.playerjs.Player(iframe);
+      player.on('ready', () => player.on('play', enviar));
+    }).catch(() => {});
+  }
+}
+
 function contenedorDe(clase) {
   return clase.querySelector('div[style*="position:relative"]');
 }
@@ -405,7 +454,7 @@ export function initAula(slug, opts = {}) {
       const resp = await fetch(`${OBTENER_MUESTRA_URL}?curso=${encodeURIComponent(slug)}`);
       const data = await resp.json();
       if (!data.videoId) return false;
-      iframe.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=1${previewParams}`;
+      iframe.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}${previewParams}`;
       return true;
     } catch (e) { return false; }
   }
@@ -431,6 +480,7 @@ export function initAula(slug, opts = {}) {
     iframe.style.display = 'block';
     cont.querySelector('.clase-gate-play')?.remove();
     trackMuestra();
+    medirPrimerPlay(iframe, slug, primera.id || 'clase-1');
     marcarInteres();
   }
 

@@ -174,8 +174,42 @@
           .forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none');
       }
 
-      function trackCompra(datos) {
-        if (window.gtag) gtag('event', 'compra_confirmada', datos);
+      // Compra confirmada -> evento "purchase" de GA4. Se mide apenas llega
+      // la vuelta de un pago aprobado, haya o no sesion iniciada. Producto
+      // y valor salen de lo que guardo medicion.js al tocar "Pagar" (en
+      // /lilith, /linaje); si no esta (otro navegador, sin localStorage),
+      // se manda igual, sin valor. No se reenvia al recargar la pagina, y
+      // GA4 ademas descarta purchase repetidos con el mismo transaction_id.
+      function medirCompra({ transactionId, metodo, regalo }) {
+        let pend = null;
+        try { pend = JSON.parse(localStorage.getItem('sb_compra_pendiente') || 'null'); } catch (e) {}
+        if (pend && (Date.now() - pend.t > 6 * 3600 * 1000 || (metodo && pend.metodo && pend.metodo !== metodo))) pend = null;
+        const id = transactionId || (pend && pend.id);
+        if (!id) return;
+        try {
+          const medidas = JSON.parse(localStorage.getItem('sb_compras_medidas') || '[]');
+          if (medidas.includes(id)) return;
+          medidas.push(id);
+          localStorage.setItem('sb_compras_medidas', JSON.stringify(medidas.slice(-20)));
+          localStorage.removeItem('sb_compra_pendiente');
+        } catch (e) {}
+        const producto = (pend && pend.producto) || 'curso';
+        const item = { item_id: producto, item_name: (pend && pend.nombre) || producto, quantity: 1 };
+        const p = { transaction_id: id, producto, metodo: metodo || (pend && pend.metodo) || '', regalo: regalo != null ? regalo : !!(pend && pend.regalo), items: [item] };
+        if (pend && pend.value) { p.value = pend.value; p.currency = pend.currency; item.price = pend.value; }
+        if (window.gtag) gtag('event', 'purchase', p);
+      }
+
+      if (paymentId && status === 'approved') {
+        medirCompra({ transactionId: paymentId, metodo: 'mp' });
+      } else if (paypalPaymentId) {
+        medirCompra({ transactionId: paypalPaymentId, metodo: 'paypal', regalo: regaloEnUrl });
+      } else if (regaloEnUrl && codigoEnUrl) {
+        medirCompra({ transactionId: 'paypal_' + codigoEnUrl, metodo: 'paypal', regalo: true });
+      } else {
+        // PayPal con sesion iniciada vuelve a esta pagina sin parametros:
+        // solo cuenta si recien se toco "Pagar con PayPal" en este navegador.
+        medirCompra({ metodo: 'paypal' });
       }
 
       document.getElementById('btn-copiar-codigo').addEventListener('click', () => {
@@ -223,11 +257,9 @@
             document.getElementById('regalo-codigo').textContent = data.codigoRegalo;
             document.getElementById('regalo-curso').textContent = data.cursoNombre || 'este curso';
             mostrar('estado-regalo');
-            trackCompra({ metodo: 'mp', regalo: true });
           } else if (resp.ok && data.ok) {
             document.getElementById('btn-curso').href = data.cursoUrl;
             mostrar('estado-exito');
-            trackCompra({ metodo: 'mp', regalo: false });
           } else {
             document.getElementById('msg-error').textContent =
               data.error || 'No pudimos verificar tu pago en este momento.';
@@ -247,7 +279,6 @@
           if (data.granted) {
             document.getElementById('btn-curso').href = data.cursoUrl;
             mostrar('estado-exito');
-            trackCompra({ metodo: 'paypal', regalo: false });
           } else {
             // El codigo ya se lo mandamos por mail; lo mostramos igual de respaldo.
             document.getElementById('regalo-titulo').textContent = 'Ya tenés tu código de acceso';
@@ -267,7 +298,6 @@
         // Vuelta de PayPal: el codigo de regalo ya viene generado en la URL.
         document.getElementById('regalo-codigo').textContent = codigoEnUrl;
         mostrar('estado-regalo');
-        trackCompra({ metodo: metodo || 'paypal', regalo: true });
       } else if (accesoEnUrl && codigoEnUrl) {
         // Vuelta de PayPal de una compra anonima: ya hay codigo de acceso
         // emailado; si se loguea ahora, se activa directo.
