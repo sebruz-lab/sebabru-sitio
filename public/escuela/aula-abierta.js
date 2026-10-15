@@ -460,12 +460,20 @@ export function initAula(slug, opts = {}) {
     if (window.gtag) window.gtag('event', 'muestra_gratis', { curso: slug });
   }
 
-  async function revelarMuestraYoutube(iframe) {
+  // La clase gratis cuando el video NO viaja en el HTML: el id lo da la
+  // Cloud Function obtenerMuestra (unico caso en que un id de video sale
+  // sin haber comprado). Sirve tanto para YouTube como para Bunny.
+  async function revelarMuestraPorApi(iframe) {
     try {
       const resp = await fetch(`${OBTENER_MUESTRA_URL}?curso=${encodeURIComponent(slug)}`);
       const data = await resp.json();
       if (!data.videoId) return false;
-      iframe.src = `https://www.youtube.com/embed/${data.videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}${previewParams}`;
+      const base = videoEntryToSrc(data.videoId, 615375);
+      iframe.src = base.includes('youtube.com')
+        // enablejsapi + origin: sin eso la IFrame API no avisa el play
+        // y se pierde el evento de GA4 (ver medirPrimerPlay).
+        ? `${base}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}${previewParams}`
+        : `${base.replace('autoplay=false', 'autoplay=true')}${previewParams}`;
       return true;
     } catch (e) { return false; }
   }
@@ -483,7 +491,7 @@ export function initAula(slug, opts = {}) {
     if (!cont || !iframe) return;
 
     const ok = iframe.hasAttribute('data-video')
-      ? await revelarMuestraYoutube(iframe)
+      ? await revelarMuestraPorApi(iframe)
       : revelarMuestraBunny(iframe);
     if (!ok) return;
 
@@ -549,7 +557,10 @@ export function initAula(slug, opts = {}) {
         document.querySelectorAll('iframe[data-video]').forEach((iframe, i) => {
           if (videos[i]) {
             iframe.style.display = 'block';
-            iframe.src = `https://www.youtube.com/embed/${videos[i]}`;
+            // Cada entrada puede ser un ID de YouTube o un GUID de Bunny:
+            // videoEntryToSrc decide. Asi un aula puede mezclar las dos
+            // fuentes, o migrar de una a otra sin tocar el HTML.
+            iframe.src = videoEntryToSrc(videos[i], 615375);
           } else {
             // Clase que todavia no se subio (cursos que se van completando,
             // ej. linaje): en vez de un cuadro negro vacio, "Proximamente".
