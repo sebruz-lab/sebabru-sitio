@@ -15,8 +15,25 @@
 
     <link rel="stylesheet" href="../../style.css">
     <link rel="stylesheet" href="../escuela.css?v=5">
+    <link rel="stylesheet" href="../../recorrido.css?v=1">
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Recorrido animado solo sin "reducir movimiento". Si el motor
+         (recorrido.js) no arranca, la pagina queda en su version plana:
+         todo visible y scrolleable (ver recorrido.css). -->
+    <script>
+    (function (d) {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        d.classList.add('recorrido');
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.__recorridoOk) return;
+            d.classList.remove('recorrido');
+            var f = document.querySelectorAll('iframe[data-src]');
+            for (var i = 0; i < f.length; i++) { f[i].src = f[i].getAttribute('data-src'); f[i].removeAttribute('data-src'); }
+        });
+    })(document.documentElement);
+    </script>
 
     <style>
         /* ============================================================
@@ -158,51 +175,30 @@
         }
         .bloque--testimonio cite { display: block; margin-top: 1.1em; font-style: normal; font-size: 0.78rem; letter-spacing: 0.1em; color: var(--ink-faint); }
 
-        /* ---------- Tarjeta de curso con deslizamiento lateral ---------- */
-        .bloque--curso {
-            background: rgba(13,13,19,0.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            border: 1px solid var(--rule); border-radius: 16px; padding: 0; overflow: hidden;
-        }
-        .bcard-track {
-            position: relative;
-            display: flex; overflow-x: auto; overflow-y: hidden;
-            scroll-snap-type: x mandatory; scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; scrollbar-width: none;
-            height: min(62vh, 500px);
-        }
-        .bcard-track::-webkit-scrollbar { display: none; }
-        .bpanel {
-            flex: 0 0 93%; min-width: 0; scroll-snap-align: start; box-sizing: border-box;
-            padding: 26px 24px; overflow-y: auto; scrollbar-width: thin;
-            display: flex; flex-direction: column;
-        }
-        .bpanel--cara { justify-content: center; }
-        .bpanel .marco { margin: 0 0 1.3em; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 10; flex-shrink: 0; }
-        .bpanel .marco img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.9; }
+        /* ---------- Tarjeta de curso: imagen que se corre + texto que se
+           desliza (mismo mecanismo que la home/lilith/linaje, via
+           efecto-shrink-container/efecto-imagen/efecto-texto de style.css
+           y recorrido.js). Acá solo el contenido propio de adentro del
+           panel de texto. ---------- */
+        .bloque--curso .efecto-texto h2 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.4rem, 5vw, 1.9rem); margin: 0 0 0.3em; color: var(--ink); text-transform: none; }
         .bsub { font-family: 'Outfit', sans-serif; color: var(--ink-dim); font-size: 0.85rem; line-height: 1.55; margin: 0 0 1em; }
-        .bhook { color: var(--ink); font-size: 1rem; line-height: 1.7; margin: 0; }
-        .bscroll { margin-top: 0.2em; }
-        .bscroll p { color: #c6c6d0; font-size: 0.95rem; line-height: 1.78; margin: 0 0 0.9em; }
-        .bcta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.5em; }
-        .bcta .entrar, .verinc {
-            display: inline-block; font-family: 'Outfit', sans-serif; font-size: 0.82rem; letter-spacing: 0.05em;
+        .bhook { color: var(--ink); font-size: 1rem; line-height: 1.7; margin: 0 0 1em; }
+
+        /* Boton "ver la primera clase gratis", debajo del titulo */
+        .btn-clase-gratis {
+            display: inline-flex; align-items: center; gap: 8px; margin: 0 0 1.3em;
+            font-family: 'Outfit', sans-serif; font-size: 0.82rem; letter-spacing: 0.03em;
             color: var(--star); text-decoration: none; cursor: pointer;
             border: 1px solid rgba(240,228,196,0.4); background: none; border-radius: 999px; padding: 9px 16px;
         }
-        .bmas {
-            font-family: 'Outfit', sans-serif; font-size: 0.82rem; letter-spacing: 0.05em; cursor: pointer;
-            background: var(--star); color: #12121a; border: none; border-radius: 999px; padding: 10px 18px;
-        }
-        .bswipe-hint {
-            margin-top: 1.6em; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint);
-            display: flex; align-items: center; gap: 9px;
-        }
+        .btn-clase-gratis:hover { background: rgba(240,228,196,0.1); }
+
+        .bscroll { margin-top: 0.2em; }
+        .bscroll p { color: #c6c6d0; font-size: 0.95rem; line-height: 1.78; margin: 0 0 0.9em; }
         .bdatos { list-style: none; padding: 0; margin: 0.4em 0 1.2em; }
         .bdatos li { padding: 0.75em 0; border-bottom: 1px solid var(--rule); color: var(--ink-dim); font-size: 0.88rem; line-height: 1.5; }
         .bperm { border-left: 2px solid var(--star); padding-left: 0.9em; margin: 1.2em 0; font-family: 'Outfit', sans-serif; font-weight: 300; color: var(--ink); font-size: 0.98rem; line-height: 1.5; }
         .bperm span { display: block; font-family: 'Google Sans', sans-serif; font-size: 0.84rem; color: var(--ink-dim); margin-top: 0.4em; }
-        .bgratis { margin: 1.2em 0; font-size: 0.9rem; color: var(--ink); }
-        .bgratis a { color: var(--star); text-decoration: none; border-bottom: 1px solid rgba(240,228,196,0.4); }
         .bpromo {
             margin: 1.2em 0; padding: 12px 14px; font-size: 0.88rem; line-height: 1.5; color: var(--ink);
             background: rgba(240,228,196,0.08); border: 1px solid rgba(240,228,196,0.3); border-radius: 8px;
@@ -210,9 +206,26 @@
         .bpromo strong { color: var(--star); font-weight: 400; }
         .bprecio { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.2rem; color: var(--ink); margin: 1.2em 0; }
         .bprecio small { color: var(--ink-dim); font-size: 0.78rem; }
-        .bcard-nav { display: flex; gap: 7px; justify-content: center; padding: 0 0 15px; }
-        .bcard-nav button { width: 6px; height: 6px; border-radius: 50%; border: none; padding: 0; background: rgba(255,255,255,0.2); cursor: pointer; transition: background 0.3s, transform 0.3s; }
-        .bcard-nav button.on { background: var(--star); transform: scale(1.4); }
+
+        /* Miniatura de la primera clase gratis, antes del boton de pago
+           (como en /lilith): la imagen del curso con un icono de play
+           encima, lleva al aula. */
+        .miniatura-gratis {
+            position: relative; display: block; margin: 1.2em 0; border-radius: 10px;
+            overflow: hidden; border: 1px solid var(--rule); aspect-ratio: 16 / 9;
+        }
+        .miniatura-gratis img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.75; }
+        .miniatura-gratis .play {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 52px; height: 52px; border-radius: 50%;
+            background: rgba(8,8,11,0.72); border: 1px solid rgba(240,228,196,0.5);
+            color: var(--star); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        }
+        .miniatura-gratis .etiqueta {
+            position: absolute; left: 10px; bottom: 10px; font-family: 'Outfit', sans-serif;
+            font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+            background: rgba(8,8,11,0.75); border-radius: 999px; padding: 4px 10px;
+        }
 
         /* Toggle "lo quiero regalar": secundario, discreto, no compite con el boton de compra */
         .regalo-toggle {
@@ -222,22 +235,6 @@
         }
         .regalo-toggle input { width: 15px; height: 15px; accent-color: var(--star); flex-shrink: 0; cursor: pointer; }
         .regalo-toggle:hover { color: var(--ink); }
-
-        /* Flecha lateral: senala que la tarjeta se desliza al costado */
-        .bcard-arrow {
-            position: absolute; right: 8px; top: 50%; margin-top: -16px;
-            width: 32px; height: 32px; border-radius: 50%; z-index: 4;
-            pointer-events: auto; cursor: pointer;
-            -webkit-appearance: none; appearance: none; padding: 0;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(240,228,196,0.16); border: 1px solid rgba(240,228,196,0.34);
-            color: var(--star); font-size: 0.85rem;
-            animation: swipeNudge 1.4s ease-in-out infinite;
-            transition: opacity 0.3s;
-        }
-        .bcard-arrow:hover { background: rgba(240,228,196,0.28); }
-        @keyframes swipeNudge { 0%, 100% { transform: translateX(0); opacity: 0.4; } 50% { transform: translateX(4px); opacity: 1; } }
-        .reduce .bcard-arrow { animation: none; opacity: 0.6; }
 
         .escena-hint {
             position: absolute; left: 0; right: 0; bottom: 5vh; text-align: center; z-index: 3; pointer-events: none;
@@ -304,23 +301,16 @@
         .drawer ol a::before { content: counter(c, decimal-leading-zero); color: var(--ink-faint); font-size: 0.78rem; }
         .drawer-reset { margin-top: auto; padding-top: 24px; font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.06em; color: var(--ink-faint); text-decoration: none; }
 
-        /* ---------- prefers-reduced-motion ---------- */
+        /* ---------- Version plana (sin "recorrido": reducir movimiento, o si
+           el motor no arranco) — recorrido.css pone la base, acá solo lo
+           propio de esta pagina. ---------- */
         @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-        .reduce .escena-track { height: auto; }
-        .reduce .escena { position: static; height: auto; overflow: visible; background: none; padding: 8vh 0; }
-        .reduce .capa-lejana { display: none; }
-        .reduce .universo { position: static; transform: none !important; }
-        .reduce .universo .starfield { display: none; }
-        .reduce .bloque {
-            position: static; left: auto; top: auto; transform: none !important;
-            opacity: 1; pointer-events: auto; width: min(90vw, 520px); margin: 9vh auto !important;
+        html:not(.recorrido) .bloque:not(.efecto-shrink-container) {
+            width: min(90vw, 520px); margin: 9vh auto !important;
             max-height: 70vh; overflow-y: auto; scrollbar-width: thin;
         }
-        .reduce .bcard-track { height: auto; overflow: visible; flex-direction: column; }
-        .reduce .bpanel { overflow: visible; }
-        .reduce .bcard-nav { display: none; }
-        .reduce .escena-hint { display: none; }
-        .reduce .indice { opacity: 1; pointer-events: auto; }
+        html:not(.recorrido) .escena-hint { display: none; }
+        html:not(.recorrido) .indice { opacity: 1; pointer-events: auto; }
 
         /* ---------- Checkout (bloque de compra dentro de la tarjeta) ---------- */
         .comprar-section { margin-top: 4px; }
@@ -430,13 +420,13 @@
         <div class="indice" id="indice" aria-hidden="true">
             <svg viewBox="0 0 300 56" role="img" aria-label="Ir a un curso">
                 <polyline points="24,36 65,18 106,38 147,16 188,38 229,16 270,34"></polyline>
-                <circle class="ipt" data-curso="luna"     cx="24"  cy="36" r="4"><title>La Luna en la carta natal</title></circle>
-                <circle class="ipt" data-curso="tarot"    cx="65"  cy="18" r="4"><title>Tarot &mdash; Mazo Rider-Waite</title></circle>
-                <circle class="ipt" data-curso="signos"   cx="106" cy="38" r="4"><title>Signos</title></circle>
-                <circle class="ipt" data-curso="casas"    cx="147" cy="16" r="4"><title>Casas y ascendentes</title></circle>
-                <circle class="ipt" data-curso="pluton26" cx="188" cy="38" r="4"><title>Plutón y los Nodos Lunares</title></circle>
-                <circle class="ipt" data-curso="lilith"   cx="229" cy="16" r="4"><title>Luna Negra · Lilith en la carta natal</title></circle>
-                <circle class="ipt" data-curso="linaje"   cx="270" cy="34" r="4"><title>Linaje, clan y genealogía</title></circle>
+                <circle class="ipt" data-curso="luna"     data-ir-a-bloque="luna"     cx="24"  cy="36" r="4"><title>La Luna en la carta natal</title></circle>
+                <circle class="ipt" data-curso="tarot"    data-ir-a-bloque="tarot"    cx="65"  cy="18" r="4"><title>Tarot &mdash; Mazo Rider-Waite</title></circle>
+                <circle class="ipt" data-curso="signos"   data-ir-a-bloque="signos"   cx="106" cy="38" r="4"><title>Signos</title></circle>
+                <circle class="ipt" data-curso="casas"    data-ir-a-bloque="casas"    cx="147" cy="16" r="4"><title>Casas y ascendentes</title></circle>
+                <circle class="ipt" data-curso="pluton26" data-ir-a-bloque="pluton26" cx="188" cy="38" r="4"><title>Plutón y los Nodos Lunares</title></circle>
+                <circle class="ipt" data-curso="lilith"   data-ir-a-bloque="lilith"   cx="229" cy="16" r="4"><title>Luna Negra · Lilith en la carta natal</title></circle>
+                <circle class="ipt" data-curso="linaje"   data-ir-a-bloque="linaje"   cx="270" cy="34" r="4"><title>Linaje, clan y genealogía</title></circle>
             </svg>
             <p class="ilbl" id="ilbl"></p>
         </div>
@@ -478,7 +468,7 @@
 
             <div class="universo" id="universo">
                 <svg class="starfield" width="2800" height="1800" viewBox="-1400 -900 2800 1800" aria-hidden="true">
-                    <polyline points="940,-300 1180,480 -260,900 -1360,500 -1400,-300 -700,-900"></polyline>
+                    <polyline points="100,-640 560,980 1180,480 -1360,500 -1400,-300 -700,-900 260,-1450"></polyline>
                     <circle cx="-900" cy="-500" r="2.4"></circle><circle cx="-300" cy="-650" r="2"></circle>
                     <circle cx="250" cy="-400" r="2.2"></circle><circle cx="800" cy="-540" r="2"></circle>
                     <circle cx="1050" cy="-150" r="2.3"></circle><circle cx="-1100" cy="-100" r="2"></circle>
@@ -488,22 +478,8 @@
                     <circle cx="150" cy="-110" r="1.7"></circle><circle cx="-960" cy="470" r="2"></circle>
                 </svg>
 
-                <!-- 1 -->
-                <article class="bloque bloque--estacion" data-x="0" data-y="0">
-                    <p class="kicker">Escuela Abierta</p>
-                    <h3>A tu ritmo.<br>Cuando quieras, como quieras.</h3>
-                    <p>Formaciones de astrología grabadas. Sin fechas de inicio, sin horarios, sin cursada obligada.</p>
-                </article>
-
-                <!-- 2 -->
-                <article class="bloque bloque--estacion" data-x="-780" data-y="-260">
-                    <p class="kicker">Sin agenda.</p>
-                    <h3>La primera clase, gratis.</h3>
-                    <p>Para que conozcas mi tono y mi forma de enseñar.</p>
-                </article>
-
-                <!-- 3: nube de cursos -->
-                <article class="bloque bloque--nube" data-x="100" data-y="-640">
+                <!-- 1: nube de cursos -->
+                <article class="bloque bloque--nube" data-x="0" data-y="0">
                     <p class="kicker">El mapa completo</p>
                     <h3>Tenemos todos estos cursos para vos</h3>
                     <ul class="nube">
@@ -517,41 +493,41 @@
                     </ul>
                 </article>
 
-                <!-- 4: Luna -->
-                <article class="bloque bloque--curso" id="luna" data-curso="luna" data-x="940" data-y="-300"
+                <!-- 2: primera clase gratis -->
+                <article class="bloque bloque--estacion" data-x="-780" data-y="-260">
+                    <p class="kicker">Sin agenda.</p>
+                    <h3>La primera clase, gratis.</h3>
+                    <p>Para que conozcas mi tono y mi forma de enseñar.</p>
+                </article>
+
+                <!-- 3: Luna -->
+                <article class="efecto-shrink-container bloque bloque--curso" id="luna" data-curso="luna" data-x="100" data-y="-640"
                          data-precio-mp="60.000" data-precio-usd="50" data-precio-trans="54.000" data-nombre="La Luna en la carta natal">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/lunaabierta.webp" alt="La Luna en la carta natal" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/lunaabierta.webp" alt="La Luna en la carta natal" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">Formación 01</p>
-                            <h3>La Luna en la carta natal</h3>
+                            <h2>La Luna en la carta natal</h2>
                             <p class="bsub">Seguridad, repetición y memoria. Un taller de autoconocimiento que también acompaña tu formación.</p>
+                            <a href="luna/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Repetís los mismos mecanismos para sentirte a salvo, una y otra vez, aunque hace rato dejaron de servirte.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="luna/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>La Luna habla de eso: de nuestra forma de conseguir seguridad emocional, de los mecanismos que repetimos para construirla, y del modo en el que podemos dejar de hacerlo.</p>
                                 <p>En este espacio vamos a hacer una recorrida por las doce Lunas del zodíaco, intentando comprender profundamente cada una en al menos tres dimensiones centrales. Por un lado, la Luna implica una reacción emocional, un mecanismo que se gatilla para preservarnos pero que muchas veces nos trae dolores de cabeza e incomodidad &mdash; lograr hacer conscientes estos mecanismos trae un profundo alivio. Por otro lado, estudiar esta luminaria nos permite registrar nuestras necesidades emocionales y encontrar los recursos saludables con los que podemos satisfacer esa necesidad, comprendiéndonos amorosamente. Finalmente, también veremos los talentos que implica esa dimensión, las potencias que se despliegan desde ese espacio de intimidad que cada Luna representa.</p>
                                 <p>Estudiar la Luna nos permite comprender cómo vimos a nuestra madre, cómo vivimos nuestra historia, cómo se ordena la memoria. En este punto podemos encontrarnos con cosas propias que reconoceremos de inmediato y que nos permitirán ampliar la mirada sobre lo que fuimos y lo que somos, sobre lo que nos pasó y sobre todo, cómo entendimos lo que nos pasó.</p>
                                 <p>Este curso abre un espacio para darnos cuenta de lo que nos pasa, pero a la vez nos da recursos para registrar a lxs demás en su singular modo de sentirse segurxs y a salvo.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🕜 13 clases grabadas de una hora cada una, a tu ritmo</li>
                                 <li>🎓 Comprendés mejor tus mecanismos emocionales y los de quienes te rodean</li>
                                 <li>📚 Bibliografía complementaria</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras. No hay plazo para terminarlo.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="luna/">Verla ahora</a></p>
+                            <a href="luna/" class="miniatura-gratis">
+                                <img src="../img/lunaabierta.webp" alt="Primera clase de La Luna en la carta natal" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
                             <a href="luna/" class="btn-acceder" id="btn-acceder-luna" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -559,36 +535,24 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
-                <!-- 5: testimonio (Ana Laura) -->
-                <article class="bloque bloque--testimonio" data-x="560" data-y="980">
+                <!-- 4: testimonio (Ana Laura) -->
+                <article class="bloque bloque--testimonio" data-x="940" data-y="-300">
                     <blockquote>Me parece super rico el contenido del curso, la forma de enseñar me parece que es muy flexible y acorde a nuestra capacidad de ir asimilando y procesando en nuestro interior.</blockquote>
                     <cite>Ana Laura</cite>
                 </article>
 
-                <!-- 6: Tarot -->
-                <article class="bloque bloque--curso" id="tarot" data-curso="tarot" data-x="1180" data-y="480"
+                <!-- 5: Tarot -->
+                <article class="efecto-shrink-container bloque bloque--curso" id="tarot" data-curso="tarot" data-x="560" data-y="980"
                          data-precio-mp="80.000" data-precio-usd="60" data-precio-trans="72.000" data-nombre="de Tarot">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/tarot.webp" alt="Tarot, mazo Rider-Waite" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/tarot.webp" alt="Tarot, mazo Rider-Waite" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">Formación 02</p>
-                            <h3>Tarot &mdash; Mazo Rider-Waite</h3>
+                            <h2>Tarot &mdash; Mazo Rider-Waite</h2>
+                            <a href="tarot/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Hay un umbral en donde la lógica cede y aparece algo que solo puede ser leído, no explicado. Eso es el tarot.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="tarot/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>En este curso hacemos un recorrido por los arcanos mayores y menores del mazo Rider-Waite, aprendiendo a leer los símbolos a través de los que las cartas nos hablan.</p>
                                 <p>La intención del curso es habilitar una iniciación a la lectura de las cartas de un modo dinámico y abierto, que nos permita encauzar la intuición y entrelazarla al saber teórico.</p>
@@ -596,17 +560,17 @@
                                 <p>El tarot trabaja con el inconsciente, pero no solo con el inconsciente de quien pregunta. Hay algo en la tirada que a veces dice lo que va a pasar, y que después efectivamente pasa. Cómo sucede eso, no lo sé. Y esa honestidad frente a lo inexplicable es parte de lo que el tarot enseña.</p>
                                 <p>La intuición, el azar y la imagen se combinan para producir un relato que quien lee la tirada muchas veces no termina de entender, pero que la persona que pregunta reconoce de inmediato. La humildad frente a eso es el principio fundamental de una buena lectura.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🃏 12 clases grabadas de dos horas, a tu ritmo</li>
                                 <li>📚 Materiales complementarios de lectura</li>
                                 <li>🔮 Contenido vivo y práctico</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="tarot/">Verla ahora</a></p>
+                            <a href="tarot/" class="miniatura-gratis">
+                                <img src="../img/tarot.webp" alt="Primera clase de Tarot" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 60 &middot; Transferencia $72.000</small></p>
                             <a href="tarot/" class="btn-acceder" id="btn-acceder-tarot" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -614,46 +578,34 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
-                <!-- 7: Signos -->
-                <article class="bloque bloque--curso" id="signos" data-curso="signos" data-x="-260" data-y="900"
+                <!-- 6: Signos -->
+                <article class="efecto-shrink-container bloque bloque--curso" id="signos" data-curso="signos" data-x="1180" data-y="480"
                          data-precio-mp="60.000" data-precio-usd="50" data-precio-trans="54.000" data-nombre="de Signos">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/signos.webp" alt="Signos del zodíaco" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/signos.webp" alt="Signos del zodíaco" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">Formación 03</p>
-                            <h3>Signos</h3>
+                            <h2>Signos</h2>
+                            <a href="signos/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Vas a profundizar en la base misma del lenguaje astrológico, ampliando tu comprensión sobre los signos en su esencia.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="signos/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>En este curso vas a profundizar en la base misma del lenguaje astrológico, ampliando tu comprensión sobre los signos en su esencia.</p>
                                 <p>Este curso es una parte fundamental de la introducción al lenguaje astrológico, que se entrelaza con el curso de casas, de planetas personales y con el de planetas transpersonales y aspectos.</p>
                                 <p>Vas a encontrar acá las primeras herramientas para comprender la relación entre la tierra y el cielo, entre el adentro y el afuera &mdash; sumergiéndote en el modo en el que este lenguaje piensa el mundo, habla del mundo.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🃏 13 clases grabadas de una hora</li>
                                 <li>📚 Materiales complementarios de lectura</li>
                                 <li>🔮 Contenido vivo y práctico</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="signos/">Verla ahora</a></p>
+                            <a href="signos/" class="miniatura-gratis">
+                                <img src="../img/signos.webp" alt="Primera clase de Signos" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
                             <a href="signos/" class="btn-acceder" id="btn-acceder-signos" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -661,53 +613,48 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
-                <!-- 8: testimonio (Kenny) -->
-                <article class="bloque bloque--testimonio" data-x="-1020" data-y="1200">
+                <!-- 7: testimonio (Kenny) -->
+                <article class="bloque bloque--testimonio" data-x="-260" data-y="900">
                     <blockquote>Me gusta especialmente tu mirada. Hay mucha reflexión detrás de cada concepto. Un esfuerzo por una mirada distinta o al menos buscando nuevas palabras que abren otras imágenes, otros entendimientos. Me resulta muy enriquecedor.</blockquote>
                     <cite>Kenny</cite>
                 </article>
 
+                <!-- 8: a tu ritmo (reposicionado en medio de la serie) -->
+                <article class="bloque bloque--estacion" data-x="-1020" data-y="1200">
+                    <p class="kicker">Escuela Abierta</p>
+                    <h3>A tu ritmo.<br>Cuando quieras, como quieras.</h3>
+                    <p>Formaciones de astrología grabadas. Sin fechas de inicio, sin horarios, sin cursada obligada. Con acceso permanente.</p>
+                </article>
+
                 <!-- 9: Casas y ascendentes -->
-                <article class="bloque bloque--curso" id="casas" data-curso="casas" data-x="-1360" data-y="500"
+                <article class="efecto-shrink-container bloque bloque--curso" id="casas" data-curso="casas" data-x="-1360" data-y="500"
                          data-precio-mp="60.000" data-precio-usd="50" data-precio-trans="54.000" data-nombre="Casas y ascendentes">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/casas.webp" alt="Casas astrológicas" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/casas.webp" alt="Casas astrológicas" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">Formación 04</p>
-                            <h3>Casas y ascendentes</h3>
+                            <h2>Casas y ascendentes</h2>
+                            <a href="casas/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Las casas hablan de la experiencia concreta sobre esta tierra: nos permiten situar la energía de los planetas y comprender a fondo una carta natal.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="casas/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>Las casas hablan de la experiencia concreta sobre esta tierra. Nos permiten situar la energía de los planetas y comprender profundamente a una persona a través de su carta natal.</p>
                                 <p>Con los ascendentes tenemos una primera forma de entender la carta natal como un gran mapa que nos permite entender no solo lo que la persona es, sino los modos en los que logrará convertirse en lo que es. Nos sirven para entender dinámicamente a los individuos y sus vicisitudes.</p>
                                 <p>Este curso es una parte fundamental de la introducción al lenguaje astrológico, que se entrelaza con el curso de signos, de planetas personales y con el de planetas transpersonales y aspectos.</p>
                                 <p>Vas a encontrar acá las primeras herramientas para comprender la relación entre la tierra y el cielo, entre el adentro y el afuera &mdash; sumergiéndote en el modo en el que este lenguaje piensa el mundo, habla del mundo.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🃏 9 clases grabadas de entre una y dos horas</li>
                                 <li>📚 Materiales complementarios de lectura</li>
                                 <li>🔮 Contenido vivo y práctico</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="casas/">Verla ahora</a></p>
+                            <a href="casas/" class="miniatura-gratis">
+                                <img src="../img/casas.webp" alt="Primera clase de Casas y ascendentes" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
                             <a href="casas/" class="btn-acceder" id="btn-acceder-casas" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -715,47 +662,35 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
                 <!-- 10: Plutón y los Nodos Lunares -->
-                <article class="bloque bloque--curso" id="pluton26" data-curso="pluton26" data-x="-1400" data-y="-300"
+                <article class="efecto-shrink-container bloque bloque--curso" id="pluton26" data-curso="pluton26" data-x="-1400" data-y="-300"
                          data-precio-mp="80.000" data-precio-usd="70" data-precio-trans="72.000" data-nombre="Plutón y los Nodos Lunares">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/pluton.jpg" alt="Plutón y los nodos lunares" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/pluton.jpg" alt="Plutón y los nodos lunares" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">Formación 05</p>
-                            <h3>Plutón y los Nodos Lunares</h3>
+                            <h2>Plutón y los Nodos Lunares</h2>
+                            <a href="pluton26/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Un punto de contacto con una intensidad desbordante, capaz de generar tanto rechazo como fascinación.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="pluton26/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>Plutón es uno de los planetas transpersonales que marca más profundamente nuestra experiencia en esta vida &mdash; un punto de contacto con una intensidad desbordante, capaz de generar tanto rechazo como fascinación.</p>
                                 <p>Dentro de nuestra carta natal, señala un punto por donde entramos en contacto con esa intensidad. Representa el inconsciente, el vínculo con mi linaje y mi clan y la relación con la muerte y la sexualidad, entre muchas otras cosas que abordaremos en este curso.</p>
                                 <p>Los nodos lunares están en una relación estrecha con los eclipses y señalan en nuestra carta natal un lugar en donde escucharemos una llamada profunda de nuestra alma. Entre Plutón y los nodos, podemos encontrar información valiosa para entender hacia dónde nos convoca a avanzar la fuerza misteriosa de la vida.</p>
                                 <p>Este curso está pensado para personas con conocimientos básicos de astrología. Al finalizar, entenderás con más profundidad una carta natal y podrás ver dinámicas de transformación que atraviesan a todas las personas.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🪐 8 clases grabadas de dos horas, a tu ritmo</li>
                                 <li>🎓 Para personas con conocimientos básicos de astrología</li>
                                 <li>📚 Material bibliográfico incluido</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="pluton26/">Verla ahora</a></p>
+                            <a href="pluton26/" class="miniatura-gratis">
+                                <img src="../img/pluton.jpg" alt="Primera clase de Plutón y los Nodos Lunares" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 70 &middot; Transferencia $72.000</small></p>
                             <a href="pluton26/" class="btn-acceder" id="btn-acceder-pluton26" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -763,48 +698,36 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
                 <!-- 11: Luna Negra / Lilith -->
-                <article class="bloque bloque--curso" id="lilith" data-curso="lilith" data-x="-700" data-y="-900"
+                <article class="efecto-shrink-container bloque bloque--curso" id="lilith" data-curso="lilith" data-x="-700" data-y="-900"
                          data-precio-mp="80.000" data-precio-usd="50" data-precio-trans="72.000" data-nombre="Luna Negra">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/lilithabierta.webp" alt="Luna Negra, Lilith en la carta natal" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/lilithabierta.webp" alt="Luna Negra, Lilith en la carta natal" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">🌚 Seminario</p>
-                            <h3>Luna Negra · Lilith en la carta natal</h3>
+                            <h2>Luna Negra · Lilith en la carta natal</h2>
+                            <a href="lilith/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Trabaja sobre lo negado, lo invisible, lo que no tiene palabras &mdash; pero opera igual en tus decisiones cotidianas y en tu forma de ver el mundo.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="lilith/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>Este seminario de seis clases grabadas está pensado tanto para astrólogxs profesionales como para personas curiosas que quieren conocer cómo funciona este punto astrológico en su propia carta natal. En estas seis clases grabadas, abordaremos sus mitos, sus arquetipos, y su funcionamiento dentro de la carta natal: cómo pensarla, cómo servirnos de ella para el autoconocimiento y cómo utilizarla en una lectura. También recorreremos sus particularidades por signos, casas y aspectos.</p>
                                 <p>La Luna Negra (o Lilith) trabaja sobre lo negado, lo invisible, lo que no tiene palabras. Algo que, profundamente oculto, opera sin embargo en muchas de nuestras decisiones cotidianas y la forma que tenemos de ver el mundo.</p>
                                 <p>Pero también habla de las pasiones viscerales, los movimientos que no controlamos, que emergen acercándonos al placer y a la fuerza vital que habita en nosotres. Es, también, un modo astrológico de hablar del cuerpo, del cuerpo carne sobre el que se sostiene todo lo que somos.</p>
                                 <p>Lilith nos permite ir más allá de la repetición, abriendo un espacio en nuestro interior para encontrarnos otras cosas en la relación con el afuera. Oxigena profundamente nuestra mirada sobre nosotres y nuestras interpretaciones como profesionales del campo de la astrología.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🌚 6 clases grabadas, a tu ritmo</li>
                                 <li>📚 Materiales de lectura en PDF</li>
                                 <li>🎓 Diploma de participación</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>La cursada se inicia cuando vos quieras y tenés acceso permanente al material.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="lilith/">Verla ahora</a></p>
                             <p class="bpromo">🎁 <strong>Súper promo:</strong> con la compra del curso y abonando solo un 10% más del precio, te llevás también el libro <em>Luna Negra</em>.</p>
+                            <a href="lilith/" class="miniatura-gratis">
+                                <img src="../img/lilith-clase1.webp" alt="Primera clase de Luna Negra · Lilith en la carta natal" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 50 &middot; Transferencia $72.000</small></p>
                             <a href="lilith/" class="btn-acceder" id="btn-acceder-lilith" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
@@ -812,58 +735,41 @@
                             <div class="compra-slot"></div>
                         </div>
                     </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
-                    </div>
                 </article>
 
                 <!-- 12: Linaje, clan y genealogia -->
-                <article class="bloque bloque--curso" id="linaje" data-curso="linaje" data-x="260" data-y="-1450"
+                <article class="efecto-shrink-container bloque bloque--curso" id="linaje" data-curso="linaje" data-x="260" data-y="-1450"
                          data-precio-mp="60.000" data-precio-usd="50" data-precio-trans="54.000" data-nombre="Linaje, clan y genealogía">
-                    <div class="bcard-track">
-                        <div class="bpanel bpanel--cara">
-                            <div class="marco"><img src="../img/linajeabierto.webp" alt="Linaje, clan y genealogía a través de las casas" loading="lazy"></div>
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/linajeabierto.webp" alt="Linaje, clan y genealogía a través de las casas" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
                             <p class="kicker">🌳 Seminario</p>
-                            <h3>Linaje, clan y genealogía a través de las casas</h3>
+                            <h2>Linaje, clan y genealogía a través de las casas</h2>
+                            <a href="linaje/" class="btn-clase-gratis"><i class="fa-solid fa-circle-play"></i> Ver la primera clase gratis</a>
                             <p class="bhook">Un seminario para elaborar la relación entre la carta natal y la familia de origen.</p>
-                            <div class="bcta">
-                                <a class="entrar" href="linaje/">Entrar al aula</a>
-                                <button class="bmas" data-goto="2" type="button">Comprar</button>
-                            </div>
-                            <p class="bswipe-hint">Deslizá <i class="fa-solid fa-arrow-down flecha-titila"></i></p>
-                        </div>
-                        <div class="bpanel bpanel--texto">
-                            <p class="kicker">Sobre el curso</p>
                             <div class="bscroll">
                                 <p>El mapa del cielo nos habla de nuestra esencia, pero ¿qué nos dice de la sustancia con la que esa esencia se vuelve real, tangible, humana?</p>
                                 <p>Incorporando nuevos sentidos a la interpretación de las casas astrológicas podemos acompañar nuestras lecturas de cartas natales con una información que ahonde en la familia y en las raíces ancestrales. El objetivo del seminario es ampliar los recursos en nuestra mirada para identificar las recurrencias y sobrecargas que arrastramos de nuestro árbol y que se evidencian en la carta natal; así como los talentos y las potencias que deja a nuestro alcance nuestro origen familiar.</p>
                                 <p>¿Cómo nos sostiene nuestra tierra y qué sostenemos de nuestros antepasados? ¿Qué desórdenes podemos identificar en nuestra relación con el clan?</p>
                                 <p>Vamos a trabajar diferentes indicadores y modos de pensar y evaluar la relación con la familia y la posición que ocupamos en el linaje. Abordaremos una mirada profunda sobre los personajes de la familia y cómo encontrar los puntos pegados o sobrecargados en la memoria familiar. Nos detendremos especialmente en los vínculos fundamentales con la madre y el padre, diferenciando a los personajes y sus particularidades con la función psíquica con la que se relacionan; ensayando modos de separar la función de los personajes.</p>
                             </div>
-                            <button class="verinc" data-goto="2" type="button">Ver qué incluye y precio</button>
-                        </div>
-                        <div class="bpanel bpanel--compra">
-                            <p class="kicker">Qué incluye</p>
                             <ul class="bdatos">
                                 <li>🌳 5 clases grabadas de dos horas, a tu ritmo</li>
                                 <li>📚 Materiales de lectura complementarios</li>
                                 <li>🎓 Certificado de asistencia</li>
                             </ul>
                             <p class="bperm">Acceso permanente <span>La cursada se inicia cuando vos quieras y tenés acceso permanente al material.</span></p>
-                            <p class="bgratis">La primera clase es abierta y gratuita. <a href="linaje/">Verla ahora</a></p>
+                            <a href="linaje/" class="miniatura-gratis">
+                                <img src="../img/linajeabierto.webp" alt="Primera clase de Linaje, clan y genealogía" loading="lazy">
+                                <span class="play"><i class="fa-solid fa-circle-play"></i></span>
+                                <span class="etiqueta">Clase 1 gratis</span>
+                            </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
                             <a href="linaje/" class="btn-acceder" id="btn-acceder-linaje" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
                         </div>
-                    </div>
-                    <div class="bcard-nav">
-                        <button data-i="0" class="on" type="button" aria-label="Cara"></button>
-                        <button data-i="1" type="button" aria-label="Descripción"></button>
-                        <button data-i="2" type="button" aria-label="Precio y compra"></button>
                     </div>
                 </article>
             </div>
@@ -1058,8 +964,6 @@
     <!-- ==================== JS: compra (rellena plantillas) + recorrido + drawer ==================== -->
     <script>
     (function () {
-        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduce) document.documentElement.classList.add('reduce');
         try { history.scrollRestoration = 'manual'; } catch (e) {}
 
         // ----- Rellenar el bloque de compra de cada curso desde la plantilla -----
@@ -1090,161 +994,35 @@
             { id: 'linaje',   nombre: 'Linaje, clan y genealogía a través de las casas' }
         ];
         function nombreDe(id) { for (var i = 0; i < CURSOS.length; i++) if (CURSOS[i].id === id) return CURSOS[i].nombre; return ''; }
-        function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-        function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
-        var track    = document.getElementById('escena-track');
-        var universo = document.getElementById('universo');
-        var lejana   = document.getElementById('capa-lejana');
-        var indice   = document.getElementById('indice');
-        var ilbl     = document.getElementById('ilbl');
-        var ipts     = Array.prototype.slice.call(document.querySelectorAll('.indice .ipt'));
-
-        var BLOQUES = Array.prototype.slice.call(document.querySelectorAll('.bloque'));
-        var POS = BLOQUES.map(function (b) { return [parseFloat(b.dataset.x) || 0, parseFloat(b.dataset.y) || 0]; });
-        var NB = BLOQUES.length;
-        var R = 470;
-        var PARALLAX = 0.45;
-        var INDICE_DESDE = 0.26;
-
-        var ticking = false;
-
-        function goTo(id) {
-            var bi = -1;
-            for (var m = 0; m < BLOQUES.length; m++) {
-                if (BLOQUES[m].id === id || BLOQUES[m].dataset.curso === id) { bi = m; break; }
-            }
-            if (bi >= 0) {
-                if (reduce) { BLOQUES[bi].scrollIntoView({ behavior: 'auto', block: 'start' }); return; }
-                var scrollable = track.offsetHeight - window.innerHeight;
-                window.scrollTo({ top: track.offsetTop + scrollable * (bi / (NB - 1)), behavior: 'smooth' });
-                return;
-            }
-            var el = document.getElementById(id);
-            if (el) el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-        }
-
-        function frame() {
-            var scrollable = track.offsetHeight - window.innerHeight;
-            var p = scrollable > 0 ? clamp(-track.getBoundingClientRect().top / scrollable, 0, 1) : 0;
-
-            var seg = p * (NB - 1);
-            var i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
-            var fe = easeInOut(f);
-            var camX = POS[i][0] + (POS[j][0] - POS[i][0]) * fe;
-            var camY = POS[i][1] + (POS[j][1] - POS[i][1]) * fe;
-
-            universo.style.transform = 'translate(' + (-camX).toFixed(1) + 'px,' + (-camY).toFixed(1) + 'px)';
-            lejana.style.transform   = 'translate(' + (-camX * PARALLAX).toFixed(1) + 'px,' + (-camY * PARALLAX).toFixed(1) + 'px)';
-
-            var near = 0, nearD = 1e9;
-            for (var k = 0; k < NB; k++) {
-                var dx = camX - POS[k][0], dy = camY - POS[k][1];
-                var d = Math.sqrt(dx * dx + dy * dy);
-                var vis = clamp(1 - d / R, 0, 1);
-                var b = BLOQUES[k];
-                b.style.opacity = vis;
-                b.style.visibility = vis > 0.03 ? 'visible' : 'hidden';
-                b.style.transform = 'translate(-50%,-50%) translate(' + POS[k][0] + 'px,' + POS[k][1] + 'px) scale(' + (0.92 + 0.08 * vis).toFixed(3) + ')';
-                b.style.pointerEvents = vis > 0.6 ? 'auto' : 'none';
-                if (d < nearD) { nearD = d; near = k; }
-            }
-
-            indice.classList.toggle('on', p > INDICE_DESDE);
-            var curso = BLOQUES[near].dataset.curso || '';
+        // ----- Indice de navegacion: se actualiza con el evento
+        // "bloque-visible" que dispara recorrido.js una vez por bloque,
+        // cuando la camara lo deja enfocado (en vez de recalcular la
+        // distancia a mano en cada frame). La navegacion de los puntos
+        // la resuelve el click handler global de recorrido.js via
+        // data-ir-a-bloque, puesto en el HTML de cada <circle>. -----
+        var indice = document.getElementById('indice');
+        var ilbl   = document.getElementById('ilbl');
+        var ipts   = Array.prototype.slice.call(document.querySelectorAll('.indice .ipt'));
+        document.addEventListener('bloque-visible', function (e) {
+            var curso = e.target.dataset ? e.target.dataset.curso : '';
+            if (!curso) return;
+            indice.classList.add('on');
             ipts.forEach(function (pt) { pt.classList.toggle('here', pt.dataset.curso === curso); });
-            if (curso) ilbl.textContent = nombreDe(curso);
-
-            ticking = false;
-        }
-
-        function onScroll() { if (!ticking) { requestAnimationFrame(frame); ticking = true; } }
-
-        // Deslizamiento lateral dentro de cada tarjeta de curso
-        document.querySelectorAll('.bloque--curso .bcard-track').forEach(function (tr) {
-            var art = tr.closest('.bloque--curso');
-            var panels = Array.prototype.slice.call(tr.querySelectorAll('.bpanel'));
-            var navBtns = Array.prototype.slice.call(art.querySelectorAll('.bcard-nav button'));
-            var cur = 0;
-            var arrow = document.createElement('button');
-            arrow.type = 'button';
-            arrow.className = 'fa-solid fa-angle-right bcard-arrow';
-            arrow.setAttribute('aria-label', 'Siguiente');
-            art.appendChild(arrow);
-            function irA(n) { n = Math.max(0, Math.min(panels.length - 1, n)); tr.scrollTo({ left: panels[n].offsetLeft, behavior: 'smooth' }); }
-            arrow.addEventListener('click', function () { irA(cur + 1); });
-            art.querySelectorAll('[data-goto]').forEach(function (btn) {
-                btn.addEventListener('click', function () { irA(parseInt(btn.dataset.goto, 10) || 0); });
-            });
-            navBtns.forEach(function (btn) {
-                btn.addEventListener('click', function () { irA(parseInt(btn.dataset.i, 10) || 0); });
-            });
-            tr.addEventListener('scroll', function () {
-                var best = 0, bd = 1e9;
-                for (var q = 0; q < panels.length; q++) {
-                    var dd = Math.abs(panels[q].offsetLeft - tr.scrollLeft);
-                    if (dd < bd) { bd = dd; best = q; }
-                }
-                cur = best;
-                navBtns.forEach(function (btn, kk) { btn.classList.toggle('on', kk === best); });
-                var ultimo = best >= panels.length - 1;
-                arrow.style.opacity = ultimo ? '0' : '';
-                arrow.style.pointerEvents = ultimo ? 'none' : 'auto';
-            }, { passive: true });
+            ilbl.textContent = nombreDe(curso);
         });
-
-        // Links internos (#curso / #escena-track): scroll suave sin dejar hash
-        document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-            a.addEventListener('click', function (e) {
-                var id = a.getAttribute('href').slice(1);
-                if (!id || (!document.getElementById(id) && !BLOQUES.some(function (b) { return b.dataset.curso === id; }))) return;
-                e.preventDefault();
-                closeDrawer();
-                goTo(id);
-            });
-        });
-
         ipts.forEach(function (pt) {
-            pt.addEventListener('click', function () { goTo(pt.dataset.curso); });
             pt.addEventListener('mouseenter', function () { ilbl.textContent = nombreDe(pt.dataset.curso); });
         });
 
-        // Arrancar arriba salvo link directo a un curso (#luna, etc.)
-        var hashInicial = location.hash.replace('#', '');
-        var esCursoInicial = !!hashInicial && BLOQUES.some(function (b) {
-            return b.id === hashInicial || b.dataset.curso === hashInicial;
-        });
-        function irAlTope() { if (!esCursoInicial) window.scrollTo(0, 0); }
-        irAlTope();
-        window.addEventListener('load', irAlTope);
-        window.addEventListener('pageshow', function () { irAlTope(); });
-
-        if (!reduce) {
-            window.addEventListener('scroll', onScroll, { passive: true });
-            window.addEventListener('resize', onScroll);
-            frame();
-
-            var di = -1;
-            if (hashInicial) {
-                for (var m2 = 0; m2 < BLOQUES.length; m2++) {
-                    if (BLOQUES[m2].id === hashInicial || BLOQUES[m2].dataset.curso === hashInicial) di = m2;
-                }
-            }
-            if (di >= 0) {
-                try { history.replaceState(null, '', location.pathname); } catch (err) {}
-                requestAnimationFrame(function () {
-                    var scrollable = track.offsetHeight - window.innerHeight;
-                    window.scrollTo({ top: track.offsetTop + scrollable * (di / (NB - 1)), behavior: 'instant' });
-                });
-            }
-        }
-
+        // ----- Boton persistente + drawer "Ver todos los cursos" -----
         var drawer = document.getElementById('drawer-lista');
         function openDrawer() { drawer.hidden = false; requestAnimationFrame(function () { drawer.classList.add('open'); }); }
         function closeDrawer() { drawer.classList.remove('open'); setTimeout(function () { drawer.hidden = true; }, 280); }
         document.getElementById('btn-ver-todos').addEventListener('click', openDrawer);
         document.getElementById('drawer-close').addEventListener('click', closeDrawer);
         drawer.addEventListener('click', function (e) { if (e.target === drawer) closeDrawer(); });
+        drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeDrawer); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
     })();
     </script>
@@ -1485,5 +1263,6 @@
       gtag('js', new Date());
       gtag('config', 'G-GDLRMR5D57');
     </script>
+    <script src="../../recorrido.js?v=1"></script>
 </body>
 </html>
