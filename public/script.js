@@ -200,21 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // Al tocar/scrollear el texto de un bloque del recorrido, la cámara se
-    // alinea suavemente a la posición final de ese bloque — cada vez, no
-    // solo la primera (probando qué tan bien se siente así). Con
-    // movimiento reducido no: ahí cada sección se scrollea sola.
-    if (escenaTrack && !reduce) {
-        escenaTrack.querySelectorAll('.efecto-texto').forEach(caja => {
-            function alinearCamara() {
-                const bloqueEl = caja.closest('.bloque');
-                if (bloqueEl && bloqueEl.id) goToBloque(bloqueEl.id);
-            }
-            caja.addEventListener('wheel', alinearCamara, { passive: true });
-            caja.addEventListener('touchstart', alinearCamara, { passive: true });
-        });
-    }
-
     // 2. SCROLL SUAVE PARA EL MENÚ Y ENLACES (Offset corregido)
     const menuToggle = document.getElementById('menu-toggle');
     const menuLinks = document.querySelectorAll('.menu-list a, a[href^="#"]');

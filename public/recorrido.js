@@ -236,16 +236,4 @@
         }
         window.requestAnimationFrame(loop);
     })();
-
-    // Al scrollear el texto de un bloque con el mouse/trackpad, la camara
-    // se realinea a su foco (mismo patron que la home). Solo "wheel": en
-    // touch, arrancar un scrollTo() en touchstart compite con el
-    // arrastre nativo del dedo y se siente como que el scroll no responde.
-    escenaTrack.querySelectorAll('.efecto-texto').forEach(function (caja) {
-        caja.addEventListener('wheel', function () {
-            if (plano) return;
-            var bloqueEl = caja.closest('.bloque');
-            if (bloqueEl && bloqueEl.id) irAlBloque(bloqueEl.id, true);
-        }, { passive: true });
-    });
 })();
