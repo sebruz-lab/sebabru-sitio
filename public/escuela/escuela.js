@@ -12,6 +12,20 @@ import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/
 
 const googleProvider = new GoogleAuthProvider();
 
+// Mensaje genérico a propósito para auth/email-already-in-use: no confirma
+// ni niega si ese email ya tiene cuenta (evita que alguien lo use para
+// enumerar qué emails están registrados en el sitio).
+function mensajeErrorRegistro(code) {
+    switch (code) {
+        case 'auth/weak-password':
+            return 'La contraseña es muy corta (mínimo 6 caracteres).';
+        case 'auth/invalid-email':
+            return 'Ese email no es válido.';
+        default:
+            return 'No pudimos crear la cuenta con esos datos. Si ya tenés una cuenta, probá iniciar sesión.';
+    }
+}
+
 // Detecta si un video guardado en cursos/{id}.videos es un GUID de Bunny
 // (formato UUID) o un ID de YouTube, y arma la URL de embed correspondiente.
 // Así los GUIDs de Bunny ya no viajan en el HTML estático de cada página:
@@ -232,7 +246,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.innerText = "CREAR CUENTA";
                 if(errorMsg) {
                     errorMsg.style.display = 'block';
-                    errorMsg.innerText = "Error: " + error.message;
+                    // Mensajes genericos a proposito: el texto crudo de Firebase
+                    // (ej. "auth/email-already-in-use") permite confirmar que
+                    // mail ya tiene cuenta en el sitio con solo probar registrarse.
+                    errorMsg.innerText = mensajeErrorRegistro(error.code);
                 }
             }
         };
@@ -247,7 +264,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const docSnap = await getDoc(doc(db, "usuarios", email.toLowerCase().trim()));
             if (docSnap.exists()) {
                 const misCursos = docSnap.data().cursos || [];
-                const tienePermiso = misCursos.some(c => url.toLowerCase().includes(c.toLowerCase()));
+                // Coincidencia exacta contra los segmentos de la URL, no un
+                // "contiene" sobre el string completo: antes, tener el curso
+                // "luna" bastaba para que cualquier URL que contuviera esa
+                // substring en cualquier lado (ej. "/escuela/lunas26/",
+                // "/escuela/lunanegra/") pasara este chequeo.
+                const segmentosUrl = url.toLowerCase().split('/').filter(Boolean);
+                const tienePermiso = misCursos.some(c => segmentosUrl.includes(c.toLowerCase()));
                 if (tienePermiso) {
                     window.location.href = url;
                 } else {

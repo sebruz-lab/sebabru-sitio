@@ -4,6 +4,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const CURSO_URLS = {
   luna:      '/escuela/abierta/luna/',
@@ -148,9 +149,42 @@ async function checkRateLimit(nombreFuncion, req, maxRequests) {
   });
 }
 
+// Verifica la firma x-signature que Mercado Pago manda en cada webhook,
+// usando el "secreto de firma" configurado en el panel de MP (Developers ->
+// Tu integracion -> Webhooks). Si MP_WEBHOOK_SECRET no esta configurado
+// todavia, no bloquea nada (se loguea un aviso) -- el estado del pago se
+// reconfirma igual contra la API de MP mas abajo en mpWebhook, asi que esto
+// es una capa extra, no el unico control.
+function verificarFirmaMP(req, dataId) {
+  const secreto = process.env.MP_WEBHOOK_SECRET;
+  if (!secreto) {
+    functions.logger.warn('MP_WEBHOOK_SECRET no configurado: firma del webhook sin verificar.');
+    return true;
+  }
+
+  const firmaHeader = req.headers['x-signature'] || '';
+  const requestId = req.headers['x-request-id'] || '';
+  const partes = Object.fromEntries(
+    firmaHeader.split(',').map(p => p.trim().split('=').map(s => s.trim()))
+  );
+  const { ts, v1 } = partes;
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const esperado = crypto.createHmac('sha256', secreto).update(manifest).digest('hex');
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(v1));
+  } catch (_) {
+    return false; // longitudes distintas -> timingSafeEqual tira, no es valida
+  }
+}
+
 async function validarCodigo(codigo, cursoId) {
   if (!codigo) return null;
-  const snap = await _db.collection('codigos_descuento').doc(codigo.toUpperCase()).get();
+  const codigoNorm = codigo.toUpperCase();
+  if (!CODIGO_VALIDO.test(codigoNorm)) return null;
+  const snap = await _db.collection('codigos_descuento').doc(codigoNorm).get();
   if (!snap.exists) return null;
   const data = snap.data();
   if (!data.activo) return null;
@@ -236,11 +270,16 @@ function generarCodigoRegalo() {
   const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const bloque = () => {
     let s = '';
-    for (let i = 0; i < 5; i++) s += ABC[Math.floor(Math.random() * ABC.length)];
+    for (let i = 0; i < 5; i++) s += ABC[crypto.randomInt(ABC.length)];
     return s;
   };
   return `RG-${bloque()}-${bloque()}`;
 }
+
+// Los codigos (regalo y descuento) se usan tal cual como ID de documento de
+// Firestore -- sin esto, un codigo con "/" (o vacio, o gigante) puede romper
+// la referencia al documento en vez de simplemente "no encontrado".
+const CODIGO_VALIDO = /^[A-Z0-9-]{1,40}$/;
 
 // Crea (o recupera, si ya se creo antes para este mismo pago) el codigo de
 // regalo asociado a un pago. Idempotente: se puede llamar desde el webhook
@@ -349,7 +388,7 @@ exports.canjearRegalo = functions.https.onCall(async (data, context) => {
   }
 
   const codigo = String(data?.codigo || '').trim().toUpperCase();
-  if (!codigo) {
+  if (!codigo || !CODIGO_VALIDO.test(codigo)) {
     throw new functions.https.HttpsError('invalid-argument', 'Código requerido.');
   }
 
@@ -577,10 +616,20 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  if (!(await checkRateLimit('mpWebhook', req, 60))) {
+    functions.logger.warn('mpWebhook: rate limit alcanzado', { ip: req.headers['x-forwarded-for'] || req.ip });
+    return res.status(429).send('Too Many Requests');
+  }
+
   const { type, data } = req.body;
   functions.logger.info('Webhook recibido', { type, data });
 
   if (type !== 'payment' || !data?.id) return res.status(200).send('OK');
+
+  if (!verificarFirmaMP(req, data.id)) {
+    functions.logger.error('mpWebhook: firma invalida', { id: data.id });
+    return res.status(401).send('Firma invalida');
+  }
 
   try {
     const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
@@ -609,13 +658,20 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
     // llegado primero. registrarCompra no duplica.
     await registrarCompra(`mp_${data.id}`, datosCompraMP(payment));
 
+    // create() falla atomicamente si el doc ya existe (a diferencia de
+    // get()+set(), que deja una ventana entre ambos pasos donde dos
+    // notificaciones casi simultaneas del webhook pueden pasar las dos el
+    // chequeo de "no existe todavia" antes de que la primera lo cree).
     const pagoRef = _db.collection('pagos_procesados').doc(String(data.id));
-    const pagoSnap = await pagoRef.get();
-    if (pagoSnap.exists) {
-      functions.logger.info('Pago ya procesado', { id: data.id });
-      return res.status(200).send('OK');
+    try {
+      await pagoRef.create({ procesadoEn: admin.firestore.FieldValue.serverTimestamp(), regalo: esRegalo, anonima: esAnonima });
+    } catch (e) {
+      if (e.code === 6 /* ALREADY_EXISTS */) {
+        functions.logger.info('Pago ya procesado', { id: data.id });
+        return res.status(200).send('OK');
+      }
+      throw e;
     }
-    await pagoRef.set({ procesadoEn: admin.firestore.FieldValue.serverTimestamp(), regalo: esRegalo, anonima: esAnonima });
 
     if (codigo_descuento) {
       await _db.collection('codigos_descuento').doc(codigo_descuento).update({
@@ -1015,6 +1071,42 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
   }
 
+  // A diferencia del resto del circuito de cobro, este endpoint recibia
+  // "metodo"/"pagoId" del cliente y marcaba el pedido como "pagado" sin
+  // confirmar nada contra Mercado Pago -> cualquiera podia mandar un pagoId
+  // inventado. Ahora, si dice ser un pago con MP, se verifica de verdad.
+  let estado = metodo === 'transferencia' ? 'transferencia a confirmar' : 'desconocido';
+  let monto = metodo === 'transferencia' ? 30000 : null;
+
+  if (metodo === 'mp') {
+    if (!pagoId) {
+      return res.status(400).json({ error: 'Falta el identificador del pago.' });
+    }
+    try {
+      const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
+      const paymentClient = new Payment(mpClient);
+      const payment = await paymentClient.get({ id: pagoId });
+
+      if (payment.status !== 'approved' || payment.metadata?.producto !== 'libro-lilith') {
+        functions.logger.warn('guardarPedido: pago no valido para este pedido', { pagoId, status: payment.status, producto: payment.metadata?.producto });
+        return res.status(400).json({ error: 'No pudimos verificar ese pago.' });
+      }
+
+      // Evita que el mismo pago real se reutilice para crear varios pedidos
+      // (direcciones de envio distintas) con un solo pago de verdad.
+      const yaUsado = await _db.collection('pedidos').where('pagoId', '==', pagoId).limit(1).get();
+      if (!yaUsado.empty) {
+        return res.status(409).json({ error: 'Este pago ya tiene un pedido registrado.' });
+      }
+
+      estado = 'pagado';
+      monto = payment.transaction_amount ?? 35000;
+    } catch (error) {
+      functions.logger.error('guardarPedido: error verificando pago MP', { pagoId, message: error.message });
+      return res.status(400).json({ error: 'No pudimos verificar ese pago.' });
+    }
+  }
+
   const pedidoId = uuidv4();
 
   try {
@@ -1033,10 +1125,10 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
       producto: 'libro-lilith',
       nombre: 'Libro Luna Negra',
       metodo: metodo === 'mp' ? 'mercadopago' : metodo,
-      monto: metodo === 'mp' ? 35000 : metodo === 'transferencia' ? 30000 : null,
+      monto,
       moneda: 'ARS',
       email,
-      estado: metodo === 'mp' ? 'pagado' : 'transferencia a confirmar',
+      estado,
       pagoId,
       origen,
     });
@@ -1145,11 +1237,16 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       return res.redirect(`${process.env.SITE_URL}/escuela/abierta/`);
     }
 
+    // Mismo fix de idempotencia atomica que en mpWebhook (ver comentario ahi).
     const pagoRef = _db.collection('pagos_procesados').doc(`paypal_${orderId}`);
-    if ((await pagoRef.get()).exists) {
-      return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
+    try {
+      await pagoRef.create({ procesadoEn: admin.firestore.FieldValue.serverTimestamp() });
+    } catch (e) {
+      if (e.code === 6 /* ALREADY_EXISTS */) {
+        return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
+      }
+      throw e;
     }
-    await pagoRef.set({ procesadoEn: admin.firestore.FieldValue.serverTimestamp() });
 
     const ordenSnap = await _db.collection('ordenes_paypal').doc(orderId).get();
     if (!ordenSnap.exists) {
