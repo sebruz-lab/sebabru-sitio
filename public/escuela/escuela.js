@@ -15,6 +15,37 @@ const googleProvider = new GoogleAuthProvider();
 // Mensaje genérico a propósito para auth/email-already-in-use: no confirma
 // ni niega si ese email ya tiene cuenta (evita que alguien lo use para
 // enumerar qué emails están registrados en el sitio).
+// Reemplaza los alert()/confirm() nativos (interrumpen el flujo y se ven
+// ajenos al diseño oscuro del sitio) por un toast chico que aparece abajo
+// y se va solo. No bloquea: si el código sigue (ej. reload), el toast
+// puede no llegar a verse del todo, así que para esos casos se llama con
+// un pequeño delay antes de la acción siguiente.
+function mostrarAviso(mensaje, tipo = 'info') {
+    let cont = document.getElementById('aviso-toast-container');
+    if (!cont) {
+        cont = document.createElement('div');
+        cont.id = 'aviso-toast-container';
+        cont.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:999999; display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none;';
+        document.body.appendChild(cont);
+    }
+    const toast = document.createElement('div');
+    toast.textContent = mensaje;
+    toast.style.cssText = `
+        background: rgba(18,18,26,0.97); color:#fff; padding:14px 22px; border-radius:10px;
+        border:1px solid ${tipo === 'error' ? 'rgba(245,109,150,0.45)' : 'rgba(255,255,255,0.12)'};
+        box-shadow:0 10px 30px rgba(0,0,0,0.5); font-family:'Outfit',sans-serif; font-size:0.92rem;
+        max-width:min(90vw, 420px); text-align:center; line-height:1.4;
+        opacity:0; transform:translateY(10px); transition:opacity .3s ease, transform .3s ease; pointer-events:auto;
+    `;
+    cont.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
 function mensajeErrorRegistro(code) {
     switch (code) {
         case 'auth/weak-password':
@@ -120,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnLogout) {
         btnLogout.onclick = async () => {
             await signOut(auth);
-            alert("Sesión cerrada.");
             window.location.reload();
         };
     }
@@ -180,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error(error);
-                alert("Error al iniciar sesión con Google.");
+                mostrarAviso("Error al iniciar sesión con Google.", 'error');
             }
         };
     }
@@ -240,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     cursos: [],
                     cohorte: "2026",
                 });
-                alert("¡Cuenta creada! Verifica si tenés acceso al curso, sino pedile a Seba o a Clari.");
-                window.location.reload();
+                mostrarAviso("¡Cuenta creada! Verificá si tenés acceso al curso, sino pedile a Seba o a Clari.");
+                setTimeout(() => window.location.reload(), 1800);
             } catch (error) {
                 btn.innerText = "CREAR CUENTA";
                 if(errorMsg) {
@@ -275,18 +305,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = url;
                 } else {
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
-                    modal.style.display = 'flex';
-                    alert("No tenés acceso habilitado para este curso.");
-                    modal.style.display = 'none';
+                    mostrarAviso("No tenés acceso habilitado para este curso.", 'error');
                 }
             } else {
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
-                alert("Usuario no registrado en la base de datos.");
+                mostrarAviso("Usuario no registrado en la base de datos.", 'error');
             }
         } catch (error) {
             console.error(error);
             if (loadingOverlay) loadingOverlay.style.display = 'none';
-            alert("Error de conexión. Intentá en modo Incógnito.");
+            mostrarAviso("Error de conexión. Intentá en modo Incógnito.", 'error');
         }
     }
 

@@ -338,28 +338,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 9. FLECHA DE INACTIVIDAD: si la persona queda 5s sin scrollear,
-    // aparece una flecha sutil invitando a seguir. Se oculta apenas
-    // vuelve a haber scroll, y no se muestra si ya llegó al final.
-    const idleHint = document.getElementById('scroll-idle-hint');
-    if (idleHint) {
-        let idleTimer = null;
-        function llegoAlFinal() {
-            return window.innerHeight + window.pageYOffset >= document.body.scrollHeight - 10;
-        }
-        function mostrarHint() {
-            idleTimer = null;
-            if (!llegoAlFinal()) idleHint.classList.add('visible');
-        }
-        function reiniciarIdleTimer() {
-            idleHint.classList.remove('visible');
-            if (idleTimer) clearTimeout(idleTimer);
-            idleTimer = setTimeout(mostrarHint, 5000);
-        }
-        ['scroll', 'wheel', 'touchmove', 'touchstart', 'keydown'].forEach(evt => {
-            window.addEventListener(evt, reiniciarIdleTimer, { passive: true });
-        });
-        reiniciarIdleTimer();
-    }
 
 });
