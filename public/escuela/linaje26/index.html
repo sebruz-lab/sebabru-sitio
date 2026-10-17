@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linaje, clan y genealogia 2026 | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../escuela.css?v=5">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+</head>
+<body>
+    <div id="security-overlay">
+        <div class="spinner" id="spinner-icon"></div>
+        <div class="texto-seguridad" id="status-text">Verificando acceso...</div>
+        <div class="error-seguridad" id="error-msg">
+            <p>No se pudo verificar tu acceso.</p>
+            <a href="../index.html" class="btn-external">VOLVER A LA ESCUELA</a>
+        </div>
+    </div>
+
+    <div class="mobile-header">
+        <span class="mobile-title">Linaje, clan y genealogia 2026</span>
+        <button class="hamburger-btn" id="menu-toggle">
+            <i class="fa-solid fa-bars"></i> Menu
+        </button>
+    </div>
+
+    <div class="aula-layout">
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h3>Linaje, clan y genealogia 2026</h3>
+                    <p>Seminario</p>
+                </div>
+
+                <nav class="auto-nav">
+                    <ul id="lista-clases"></ul>
+                </nav>
+                <div class="sidebar-footer">
+                    <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Volver a Cursos</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <article class="clase-item" id="clase-1" data-titulo="Clase 1">
+                <header class="clase-header">
+                    <h2><span class="num">#1</span> Clase 1</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-2" data-titulo="Clase 2">
+                <header class="clase-header">
+                    <h2><span class="num">#2</span> Clase 2</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-3" data-titulo="Clase 3">
+                <header class="clase-header">
+                    <h2><span class="num">#3</span> Clase 3</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-4" data-titulo="Clase 4">
+                <header class="clase-header">
+                    <h2><span class="num">#4</span> Clase 4</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-5" data-titulo="Clase 5">
+                <header class="clase-header">
+                    <h2><span class="num">#5</span> Clase 5</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
+        </main>
+    </div>
+
+    <script type="module" src="../escuela.js?v=2"></script>
+    <script type="module">
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { auth, db } from '../firebase.js';
+        import { poblarVideosClases } from '../escuela.js?v=2';
+
+        let accesoConcedido = false;
+
+        function mostrarError() {
+            if (accesoConcedido) return;
+            document.getElementById('spinner-icon').style.display = 'none';
+            document.getElementById('status-text').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+        }
+
+        setTimeout(mostrarError, 12000);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userEmail = user.email.toLowerCase().trim();
+                    const docSnap = await getDoc(doc(db, "usuarios", userEmail));
+
+                    if (docSnap.exists() && docSnap.data().cursos?.includes('linaje26')) {
+                        accesoConcedido = true;
+                        await poblarVideosClases('linaje26', 615375);
+                        const _obs = new IntersectionObserver(entries => {
+                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
+                        }, { rootMargin: '200px' });
+                        document.querySelectorAll('iframe[data-src]').forEach(iframe => { _obs.observe(iframe); });
+                        document.getElementById('security-overlay').style.display = 'none';
+                    } else {
+                        accesoConcedido = true;
+                        window.location.href = '../sin-acceso/?email=' + encodeURIComponent(userEmail) + '&aula=' + encodeURIComponent('Linaje, clan y genealogia 2026');
+                    }
+                } catch (e) {
+                    console.error("Error al verificar el acceso:", e);
+                    mostrarError();
+                }
+            } else {
+                accesoConcedido = true;
+                window.location.href = "../index.html";
+            }
+        });
+    </script>
+</body>
+</html>
