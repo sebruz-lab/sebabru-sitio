@@ -764,3 +764,52 @@
 .signo-card.libra-theme:hover .signo-card-symbol,
 .signo-card.libra-theme:hover h3 { color: var(--libra-primary); }
 .signo-card.libra-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(201, 168, 62, 0.5); }
+
+/* =========================================
+   ESCORPIO THEME
+   ========================================= */
+:root {
+    --escorpio-primary: #7a2840;
+    --escorpio-bg-light: rgba(122, 40, 64, 0.15);
+}
+
+.signo-header.escorpio-theme {
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+.escorpio-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.2rem;
+    color: var(--escorpio-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+}
+.escorpio-titulo:first-child { margin-top: 0; }
+
+.desplegable-item.escorpio-theme:hover summary .icon-initial svg,
+.desplegable-item.escorpio-theme[open] summary .icon-initial svg {
+    fill: var(--escorpio-primary);
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(122, 40, 64, 0.5));
+}
+.desplegable-item.escorpio-theme:hover summary h3,
+.desplegable-item.escorpio-theme[open] summary h3 {
+    color: var(--escorpio-primary);
+    text-shadow: 0 0 10px rgba(122, 40, 64, 0.3);
+}
+.desplegable-item.escorpio-theme:hover summary .caret,
+.desplegable-item.escorpio-theme[open] summary .caret {
+    color: var(--escorpio-primary);
+}
+.desplegable-item.escorpio-theme[open] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(122, 40, 64, 0.15);
+    border-color: rgba(122, 40, 64, 0.3);
+}
+
+.signo-card.escorpio-theme:hover .signo-card-symbol,
+.signo-card.escorpio-theme:hover h3 { color: var(--escorpio-primary); }
+.signo-card.escorpio-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(122, 40, 64, 0.5); }
