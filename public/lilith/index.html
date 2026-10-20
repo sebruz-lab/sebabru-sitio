@@ -1473,6 +1473,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                         <button type="submit" class="btn-login-lilith">Entrar</button>
                     </form>
                     <p style="margin-top:10px; font-size:0.85rem; color:var(--luna-text);">¿No tenés cuenta? <a href="#" id="ir-a-registro-lilith" style="color:var(--luna-theme);">Registrate acá</a></p>
+                    <p style="margin-top:6px; font-size:0.8rem; color:var(--luna-text);"><a href="#" id="olvide-contrasena-lilith" style="color:var(--luna-theme);">¿Olvidaste tu contraseña?</a></p>
                 </div>
                 <div id="seccion-registro-lilith" style="display:none;">
                     <h2>Crear cuenta</h2>
@@ -1617,7 +1618,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 <script type="module">
         import { app, auth, db } from '../escuela/firebase.js';
-        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -1668,11 +1669,22 @@ html, body { margin: 0; padding: 0; background: #000; }
             document.getElementById('seccion-login-lilith').style.display = 'block';
         });
 
-        const mostrarErrorLilith = (msg) => {
+        const mostrarErrorLilith = (msg, color = '#f08080') => {
             const el = document.getElementById('login-error-lilith');
             el.textContent = msg;
             el.style.display = 'block';
+            el.style.color = color;
         };
+
+        document.getElementById('olvide-contrasena-lilith').addEventListener('click', async e => {
+            e.preventDefault();
+            const email = document.getElementById('email-login-lilith').value.trim();
+            if (!email) { mostrarErrorLilith('Escribí tu email arriba y volvé a tocar el link.'); return; }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                mostrarErrorLilith('Te enviamos un mail para restablecer tu contraseña.', '#4CAF50');
+            } catch (err) { mostrarErrorLilith('No pudimos enviar el mail. Revisá que el email esté bien escrito.'); }
+        });
 
         document.getElementById('login-form-lilith').addEventListener('submit', async e => {
             e.preventDefault();

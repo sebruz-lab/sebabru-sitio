@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi cuenta | Seba Bru</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+    :root {
+        --ink:       #e9e9ee;
+        --ink-dim:   #9092a0;
+        --ink-faint: #5c5e6a;
+        --bg:        #08080b;
+        --star:      #f0e4c4;
+        --rule:      rgba(255,255,255,0.09);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+    body { font-family: 'Google Sans', 'Outfit', sans-serif; min-height: 100vh; }
+
+    .volver {
+        display: inline-flex; align-items: center; gap: 8px; margin: 28px 0 0 28px;
+        color: var(--ink-dim); text-decoration: none; font-size: 0.85rem; letter-spacing: 0.04em;
+    }
+    .volver:hover { color: var(--ink); }
+
+    main { max-width: 480px; margin: 0 auto; padding: 20px 24px 80px; }
+    h1 {
+        font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.8rem, 6vw, 2.4rem);
+        margin: 20px 0 32px; text-align: center;
+    }
+    .tarjeta {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--rule); border-radius: 14px;
+        padding: 22px 22px 24px; margin-bottom: 18px;
+    }
+    .tarjeta h2 {
+        font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.1rem; margin: 0 0 14px; color: var(--ink);
+    }
+    .campo-label {
+        font-family: 'Outfit', sans-serif; letter-spacing: 0.14em; text-transform: uppercase;
+        font-size: 0.68rem; color: var(--ink-faint); margin: 0 0 6px;
+    }
+    .campo-valor { margin: 0; font-size: 1rem; color: var(--ink); word-break: break-all; }
+
+    form { display: flex; flex-direction: column; gap: 10px; }
+    input {
+        background: rgba(255,255,255,0.05); border: 1px solid var(--rule); border-radius: 8px;
+        padding: 12px 14px; color: var(--ink); font-size: 0.95rem; font-family: inherit;
+    }
+    input:focus { outline: none; border-color: rgba(240,228,196,0.5); }
+    button[type="submit"] {
+        margin-top: 4px; background: var(--star); color: #141414; border: none; border-radius: 999px;
+        padding: 11px 18px; font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600;
+        letter-spacing: 0.03em; cursor: pointer; transition: opacity 0.2s ease;
+    }
+    button[type="submit"]:hover { opacity: 0.85; }
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .aviso-google { color: var(--ink-dim); font-size: 0.9rem; line-height: 1.5; margin: 0; }
+
+    #pantalla-carga, #sin-sesion {
+        min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 16px; text-align: center; padding: 20px;
+    }
+    #sin-sesion a {
+        color: var(--star); text-decoration: none; border: 1px solid rgba(240,228,196,0.4);
+        border-radius: 999px; padding: 10px 22px; font-size: 0.9rem;
+    }
+    #sin-sesion a:hover { background: rgba(240,228,196,0.1); }
+
+    #toast-container {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 999999;
+        display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none;
+    }
+    .toast {
+        background: rgba(18,18,26,0.97); color: #fff; padding: 14px 22px; border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 0.92rem; max-width: min(90vw, 420px);
+        text-align: center; line-height: 1.4; opacity: 0; transform: translateY(10px);
+        transition: opacity .3s ease, transform .3s ease; pointer-events: auto;
+    }
+    .toast.ok { border: 1px solid rgba(240,228,196,0.4); }
+    .toast.error { border: 1px solid rgba(245,109,150,0.45); }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+    <div id="pantalla-carga">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.6rem; color: var(--ink-dim);"></i>
+    </div>
+
+    <div id="sin-sesion" style="display:none;">
+        <p style="color: var(--ink-dim);">Necesitás iniciar sesión para ver esta página.</p>
+        <a href="/escuela/abierta/">Ir a iniciar sesión</a>
+    </div>
+
+    <div id="contenido" style="display:none;">
+        <a href="/escuela/abierta/" class="volver"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+        <main>
+            <h1>Mi cuenta</h1>
+
+            <section class="tarjeta">
+                <p class="campo-label">Email</p>
+                <p class="campo-valor" id="cuenta-email"></p>
+            </section>
+
+            <section class="tarjeta">
+                <h2>Nombre</h2>
+                <form id="form-nombre">
+                    <input type="text" id="input-nombre" maxlength="100" placeholder="Tu nombre">
+                    <button type="submit">Guardar nombre</button>
+                </form>
+            </section>
+
+            <section class="tarjeta" id="tarjeta-password">
+                <h2>Cambiar contraseña</h2>
+                <form id="form-password">
+                    <input type="password" id="pass-actual" placeholder="Contraseña actual" autocomplete="current-password" required>
+                    <input type="password" id="pass-nueva" placeholder="Nueva contraseña (mínimo 6 caracteres)" autocomplete="new-password" minlength="6" required>
+                    <button type="submit">Actualizar contraseña</button>
+                </form>
+            </section>
+
+            <section class="tarjeta" id="tarjeta-google" style="display:none;">
+                <h2>Contraseña</h2>
+                <p class="aviso-google">Iniciaste sesión con Google, así que no tenés una contraseña propia del sitio para cambiar acá. Para eso, gestionala desde tu cuenta de Google.</p>
+            </section>
+        </main>
+    </div>
+
+<script type="module">
+import { auth, db } from '../firebase.js';
+import {
+    onAuthStateChanged,
+    updateProfile,
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    updatePassword
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+function mostrarAviso(mensaje, tipo = 'ok') {
+    let cont = document.getElementById('toast-container');
+    if (!cont) {
+        cont = document.createElement('div');
+        cont.id = 'toast-container';
+        document.body.appendChild(cont);
+    }
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + tipo;
+    toast.textContent = mensaje;
+    cont.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+onAuthStateChanged(auth, (user) => {
+    document.getElementById('pantalla-carga').style.display = 'none';
+    if (!user) {
+        document.getElementById('sin-sesion').style.display = 'flex';
+        return;
+    }
+    document.getElementById('contenido').style.display = 'block';
+    document.getElementById('cuenta-email').textContent = user.email;
+    document.getElementById('input-nombre').value = user.displayName || '';
+
+    const tieneContrasena = user.providerData.some(p => p.providerId === 'password');
+    document.getElementById('tarjeta-password').style.display = tieneContrasena ? 'block' : 'none';
+    document.getElementById('tarjeta-google').style.display = tieneContrasena ? 'none' : 'block';
+
+    document.getElementById('form-nombre').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        const nuevoNombre = document.getElementById('input-nombre').value.trim();
+        btn.disabled = true;
+        try {
+            await updateProfile(user, { displayName: nuevoNombre });
+            await setDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()), { nombre: nuevoNombre }, { merge: true });
+            mostrarAviso('Nombre actualizado.');
+        } catch (err) {
+            console.error(err);
+            mostrarAviso('No pudimos actualizar el nombre. Intentá de nuevo.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    const formPassword = document.getElementById('form-password');
+    if (formPassword) {
+        formPassword.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const actual = document.getElementById('pass-actual').value;
+            const nueva = document.getElementById('pass-nueva').value;
+            btn.disabled = true;
+            try {
+                const credential = EmailAuthProvider.credential(user.email, actual);
+                await reauthenticateWithCredential(user, credential);
+                await updatePassword(user, nueva);
+                mostrarAviso('Contraseña actualizada.');
+                formPassword.reset();
+            } catch (err) {
+                const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+                    ? 'La contraseña actual no es correcta.'
+                    : (err.code === 'auth/weak-password'
+                        ? 'La nueva contraseña es muy corta (mínimo 6 caracteres).'
+                        : 'No pudimos actualizar la contraseña. Intentá de nuevo.');
+                mostrarAviso(msg, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>

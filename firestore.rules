@@ -43,9 +43,20 @@ service cloud.firestore {
         )
       );
 
-      // Solo lxs admins pueden modificar cursos/cohorte/nombre de un usuario
-      // ya existente (no hay ningún flujo de autoedición en el sitio).
-      allow update, delete: if request.auth != null &&
+      // Lxs admins pueden modificar cualquier campo. Un usuario puede
+      // actualizar unicamente el "nombre" de su propio documento (pantalla
+      // de "Mi cuenta"), nunca cursos/cohorte ni el de otra persona.
+      allow update: if request.auth != null && (
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
+        (
+          request.auth.token.email == email &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre']) &&
+          request.resource.data.nombre is string &&
+          request.resource.data.nombre.size() <= 100
+        )
+      );
+
+      allow delete: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
 

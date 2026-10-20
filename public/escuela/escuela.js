@@ -1,12 +1,13 @@
 // 1. IMPORTACIONES
 import { auth, db } from './firebase.js';
-import { 
-    signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword, 
-    onAuthStateChanged, 
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
     signOut,
     GoogleAuthProvider,
-    signInWithPopup 
+    signInWithPopup,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -123,8 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Enlaces y Botones
     const linkIrRegistro = document.getElementById('ir-a-registro');
     const linkIrLogin = document.getElementById('ir-a-login');
+    const linkOlvideContrasena = document.getElementById('olvide-contrasena');
     const btnLogout = document.getElementById('btn-logout');
     const btnLogin = document.getElementById('btn-login');
+    const linkMiCuenta = document.getElementById('link-mi-cuenta');
     const btnGoogle = document.getElementById('btn-google'); // Botón de Google
 
     let urlDestino = ''; 
@@ -139,10 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Usuario logueado:", user.email);
             if(btnLogout) btnLogout.style.display = 'block';
             if(btnLogin) btnLogin.style.display = 'none';
+            if(linkMiCuenta) linkMiCuenta.style.display = 'inline-block';
         } else {
             console.log("Sin sesión activa.");
             if(btnLogout) btnLogout.style.display = 'none';
             if(btnLogin) btnLogin.style.display = 'block';
+            if(linkMiCuenta) linkMiCuenta.style.display = 'none';
         }
     });
 
@@ -229,6 +234,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // --- RECUPERAR CONTRASEÑA ---
+    if (linkOlvideContrasena) {
+        linkOlvideContrasena.onclick = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email-login').value.toLowerCase().trim();
+            if (!email) {
+                mostrarAviso('Escribí tu email arriba y volvé a tocar "¿Olvidaste tu contraseña?".', 'error');
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                mostrarAviso('Te enviamos un mail para restablecer tu contraseña.');
+            } catch (error) {
+                mostrarAviso('No pudimos enviar el mail. Revisá que el email esté bien escrito.', 'error');
+            }
+        };
+    }
 
     // --- FORMULARIO DE LOGIN EMAIL ---
     if (loginForm) {

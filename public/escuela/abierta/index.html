@@ -925,6 +925,7 @@
         <a href="#pluton26" data-curso="pluton26">Plutón y los Nodos Lunares</a>
         <a href="#lilith" data-curso="lilith">Luna Negra · Lilith en la carta natal</a>
         <a href="#linaje" data-curso="linaje">Linaje, clan y genealogía</a>
+        <a href="/escuela/cuenta/" style="opacity:1; border-top: 1px solid rgba(255,255,255,0.09); margin-top: 10px; padding-top: 18px;">Mi cuenta</a>
         <button class="panel-mis-logout" id="btn-logout">Cerrar sesión</button>
     </nav>
 
@@ -947,6 +948,7 @@
                     <button type="submit" class="btn-login">ENTRAR</button>
                 </form>
                 <p style="margin-top:10px; font-size:0.9em;">¿No tenés cuenta? <a href="#" id="ir-a-registro">Registrate acá</a></p>
+                <p style="margin-top:6px; font-size:0.85em;"><a href="#" id="olvide-contrasena">¿Olvidaste tu contraseña?</a></p>
             </div>
             <div id="seccion-registro" style="display:none;">
                 <h2>Crear Cuenta</h2>
@@ -1030,7 +1032,7 @@
     <!-- ==================== JS: Firebase (auth + compra de los 5 cursos) ==================== -->
     <script type="module">
         import { app, auth, db } from '../firebase.js';
-        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -1104,7 +1106,20 @@
         document.getElementById('ir-a-registro').addEventListener('click', e => { e.preventDefault(); document.getElementById('seccion-login').style.display='none'; document.getElementById('seccion-registro').style.display='block'; });
         document.getElementById('ir-a-login').addEventListener('click', e => { e.preventDefault(); document.getElementById('seccion-registro').style.display='none'; document.getElementById('seccion-login').style.display='block'; });
 
-        const mostrarError = (msg) => { const el = document.getElementById('login-error'); el.textContent = msg; el.style.display = 'block'; };
+        const mostrarError = (msg, color = 'red') => {
+            const el = document.getElementById('login-error');
+            el.textContent = msg; el.style.display = 'block'; el.style.color = color;
+        };
+
+        document.getElementById('olvide-contrasena').addEventListener('click', async e => {
+            e.preventDefault();
+            const email = document.getElementById('email-login').value.trim();
+            if (!email) { mostrarError('Escribí tu email arriba y volvé a tocar el link.'); return; }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                mostrarError('Te enviamos un mail para restablecer tu contraseña.', '#4CAF50');
+            } catch (err) { mostrarError('No pudimos enviar el mail. Revisá que el email esté bien escrito.'); }
+        });
 
         document.getElementById('login-form').addEventListener('submit', async e => {
             e.preventDefault();
