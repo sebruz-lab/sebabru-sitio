@@ -11,7 +11,8 @@
 //   data-ga-precio="id"         id del elemento que muestra el precio
 //                               actual (sigue el descuento aplicado)
 //   data-ga-moneda="ARS" | "USD"
-//   data-ga-metodo, data-ga-origen, data-ga-pais   parametros extra
+//   data-ga-metodo, data-ga-origen, data-ga-pais,
+//   data-ga-seccion, data-ga-destino            parametros extra
 //   data-ga-regalo="id"         id del checkbox "Es para regalar"
 //   data-ga-compra              este clic inicia un pago: se recuerda el
 //                               producto para medir la compra confirmada
@@ -43,6 +44,8 @@
         if (d.gaMetodo) p.metodo = d.gaMetodo;
         if (d.gaOrigen) p.origen = d.gaOrigen;
         if (d.gaPais) p.pais = d.gaPais;
+        if (d.gaSeccion) p.seccion = d.gaSeccion;
+        if (d.gaDestino) p.destino = d.gaDestino;
         var valor = leerPrecio(el);
         if (valor !== null) {
             p.value = valor;
@@ -113,4 +116,28 @@
         if (el.type !== 'checkbox' || !el.hasAttribute('data-ga') || !el.checked) return;
         enviar(el.dataset.ga, paramsDe(el));
     }, true);
+
+    // ---------- Profundidad de scroll (25/50/75/90%) ----------
+    // Independiente del "scroll" automatico de GA4 (Enhanced measurement,
+    // se activa/desactiva desde el panel de GA4, no desde el codigo): esto
+    // mide directo contra el alto real del documento, una vez por umbral
+    // y por carga de pagina.
+    var UMBRALES = [25, 50, 75, 90];
+    var umbralesEnviados = {};
+    var tickingScroll = false;
+    function medirProfundidad() {
+        var alto = document.documentElement.scrollHeight - window.innerHeight;
+        var pct = alto > 0 ? ((window.scrollY + window.innerHeight) / document.documentElement.scrollHeight) * 100 : 100;
+        for (var i = 0; i < UMBRALES.length; i++) {
+            var u = UMBRALES[i];
+            if (pct >= u && !umbralesEnviados[u]) {
+                umbralesEnviados[u] = true;
+                enviar('scroll_profundidad', { profundidad: u });
+            }
+        }
+        tickingScroll = false;
+    }
+    window.addEventListener('scroll', function () {
+        if (!tickingScroll) { window.requestAnimationFrame(medirProfundidad); tickingScroll = true; }
+    }, { passive: true });
 })();

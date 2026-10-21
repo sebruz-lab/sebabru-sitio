@@ -747,10 +747,13 @@ html, body { margin: 0; padding: 0; background: #000; }
                 <h1>Luna Negra</h1>
                 <h2>Lilith en la Carta Natal o la potencia del vacío</h2>
                 <nav class="accesos">
-                    <a href="#comprar" data-ir-a-bloque="comprar">Un libro</a>
-                    <a href="#curso" data-ir-a-bloque="curso">Un curso</a>
-                    <a href="#video-bloque" data-ir-a-bloque="video-bloque">Un video</a>
+                    <a href="#comprar" data-ir-a-bloque="comprar" data-ga="hero_boton" data-ga-destino="libro">Un libro</a>
+                    <a href="#curso" data-ir-a-bloque="curso" data-ga="hero_boton" data-ga-destino="curso">Un curso</a>
+                    <a href="#video-bloque" data-ir-a-bloque="video-bloque" data-ga="hero_boton" data-ga-destino="video">Un video</a>
                 </nav>
+                <a href="#curso" data-ir-a-bloque="curso" class="btn-clase-gratis" data-ga="hero_boton" data-ga-destino="curso" data-ga-origen="cta_clase_gratis">
+                    <i class="fa-solid fa-circle-play"></i> Curso grabado &mdash; primera clase gratis
+                </a>
                 <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
                             </section>
             </article>
@@ -768,7 +771,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 </div>
             </section>
 
-            <section class="section-container fade-in-element bloque bloque--ancho" id="comprar" data-x="-310" data-y="-900" style="padding: 60px 20px; text-align: center;">
+            <section class="section-container fade-in-element bloque bloque--ancho" id="comprar" data-x="-310" data-y="-900" data-ga-visible="seccion_visible" data-ga-seccion="libro" style="padding: 60px 20px; text-align: center;">
                 <h2 class="luna-accent" style="text-align: center;">Cómo comprar el libro</h2>
                 <p style="color: var(--luna-text); margin: 0 auto 0; text-align: center; max-width: 460px;">
                     Seleccioná tu región y desplegá las opciones disponibles.
@@ -946,7 +949,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 </section>
             </section>
 
-            <section class="efecto-shrink-container bloque" id="curso" data-x="37" data-y="-1450" data-ga-visible="bloque_curso_visible" data-ga-producto="curso-lilith">
+            <section class="efecto-shrink-container bloque" id="curso" data-x="37" data-y="-1450" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="curso-lilith">
                 <div class="efecto-shrink-sticky">
                     <img src="../escuela/img/lilithabierta.webp" alt="Seminario Luna Negra · Lilith, formación abierta" class="efecto-imagen">
                     <div class="efecto-texto">
@@ -1083,7 +1086,7 @@ html, body { margin: 0; padding: 0; background: #000; }
                 </div>
             </section>
 
-            <article class="bloque bloque--ancho" id="video-bloque" data-x="400" data-y="-2000">
+            <article class="bloque bloque--ancho" id="video-bloque" data-x="400" data-y="-2000" data-ga-visible="seccion_visible" data-ga-seccion="video">
             <section class="section-container video-section fade-in-element" id="video">
                 <div class="video-container">
                     <iframe
@@ -1498,7 +1501,7 @@ html, body { margin: 0; padding: 0; background: #000; }
         </footer>
 </div>
 
-<script src="../medicion.js?v=2"></script>
+<script src="../medicion.js?v=3"></script>
 <script src="../recorrido.js?v=1"></script>
 
 <script>
