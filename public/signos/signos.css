@@ -449,8 +449,8 @@
    CÁNCER THEME
    ========================================= */
 :root {
-    --cancer-primary: #242c3f;
-    --cancer-bg-light: rgba(36, 44, 63, 0.12);
+    --cancer-primary: #c4aae0;
+    --cancer-bg-light: rgba(196, 170, 224, 0.12);
 }
 
 .signo-header.cancer-theme {
@@ -473,12 +473,12 @@
 .desplegable-item.cancer-theme[open] summary .icon-initial svg {
     fill: var(--cancer-primary);
     transform: scale(1.1);
-    filter: drop-shadow(0 0 5px rgba(36, 44, 63, 0.5));
+    filter: drop-shadow(0 0 5px rgba(196, 170, 224, 0.5));
 }
 .desplegable-item.cancer-theme:hover summary h3,
 .desplegable-item.cancer-theme[open] summary h3 {
     color: var(--cancer-primary);
-    text-shadow: 0 0 10px rgba(36, 44, 63, 0.3);
+    text-shadow: 0 0 10px rgba(196, 170, 224, 0.3);
 }
 .desplegable-item.cancer-theme:hover summary .caret,
 .desplegable-item.cancer-theme[open] summary .caret {
@@ -486,8 +486,8 @@
 }
 .desplegable-item.cancer-theme[open] {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
-                0 0 20px rgba(36, 44, 63, 0.15);
-    border-color: rgba(36, 44, 63, 0.3);
+                0 0 20px rgba(196, 170, 224, 0.15);
+    border-color: rgba(196, 170, 224, 0.3);
 }
 
 /* =========================================
@@ -696,7 +696,7 @@
 
 .signo-card.cancer-theme:hover .signo-card-symbol,
 .signo-card.cancer-theme:hover h3 { color: var(--cancer-primary); }
-.signo-card.cancer-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 44, 63, 0.5); }
+.signo-card.cancer-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(196, 170, 224, 0.5); }
 
 .signo-card.leo-theme:hover .signo-card-symbol,
 .signo-card.leo-theme:hover h3 { color: var(--leo-primary); }
@@ -769,8 +769,8 @@
    ESCORPIO THEME
    ========================================= */
 :root {
-    --escorpio-primary: #7a2840;
-    --escorpio-bg-light: rgba(122, 40, 64, 0.15);
+    --escorpio-primary: #c4aae0;
+    --escorpio-bg-light: rgba(196, 170, 224, 0.15);
 }
 
 .signo-header.escorpio-theme {
@@ -793,12 +793,12 @@
 .desplegable-item.escorpio-theme[open] summary .icon-initial svg {
     fill: var(--escorpio-primary);
     transform: scale(1.1);
-    filter: drop-shadow(0 0 5px rgba(122, 40, 64, 0.5));
+    filter: drop-shadow(0 0 5px rgba(196, 170, 224, 0.5));
 }
 .desplegable-item.escorpio-theme:hover summary h3,
 .desplegable-item.escorpio-theme[open] summary h3 {
     color: var(--escorpio-primary);
-    text-shadow: 0 0 10px rgba(122, 40, 64, 0.3);
+    text-shadow: 0 0 10px rgba(196, 170, 224, 0.3);
 }
 .desplegable-item.escorpio-theme:hover summary .caret,
 .desplegable-item.escorpio-theme[open] summary .caret {
@@ -806,10 +806,10 @@
 }
 .desplegable-item.escorpio-theme[open] {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
-                0 0 20px rgba(122, 40, 64, 0.15);
-    border-color: rgba(122, 40, 64, 0.3);
+                0 0 20px rgba(196, 170, 224, 0.15);
+    border-color: rgba(196, 170, 224, 0.3);
 }
 
 .signo-card.escorpio-theme:hover .signo-card-symbol,
 .signo-card.escorpio-theme:hover h3 { color: var(--escorpio-primary); }
-.signo-card.escorpio-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(122, 40, 64, 0.5); }
+.signo-card.escorpio-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(196, 170, 224, 0.5); }
