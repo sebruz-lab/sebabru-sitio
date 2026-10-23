@@ -266,7 +266,7 @@ async function chequearCompraLilith(browser) {
                     paypal: visible(document.getElementById('btn-pagar-paypal-lilith')),
                     whatsapp: wa ? wa.href : '',
                     cargando: loading ? getComputedStyle(loading).display : 'none',
-                    visibleMedido: (window.dataLayer || []).some(a => a && a[0] === 'event' && a[1] === 'bloque_curso_visible'),
+                    visibleMedido: (window.dataLayer || []).some(a => a && a[0] === 'event' && a[1] === 'seccion_visible' && a[2] && a[2].seccion === 'curso'),
                 };
             });
             for (const [k, nombre] of [['titulo', 'el título del curso'], ['claseGratis', 'el botón de la clase gratis'], ['mp', 'el botón de Mercado Pago'], ['paypal', 'el botón de PayPal']]) {
@@ -274,7 +274,7 @@ async function chequearCompraLilith(browser) {
             }
             if (!estado.whatsapp.startsWith(WHATSAPP_COMPROBANTES + '?text=') || !decodeURIComponent(estado.whatsapp).includes('Luna Negra')) problemas.push(`el WhatsApp del comprobante apunta a ${estado.whatsapp || '(nada)'}`);
             if (estado.cargando !== 'none') problemas.push('"Preparando tu pago..." se ve al cargar');
-            if (!estado.visibleMedido) problemas.push('no se midió bloque_curso_visible en GA4');
+            if (!estado.visibleMedido) problemas.push('no se midió seccion_visible (seccion=curso) en GA4');
 
             if (c.pagar) {
                 await page.evaluate(() => document.getElementById('btn-pagar-mp-lilith').click());
