@@ -706,6 +706,31 @@
             }
         });
     </script>
+    <script>
+        // escuela.css ya define .pdf-wrapper.fullscreen-mode, pero ningun JS
+        // llegaba a aplicar esa clase: el boton de expandir no hacia nada.
+        document.querySelectorAll('.btn-expandir').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var wrapper = btn.closest('.pdf-wrapper');
+                if (!wrapper) return;
+                var full = wrapper.classList.toggle('fullscreen-mode');
+                // Sin esto la pagina sigue scrolleando detras del PDF.
+                document.body.style.overflow = full ? 'hidden' : '';
+                var icono = btn.querySelector('i');
+                if (icono) icono.className = full ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+            });
+        });
+        // Escape cierra, que es lo que espera cualquiera en pantalla completa.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            document.querySelectorAll('.pdf-wrapper.fullscreen-mode').forEach(function (w) {
+                w.classList.remove('fullscreen-mode');
+                var icono = w.querySelector('.btn-expandir i');
+                if (icono) icono.className = 'fa-solid fa-expand';
+            });
+            document.body.style.overflow = '';
+        });
+    </script>
 </body>
 </html>
 </body>
