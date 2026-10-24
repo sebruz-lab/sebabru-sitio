@@ -14,7 +14,7 @@ import {
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 import { app, auth, db } from './firebase.js';
-import { videoEntryToSrc } from './escuela.js?v=4';
+import { videoEntryToSrc } from './escuela.js?v=5';
 
 const OBTENER_MUESTRA_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/obtenerMuestra';
 const CREAR_PAGO_PAYPAL_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal';

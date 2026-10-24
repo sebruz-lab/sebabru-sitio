@@ -145,12 +145,12 @@
         </main>
     </div>
 
-    <script type="module" src="../escuela.js?v=4"></script>
+    <script type="module" src="../escuela.js?v=5"></script>
     <script type="module">
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { auth, db } from '../firebase.js';
-        import { poblarVideosClases } from '../escuela.js?v=4';
+        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=5';
 
         let accesoConcedido = false;
 
@@ -172,10 +172,7 @@
                     if (docSnap.exists() && docSnap.data().cursos?.includes('lunas26')) {
                         accesoConcedido = true;
                         await poblarVideosClases('lunas26', 615375);
-                        const _obs = new IntersectionObserver(entries => {
-                            entries.forEach(e => { if (e.isIntersecting) { e.target.src = e.target.dataset.src; _obs.unobserve(e.target); } });
-                        }, { rootMargin: '200px' });
-                        document.querySelectorAll('iframe[data-src]').forEach(iframe => { _obs.observe(iframe); });
+                        activarLazyVideos();
                         document.getElementById('security-overlay').style.display = 'none';
                     } else {
                         accesoConcedido = true;

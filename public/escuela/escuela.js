@@ -91,6 +91,40 @@ export async function poblarVideosClases(cursoId, libraryId, bunnyHost) {
     }
 }
 
+// Carga diferida de los videos: pasa data-src a src recien cuando la clase
+// se acerca a pantalla, para no pedir 10 reproductores de una.
+//
+// Vivia copiada en el <script> de cada aula y las copias se fueron separando:
+// revo y cosito contemplaban los <details>, planetas no, y el video de su
+// encuentro practico dependia de que el navegador avisara por un elemento sin
+// caja de layout. Aca queda una sola version para todas.
+export function activarLazyVideos() {
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (!e.isIntersecting || !e.target.dataset.src) return;
+            e.target.src = e.target.dataset.src;
+            delete e.target.dataset.src;
+            obs.unobserve(e.target);
+        });
+    }, { rootMargin: '200px' });
+
+    document.querySelectorAll('iframe[data-src]').forEach(iframe => {
+        // Un iframe dentro de un <details> cerrado no tiene caja de layout,
+        // asi que el observer no lo ve: ese se carga al abrir el desplegable.
+        if (!iframe.closest('details')) obs.observe(iframe);
+    });
+
+    document.querySelectorAll('details').forEach(d => {
+        d.addEventListener('toggle', () => {
+            if (!d.open) return;
+            d.querySelectorAll('iframe[data-src]').forEach(iframe => {
+                iframe.src = iframe.dataset.src;
+                delete iframe.dataset.src;   // que no recargue al cerrar y abrir
+            });
+        });
+    });
+}
+
 // --- DIAGNÓSTICO Y LIMPIEZA ---
 onSnapshotsInSync(db, () => {
     console.log("🔥 Conexión activa con la base de datos 'cursos'");
