@@ -412,6 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("✅ Lista de clases generada correctamente.");
 
         // --- CLASES VISITADAS ---
+        // Se marcan al DARLE PLAY, no al pasar scrolleando. Antes bastaba con
+        // que la clase entrara un 40% en pantalla, asi que bajar hasta el final
+        // del aula dejaba todo marcado como visto sin haber mirado nada.
         const STORAGE_KEY = 'visitadas_' + window.location.pathname;
         const visitadas   = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
 
@@ -423,19 +426,113 @@ document.addEventListener('DOMContentLoaded', () => {
         // Aplicar estado guardado al cargar la página
         visitadas.forEach(id => marcarVisitadaEnSidebar(id));
 
-        // Observar cada clase: se marca al verla en un 40%
-        const observerVisitas = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !visitadas.has(entry.target.id)) {
-                    visitadas.add(entry.target.id);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify([...visitadas]));
-                    marcarVisitadaEnSidebar(entry.target.id);
-                }
-            });
-        }, { threshold: 0.4 });
+        function marcarVista(id) {
+            if (!id || visitadas.has(id)) return;
+            visitadas.add(id);
+            // En incognito o con el almacenamiento bloqueado esto tira: que no
+            // se lleve puesto el resto del enganche.
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...visitadas])); } catch (e) {}
+            marcarVisitadaEnSidebar(id);
+        }
 
-        articles.forEach(clase => observerVisitas.observe(clase));
+        function cargarScriptUnaVez(src, clave) {
+            if (!window[clave]) {
+                window[clave] = new Promise((ok, falla) => {
+                    const s = document.createElement('script');
+                    s.src = src; s.onload = ok; s.onerror = falla;
+                    document.head.appendChild(s);
+                });
+            }
+            return window[clave];
+        }
+
+        function apiYoutube() {
+            if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+            if (!window._promesaYT) {
+                window._promesaYT = new Promise(ok => {
+                    const previo = window.onYouTubeIframeAPIReady;
+                    window.onYouTubeIframeAPIReady = () => { if (previo) previo(); ok(window.YT); };
+                    const s = document.createElement('script');
+                    s.src = 'https://www.youtube.com/iframe_api';
+                    document.head.appendChild(s);
+                });
+            }
+            return window._promesaYT;
+        }
+
+        // Engancha el evento de reproduccion. Bunny avisa por player.js;
+        // YouTube por su IFrame API, que exige enablejsapi=1 en la URL.
+        function engancharPlay(iframe) {
+            if (!iframe || iframe.dataset.playEnganchado) return;
+            const clase = iframe.closest('.clase-item');
+            if (!clase || !clase.id) return;
+            let src = iframe.src || '';
+            if (!src) return;
+
+            iframe.dataset.playEnganchado = '1';   // antes de tocar src: si no, el
+                                                   // MutationObserver se re-dispara
+            const id = clase.id;
+
+            if (src.includes('youtube.com')) {
+                if (!src.includes('enablejsapi=1')) {
+                    // Se agrega ahora, recien cargado y todavia sin reproducir,
+                    // asi que el recargo del iframe pasa desapercibido.
+                    src += (src.includes('?') ? '&' : '?') +
+                           'enablejsapi=1&origin=' + encodeURIComponent(location.origin);
+                    iframe.src = src;
+                }
+                apiYoutube().then(YT => {
+                    new YT.Player(iframe, {
+                        events: {
+                            onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) marcarVista(id); }
+                        }
+                    });
+                }).catch(() => {});
+            } else {
+                cargarScriptUnaVez('https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js', '_promesaPlayerjs')
+                    .then(() => {
+                        const p = new window.playerjs.Player(iframe);
+                        p.on('ready', () => p.on('play', () => marcarVista(id)));
+                    }).catch(() => {});
+            }
+        }
+
+        // Los iframes de clase arrancan vacios y reciben su src recien al
+        // scrollear (lazy load), asi que hay que esperar a que aparezca.
+        document.querySelectorAll('.clase-item iframe').forEach(ifr => {
+            if (ifr.src) engancharPlay(ifr);
+        });
+        new MutationObserver(muts => {
+            muts.forEach(m => {
+                if (m.attributeName === 'src' && m.target.src) engancharPlay(m.target);
+            });
+        }).observe(document.body, { attributes: true, attributeFilter: ['src'], subtree: true });
     }
+
+    // --- BOTON "EXPANDIR" DE LOS PDFs ---
+    // escuela.css define .pdf-wrapper.fullscreen-mode desde hace rato, pero
+    // nada aplicaba la clase: los 25 botones de revo, lectura e introduccion
+    // no hacian nada.
+    document.querySelectorAll('.btn-expandir').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const wrapper = btn.closest('.pdf-wrapper');
+            if (!wrapper) return;
+            const full = wrapper.classList.toggle('fullscreen-mode');
+            document.body.style.overflow = full ? 'hidden' : '';   // si no, la pagina
+                                                                   // scrollea detras
+            const icono = btn.querySelector('i');
+            if (icono) icono.className = full ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+        });
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.pdf-wrapper.fullscreen-mode').forEach(w => {
+            w.classList.remove('fullscreen-mode');
+            const icono = w.querySelector('.btn-expandir i');
+            if (icono) icono.className = 'fa-solid fa-expand';
+        });
+        document.body.style.overflow = '';
+    });
 
     // B) Hacer funcionar el botón "TEMARIO" (Móvil)
     const btnTemario = document.getElementById('menu-toggle');

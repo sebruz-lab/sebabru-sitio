@@ -127,7 +127,7 @@
 
 
 
-<article class="clase-item" id="clase-2" data-titulo="Clase 3">
+<article class="clase-item" id="clase-3" data-titulo="Clase 3">
     <header class="clase-header">
         <h2><span class="num">#3</span> Tercer encuentro</h2>
     </header>
@@ -187,14 +187,14 @@
         </main>
     </div>
 
-    <script type="module" src="../escuela.js?v=2"></script>
+    <script type="module" src="../escuela.js?v=4"></script>
 
     <script type="module">
         // ATENCIÓN: Si tu firebase.js está en la raiz, cambiá '../' por '../../'
         import { auth, db } from '../firebase.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { poblarVideosClases } from '../escuela.js?v=2';
+        import { poblarVideosClases } from '../escuela.js?v=4';
 
         const overlay = document.getElementById('security-overlay');
         const statusText = document.getElementById('status-text');
