@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astrología desde cero: Sol, Luna y Ascendente | Seba Bru</title>
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/identidad-astral">
+<meta property="og:title" content="Astrología desde cero: Sol, Luna y Ascendente | Seba Bru Astrología">
+<meta property="og:description" content="Un curso corto de tres encuentros para entender el Sol, la Luna y el Ascendente, y empezar a leer tu carta natal.">
+<meta property="og:image" content="https://sebabru.com/img/identidad-astral.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --primary:   #249b95;
+        --secondary: #f0c516;
+        --bg:        #07070a;
+        --surface:   rgba(30, 34, 48, 0.9);
+        --border:    rgba(255,255,255,0.1);
+        --text:      #e0e6ed;
+        --muted:     #8892a0;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', 'Montserrat', sans-serif;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .pagina {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 20px 0 60px;
+    }
+
+    .portada {
+        width: 100%;
+        border-radius: 16px;
+        display: block;
+        margin-bottom: 28px;
+    }
+
+    h1 {
+        font-size: clamp(1.6rem, 5vw, 2.1rem);
+        font-weight: 700;
+        margin-bottom: 18px;
+        line-height: 1.25;
+    }
+
+    .intro p { color: var(--text); font-size: 1rem; line-height: 1.65; margin-bottom: 14px; }
+    .intro p.destacado { color: var(--muted); }
+
+    .info-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px 26px;
+        margin: 28px 0;
+    }
+    .info-card dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; }
+    .info-card dt { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .info-card dd { font-size: 0.95rem; }
+
+    .nota-descuento {
+        background: rgba(240,197,22,0.1);
+        border: 1px solid var(--secondary);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 14px 18px;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin: 22px 0;
+    }
+
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 30px 28px;
+        margin-top: 30px;
+    }
+    .card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 18px; color: var(--text); }
+
+    .form-group { text-align: left; margin-bottom: 14px; }
+    .form-group label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; }
+    .form-group .opcional { font-weight: 400; opacity: 0.7; }
+    input[type="text"], input[type="tel"], input[type="time"] {
+        width: 100%; background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border); color: var(--text);
+        padding: 11px 14px; border-radius: 8px; font-size: 0.95rem;
+        font-family: inherit;
+    }
+    input:focus { outline: none; border-color: var(--primary); }
+    input:invalid:not(:placeholder-shown) { border-color: #e05555; }
+
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 9px; padding: 13px 28px;
+        border: none; border-radius: 10px;
+        cursor: pointer; font-size: 0.95rem; font-weight: 700;
+        text-decoration: none; width: 100%;
+        transition: opacity 0.2s;
+        margin-top: 8px;
+        background: var(--primary); color: #fff;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+        background: rgba(220,80,80,0.12);
+        border: 1px solid #e05555; color: #f08080;
+        padding: 10px 14px; border-radius: 8px;
+        font-size: 0.85rem; margin-bottom: 14px; display: none;
+    }
+
+    .screen { display: none; text-align: center; }
+    .screen.visible { display: block; }
+    .icon-success { color: var(--primary); font-size: 2.6rem; margin-bottom: 14px; display: block; }
+    #screen-success p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="pagina">
+    <img class="portada" src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente">
+
+    <h1>Astrología desde cero: Sol, Luna y Ascendente</h1>
+
+    <div class="intro">
+        <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
+        <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
+        <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
+        <p class="destacado">No hace falta saber nada de astrología.</p>
+    </div>
+
+    <div class="info-card">
+        <dl>
+            <dt>Cuándo</dt>
+            <dd>Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)</dd>
+            <dt>Dónde</dt>
+            <dd>Presencial en Villa de las Rosas, o virtual por Zoom, como te quede mejor</dd>
+            <dt>Valor</dt>
+            <dd>40.000$ar o su equivante en otras monedas</dd>
+        </dl>
+    </div>
+
+    <p class="nota-descuento">Y si tus amigxs no hablan de astro, pueden venir juntx y aprovechen el 20% de descuento para cada unx si se anotan juntxs.</p>
+
+    <div class="card" id="card-formulario">
+        <h2>Info e inscripción</h2>
+
+        <div id="error-msg" class="error-msg"></div>
+
+        <form id="form-inscripcion">
+            <div class="form-group">
+                <label for="inp-nombre">Nombre</label>
+                <input type="text" id="inp-nombre" maxlength="200" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-telefono">Teléfono</label>
+                <input type="tel" id="inp-telefono" maxlength="50" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(opcional, formato DD/MM/AA)</span></label>
+                <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AA" maxlength="8" pattern="\d{2}/\d{2}/\d{2}" title="Formato DD/MM/AA, por ejemplo 05/03/90">
+            </div>
+            <div class="form-group">
+                <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(opcional, formato 24hs)</span></label>
+                <input type="time" id="inp-hora-nacimiento">
+            </div>
+            <div class="form-group">
+                <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(opcional, ciudad o pueblo, provincia y país)</span></label>
+                <input type="text" id="inp-lugar-nacimiento" maxlength="200">
+            </div>
+            <button type="submit" class="btn" id="btn-enviar">
+                <i class="fa-solid fa-paper-plane"></i> Enviar inscripción
+            </button>
+        </form>
+    </div>
+
+    <div class="card screen" id="screen-success">
+        <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
+        <h2>¡Listo, ya estás inscriptx!</h2>
+        <p>Te vamos a contactar por WhatsApp o mail para coordinar el pago y los detalles.</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById('form-inscripcion');
+    const btn = document.getElementById('btn-enviar');
+    const errorMsg = document.getElementById('error-msg');
+    const inpFecha = document.getElementById('inp-fecha-nacimiento');
+
+    function mostrarError(msg) {
+        errorMsg.textContent = msg;
+        errorMsg.style.display = 'block';
+    }
+
+    inpFecha.addEventListener('input', () => {
+        const val = inpFecha.value;
+        if (val && !/^\d{0,2}\/?\d{0,2}\/?\d{0,2}$/.test(val)) {
+            inpFecha.value = val.slice(0, -1);
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.style.display = 'none';
+
+        const fecha = inpFecha.value.trim();
+        if (fecha && !/^\d{2}\/\d{2}\/\d{2}$/.test(fecha)) {
+            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AA.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+
+        try {
+            const resp = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formId: 'identidad-astral',
+                    campos: {
+                        nombre: document.getElementById('inp-nombre').value.trim(),
+                        telefono: document.getElementById('inp-telefono').value.trim(),
+                        fechaNacimiento: fecha,
+                        horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
+                        lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
+                    },
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'No pudimos registrar tu inscripción.');
+
+            document.getElementById('card-formulario').style.display = 'none';
+            document.getElementById('screen-success').classList.add('visible');
+            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'identidad-astral' });
+        } catch (err) {
+            mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar inscripción';
+        }
+    });
+})();
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GDLRMR5D57');
+</script>
+</body>
+</html>

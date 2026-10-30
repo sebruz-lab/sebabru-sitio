@@ -5,6 +5,8 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { sheets: sheetsApi } = require('@googleapis/sheets');
+const { JWT } = require('google-auth-library');
 
 const CURSO_URLS = {
   luna:      '/escuela/abierta/luna/',
@@ -1447,4 +1449,134 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
     cursoNombre: cursoNombre || cursoId,
     cursoUrl: CURSO_URLS[cursoId] || '/escuela/',
   };
+});
+
+// -------------------------------------------------------
+// registrarInscripcion: motor generico para formularios de inscripcion a
+// eventos puntuales (seminarios, cursos cortos). Cada instancia nueva es
+// solo una entrada mas en FORMULARIOS_INSCRIPCION -- no requiere tocar el
+// resto de esta funcion. Cada respuesta se agrega como fila a una pestaña
+// propia dentro del Google Sheets de SHEETS_SPREADSHEET_ID (se crea sola si
+// todavia no existe) y se avisa por mail, igual que guardarPedido.
+// -------------------------------------------------------
+const FORMULARIOS_INSCRIPCION = {
+  'identidad-astral': {
+    hoja: 'Identidad astral',
+    nombreEvento: 'Astrología desde cero: Sol, Luna y Ascendente',
+    campos: [
+      { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
+      { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
+      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: false },
+      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: false },
+      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: false },
+    ],
+  },
+};
+
+let _sheetsClient;
+function getSheetsClient() {
+  if (_sheetsClient) return _sheetsClient;
+  const auth = new JWT({
+    email: process.env.SHEETS_CLIENT_EMAIL,
+    key: (process.env.SHEETS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  _sheetsClient = sheetsApi({ version: 'v4', auth });
+  return _sheetsClient;
+}
+
+// Crea la pestaña (con fila de encabezados) si todavia no existe en el
+// documento -- asi sumar un formulario nuevo no requiere crear la hoja a mano.
+async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const existe = (meta.data.sheets || []).some(s => s.properties.title === nombreHoja);
+  if (existe) return;
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: { requests: [{ addSheet: { properties: { title: nombreHoja } } }] },
+  });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${nombreHoja}!A1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [encabezados] },
+  });
+}
+
+exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('registrarInscripcion', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const formId = sanitizeTexto(req.body?.formId, 100);
+  const config = FORMULARIOS_INSCRIPCION[formId];
+  if (!config) {
+    return res.status(400).json({ error: 'Formulario no reconocido.' });
+  }
+
+  const camposRecibidos = (req.body?.campos && typeof req.body.campos === 'object') ? req.body.campos : {};
+  const valores = {};
+  for (const campo of config.campos) {
+    const valor = sanitizeTexto(camposRecibidos[campo.key], campo.maxLen);
+    if (campo.requerido && !valor) {
+      return res.status(400).json({ error: `Falta el campo obligatorio: ${campo.label}` });
+    }
+    valores[campo.key] = valor;
+  }
+
+  try {
+    const sheets = getSheetsClient();
+    const spreadsheetId = process.env.SHEETS_SPREADSHEET_ID;
+    const encabezados = ['Fecha de inscripción', ...config.campos.map(c => c.label)];
+    await asegurarHojaInscripcion(sheets, spreadsheetId, config.hoja, encabezados);
+
+    const fila = [
+      new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+      ...config.campos.map(c => valores[c.key] || ''),
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${config.hoja}!A1`,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [fila] },
+    });
+
+    const filasHtml = config.campos.map(c =>
+      `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
+    ).join('');
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+    });
+
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: 'sebruz@gmail.com',
+      subject: `📝 Nueva inscripción — ${config.nombreEvento}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+          <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
+          <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+            ${filasHtml}
+          </table>
+        </div>
+      `
+    });
+
+    functions.logger.info('Inscripción registrada', { formId, hoja: config.hoja });
+    return res.status(200).json({ ok: true });
+
+  } catch (error) {
+    functions.logger.error('Error en registrarInscripcion:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
 });
