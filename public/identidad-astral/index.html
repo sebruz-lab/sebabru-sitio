@@ -14,136 +14,132 @@
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-        --primary:   #249b95;
-        --secondary: #f0c516;
-        --bg:        #07070a;
-        --surface:   rgba(30, 34, 48, 0.9);
-        --border:    rgba(255,255,255,0.1);
-        --text:      #e0e6ed;
-        --muted:     #8892a0;
-    }
-
-    body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: 'Segoe UI', 'Montserrat', sans-serif;
-        min-height: 100vh;
-        padding: 20px;
-    }
-
-    .pagina {
-        max-width: 620px;
+    .pagina-curso {
+        max-width: 680px;
         margin: 0 auto;
-        padding: 20px 0 60px;
+        padding: 60px 20px 80px;
     }
 
-    .portada {
+    .curso-portada {
         width: 100%;
-        border-radius: 16px;
+        max-width: 420px;
         display: block;
-        margin-bottom: 28px;
+        margin: 0 auto 36px;
+        border-radius: 14px;
+        box-shadow: 0 25px 70px rgba(0,0,0,0.65);
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
-    h1 {
-        font-size: clamp(1.6rem, 5vw, 2.1rem);
-        font-weight: 700;
-        margin-bottom: 18px;
+    .curso-titulo {
+        color: var(--text-light);
+        font-size: clamp(1.7rem, 5.5vw, 2.6rem);
+        font-weight: 300;
+        letter-spacing: 0.04em;
+        text-transform: none;
+        text-align: center;
         line-height: 1.25;
+        margin-bottom: 34px;
     }
 
-    .intro p { color: var(--text); font-size: 1rem; line-height: 1.65; margin-bottom: 14px; }
-    .intro p.destacado { color: var(--muted); }
-
-    .info-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 24px 26px;
-        margin: 28px 0;
+    .bloque-glass {
+        background: rgba(16, 16, 26, 0.6);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 24px;
+        padding: 40px 34px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        margin-bottom: 26px;
     }
-    .info-card dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; }
-    .info-card dt { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
-    .info-card dd { font-size: 0.95rem; }
+
+    .bloque-glass h2 {
+        font-size: 1.5rem;
+        color: var(--text-light);
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .bloque-glass p { color: var(--text-dark); font-size: 1rem; line-height: 1.7; margin-bottom: 14px; }
+    .bloque-glass p:last-child { margin-bottom: 0; }
+    .bloque-glass p.destacado { color: var(--primary-color); }
+
+    .info-datos { display: grid; grid-template-columns: auto 1fr; gap: 12px 18px; margin-top: 24px; }
+    .info-datos dt {
+        color: var(--primary-color); font-size: 0.78rem; text-transform: uppercase;
+        letter-spacing: 0.08em; white-space: nowrap; padding-top: 2px;
+    }
+    .info-datos dd { color: var(--text-dark); font-size: 0.98rem; }
 
     .nota-descuento {
-        background: rgba(240,197,22,0.1);
-        border: 1px solid var(--secondary);
-        color: var(--text);
-        border-radius: 12px;
-        padding: 14px 18px;
-        font-size: 0.92rem;
-        line-height: 1.5;
-        margin: 22px 0;
-    }
-
-    .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
+        background: rgba(247, 210, 57, 0.08);
+        border: 1px solid rgba(247, 210, 57, 0.35);
+        color: var(--text-dark);
         border-radius: 16px;
-        padding: 30px 28px;
-        margin-top: 30px;
+        padding: 18px 22px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 26px;
     }
-    .card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 18px; color: var(--text); }
 
-    .form-group { text-align: left; margin-bottom: 14px; }
-    .form-group label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; }
-    .form-group .opcional { font-weight: 400; opacity: 0.7; }
+    .form-group { text-align: left; margin-bottom: 16px; }
+    .form-group label {
+        font-size: 0.78rem; color: var(--primary-color); display: block; margin-bottom: 7px;
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .form-group .opcional { color: var(--text-dark); opacity: 0.6; text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
     input[type="text"], input[type="tel"], input[type="time"] {
-        width: 100%; background: rgba(255,255,255,0.06);
-        border: 1px solid var(--border); color: var(--text);
-        padding: 11px 14px; border-radius: 8px; font-size: 0.95rem;
-        font-family: inherit;
+        width: 100%; background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12); color: var(--text-light);
+        padding: 12px 15px; border-radius: 10px; font-size: 0.95rem;
+        font-family: 'Outfit', sans-serif;
     }
-    input:focus { outline: none; border-color: var(--primary); }
-    input:invalid:not(:placeholder-shown) { border-color: #e05555; }
+    input:focus { outline: none; border-color: var(--primary-color); }
 
-    .btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        gap: 9px; padding: 13px 28px;
-        border: none; border-radius: 10px;
-        cursor: pointer; font-size: 0.95rem; font-weight: 700;
-        text-decoration: none; width: 100%;
-        transition: opacity 0.2s;
-        margin-top: 8px;
-        background: var(--primary); color: #fff;
+    .btn-enviar {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; width: 100%; padding: 14px 28px; margin-top: 10px;
+        background-color: transparent; color: var(--text-light);
+        border: 1px solid rgba(255,255,255,0.25); border-radius: 30px;
+        font-family: 'Outfit', sans-serif; font-size: 0.9rem;
+        font-weight: 500; text-transform: uppercase; letter-spacing: 1px;
+        backdrop-filter: blur(5px); cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
-    .btn:hover:not(:disabled) { opacity: 0.85; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-enviar:hover:not(:disabled) {
+        background-color: var(--primary-color); color: #000;
+        border-color: var(--primary-color); transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(59, 194, 188, 0.3);
+    }
+    .btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .error-msg {
-        background: rgba(220,80,80,0.12);
-        border: 1px solid #e05555; color: #f08080;
-        padding: 10px 14px; border-radius: 8px;
-        font-size: 0.85rem; margin-bottom: 14px; display: none;
+        background: rgba(245, 109, 150, 0.1);
+        border: 1px solid var(--contenido-color); color: var(--contenido-color);
+        padding: 11px 15px; border-radius: 10px;
+        font-size: 0.85rem; margin-bottom: 16px; display: none;
     }
 
-    .screen { display: none; text-align: center; }
-    .screen.visible { display: block; }
-    .icon-success { color: var(--primary); font-size: 2.6rem; margin-bottom: 14px; display: block; }
-    #screen-success p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    #screen-success { display: none; text-align: center; }
+    #screen-success.visible { display: block; }
+    .icon-success { color: var(--primary-color); font-size: 2.6rem; margin-bottom: 14px; display: block; }
 </style>
 </head>
 <body>
 
-<div class="pagina">
-    <img class="portada" src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente">
+<div class="pagina-curso">
+    <img class="curso-portada" src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente">
 
-    <h1>Astrología desde cero: Sol, Luna y Ascendente</h1>
+    <h1 class="curso-titulo">Astrología desde cero: Sol, Luna y Ascendente</h1>
 
-    <div class="intro">
+    <div class="bloque-glass">
         <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
         <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
         <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
         <p class="destacado">No hace falta saber nada de astrología.</p>
-    </div>
 
-    <div class="info-card">
-        <dl>
+        <dl class="info-datos">
             <dt>Cuándo</dt>
             <dd>Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)</dd>
             <dt>Dónde</dt>
@@ -155,7 +151,7 @@
 
     <p class="nota-descuento">Y si tus amigxs no hablan de astro, pueden venir juntx y aprovechen el 20% de descuento para cada unx si se anotan juntxs.</p>
 
-    <div class="card" id="card-formulario">
+    <div class="bloque-glass" id="card-formulario">
         <h2>Info e inscripción</h2>
 
         <div id="error-msg" class="error-msg"></div>
@@ -181,16 +177,16 @@
                 <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(opcional, ciudad o pueblo, provincia y país)</span></label>
                 <input type="text" id="inp-lugar-nacimiento" maxlength="200">
             </div>
-            <button type="submit" class="btn" id="btn-enviar">
+            <button type="submit" class="btn-enviar" id="btn-enviar">
                 <i class="fa-solid fa-paper-plane"></i> Enviar inscripción
             </button>
         </form>
     </div>
 
-    <div class="card screen" id="screen-success">
+    <div class="bloque-glass" id="screen-success">
         <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
         <h2>¡Listo, ya estás inscriptx!</h2>
-        <p>Te vamos a contactar por WhatsApp o mail para coordinar el pago y los detalles.</p>
+        <p style="text-align:center;">Te vamos a contactar por WhatsApp o mail para coordinar el pago y los detalles.</p>
     </div>
 </div>
 
