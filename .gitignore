@@ -79,3 +79,6 @@ Old/
 
 # Informe que genera el chequeo del sitio
 .github/chequeo/informe.md
+
+# La calculadora se baja en el deploy desde sebruz-lab/tucarta (ver tucarta.version)
+public/tucarta/
