@@ -15,22 +15,7 @@
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
 <link rel="stylesheet" href="../style.css">
-<link rel="stylesheet" href="../recorrido.css?v=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-<!-- Recorrido animado solo sin "reducir movimiento". Si el motor
-     (recorrido.js) no arranca, la pagina queda en su version plana:
-     todo visible y scrolleable (ver recorrido.css). -->
-<script>
-(function (d) {
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    d.classList.add('recorrido');
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.__recorridoOk) return;
-        d.classList.remove('recorrido');
-    });
-})(document.documentElement);
-</script>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
@@ -50,68 +35,29 @@ html, body { margin: 0; padding: 0; background: #000; }
     --curso-accent: #f7d239;
 }
 
-.escena-track { position: relative; height: 320vh; }
-
-/* ─── Mismo esqueleto que /lilith (bloque centrado por la camara) ─── */
-.bloque {
-    position: absolute !important; left: 50% !important; top: 50% !important;
-    margin: 0 !important;
-    transform: translate(-50%, -50%);
-    opacity: 0; pointer-events: none;
-    width: min(92vw, 640px);
-    text-align: center;
-    z-index: 2;
+/* ─── Cabecera ─── */
+.curso-cabecera {
+    min-height: 60vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 14vh 20px 6vh;
 }
-.bloque--intro { width: min(92vw, 640px); }
-.bloque--ancho {
-    width: min(94vw, 680px);
-    max-height: 82vh;
-    overflow-y: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    text-align: left;
+.curso-cabecera h1 {
+    color: #fff; font-size: clamp(2rem, 5.5vw, 3.2rem);
+    margin: 0 0 6px; letter-spacing: 0.1em; font-weight: 300; text-transform: uppercase;
 }
-.bloque--ancho::-webkit-scrollbar { display: none; }
+.curso-cabecera h2 {
+    color: var(--curso-theme); font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+    margin: 0; font-weight: 300; letter-spacing: 0.06em; text-transform: none;
+}
 
-.efecto-shrink-container.bloque { width: min(94vw, 1000px); height: auto; }
-.efecto-shrink-container.bloque .efecto-shrink-sticky { position: static; height: auto; min-height: 58vh; }
-.bloque .efecto-texto {
+/* ─── Bloque "El curso": unica animacion que queda, la imagen se corre
+     y deja leer el texto a medida que se scrollea (mecanismo lineal de
+     la home, en style.css seccion 7). ─── */
+#curso-info .efecto-texto {
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
 }
-
-/* ─── Hero ─── */
-.curso-hero {
-    min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 10vh 20px 20px;
-}
-.curso-hero h1 {
-    color: #fff; font-size: clamp(2rem, 5.5vw, 3.2rem);
-    margin: 0 0 6px; letter-spacing: 0.1em; font-weight: 300; text-transform: uppercase;
-}
-.curso-hero h2 {
-    color: var(--curso-theme); font-size: clamp(0.9rem, 2.2vw, 1.2rem);
-    margin: 0; font-weight: 300; letter-spacing: 0.06em; text-transform: none;
-}
-.accesos {
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    margin-top: 38px;
-}
-.accesos button, .accesos a {
-    background: none; border: none; padding: 4px 8px;
-    font-family: inherit; font-style: italic;
-    font-size: 1.05rem; letter-spacing: 0.02em;
-    color: rgba(255,255,255,0.45);
-    cursor: pointer;
-    transition: color 0.3s ease;
-    text-decoration: none;
-}
-.accesos button:hover, .accesos a:hover { color: #fff; text-decoration: none; }
-
-/* ─── Texto del bloque "El curso" (igual mecanismo que /lilith) ─── */
 .efecto-texto h3 {
     color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
     text-transform: uppercase; margin: 0 0 8px; font-weight: 400;
@@ -143,6 +89,10 @@ html, body { margin: 0; padding: 0; background: #000; }
 .btn-clase-gratis:hover { background: transparent; color: #fff; text-decoration: none; }
 
 /* ─── Bloque "Inscripción" ─── */
+#inscripcion {
+    max-width: 680px; margin: 100px auto 80px; padding: 28px 24px;
+    box-sizing: border-box;
+}
 #inscripcion h2 {
     color: #fff; font-size: 1.4rem; font-weight: 300; text-align: center; margin: 0 0 22px;
     text-transform: none;
@@ -192,9 +142,6 @@ input:focus { outline: none; border-color: var(--curso-accent); }
     animation: spin-identidad 0.8s linear infinite;
 }
 @keyframes spin-identidad { to { transform: rotate(360deg); } }
-
-/* ─── Cierre: fuera del recorrido, flujo normal ─── */
-.cierre { position: relative; z-index: 2; background: #000; padding-top: 60px; }
 </style>
 </head>
 <body>
@@ -215,48 +162,37 @@ input:focus { outline: none; border-color: var(--curso-accent); }
         </ul>
     </nav>
 
-<div class="escena-track" id="escena-track">
-    <section class="escena" id="escena" aria-label="Astrología desde cero: Sol, Luna y Ascendente">
-        <div class="capa-lejana" id="capa-lejana" aria-hidden="true"></div>
-        <div class="universo" id="universo">
+<main>
+    <header class="curso-cabecera">
+        <h1>Astrología desde cero</h1>
+        <h2>Sol, Luna y Ascendente</h2>
+    </header>
 
-            <article class="bloque bloque--intro" id="bloque-hero" data-x="0" data-y="0">
-                <section class="curso-hero">
-                    <h1>Astrología desde cero</h1>
-                    <h2>Sol, Luna y Ascendente</h2>
-                    <nav class="accesos">
-                        <a href="#curso-info" data-ir-a-bloque="curso-info" data-ga="hero_boton" data-ga-destino="curso">El curso</a>
-                        <a href="#inscripcion" data-ir-a-bloque="inscripcion" data-ga="hero_boton" data-ga-destino="inscripcion">Inscripción</a>
-                    </nav>
-                    <p class="deslizar-hint">Deslizá <span class="flecha-titila">&darr;</span></p>
-                </section>
-            </article>
-
-            <section class="efecto-shrink-container bloque" id="curso-info" data-x="400" data-y="-500" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="tu-identidad-en-el-cielo">
-                <div class="efecto-shrink-sticky">
-                    <img src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente" class="efecto-imagen">
-                    <div class="efecto-texto">
-                        <h3>Curso en vivo · 3 encuentros</h3>
-                        <h2>Astrología desde cero: Sol, Luna y Ascendente</h2>
-                        <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
-                        <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
-                        <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
-                        <div class="evento-info">
-                            ⏰ Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)<br>
-                            📍 Presencial en Villa de las Rosas, o virtual por Zoom, como te quede mejor<br>
-                            💵 40.000$ar o su equivante en otras monedas<br>
-                            📖 No hace falta saber nada de astrología.<br>
-                            👯 Si tus amigxs no hablan de astro, pueden venir juntx: 20% de descuento para cada unx si se anotan juntxs.<br>
-                            🌟 A cargo de Sebastián Bru.
-                        </div>
-                        <a href="#inscripcion" data-ir-a-bloque="inscripcion" class="btn-clase-gratis" data-ga="hero_boton" data-ga-destino="inscripcion" data-ga-origen="boton_curso">
-                            <i class="fa-solid fa-pen"></i> Anotarme
-                        </a>
-                    </div>
+    <section class="efecto-shrink-container" id="curso-info" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="tu-identidad-en-el-cielo">
+        <div class="efecto-shrink-sticky">
+            <img src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente" class="efecto-imagen">
+            <div class="efecto-texto">
+                <h3>Curso en vivo · 3 encuentros</h3>
+                <h2>Astrología desde cero: Sol, Luna y Ascendente</h2>
+                <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
+                <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
+                <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
+                <div class="evento-info">
+                    ⏰ Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)<br>
+                    📍 Presencial en Villa de las Rosas, o virtual por Zoom, como te quede mejor<br>
+                    💵 40.000$ar o su equivante en otras monedas<br>
+                    📖 No hace falta saber nada de astrología.<br>
+                    👯 Si tus amigxs no hablan de astro, pueden venir juntx: 20% de descuento para cada unx si se anotan juntxs.<br>
+                    🌟 A cargo de Sebastián Bru.
                 </div>
-            </section>
+                <a href="#inscripcion" class="btn-clase-gratis" data-ga="hero_boton" data-ga-destino="inscripcion" data-ga-origen="boton_curso">
+                    <i class="fa-solid fa-pen"></i> Anotarme
+                </a>
+            </div>
+        </div>
+    </section>
 
-            <section class="bloque bloque--ancho" id="inscripcion" data-x="50" data-y="-1000" data-ga-visible="seccion_visible" data-ga-seccion="inscripcion" data-ga-producto="tu-identidad-en-el-cielo" style="padding: 28px 24px;">
+    <section id="inscripcion" data-ga-visible="seccion_visible" data-ga-seccion="inscripcion" data-ga-producto="tu-identidad-en-el-cielo">
 
                 <div id="form-wrap">
                     <h2>Info e inscripción</h2>
@@ -330,11 +266,8 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                     </div>
                 </div>
 
-            </section>
-
-        </div>
     </section>
-</div>
+</main>
 
 <div id="loading-pago-identidad">
     <div class="spinner-loading"></div>
@@ -342,7 +275,29 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 </div>
 
 <script src="../medicion.js?v=3"></script>
-<script src="../recorrido.js?v=1"></script>
+
+<script>
+(function () {
+    function clamp01(n) { return Math.max(0, Math.min(1, n)); }
+    var containers = document.querySelectorAll('.efecto-shrink-container');
+    if (!containers.length) return;
+    var ticking = false;
+    function frame() {
+        containers.forEach(function (container) {
+            var rect = container.getBoundingClientRect();
+            var progress = clamp01(-rect.top / (rect.height - window.innerHeight));
+            container.style.setProperty('--scroll-progress', progress);
+            container.style.setProperty('--progreso-mobile', progress * progress * (3 - 2 * progress));
+        });
+        ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+        if (!ticking) { window.requestAnimationFrame(frame); ticking = true; }
+    }, { passive: true });
+    window.addEventListener('resize', frame, { passive: true });
+    frame();
+})();
+</script>
 
 <script>
 (function () {
