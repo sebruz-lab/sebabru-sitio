@@ -18,6 +18,7 @@ const CURSO_URLS = {
   linaje:    '/escuela/abierta/linaje/',
   lunas26:   '/escuela/lunas26/',
   quiron:    '/escuela/quiron/',
+  'identidad-astral': '/identidad-astral/',
 };
 
 const PRECIOS = {
@@ -27,6 +28,7 @@ const PRECIOS = {
   casas:     { ars: 60000, usd: 50 },
   pluton26:  { ars: 80000, usd: 70 },
   lilith:    { ars: 80000, usd: 50 },
+  'identidad-astral': { ars: 40000 },
   linaje:    { ars: 60000, usd: 50 },
 };
 
