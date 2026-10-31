@@ -4,11 +4,11 @@
 <script src="/origen.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Astrología desde cero: Sol, Luna y Ascendente | Seba Bru</title>
+<title>Tu identidad en el cielo | Seba Bru</title>
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://sebabru.com/tu-identidad-en-el-cielo">
-<meta property="og:title" content="Astrología desde cero: Sol, Luna y Ascendente | Seba Bru Astrología">
+<meta property="og:title" content="Tu identidad en el cielo | Seba Bru Astrología">
 <meta property="og:description" content="Un curso corto de tres encuentros para entender el Sol, la Luna y el Ascendente, y empezar a leer tu carta natal.">
 <meta property="og:image" content="https://sebabru.com/img/identidad-astral.webp">
 <meta property="og:site_name" content="Seba Bru Astrología">
@@ -175,10 +175,10 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 
     <section class="efecto-shrink-container" id="curso-info" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="tu-identidad-en-el-cielo">
         <div class="efecto-shrink-sticky">
-            <img src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente" class="efecto-imagen">
+            <img src="../img/identidad-astral.webp" alt="Tu identidad en el cielo" class="efecto-imagen">
             <div class="efecto-texto">
                 <h3>Curso en vivo · 3 encuentros</h3>
-                <h2>Astrología desde cero: Sol, Luna y Ascendente</h2>
+                <h2>Tu identidad en el cielo</h2>
                 <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
                 <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
                 <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
@@ -241,7 +241,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                             <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:grayscale(1) brightness(1.3);">
                             <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$40.000</span>
                         </div>
-                        <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="tu-identidad-en-el-cielo" data-ga-nombre="Astrología desde cero: Sol, Luna y Ascendente" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
+                        <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="tu-identidad-en-el-cielo" data-ga-nombre="Tu identidad en el cielo" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
                             <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
                         </button>
                     </div>
@@ -384,7 +384,7 @@ document.getElementById('btn-pagar-mp')?.addEventListener('click', async () => {
     try {
         const result = await crearPago({
             cursoId: 'tu-identidad-en-el-cielo',
-            cursoNombre: 'Astrología desde cero: Sol, Luna y Ascendente',
+            cursoNombre: 'Tu identidad en el cielo',
             origen: window.sbOrigen ? window.sbOrigen() : null,
         });
         window.location.href = result.data.init_point;
@@ -410,7 +410,7 @@ async function copiarAlias(btn) {
 }
 document.getElementById('btn-copiar-alias')?.addEventListener('click', (e) => copiarAlias(e.currentTarget));
 
-const mensajeComprobante = 'Hola Seba, acabo de hacer la transferencia para el curso Astrología desde cero: Sol, Luna y Ascendente. Te mando el comprobante.';
+const mensajeComprobante = 'Hola Seba, acabo de hacer la transferencia para el curso Tu identidad en el cielo. Te mando el comprobante.';
 document.getElementById('wa-comprobante').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeComprobante);
 
 let transferenciaAvisada = false;
@@ -422,7 +422,7 @@ document.getElementById('wa-comprobante')?.addEventListener('click', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             cursoId: 'tu-identidad-en-el-cielo',
-            cursoNombre: 'Astrología desde cero: Sol, Luna y Ascendente',
+            cursoNombre: 'Tu identidad en el cielo',
             origen: window.sbOrigen ? window.sbOrigen() : null,
         }),
     }).catch(() => {});

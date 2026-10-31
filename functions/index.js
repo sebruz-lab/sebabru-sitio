@@ -1464,7 +1464,7 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
-    nombreEvento: 'Astrología desde cero: Sol, Luna y Ascendente',
+    nombreEvento: 'Tu identidad en el cielo',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
       { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
