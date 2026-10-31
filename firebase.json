@@ -76,6 +76,16 @@
         "source": "/escuela/abierta-test/**",
         "destination": "/escuela/abierta",
         "type": 301
+      },
+      {
+        "source": "/identidad-astral",
+        "destination": "/tu-identidad-en-el-cielo",
+        "type": 301
+      },
+      {
+        "source": "/identidad-astral/**",
+        "destination": "/tu-identidad-en-el-cielo",
+        "type": 301
       }
     ]
   }

@@ -7,7 +7,7 @@
 <title>Astrología desde cero: Sol, Luna y Ascendente | Seba Bru</title>
 
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://sebabru.com/identidad-astral">
+<meta property="og:url" content="https://sebabru.com/tu-identidad-en-el-cielo">
 <meta property="og:title" content="Astrología desde cero: Sol, Luna y Ascendente | Seba Bru Astrología">
 <meta property="og:description" content="Un curso corto de tres encuentros para entender el Sol, la Luna y el Ascendente, y empezar a leer tu carta natal.">
 <meta property="og:image" content="https://sebabru.com/img/identidad-astral.webp">
@@ -232,7 +232,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                 </section>
             </article>
 
-            <section class="efecto-shrink-container bloque" id="curso-info" data-x="400" data-y="-500" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="identidad-astral">
+            <section class="efecto-shrink-container bloque" id="curso-info" data-x="400" data-y="-500" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="tu-identidad-en-el-cielo">
                 <div class="efecto-shrink-sticky">
                     <img src="../img/identidad-astral.webp" alt="Astrología desde cero: Sol, Luna y Ascendente" class="efecto-imagen">
                     <div class="efecto-texto">
@@ -256,7 +256,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                 </div>
             </section>
 
-            <section class="bloque bloque--ancho" id="inscripcion" data-x="50" data-y="-1000" data-ga-visible="seccion_visible" data-ga-seccion="inscripcion" data-ga-producto="identidad-astral" style="padding: 28px 24px;">
+            <section class="bloque bloque--ancho" id="inscripcion" data-x="50" data-y="-1000" data-ga-visible="seccion_visible" data-ga-seccion="inscripcion" data-ga-producto="tu-identidad-en-el-cielo" style="padding: 28px 24px;">
 
                 <div id="form-wrap">
                     <h2>Info e inscripción</h2>
@@ -300,7 +300,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                             <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:grayscale(1) brightness(1.3);">
                             <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$40.000</span>
                         </div>
-                        <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="identidad-astral" data-ga-nombre="Astrología desde cero: Sol, Luna y Ascendente" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
+                        <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="tu-identidad-en-el-cielo" data-ga-nombre="Astrología desde cero: Sol, Luna y Ascendente" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
                             <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
                         </button>
                     </div>
@@ -324,7 +324,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                             </div>
                         </div>
                         <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;">Una vez hecha la transferencia, enviá el comprobante:</p>
-                        <a id="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_comprobante" data-ga-producto="identidad-astral" data-ga-metodo="transferencia" data-ga-valor="36000" data-ga-moneda="ARS">
+                        <a id="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_comprobante" data-ga-producto="tu-identidad-en-el-cielo" data-ga-metodo="transferencia" data-ga-valor="36000" data-ga-moneda="ARS">
                             <i class="fab fa-whatsapp"></i> Enviar comprobante por WhatsApp
                         </a>
                     </div>
@@ -381,7 +381,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    formId: 'identidad-astral',
+                    formId: 'tu-identidad-en-el-cielo',
                     campos: {
                         nombre: document.getElementById('inp-nombre').value.trim(),
                         telefono: document.getElementById('inp-telefono').value.trim(),
@@ -396,7 +396,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 
             document.getElementById('form-wrap').style.display = 'none';
             document.getElementById('pago-pendiente').classList.add('visible');
-            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'identidad-astral' });
+            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'tu-identidad-en-el-cielo' });
         } catch (err) {
             mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.');
         } finally {
@@ -423,7 +423,7 @@ document.getElementById('btn-pagar-mp')?.addEventListener('click', async () => {
     loading.style.display = 'flex';
     try {
         const result = await crearPago({
-            cursoId: 'identidad-astral',
+            cursoId: 'tu-identidad-en-el-cielo',
             cursoNombre: 'Astrología desde cero: Sol, Luna y Ascendente',
             origen: window.sbOrigen ? window.sbOrigen() : null,
         });
@@ -461,7 +461,7 @@ document.getElementById('wa-comprobante')?.addEventListener('click', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            cursoId: 'identidad-astral',
+            cursoId: 'tu-identidad-en-el-cielo',
             cursoNombre: 'Astrología desde cero: Sol, Luna y Ascendente',
             origen: window.sbOrigen ? window.sbOrigen() : null,
         }),

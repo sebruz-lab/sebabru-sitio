@@ -18,7 +18,7 @@ const CURSO_URLS = {
   linaje:    '/escuela/abierta/linaje/',
   lunas26:   '/escuela/lunas26/',
   quiron:    '/escuela/quiron/',
-  'identidad-astral': '/identidad-astral/',
+  'tu-identidad-en-el-cielo': '/tu-identidad-en-el-cielo/',
 };
 
 const PRECIOS = {
@@ -28,7 +28,7 @@ const PRECIOS = {
   casas:     { ars: 60000, usd: 50 },
   pluton26:  { ars: 80000, usd: 70 },
   lilith:    { ars: 80000, usd: 50 },
-  'identidad-astral': { ars: 40000 },
+  'tu-identidad-en-el-cielo': { ars: 40000 },
   linaje:    { ars: 60000, usd: 50 },
 };
 
@@ -1462,7 +1462,7 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
 // todavia no existe) y se avisa por mail, igual que guardarPedido.
 // -------------------------------------------------------
 const FORMULARIOS_INSCRIPCION = {
-  'identidad-astral': {
+  'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
     nombreEvento: 'Astrología desde cero: Sol, Luna y Ascendente',
     campos: [
