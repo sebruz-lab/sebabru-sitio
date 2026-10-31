@@ -214,6 +214,10 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                             <input type="tel" id="inp-telefono" maxlength="50" required>
                         </div>
                         <div class="form-group">
+                            <label for="inp-email">Tu mail</label>
+                            <input type="email" id="inp-email" maxlength="200" required>
+                        </div>
+                        <div class="form-group">
                             <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(opcional, formato DD/MM/AA)</span></label>
                             <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AA" maxlength="8" pattern="\d{2}/\d{2}/\d{2}" title="Formato DD/MM/AA, por ejemplo 05/03/90">
                         </div>
@@ -345,6 +349,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                     campos: {
                         nombre: document.getElementById('inp-nombre').value.trim(),
                         telefono: document.getElementById('inp-telefono').value.trim(),
+                        email: document.getElementById('inp-email').value.trim(),
                         fechaNacimiento: fecha,
                         horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
                         lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),

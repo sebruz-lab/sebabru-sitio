@@ -1471,6 +1471,7 @@ const FORMULARIOS_INSCRIPCION = {
       { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: false },
       { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: false },
       { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: false },
+      { key: 'email', label: 'Email', maxLen: 200, requerido: true },
     ],
   },
 };
