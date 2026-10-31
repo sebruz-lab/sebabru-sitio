@@ -119,6 +119,59 @@ service cloud.firestore {
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
 
+    // ---------- Calculadora de cartas (/tucarta) ----------
+
+    // Textos de Sol, Luna y Ascendente y links de los botones: los lee
+    // cualquiera (la calculadora no pide login), los escriben lxs admins.
+    match /tucarta_textos/{id} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+    match /tucarta_config/{id} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    // Perfil de cada cuenta en la calculadora: aceptacion del aviso de
+    // privacidad y si quiere novedades. Lxs admins lo leen (para la lista
+    // de novedades); las cartas de adentro, no.
+    match /tucarta_usuarios/{uid} {
+      allow read: if request.auth != null && (
+        request.auth.uid == uid ||
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com']
+      );
+      allow create, update: if request.auth != null && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['email', 'novedades', 'aceptado']) &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.novedades is bool &&
+        request.resource.data.aceptado is string && request.resource.data.aceptado.size() <= 40;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // Cartas guardadas (con datos de nacimiento): solo la persona duena.
+      match /cartas/{id} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid &&
+          cartaValida(request.resource.data);
+      }
+    }
+
+    function cartaValida(d) {
+      return d.keys().hasOnly(['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion', 'guardada']) &&
+        d.nombre is string && d.nombre.size() <= 60 &&
+        d.fecha is string && d.fecha.size() == 10 &&
+        d.hora is string && d.hora.size() == 5 &&
+        d.lugar is map &&
+        d.lugar.keys().hasOnly(['nombre', 'provincia', 'pais', 'paisNombre', 'lat', 'lon', 'zona', 'manual']) &&
+        d.lugar.lat is number && d.lugar.lon is number &&
+        d.lugar.zona is string && d.lugar.zona.size() <= 64 &&
+        d.lugar.get('nombre', '').size() <= 200 &&
+        (d.correccion == null || (d.correccion is map && d.correccion.keys().hasOnly(['base', 'verano']))) &&
+        d.eleccion is int && d.eleccion >= 0 && d.eleccion <= 1 &&
+        d.guardada is string && d.guardada.size() <= 40;
+    }
+
     match /pedidos/{id} {
       // Solo se escribe desde la Cloud Function guardarPedido (Admin SDK,
       // no pasa por estas reglas). Ningun cliente deberia escribir directo.
