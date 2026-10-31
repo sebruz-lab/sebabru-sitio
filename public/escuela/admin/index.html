@@ -207,8 +207,22 @@
         }
         .empty-state i { font-size: 1.8rem; margin-bottom: 10px; display: block; }
 
+        /* TU CARTA: grilla de los 36 textos */
+        .tc-grilla { display: grid; grid-template-columns: 7em repeat(3, 1fr); gap: 6px; font-size: 0.82rem; }
+        .tc-grilla .tc-cab { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 2px; }
+        .tc-grilla .tc-signo { padding: 8px 2px; color: var(--text); }
+        .tc-celda {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: var(--muted); border-radius: 6px; padding: 7px 6px; cursor: pointer; font-size: 0.78rem;
+        }
+        .tc-celda:hover { border-color: var(--primary); }
+        .tc-celda.borrador { color: var(--secondary); border-color: rgba(240,197,22,0.4); }
+        .tc-celda.publicado { color: #6dd5cf; background: rgba(36,155,149,0.15); border-color: var(--primary); }
+        .tc-celda.elegida { outline: 2px solid var(--secondary); }
+
         @media (max-width: 600px) {
             .tab-panel { padding: 16px; }
+            .tc-grilla { grid-template-columns: 5.5em repeat(3, 1fr); }
             .user-info { grid-template-columns: 1fr; }
             .user-table th:nth-child(3),
             .user-table td:nth-child(3) { display: none; }
@@ -253,6 +267,9 @@
         </button>
         <button class="tab-btn" data-tab="videos">
             <i class="fa-solid fa-video"></i> Videos de curso
+        </button>
+        <button class="tab-btn" data-tab="tucarta">
+            <i class="fa-solid fa-circle-half-stroke"></i> Tu carta
         </button>
     </div>
 
@@ -457,6 +474,58 @@
                 <i class="fa-solid fa-floppy-disk"></i> Guardar videos
             </button>
             <div id="videos-msg"></div>
+        </div>
+    </div>
+
+    <!-- TAB: TU CARTA (calculadora /tucarta) -->
+    <div id="tab-tucarta" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Textos de Sol, Luna y Ascendente</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Tocá un casillero para escribir ese texto. Texto plano: dejá una línea en blanco entre párrafos.
+                Solo se muestran en sebabru.com/tucarta los que están marcados como publicados; el resto muestra "PROXIMAMENTE".
+                Quien ya abrió la calculadora ve el cambio en su próxima visita.
+            </p>
+            <div id="tc-grilla" class="tc-grilla"></div>
+            <div id="tc-editor" style="display:none; margin-top:18px;">
+                <p class="card-title" id="tc-editor-titulo"></p>
+                <input type="text" id="tc-titulo" maxlength="120" placeholder="Título (si lo dejás vacío: &quot;Sol en Aries&quot;)" style="width:100%; margin-bottom:10px;">
+                <textarea id="tc-texto" rows="14" placeholder="El texto..."
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); padding:10px 13px; border-radius:8px; font-size:0.9rem; line-height:1.5; resize:vertical;"></textarea>
+                <label style="display:flex; align-items:center; gap:8px; margin:12px 0; font-size:0.88rem;">
+                    <input type="checkbox" id="tc-publicado"> Publicado
+                </label>
+                <div class="input-row">
+                    <button class="btn btn-primary" id="tc-guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+                    <button class="btn btn-secondary" id="tc-cerrar">Cerrar</button>
+                </div>
+                <div id="tc-msg"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Links de los botones de consulta</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Tienen que empezar con https://. Si dejás vacío el de egresadxs, ese botón no se muestra.
+            </p>
+            <label style="font-size:0.75rem; color:var(--muted);">Consultar con Seba</label>
+            <input type="text" id="tc-link-seba" style="width:100%; margin:4px 0 12px;">
+            <label style="font-size:0.75rem; color:var(--muted);">Consultar con egresadxs</label>
+            <input type="text" id="tc-link-egresadxs" style="width:100%; margin:4px 0 12px;">
+            <button class="btn btn-primary" id="tc-guardar-links"><i class="fa-solid fa-floppy-disk"></i> Guardar links</button>
+            <div id="tc-links-msg"></div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Quieren recibir novedades</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Personas que guardan cartas con su cuenta y marcaron que quieren novedades por mail. Sus cartas no se ven acá: son privadas.
+            </p>
+            <div class="input-row">
+                <button class="btn btn-primary" id="tc-cargar-novedades"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
+                <button class="btn btn-secondary" id="tc-copiar-novedades" disabled><i class="fa-solid fa-copy"></i> Copiar mails</button>
+            </div>
+            <div id="tc-novedades"></div>
         </div>
     </div>
 
@@ -1250,6 +1319,152 @@
         }
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar videos';
+    });
+
+    // ── TAB: TU CARTA ─────────────────────────────────────────────
+    // La calculadora de sebabru.com/tucarta (repo aparte, sebruz-lab/tucarta)
+    // lee de aca: tucarta_textos/{sol-aries...} { titulo, texto, publicado }
+    // y tucarta_config/general { linkSeba, linkEgresadxs }. Las cartas de cada
+    // persona (tucarta_usuarios/{uid}/cartas) son privadas: ni lxs admins las leen.
+    const TC_PUNTOS = [['sol', 'Sol'], ['luna', 'Luna'], ['asc', 'Ascendente']];
+    const TC_SIGNOS = [['aries', 'Aries'], ['tauro', 'Tauro'], ['geminis', 'Géminis'], ['cancer', 'Cáncer'],
+        ['leo', 'Leo'], ['virgo', 'Virgo'], ['libra', 'Libra'], ['escorpio', 'Escorpio'],
+        ['sagitario', 'Sagitario'], ['capricornio', 'Capricornio'], ['acuario', 'Acuario'], ['piscis', 'Piscis']];
+    let tcTextos = {};
+    let tcElegido = null;
+    let tcNovedades = [];
+
+    document.querySelector('[data-tab="tucarta"]').addEventListener('click', () => {
+        if (!document.querySelector('#tc-grilla .tc-celda')) { cargarTextosCarta(); cargarLinksCarta(); }
+    });
+
+    async function cargarTextosCarta() {
+        const grilla = document.getElementById('tc-grilla');
+        grilla.innerHTML = '<div class="spinner"></div>';
+        try {
+            const snap = await getDocs(collection(db, 'tucarta_textos'));
+            tcTextos = Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
+            pintarGrillaCarta();
+        } catch (e) {
+            grilla.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    function pintarGrillaCarta() {
+        const celdas = ['<div></div>', ...TC_PUNTOS.map(([, n]) => `<div class="tc-cab">${n}</div>`)];
+        for (const [s, ns] of TC_SIGNOS) {
+            celdas.push(`<div class="tc-signo">${ns}</div>`);
+            for (const [p] of TC_PUNTOS) {
+                const id = `${p}-${s}`;
+                const t = tcTextos[id];
+                const clase = t?.publicado ? 'publicado' : (t?.texto ? 'borrador' : '');
+                const etiqueta = t?.publicado ? 'Publicado' : (t?.texto ? 'Borrador' : 'Vacío');
+                celdas.push(`<button type="button" class="tc-celda ${clase} ${id === tcElegido ? 'elegida' : ''}" data-tc="${id}">${etiqueta}</button>`);
+            }
+        }
+        document.getElementById('tc-grilla').innerHTML = celdas.join('');
+    }
+
+    document.getElementById('tc-grilla').addEventListener('click', (e) => {
+        const id = e.target.closest('[data-tc]')?.dataset.tc;
+        if (!id) return;
+        tcElegido = id;
+        const [p, s] = id.split('-');
+        const t = tcTextos[id] || {};
+        const nombre = `${TC_PUNTOS.find(x => x[0] === p)[1]} en ${TC_SIGNOS.find(x => x[0] === s)[1]}`;
+        document.getElementById('tc-editor-titulo').textContent = nombre;
+        document.getElementById('tc-titulo').value = t.titulo || '';
+        document.getElementById('tc-titulo').placeholder = `Título (si lo dejás vacío: "${nombre}")`;
+        document.getElementById('tc-texto').value = t.texto || '';
+        document.getElementById('tc-publicado').checked = Boolean(t.publicado);
+        document.getElementById('tc-msg').innerHTML = '';
+        document.getElementById('tc-editor').style.display = 'block';
+        pintarGrillaCarta();
+        document.getElementById('tc-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('tc-cerrar').addEventListener('click', () => {
+        tcElegido = null;
+        document.getElementById('tc-editor').style.display = 'none';
+        pintarGrillaCarta();
+    });
+
+    document.getElementById('tc-guardar').addEventListener('click', async () => {
+        const msg = document.getElementById('tc-msg');
+        const btn = document.getElementById('tc-guardar');
+        const datos = {
+            titulo: document.getElementById('tc-titulo').value.trim(),
+            texto: document.getElementById('tc-texto').value.trim(),
+            publicado: document.getElementById('tc-publicado').checked,
+            actualizado: Timestamp.now()
+        };
+        if (datos.publicado && !datos.texto) {
+            msg.innerHTML = '<div class="alert alert-error">Para publicarlo tiene que tener texto.</div>';
+            return;
+        }
+        btn.disabled = true;
+        try {
+            await setDoc(doc(db, 'tucarta_textos', tcElegido), datos);
+            tcTextos[tcElegido] = datos;
+            pintarGrillaCarta();
+            msg.innerHTML = `<div class="alert alert-success"><i class="fa-solid fa-check"></i> Guardado${datos.publicado ? ' y publicado' : ' como borrador'}.</div>`;
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+        btn.disabled = false;
+    });
+
+    async function cargarLinksCarta() {
+        try {
+            const snap = await getDoc(doc(db, 'tucarta_config', 'general'));
+            const c = snap.exists() ? snap.data() : {};
+            document.getElementById('tc-link-seba').value = c.linkSeba || 'https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba';
+            document.getElementById('tc-link-egresadxs').value = c.linkEgresadxs ?? 'https://wa.me/5493544559877?text=Quisiera%20coordinar%20una%20consulta%20con%20Seba';
+        } catch (e) {
+            document.getElementById('tc-links-msg').innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    document.getElementById('tc-guardar-links').addEventListener('click', async () => {
+        const msg = document.getElementById('tc-links-msg');
+        const linkSeba = document.getElementById('tc-link-seba').value.trim();
+        const linkEgresadxs = document.getElementById('tc-link-egresadxs').value.trim();
+        if (!/^https:\/\//.test(linkSeba) || (linkEgresadxs && !/^https:\/\//.test(linkEgresadxs))) {
+            msg.innerHTML = '<div class="alert alert-error">Los links tienen que empezar con https://</div>';
+            return;
+        }
+        try {
+            await setDoc(doc(db, 'tucarta_config', 'general'), { linkSeba, linkEgresadxs }, { merge: true });
+            msg.innerHTML = '<div class="alert alert-success"><i class="fa-solid fa-check"></i> Links guardados.</div>';
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    });
+
+    document.getElementById('tc-cargar-novedades').addEventListener('click', async () => {
+        const cont = document.getElementById('tc-novedades');
+        cont.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+            const snap = await getDocs(collection(db, 'tucarta_usuarios'));
+            const todos = snap.docs.map(d => d.data());
+            tcNovedades = todos.filter(u => u.novedades && u.email);
+            document.getElementById('tc-copiar-novedades').disabled = !tcNovedades.length;
+            if (!tcNovedades.length) {
+                cont.innerHTML = `<div class="empty-state"><p>Nadie todavía (${todos.length} cuentas usan la calculadora).</p></div>`;
+                return;
+            }
+            const filas = tcNovedades.map(u => `<tr><td>${escapeHtml(u.email)}</td>` +
+                `<td>${u.aceptado ? escapeHtml(new Date(u.aceptado).toLocaleDateString('es-AR')) : ''}</td></tr>`).join('');
+            cont.innerHTML = `<p style="font-size:0.8rem; color:var(--muted); margin:14px 0 6px;">${tcNovedades.length} de ${todos.length} cuentas que usan la calculadora.</p>` +
+                `<table class="user-table"><thead><tr><th>Mail</th><th>Desde</th></tr></thead><tbody>${filas}</tbody></table>`;
+        } catch (e) {
+            cont.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    });
+
+    document.getElementById('tc-copiar-novedades').addEventListener('click', async () => {
+        await navigator.clipboard.writeText(tcNovedades.map(u => u.email).join(', '));
+        document.getElementById('tc-copiar-novedades').innerHTML = '<i class="fa-solid fa-check"></i> Copiados';
     });
 
 </script>
