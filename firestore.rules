@@ -158,7 +158,8 @@ service cloud.firestore {
     }
 
     function cartaValida(d) {
-      return d.keys().hasOnly(['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion', 'guardada']) &&
+      return d.keys().hasOnly(['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion', 'tipo', 'guardada']) &&
+        (!('tipo' in d) || d.tipo in ['natal', 'revolucion', 'progresion', 'evento']) &&
         d.nombre is string && d.nombre.size() <= 60 &&
         d.fecha is string && d.fecha.size() == 10 &&
         d.hora is string && d.hora.size() == 5 &&
