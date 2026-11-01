@@ -161,7 +161,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['nombre', 'fecha', 'hora', 'lugar', 'correccion', 'eleccion', 'guardada']) &&
         d.nombre is string && d.nombre.size() <= 60 &&
         d.fecha is string && d.fecha.size() == 10 &&
-        d.hora is string && d.hora.size() == 5 &&
+        d.hora is string && (d.hora.size() == 5 || d.hora.size() == 8) &&
         d.lugar is map &&
         d.lugar.keys().hasOnly(['nombre', 'provincia', 'pais', 'paisNombre', 'lat', 'lon', 'zona', 'manual']) &&
         d.lugar.lat is number && d.lugar.lon is number &&
