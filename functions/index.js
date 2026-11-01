@@ -1468,13 +1468,63 @@ const FORMULARIOS_INSCRIPCION = {
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
       { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
-      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: false },
-      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: false },
-      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: false },
+      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: true },
+      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: true },
+      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: true },
       { key: 'email', label: 'Email', maxLen: 200, requerido: true },
     ],
+    // La carta de cada inscripto se guarda en "Mis cartas" de la
+    // calculadora de esta cuenta, con el nombre del curso como grupo.
+    carta: { para: 'sebruz@gmail.com', grupo: 'Tu identidad en el cielo' },
   },
 };
+
+// Carta de una inscripcion para la calculadora (sebabru.com/cartas): con
+// el lugar elegido en el buscador del formulario (coordenadas y zona
+// horaria ya resueltas). Si algo no cierra, devuelve null y la inscripcion
+// sigue igual (queda en la planilla y en el mail).
+function cartaDeInscripcion(valores, lugar, grupo) {
+  const f = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(valores.fechaNacimiento || '');
+  const h = /^(\d{2}):(\d{2})$/.exec(valores.horaNacimiento || '');
+  if (!f || !h || !lugar || typeof lugar !== 'object') return null;
+  const [, d, m, a] = f;
+  const fecha = new Date(Date.UTC(+a, +m - 1, +d));
+  if (fecha.getUTCMonth() !== +m - 1 || fecha.getUTCDate() !== +d || +a < 1800) return null;
+  if (+h[1] > 23 || +h[2] > 59) return null;
+  const lat = Number(lugar.lat);
+  const lon = Number(lugar.lon);
+  const zona = sanitizeTexto(lugar.zona, 64);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  if (!/^[A-Za-z0-9_+\-/]+$/.test(zona)) return null;
+  const texto = (k, n) => sanitizeTexto(lugar[k], n) || undefined;
+  const datosLugar = Object.fromEntries(Object.entries({
+    nombre: texto('nombre', 200), provincia: texto('provincia', 200), pais: texto('pais', 3),
+    paisNombre: texto('paisNombre', 100), lat, lon, zona,
+  }).filter(([, v]) => v !== undefined));
+  return {
+    nombre: (valores.nombre || '').slice(0, 60),
+    fecha: `${a}-${m}-${d}`,
+    hora: `${h[1]}:${h[2]}`,
+    lugar: datosLugar,
+    correccion: null,
+    eleccion: 0,
+    tipo: 'natal',
+    grupo: grupo.slice(0, 60),
+    guardada: new Date().toISOString(),
+  };
+}
+
+const _uidPorEmail = new Map();
+async function guardarCartaInscripcion(config, valores, lugar) {
+  const carta = cartaDeInscripcion(valores, lugar, config.carta.grupo);
+  if (!carta) return false;
+  if (!_uidPorEmail.has(config.carta.para)) {
+    _uidPorEmail.set(config.carta.para, (await admin.auth().getUserByEmail(config.carta.para)).uid);
+  }
+  const uid = _uidPorEmail.get(config.carta.para);
+  await _db.collection('tucarta_usuarios').doc(uid).collection('cartas').add(carta);
+  return true;
+}
 
 let _sheetsClient;
 function getSheetsClient() {
@@ -1552,9 +1602,22 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       requestBody: { values: [fila] },
     });
 
+    let cartaGuardada = false;
+    if (config.carta) {
+      try {
+        cartaGuardada = await guardarCartaInscripcion(config, valores, req.body?.lugar);
+      } catch (error) {
+        functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
+      }
+    }
+
     const filasHtml = config.campos.map(c =>
       `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
-    ).join('');
+    ).join('') + (config.carta
+      ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
+        ? `Guardada en tus cartas de <a href="https://sebabru.com/cartas/">sebabru.com/cartas</a> (${escapeHtml(config.carta.grupo)})`
+        : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
+      : '');
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',

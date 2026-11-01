@@ -114,6 +114,18 @@ input[type="text"], input[type="tel"], input[type="time"], input[type="email"] {
     font-family: 'Outfit', sans-serif; box-sizing: border-box;
 }
 input:focus { outline: none; border-color: var(--curso-accent); }
+/* Lugar de nacimiento: el buscador de la calculadora (sebabru.com/cartas). */
+.campo-lugar { position: relative; }
+.sugerencias {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 20; margin: 4px 0 0; padding: 4px 0;
+    list-style: none; background: #12141d; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+    max-height: 260px; overflow-y: auto;
+}
+.sugerencias li { padding: 9px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: #fff; }
+.sugerencias li[aria-selected="true"], .sugerencias li:hover { background: rgba(59,194,188,0.15); }
+.sugerencias .lugar-region { font-size: 0.8rem; opacity: 0.7; }
+.sugerencias .sin-resultados { cursor: default; font-size: 0.85rem; opacity: 0.8; }
+.sugerencias .sin-resultados:hover { background: none; }
 
 .btn-compra {
     display: inline-flex; align-items: center; gap: 9px; padding: 13px 26px;
@@ -218,16 +230,18 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                             <input type="email" id="inp-email" maxlength="200" required>
                         </div>
                         <div class="form-group">
-                            <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(opcional, formato DD/MM/AA)</span></label>
-                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AA" maxlength="8" pattern="\d{2}/\d{2}/\d{2}" title="Formato DD/MM/AA, por ejemplo 05/03/90">
+                            <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(formato DD/MM/AAAA)</span></label>
+                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" pattern="\d{2}/\d{2}/\d{4}" title="Formato DD/MM/AAAA, por ejemplo 05/03/1990" required>
                         </div>
                         <div class="form-group">
-                            <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(opcional, formato 24hs)</span></label>
-                            <input type="time" id="inp-hora-nacimiento">
+                            <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(formato 24hs; si no la sabés exacta, poné la más aproximada)</span></label>
+                            <input type="time" id="inp-hora-nacimiento" required>
                         </div>
-                        <div class="form-group">
-                            <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(opcional, ciudad o pueblo, provincia y país)</span></label>
-                            <input type="text" id="inp-lugar-nacimiento" maxlength="200">
+                        <div class="form-group campo-lugar">
+                            <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(empezá a escribir la ciudad o el pueblo y elegilo de la lista)</span></label>
+                            <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off" required
+                                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
+                            <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
                         </div>
                         <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
                             <i class="fa-solid fa-paper-plane"></i> Enviar inscripción
@@ -314,6 +328,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
     const btn = document.getElementById('btn-enviar');
     const errorMsg = document.getElementById('error-msg');
     const inpFecha = document.getElementById('inp-fecha-nacimiento');
+    let lugarAvisado = false;
 
     function mostrarError(msg) {
         errorMsg.textContent = msg;
@@ -322,7 +337,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 
     inpFecha.addEventListener('input', () => {
         const val = inpFecha.value;
-        if (val && !/^\d{0,2}\/?\d{0,2}\/?\d{0,2}$/.test(val)) {
+        if (val && !/^\d{0,2}\/?\d{0,2}\/?\d{0,4}$/.test(val)) {
             inpFecha.value = val.slice(0, -1);
         }
     });
@@ -332,8 +347,15 @@ input:focus { outline: none; border-color: var(--curso-accent); }
         errorMsg.style.display = 'none';
 
         const fecha = inpFecha.value.trim();
-        if (fecha && !/^\d{2}\/\d{2}\/\d{2}$/.test(fecha)) {
-            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AA.');
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.');
+            return;
+        }
+        // El lugar se elige de la lista (asi la carta sale con las
+        // coordenadas justas). Si no aparece, a la segunda se envia igual.
+        if (!window.sbLugarElegido && !lugarAvisado) {
+            lugarAvisado = true;
+            mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Enviar de nuevo y lo vemos nosotros.');
             return;
         }
 
@@ -354,6 +376,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                         horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
                         lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
                     },
+                    lugar: window.sbLugarElegido || null,
                 }),
             });
             const data = await resp.json();
@@ -370,6 +393,16 @@ input:focus { outline: none; border-color: var(--curso-accent); }
         }
     });
 })();
+</script>
+
+<script type="module">
+// Buscador de lugares de la calculadora (coordenadas y zona horaria de
+// cada lugar), para que la carta de cada inscripto salga sola.
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.7.0';
+window.sbLugarElegido = null;
+conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
+    window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
+}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.' });
 </script>
 
 <script type="module">
