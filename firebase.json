@@ -78,6 +78,16 @@
         "type": 301
       },
       {
+        "source": "/tucarta",
+        "destination": "/cartas",
+        "type": 301
+      },
+      {
+        "source": "/tucarta/**",
+        "destination": "/cartas",
+        "type": 301
+      },
+      {
         "source": "/identidad-astral",
         "destination": "/tu-identidad-en-el-cielo",
         "type": 301

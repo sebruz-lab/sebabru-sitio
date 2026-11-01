@@ -16,9 +16,9 @@ jobs:
       - name: Bajar la calculadora (sebruz-lab/tucarta, version en tucarta.version)
         run: |
           v=$(tr -d '[:space:]' < tucarta.version)
-          mkdir -p public/tucarta
-          curl -sSfL "https://github.com/sebruz-lab/tucarta/releases/download/$v/tucarta-dist.tar.gz" | tar -xz -C public/tucarta
-          test -f public/tucarta/index.html
+          mkdir -p public/cartas
+          curl -sSfL "https://github.com/sebruz-lab/tucarta/releases/download/$v/tucarta-dist.tar.gz" | tar -xz -C public/cartas
+          test -f public/cartas/index.html
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
