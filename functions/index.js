@@ -1476,6 +1476,18 @@ const FORMULARIOS_INSCRIPCION = {
     // La carta de cada inscripto se guarda en "Mis cartas" de la
     // calculadora de esta cuenta, con el nombre del curso como grupo.
     carta: { para: 'sebruz@gmail.com', grupo: 'Tu identidad en el cielo' },
+    // Mail de confirmacion a quien se inscribe, con su carta en PDF
+    // (lo manda enviarCartaInscripcion).
+    confirmacion: {
+      asunto: 'Tu inscripción a Tu identidad en el cielo',
+      parrafos: (nombre, conCarta) => [
+        `Hola, ${nombre}:`,
+        '¡Gracias por inscribirte a <em>Tu identidad en el cielo</em>! Ya tenemos tus datos.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        'Para datos del pago podés escribirle a Clari al +5493544584122.',
+        '¡Nos vemos pronto!<br>Seba',
+      ].filter(Boolean),
+    },
   },
 };
 
@@ -1515,15 +1527,41 @@ function cartaDeInscripcion(valores, lugar, grupo) {
 }
 
 const _uidPorEmail = new Map();
-async function guardarCartaInscripcion(config, valores, lugar) {
-  const carta = cartaDeInscripcion(valores, lugar, config.carta.grupo);
-  if (!carta) return false;
+async function guardarCartaInscripcion(config, carta) {
   if (!_uidPorEmail.has(config.carta.para)) {
     _uidPorEmail.set(config.carta.para, (await admin.auth().getUserByEmail(config.carta.para)).uid);
   }
   const uid = _uidPorEmail.get(config.carta.para);
   await _db.collection('tucarta_usuarios').doc(uid).collection('cartas').add(carta);
-  return true;
+}
+
+// PDF de una carta natal, igual a la impresion de la calculadora: abre
+// sebabru.com/cartas/#hoja=... en un Chrome del servidor y la imprime. Las
+// librerias se cargan recien aca (son pesadas y el resto de las funciones
+// no las usa). CHROME_LOCAL: un Chrome de la compu, para probar.
+async function pdfDeCarta(carta) {
+  const chromium = require('@sparticuz/chromium');
+  const puppeteer = require('puppeteer-core');
+  const { nombre, fecha, hora, lugar } = carta;
+  const hoja = Buffer.from(JSON.stringify({ nombre, fecha, hora, lugar })).toString('base64url');
+  const url = `${process.env.CARTAS_URL || 'https://sebabru.com/cartas/'}#hoja=${hoja}`;
+  const browser = await puppeteer.launch({
+    args: process.env.CHROME_LOCAL ? [] : chromium.args,
+    defaultViewport: { width: 1000, height: 1400 },
+    executablePath: process.env.CHROME_LOCAL || await chromium.executablePath(),
+    headless: true,
+  });
+  try {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.waitForFunction('window.hojaLista || window.hojaError', { timeout: 60000 });
+    const error = await page.evaluate('window.hojaError');
+    if (error) throw new Error(`La hoja no se pudo armar: ${error}`);
+    await page.emulateMediaType('print');
+    return Buffer.from(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+  } finally {
+    await browser.close();
+  }
 }
 
 let _sheetsClient;
@@ -1602,12 +1640,25 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       requestBody: { values: [fila] },
     });
 
+    const carta = config.carta ? cartaDeInscripcion(valores, req.body?.lugar, config.carta.grupo) : null;
     let cartaGuardada = false;
-    if (config.carta) {
+    if (carta) {
       try {
-        cartaGuardada = await guardarCartaInscripcion(config, valores, req.body?.lugar);
+        await guardarCartaInscripcion(config, carta);
+        cartaGuardada = true;
       } catch (error) {
         functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
+      }
+    }
+    // La confirmacion (con la carta en PDF) la manda enviarCartaInscripcion,
+    // aparte: armar el PDF tarda y la persona no tiene que esperarlo.
+    if (config.confirmacion && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
+      try {
+        await _db.collection('envios_carta').add({
+          formId, email: valores.email, nombre: valores.nombre || '', carta, creado: new Date().toISOString(),
+        });
+      } catch (error) {
+        functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
       }
     }
 
@@ -1645,4 +1696,69 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     functions.logger.error('Error en registrarInscripcion:', error.message);
     return res.status(500).json({ error: error.message });
   }
+});
+
+// -------------------------------------------------------
+// enviarCartaInscripcion: el mail de confirmacion a quien se inscribe,
+// con su carta natal en PDF. Se dispara con cada envio que deja
+// registrarInscripcion en envios_carta. Si no hay carta (no eligio el lugar
+// de la lista) o el PDF falla, la confirmacion sale igual, sin el adjunto, y
+// a Seba le llega un aviso para mandarla a mano.
+// -------------------------------------------------------
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+
+exports.enviarCartaInscripcion = onDocumentCreated({
+  document: 'envios_carta/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  memory: '2GiB',
+  timeoutSeconds: 120,
+}, async (event) => {
+  ensureInit();
+  const envio = event.data?.data();
+  const config = FORMULARIOS_INSCRIPCION[envio?.formId];
+  if (!envio || !config?.confirmacion) return;
+
+  let pdf = null;
+  let motivo = envio.carta ? '' : 'no eligió el lugar de la lista';
+  if (envio.carta) {
+    try {
+      pdf = await pdfDeCarta(envio.carta);
+    } catch (error) {
+      motivo = error.message;
+      functions.logger.error('No se pudo armar el PDF de la carta:', error.message);
+    }
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+  });
+  const nombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
+  const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf));
+  await transporter.sendMail({
+    from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+    to: envio.email,
+    subject: config.confirmacion.asunto,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+      ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+    </div>`,
+    text: parrafos.join('\n\n').replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''),
+    attachments: pdf ? [{
+      filename: `Carta natal - ${(envio.nombre || 'Tu carta').replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'Tu carta'}.pdf`,
+      content: pdf,
+      contentType: 'application/pdf',
+    }] : [],
+  });
+
+  if (!pdf) {
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: 'sebruz@gmail.com',
+      subject: `Confirmación sin carta — ${config.nombreEvento}`,
+      html: `<p>A ${escapeHtml(envio.nombre)} (${escapeHtml(envio.email)}) le llegó la confirmación de la inscripción <strong>sin</strong> la carta en PDF: ${escapeHtml(motivo)}. Mandásela a mano.</p>`,
+    });
+  }
+  await event.data.ref.update({ enviado: new Date().toISOString(), conCarta: Boolean(pdf), motivo: motivo || null });
+  functions.logger.info('Confirmación enviada', { formId: envio.formId, conCarta: Boolean(pdf) });
 });
