@@ -820,6 +820,8 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
 .btn-whatsapp:hover { background: #25D366; color: #000; box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3); transform: translateY(-3px); }
 .btn-telegram { color: #0088cc; border: 1px solid rgba(0, 136, 204, 0.3); background: rgba(0, 136, 204, 0.05); }
 .btn-telegram:hover { background: #0088cc; color: #fff; box-shadow: 0 8px 20px rgba(0, 136, 204, 0.3); transform: translateY(-3px); }
+.btn-calculadora { color: #3bc2bc; border: 1px solid rgba(59, 194, 188, 0.3); background: rgba(59, 194, 188, 0.05); }
+.btn-calculadora:hover { background: #3bc2bc; color: #000; box-shadow: 0 8px 20px rgba(59, 194, 188, 0.3); transform: translateY(-3px); }
 
 /* =========================================
    11. ENCABEZADOS SIMPLES Y EXTRAS
