@@ -1713,6 +1713,7 @@ exports.enviarCartaInscripcion = onDocumentCreated({
   region: 'us-central1',
   memory: '2GiB',
   timeoutSeconds: 120,
+  maxInstances: 3,
 }, async (event) => {
   ensureInit();
   const envio = event.data?.data();
@@ -1761,4 +1762,40 @@ exports.enviarCartaInscripcion = onDocumentCreated({
   }
   await event.data.ref.update({ enviado: new Date().toISOString(), conCarta: Boolean(pdf), motivo: motivo || null });
   functions.logger.info('Confirmación enviada', { formId: envio.formId, conCarta: Boolean(pdf) });
+});
+
+// -------------------------------------------------------
+// fijarClaimsAdmin: la calculadora de cartas (tucarta) usa esto para que el
+// "modo admin" (importar la planilla de inscripciones) deje de depender
+// solo de un chequeo en el JS del navegador. El cliente manda su propio ID
+// token; acá se verifica server-side y, si el email verificado está en
+// ADMINS_TUCARTA, se deja el custom claim {admin:true} puesto en esa
+// cuenta. Cualquier cuenta puede llamar esto, pero solo puede marcarse a sí
+// misma -- nunca a otra.
+// -------------------------------------------------------
+const ADMINS_TUCARTA = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+
+exports.fijarClaimsAdmin = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return res.status(401).json({ error: 'Falta el token de sesión.' });
+
+  let decoded;
+  try {
+    decoded = await admin.auth().verifyIdToken(idToken);
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido.' });
+  }
+
+  const esAdminTucarta = ADMINS_TUCARTA.includes((decoded.email || '').toLowerCase());
+  if (esAdminTucarta && decoded.admin !== true) {
+    await admin.auth().setCustomUserClaims(decoded.uid, { admin: true });
+  }
+  return res.status(200).json({ admin: esAdminTucarta });
 });
