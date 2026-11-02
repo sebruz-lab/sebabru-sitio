@@ -128,14 +128,17 @@ function setCors(req, res, methods) {
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
+function claveRateLimit(nombreFuncion, req) {
+  const ipCruda = (req.headers['x-forwarded-for'] || req.ip || 'unknown').split(',')[0].trim();
+  return `${nombreFuncion}_${ipCruda}`.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 200);
+}
+
 // Limite simple por IP en una ventana fija, guardado en Firestore.
 // No es a prueba de balas (alguien con muchas IPs lo esquiva) pero frena
 // el caso real mas probable: un script en loop pegandole a un endpoint
 // sin login desde una sola conexion.
 async function checkRateLimit(nombreFuncion, req, maxRequests) {
-  const ipCruda = (req.headers['x-forwarded-for'] || req.ip || 'unknown').split(',')[0].trim();
-  const key = `${nombreFuncion}_${ipCruda}`.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 200);
-  const ref = _db.collection('rate_limits').doc(key);
+  const ref = _db.collection('rate_limits').doc(claveRateLimit(nombreFuncion, req));
 
   return _db.runTransaction(async tx => {
     const snap = await tx.get(ref);
@@ -181,6 +184,31 @@ function verificarFirmaMP(req, dataId) {
     return crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(v1));
   } catch (_) {
     return false; // longitudes distintas -> timingSafeEqual tira, no es valida
+  }
+}
+
+// Verifica un token de Cloudflare Turnstile contra siteverify. Si
+// TURNSTILE_SECRET_KEY no esta configurado, no bloquea nada (igual que
+// verificarFirmaMP) para no romper en desarrollo/emulador.
+async function verificarTurnstile(token, req) {
+  const secreto = process.env.TURNSTILE_SECRET_KEY;
+  if (!secreto) {
+    functions.logger.warn('TURNSTILE_SECRET_KEY no configurado: captcha sin verificar.');
+    return true;
+  }
+  if (!token) return false;
+  try {
+    const ipCruda = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: secreto, response: token, remoteip: ipCruda }),
+    });
+    const data = await resp.json();
+    return data.success === true;
+  } catch (e) {
+    functions.logger.error('Error verificando captcha', e.message);
+    return false;
   }
 }
 
@@ -1603,6 +1631,19 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
   if (!(await checkRateLimit('registrarInscripcion', req, 10))) {
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  // A partir del 3er envio desde la misma IP (en la ventana de 10 min de
+  // checkRateLimit), pedimos un captcha de Cloudflare Turnstile resuelto.
+  // Los primeros 2 pasan libres para no molestar a quien se equivoca en el
+  // formulario o se anota con un amigx desde la misma conexion.
+  const intentosSnap = await _db.collection('rate_limits').doc(claveRateLimit('registrarInscripcion', req)).get();
+  const intentos = intentosSnap.exists ? intentosSnap.data().count : 1;
+  if (intentos > 2) {
+    const captchaOk = await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
+    if (!captchaOk) {
+      return res.status(400).json({ error: 'captcha_requerido' });
+    }
   }
 
   const formId = sanitizeTexto(req.body?.formId, 100);

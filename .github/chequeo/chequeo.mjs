@@ -77,6 +77,12 @@ function chequearReferencias(paginasHtml) {
                 : relative(PUBLIC, resolve(join(PUBLIC, dirname(rel)), limpia)).replace(/\\/g, '/');
             if (destino.startsWith('..')) continue;
             if (IGNORAR.some(re => re.test(destino))) continue;
+            // public/cartas/ no vive en este repo (.gitignore): la baja el
+            // workflow de deploy desde la release de tucarta (ver
+            // tucarta.version), nunca este checkout del chequeo. Si de
+            // verdad se rompe algo ahi, chequearPaginas() lo agarra igual
+            // (visita el sitio en vivo con un Chrome real).
+            if (destino.startsWith('cartas/')) continue;
             if (!existeEnPublic(destino)) rotas.push(`\`${rel}\` apunta a \`${ref}\`, que no existe`);
         }
     }

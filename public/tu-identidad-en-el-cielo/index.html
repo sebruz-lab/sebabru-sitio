@@ -16,6 +16,7 @@
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
@@ -243,6 +244,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
                             <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
                         </div>
+                        <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
                         <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
                             <i class="fa-solid fa-paper-plane"></i> Enviar inscripción
                         </button>
@@ -328,11 +330,28 @@ input:focus { outline: none; border-color: var(--curso-accent); }
     const btn = document.getElementById('btn-enviar');
     const errorMsg = document.getElementById('error-msg');
     const inpFecha = document.getElementById('inp-fecha-nacimiento');
+    const captchaWrap = document.getElementById('captcha-wrap');
     let lugarAvisado = false;
+    let captchaToken = '';
+    let captchaWidgetId = null;
 
     function mostrarError(msg) {
         errorMsg.textContent = msg;
         errorMsg.style.display = 'block';
+    }
+
+    // Solo se pide a partir del 3er envio desde la misma conexion (lo
+    // decide el servidor); hasta entonces este bloque queda oculto.
+    function mostrarCaptcha() {
+        captchaWrap.style.display = 'block';
+        if (captchaWidgetId !== null) return;
+        if (typeof turnstile === 'undefined') { setTimeout(mostrarCaptcha, 300); return; }
+        captchaWidgetId = turnstile.render(captchaWrap, {
+            sitekey: '0x4AAAAAAFwEydZNkPMtSb8Q',
+            callback: (token) => { captchaToken = token; form.requestSubmit(); },
+            'error-callback': () => { captchaToken = ''; },
+            'expired-callback': () => { captchaToken = ''; },
+        });
     }
 
     inpFecha.addEventListener('input', () => {
@@ -358,6 +377,10 @@ input:focus { outline: none; border-color: var(--curso-accent); }
             mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Enviar de nuevo y lo vemos nosotros.');
             return;
         }
+        if (captchaWrap.style.display !== 'none' && !captchaToken) {
+            mostrarError('Confirmá que sos una persona en el casillero de arriba.');
+            return;
+        }
 
         btn.disabled = true;
         btn.textContent = 'Enviando...';
@@ -377,10 +400,19 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                         lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
                     },
                     lugar: window.sbLugarElegido || null,
+                    captchaToken: captchaToken || undefined,
                 }),
             });
             const data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'No pudimos registrar tu inscripción.');
+            if (!resp.ok) {
+                if (data.error === 'captcha_requerido') {
+                    captchaToken = '';
+                    mostrarCaptcha();
+                    mostrarError('Antes de enviar, confirmá que sos una persona en el casillero de abajo.');
+                    return;
+                }
+                throw new Error(data.error || 'No pudimos registrar tu inscripción.');
+            }
 
             document.getElementById('form-wrap').style.display = 'none';
             document.getElementById('pago-pendiente').classList.add('visible');
