@@ -396,8 +396,14 @@ if (!process.env.SOLO_ESTATICO) {
         await chequearLinaje(browser);
         await chequearAulasSinLogin(browser);
         await chequearPaginas(browser, paginas);
+    } catch (e) {
+        // Chrome a veces se cae solo en el runner (ej: "Session with given
+        // id not found"). Si no se atrapa aca el chequeo entero revienta
+        // antes de escribir informe.md, y el paso que abre el issue falla
+        // por archivo inexistente en vez de avisar lo que realmente paso.
+        falla('Chequeo con navegador', `Se cortó antes de terminar: ${e.message.split('\n')[0]}`);
     } finally {
-        await browser.close();
+        await browser.close().catch(() => {});
     }
 }
 
