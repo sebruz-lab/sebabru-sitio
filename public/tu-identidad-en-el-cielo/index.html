@@ -29,16 +29,12 @@
 
 <style>
 html, body { margin: 0; padding: 0; background: #000; }
-/* En el celular la pagina entra justo en la pantalla: nada se puede correr
-   de costado. En iOS no alcanza con el overflow de body solo; clip (donde
-   existe) tampoco deja hacer scroll horizontal por codigo. */
-html, body { overflow-x: hidden; }
-@supports (overflow: clip) { html, body { overflow-x: clip; } }
-/* El menu cerrado queda escondido a la derecha, fuera de la pantalla: que
-   no cuente para el ancho (visibility con demora, para que igual se vea
-   deslizar al abrir y al cerrar). */
-.hamburger-menu .menu-list { visibility: hidden; transition: right .6s cubic-bezier(.23,1,.32,1), visibility 0s linear .6s; }
-.hamburger-menu .menu-toggle:checked ~ .menu-list { visibility: visible; transition: right .6s cubic-bezier(.23,1,.32,1), visibility 0s; }
+/* El menu cerrado no existe (en vez de quedar escondido a la derecha, fuera
+   de la pantalla, donde en el celular ensanchaba la pagina); al abrirlo
+   entra deslizando. */
+.hamburger-menu .menu-list { display: none; }
+.hamburger-menu .menu-toggle:checked ~ .menu-list { display: flex; right: 0; animation: menu-entra .6s cubic-bezier(.23,1,.32,1); }
+@keyframes menu-entra { from { transform: translateX(100%); } to { transform: none; } }
 
 :root {
     --curso-theme: #ffffff;
@@ -105,8 +101,18 @@ html, body { overflow-x: hidden; }
 
 /* ─── Bloque "Inscripción" ─── */
 #inscripcion {
-    max-width: 680px; margin: 100px auto 80px; padding: 28px 24px;
+    max-width: 545px; margin: 100px auto 80px; padding: 22px 20px;
     box-sizing: border-box;
+}
+/* Formulario al 80%: en la compu tambien la letra; en el celular los campos
+   quedan en 16px (con menos, el iPhone hace zoom al tocarlos). */
+#inscripcion .form-group { margin-bottom: 11px; }
+#inscripcion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
+#inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { padding: 10px 13px; }
+#inscripcion .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
+@media (min-width: 769px) {
+    #inscripcion h2 { font-size: 1.2rem; }
+    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { font-size: 0.85rem; }
 }
 #inscripcion h2 {
     color: #fff; font-size: 1.4rem; font-weight: 300; text-align: center; margin: 0 0 22px;
@@ -227,6 +233,38 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 @media (max-width: 640px) {
     .ebook-invitacion { flex-direction: column; gap: 34px; text-align: center; }
     .ebook-tapa { width: 170px; }
+}
+/* En la compu, el ebook mas grande y mas separado del formulario. */
+@media (min-width: 769px) {
+    .ebook-invitacion { max-width: 980px; margin: 170px auto 140px; gap: 72px; }
+    .ebook-tapa { width: 270px; gap: 24px; padding: 32px 24px; }
+    .tapa-glifos .glifo { width: 26px; height: 26px; }
+    .tapa-titulo { font-size: 2.1rem; }
+    .tapa-autor { font-size: 0.8rem; }
+    .ebook-texto h2 { font-size: 2.2rem; }
+    .ebook-texto p { font-size: 1.15rem; }
+}
+
+/* ─── Calculadora: los datos aca y la carta en una pestaña nueva ─── */
+.calc-invitacion {
+    max-width: 545px; margin: 0 auto 120px; padding: 26px 22px; box-sizing: border-box;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+.calc-invitacion h2 {
+    color: #fff; font-size: 1.2rem; font-weight: 300; text-align: center; margin: 0 0 18px;
+    text-transform: none; line-height: 1.4; text-wrap: balance;
+}
+.calc-invitacion .form-group { margin-bottom: 11px; }
+.calc-invitacion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
+.calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { padding: 10px 13px; }
+.calc-fila { display: flex; gap: 10px; }
+.calc-fila .form-group { flex: 1; min-width: 0; }
+.calc-invitacion .btn-clase-gratis { width: 100%; margin: 8px 0 10px; border: 1px solid #fff; cursor: pointer; font-family: inherit; }
+.calc-nota { color: var(--curso-text); font-size: 0.82rem; text-align: center; margin: 0; line-height: 1.6; }
+.calc-nota a { color: var(--curso-text); text-decoration: underline; }
+@media (min-width: 769px) {
+    .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { font-size: 0.85rem; }
 }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..400&display=swap">
@@ -379,6 +417,37 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                 <i class="fa-solid fa-book-open"></i> Leer el libro
             </button>
         </div>
+    </section>
+
+    <section class="calc-invitacion" id="calculadora" data-ga-visible="seccion_visible" data-ga-seccion="calculadora" data-ga-producto="tu-identidad-en-el-cielo">
+        <h2>Si no conocés tu Sol, Luna y Ascendente, podés enterarte acá:</h2>
+        <div id="calc-error" class="error-msg"></div>
+        <form id="form-calculadora" novalidate>
+            <div class="form-group">
+                <label for="calc-nombre">Nombre <span class="opcional">(opcional)</span></label>
+                <input type="text" id="calc-nombre" maxlength="60" autocomplete="given-name">
+            </div>
+            <div class="calc-fila">
+                <div class="form-group">
+                    <label for="calc-fecha">Día de nacimiento</label>
+                    <input type="text" id="calc-fecha" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" required>
+                </div>
+                <div class="form-group">
+                    <label for="calc-hora">Hora</label>
+                    <input type="time" id="calc-hora" required>
+                </div>
+            </div>
+            <div class="form-group campo-lugar">
+                <label for="calc-lugar">Lugar de nacimiento <span class="opcional">(elegilo de la lista)</span></label>
+                <input type="text" id="calc-lugar" maxlength="200" autocomplete="off" required
+                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="calc-sugerencias">
+                <ul id="calc-sugerencias" class="sugerencias" role="listbox" hidden></ul>
+            </div>
+            <button type="submit" class="btn-clase-gratis" data-ga="calculadora_abrir" data-ga-origen="formulario">
+                <i class="fa-solid fa-star"></i> Ver mi carta
+            </button>
+        </form>
+        <p class="calc-nota">Tu carta se abre en la calculadora, en una pestaña nueva, con lo que dicen tu Sol, tu Luna y tu Ascendente. <a href="/cartas/" target="_blank" rel="noopener" data-ga="calculadora_abrir" data-ga-origen="link">O abrí la calculadora vacía</a>.</p>
     </section>
 </main>
 
@@ -571,6 +640,62 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar inscripción';
         }
     });
+
+    // Calculadora: con los datos de aca, la carta se abre en sebabru.com/cartas
+    // en una pestaña nueva (la calculadora la lee de #carta=..., en base64url).
+    const formCalc = document.getElementById('form-calculadora');
+    const calcFecha = document.getElementById('calc-fecha');
+    const calcError = document.getElementById('calc-error');
+    calcFecha.addEventListener('input', (e) => {
+        calcFecha.value = normalizarFecha(calcFecha.value, !e.inputType || e.inputType.startsWith('insert'));
+    });
+    calcFecha.addEventListener('change', () => { calcFecha.value = completarFecha(calcFecha.value); });
+    formCalc.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const avisar = (msg) => { calcError.textContent = msg; calcError.style.display = 'block'; };
+        calcError.style.display = 'none';
+        calcFecha.value = completarFecha(calcFecha.value);
+        const f = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(calcFecha.value);
+        const hora = document.getElementById('calc-hora').value;
+        if (!f) return avisar('Revisá el día de nacimiento: por ejemplo 05/03/1990.');
+        if (!/^\d{2}:\d{2}$/.test(hora)) return avisar('Poné la hora de nacimiento (si no la sabés exacta, la más aproximada).');
+        if (!window.sbLugarCalc) return avisar('Elegí el lugar de nacimiento de la lista que aparece al escribir.');
+        const datos = {
+            nombre: document.getElementById('calc-nombre').value.trim().slice(0, 60),
+            fecha: f[3] + '-' + f[2] + '-' + f[1],
+            hora: hora,
+            lugar: window.sbLugarCalc
+        };
+        const bytes = new TextEncoder().encode(JSON.stringify(datos));
+        let bin = '';
+        bytes.forEach((b) => { bin += String.fromCharCode(b); });
+        const b64url = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        window.open('/cartas/#carta=' + b64url, '_blank', 'noopener');
+        if (window.gtag) gtag('event', 'calculadora_abierta', { origen: 'tu-identidad-en-el-cielo' });
+    });
+})();
+</script>
+
+<script>
+// En el celular, al abrirse el teclado el navegador a veces deja la vista en
+// cualquier lado (salta al ebook, por ejemplo). Cuando termina de abrirse,
+// se centra en la parte visible el campo que se toco.
+(function () {
+    const vv = window.visualViewport;
+    if (!vv || !matchMedia('(pointer: coarse)').matches) return;
+    let espera = null;
+    function centrar() {
+        const el = document.activeElement;
+        if (!el || !el.matches || !el.matches('#form-inscripcion input, #form-calculadora input')) return;
+        clearTimeout(espera);
+        espera = setTimeout(() => {
+            const r = el.getBoundingClientRect();
+            const delta = (r.top + r.height / 2) - (vv.offsetTop + vv.height / 2);
+            if (Math.abs(delta) > 24) window.scrollBy({ top: delta, behavior: 'smooth' });
+        }, 150);
+    }
+    vv.addEventListener('resize', centrar);
+    document.addEventListener('focusin', () => setTimeout(centrar, 400));
 })();
 </script>
 
@@ -581,6 +706,11 @@ import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.2';
 window.sbLugarElegido = null;
 conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
     window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
+}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.' });
+// El mismo buscador para la calculadora de mas abajo.
+window.sbLugarCalc = null;
+conectarBuscador(document.getElementById('calc-lugar'), document.getElementById('calc-sugerencias'), (l) => {
+    window.sbLugarCalc = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
 }, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.' });
 </script>
 
