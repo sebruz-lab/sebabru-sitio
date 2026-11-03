@@ -3,7 +3,7 @@
 <head>
 <script src="/origen.js?v=1"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
 <title>Tu identidad en el cielo | Seba Bru</title>
 
 <meta property="og:type" content="website">
@@ -125,6 +125,23 @@ input[type="text"], input[type="tel"], input[type="time"], input[type="email"] {
     font-family: 'Outfit', sans-serif; box-sizing: border-box;
 }
 input:focus { outline: none; border-color: var(--curso-accent); }
+/* Con letra de menos de 16px, el iPhone hace zoom al tocar el campo y corre
+   la vista para centrarlo. */
+input[type="text"], input[type="tel"], input[type="time"], input[type="email"] { font-size: 16px; }
+/* El teclado achica la pantalla visible. Con vh, lo que esta arriba del
+   formulario (la cabecera, 60vh; el bloque del curso, 190vh) cambiaba de
+   alto al abrirse el teclado y el formulario saltaba. lvh es el alto con
+   la pantalla entera: no cambia con el teclado. */
+@supports (height: 1lvh) {
+    .curso-cabecera { min-height: 60lvh; padding: 14lvh 20px 6lvh; }
+    .efecto-shrink-container { height: 190lvh; }
+    .efecto-shrink-sticky { height: 100lvh; }
+    @media (max-width: 768px) {
+        .efecto-shrink-sticky { height: 100lvh !important; padding-top: 10lvh; gap: 3lvh; }
+        .efecto-imagen, .efecto-visual, .video-container { height: calc(80lvh - (55lvh * var(--progreso-mobile))); }
+        .efecto-texto { height: 55lvh; max-height: 55lvh; }
+    }
+}
 /* La hora en el iPhone tiene un ancho minimo propio que empuja la pagina. */
 input[type="time"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-width: 0; min-height: 46px; text-align: left; }
 /* Lugar de nacimiento: el buscador de la calculadora (sebabru.com/cartas). */
@@ -247,11 +264,11 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                 <h2>Tu identidad en el cielo</h2>
                 <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
                 <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
-                <p>Al terminar el curso, podrás entender mejor tu carta natal y reconoocer tu identidad astral.</p>
+                <p>Al terminar el curso, podrás entender mejor tu carta natal y reconocer tu identidad astral.</p>
                 <div class="evento-info">
                     ⏰ Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)<br>
                     📍 Presencial en Villa de las Rosas, o virtual por Zoom, como te quede mejor<br>
-                    💵 40.000$ar o su equivante en otras monedas<br>
+                    💵 40.000$ar o su equivalente en otras monedas<br>
                     📖 No hace falta saber nada de astrología.<br>
                     👯 Si tus amigxs no hablan de astro, pueden venir juntx: 20% de descuento para cada unx si se anotan juntxs.<br>
                     🌟 A cargo de Sebastián Bru.
