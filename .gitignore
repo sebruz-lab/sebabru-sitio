@@ -82,3 +82,6 @@ Old/
 
 # La calculadora se baja en el deploy desde sebruz-lab/tucarta (ver tucarta.version)
 public/cartas/
+
+# Permisos locales de Claude Code (cada maquina los suyos; pueden tener claves)
+.claude/settings.local.json
