@@ -270,6 +270,23 @@
         if (!animar) { void el.flujo.offsetWidth; el.flujo.classList.remove('sin-transicion'); }
         actualizarPie();
         guardar(CLAVE_POS, { cap: disponibles[estado.cap].id, frac: fraccion() });
+        medirProgreso();
+    }
+
+    // Cuanto leen: un evento al llegar al 25, 50, 75 y 100% de cada capitulo
+    // (una vez por capitulo y umbral en cada visita).
+    var progresoEnviado = {};
+    function medirProgreso() {
+        if (typeof window.gtag !== 'function' || estado.cap < 0) return;
+        var cap = disponibles[estado.cap].id;
+        var pct = estado.pags > 1 ? Math.round(estado.pag / (estado.pags - 1) * 100) : 100;
+        [25, 50, 75, 100].forEach(function (u) {
+            var clave = cap + '_' + u;
+            if (pct >= u && !progresoEnviado[clave]) {
+                progresoEnviado[clave] = true;
+                window.gtag('event', 'ebook_progreso', { libro: 'tu-identidad-en-el-cielo', capitulo: cap, porcentaje: u });
+            }
+        });
     }
 
     function irA(capId, op) {

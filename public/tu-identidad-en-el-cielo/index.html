@@ -435,7 +435,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <strong style="color:#ccc;">Alias:</strong>
                                 <span>Seba.astrologia</span>
-                                <button id="btn-copiar-alias" type="button" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:var(--curso-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
+                                <button id="btn-copiar-alias" type="button" data-ga="pago_alias_copiado" data-ga-producto="tu-identidad-en-el-cielo" data-ga-metodo="transferencia" data-ga-valor="36000" data-ga-moneda="ARS" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:var(--curso-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
                                     <i class="fa-solid fa-copy"></i> Copiar
                                 </button>
                             </div>
@@ -524,7 +524,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 
 <script src="../medicion.js?v=3"></script>
 <script src="ebook/glifos.js?v=1" defer></script>
-<script src="ebook/lector.js?v=1" defer></script>
+<script src="ebook/lector.js?v=2" defer></script>
 
 <script>
 (function () {
@@ -560,10 +560,32 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     let captchaToken = '';
     let captchaWidgetId = null;
 
-    function mostrarError(msg) {
+    // Cada error tambien va a Analytics (inscripcion_error), con el motivo:
+    // asi se ve que parte del formulario traba a la gente.
+    function mostrarError(msg, motivo) {
         errorMsg.textContent = msg;
         errorMsg.style.display = 'block';
+        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'tu-identidad-en-el-cielo', motivo: motivo || 'otro' });
     }
+
+    // Un campo obligatorio vacio o mal escrito: el navegador frena el envio
+    // con su propio cartel (antes de nuestras validaciones). Tambien va a
+    // Analytics, con el campo (una vez por intento).
+    let invalidoAvisado = false;
+    form.addEventListener('invalid', (e) => {
+        if (invalidoAvisado) return;
+        invalidoAvisado = true;
+        setTimeout(() => { invalidoAvisado = false; }, 0);
+        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'tu-identidad-en-el-cielo', motivo: 'falta_' + (e.target.id || '').replace(/^inp-/, '') });
+    }, true);
+
+    // Empezar a llenar (una vez): con inscripcion, muestra cuantos abandonan.
+    let empezado = false;
+    form.addEventListener('focusin', () => {
+        if (empezado) return;
+        empezado = true;
+        if (window.gtag) gtag('event', 'inscripcion_inicio', { formulario: 'tu-identidad-en-el-cielo' });
+    });
 
     // Solo se pide a partir del 3er envio desde la misma conexion (lo
     // decide el servidor); hasta entonces este bloque queda oculto.
@@ -649,23 +671,23 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
         inpFecha.value = completarFecha(inpFecha.value);
         const fecha = inpFecha.value.trim();
         if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
-            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.');
+            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.', 'fecha');
             return;
         }
         // El lugar se elige de la lista (asi la carta sale con las
         // coordenadas justas). Si no aparece, a la segunda se envia igual.
         if (!window.sbLugarElegido && !lugarAvisado) {
             lugarAvisado = true;
-            mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Enviar de nuevo y lo vemos nosotros.');
+            mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Enviar de nuevo y lo vemos nosotros.', 'lugar');
             return;
         }
         const modalidad = document.getElementById('inp-modalidad').value;
         if (!modalidad) {
-            mostrarError('Elegí si cursás online o presencial.');
+            mostrarError('Elegí si cursás online o presencial.', 'modalidad');
             return;
         }
         if (captchaWrap.style.display !== 'none' && !captchaToken) {
-            mostrarError('Confirmá que sos una persona en el casillero de arriba.');
+            mostrarError('Confirmá que sos una persona en el casillero de arriba.', 'captcha');
             return;
         }
 
@@ -696,7 +718,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                 if (data.error === 'captcha_requerido') {
                     captchaToken = '';
                     mostrarCaptcha();
-                    mostrarError('Antes de enviar, confirmá que sos una persona en el casillero de abajo.');
+                    mostrarError('Antes de enviar, confirmá que sos una persona en el casillero de abajo.', 'captcha');
                     return;
                 }
                 throw new Error(data.error || 'No pudimos registrar tu inscripción.');
@@ -706,7 +728,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
             document.getElementById('pago-pendiente').classList.add('visible');
             if (window.gtag) gtag('event', 'inscripcion', { formulario: 'tu-identidad-en-el-cielo' });
         } catch (err) {
-            mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.');
+            mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.', 'servidor');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar inscripción';
