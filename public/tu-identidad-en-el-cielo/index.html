@@ -159,7 +159,48 @@ input:focus { outline: none; border-color: var(--curso-accent); }
     animation: spin-identidad 0.8s linear infinite;
 }
 @keyframes spin-identidad { to { transform: rotate(360deg); } }
+
+/* ─── Ebook: invitacion a leer (el lector lo arma ebook/lector.js) ─── */
+.ebook-invitacion {
+    max-width: 760px; margin: 30px auto 120px; padding: 0 24px;
+    display: flex; gap: 46px; align-items: center; box-sizing: border-box;
+}
+.ebook-tapa {
+    flex: none; width: 190px; aspect-ratio: 2 / 3; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    padding: 24px 18px; border: 0; border-radius: 3px 8px 8px 3px; cursor: pointer;
+    background: #f4efe4; color: #2b2721; text-align: center;
+    box-shadow: inset 7px 0 10px -7px rgba(0,0,0,0.35), 0 20px 44px rgba(0,0,0,0.5);
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+.ebook-tapa:hover, .ebook-tapa:focus-visible {
+    transform: translateY(-4px) rotate(-1deg);
+    box-shadow: inset 7px 0 10px -7px rgba(0,0,0,0.35), 0 26px 54px rgba(0,0,0,0.55);
+    outline: none;
+}
+.tapa-glifos { display: flex; align-items: center; gap: 12px; color: #9c7a4a; }
+.tapa-glifos .glifo { width: 20px; height: 20px; }
+.tapa-glifos .glifo-ac { font: 400 0.82rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.05em; }
+.tapa-titulo { font: 300 1.5rem/1.15 'Fraunces', Georgia, serif; }
+.tapa-filete { width: 30px; height: 1px; background: #9c7a4a; opacity: 0.6; }
+.tapa-autor { font: 400 0.7rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.22em; text-transform: uppercase; color: #8b8174; }
+.ebook-texto h3 {
+    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
+    text-transform: uppercase; margin: 0 0 8px; font-weight: 400;
+}
+.ebook-texto h2 {
+    color: #fff; font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 300;
+    margin: 0 0 16px; line-height: 1.3; text-transform: none; letter-spacing: 0.02em;
+}
+.ebook-texto p { color: var(--curso-text); font-size: 1.05rem; line-height: 1.7; margin: 0 0 12px; }
+.ebook-texto .ebook-nota { font-size: 0.9rem; opacity: 0.8; margin-bottom: 20px; }
+.ebook-texto .btn-clase-gratis { border: 1px solid #fff; cursor: pointer; font-family: inherit; }
+@media (max-width: 640px) {
+    .ebook-invitacion { flex-direction: column; gap: 34px; text-align: center; }
+    .ebook-tapa { width: 170px; }
+}
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..400&display=swap">
 </head>
 <body>
     <nav class="hamburger-menu">
@@ -292,6 +333,24 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                 </div>
 
     </section>
+
+    <section class="ebook-invitacion" id="ebook" data-ga-visible="seccion_visible" data-ga-seccion="ebook" data-ga-producto="tu-identidad-en-el-cielo">
+        <button type="button" class="ebook-tapa" data-abrir-ebook data-ga="ebook_leer" data-ga-origen="tapa" aria-label="Leer el libro Tu identidad en el cielo">
+            <span class="tapa-glifos" data-ebook-glifos aria-hidden="true"></span>
+            <span class="tapa-titulo">Tu identidad en el cielo</span>
+            <span class="tapa-filete" aria-hidden="true"></span>
+            <span class="tapa-autor">Seba Bru</span>
+        </button>
+        <div class="ebook-texto">
+            <h3>Ebook · lectura online</h3>
+            <h2>Tu identidad en el cielo</h2>
+            <p>En este libro queremos compartirte algunos conceptos fundamentales para que puedas entender qué dice de vos tu cielo natal.</p>
+            <p class="ebook-nota">Ya está la Luna; el Ascendente y el Sol llegan pronto.</p>
+            <button type="button" class="btn-clase-gratis" data-abrir-ebook data-ga="ebook_leer" data-ga-origen="boton">
+                <i class="fa-solid fa-book-open"></i> Leer el libro
+            </button>
+        </div>
+    </section>
 </main>
 
 <div id="loading-pago-identidad">
@@ -300,6 +359,8 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 </div>
 
 <script src="../medicion.js?v=3"></script>
+<script src="ebook/glifos.js?v=1" defer></script>
+<script src="ebook/lector.js?v=1" defer></script>
 
 <script>
 (function () {

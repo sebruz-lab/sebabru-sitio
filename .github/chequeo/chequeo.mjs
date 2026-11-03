@@ -23,7 +23,9 @@ const WHATSAPP_COMPROBANTES = 'https://wa.me/5493544584122';
 
 // Lo que no se publica (firebase.json -> hosting.ignore) o son pruebas sueltas.
 const IGNORAR = [/^test\//, /^test-3d\//, /^Mey\//, /^preview-bloques\.html$/, /^prueba-contenido\.html$/,
-    /^test\.html$/, /^lilith\/prototipo-3d\.html$/, /^escuela\/abierta\/test-descripcion\.html$/, /^404\.html$/];
+    /^test\.html$/, /^lilith\/prototipo-3d\.html$/, /^escuela\/abierta\/test-descripcion\.html$/, /^404\.html$/,
+    // Fragmento (no pagina): el texto del ebook que carga ebook/lector.js.
+    /^tu-identidad-en-el-cielo\/ebook\/contenido\.html$/];
 // Paginas donde un error de JavaScript cuenta como falla (en el resto, aviso).
 const CLAVE = ['', 'lilith/', 'linaje/', 'formaciones/', 'escuela/abierta/', 'escuela/abierta/gracias.html', 'lilith/pedido/'];
 
