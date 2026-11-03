@@ -29,6 +29,16 @@
 
 <style>
 html, body { margin: 0; padding: 0; background: #000; }
+/* En el celular la pagina entra justo en la pantalla: nada se puede correr
+   de costado. En iOS no alcanza con el overflow de body solo; clip (donde
+   existe) tampoco deja hacer scroll horizontal por codigo. */
+html, body { overflow-x: hidden; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+/* El menu cerrado queda escondido a la derecha, fuera de la pantalla: que
+   no cuente para el ancho (visibility con demora, para que igual se vea
+   deslizar al abrir y al cerrar). */
+.hamburger-menu .menu-list { visibility: hidden; transition: right .6s cubic-bezier(.23,1,.32,1), visibility 0s linear .6s; }
+.hamburger-menu .menu-toggle:checked ~ .menu-list { visibility: visible; transition: right .6s cubic-bezier(.23,1,.32,1), visibility 0s; }
 
 :root {
     --curso-theme: #ffffff;
@@ -115,6 +125,8 @@ input[type="text"], input[type="tel"], input[type="time"], input[type="email"] {
     font-family: 'Outfit', sans-serif; box-sizing: border-box;
 }
 input:focus { outline: none; border-color: var(--curso-accent); }
+/* La hora en el iPhone tiene un ancho minimo propio que empuja la pagina. */
+input[type="time"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-width: 0; min-height: 46px; text-align: left; }
 /* Lugar de nacimiento: el buscador de la calculadora (sebabru.com/cartas). */
 .campo-lugar { position: relative; }
 .sugerencias {
@@ -273,7 +285,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
                         </div>
                         <div class="form-group">
                             <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(formato DD/MM/AAAA)</span></label>
-                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" pattern="\d{2}/\d{2}/\d{4}" title="Formato DD/MM/AAAA, por ejemplo 05/03/1990" required>
+                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" title="Por ejemplo 05/03/1990" required>
                         </div>
                         <div class="form-group">
                             <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(formato 24hs; si no la sabés exacta, poné la más aproximada)</span></label>
@@ -294,12 +306,12 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 
                 <div id="pago-pendiente">
                     <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-                    <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px;">Perfecto, ya tenemos todos tus datos. Ahora falta el pago. Podés transferir a este link con un 10% de descuento o pagar por mercadopago</p>
+                    <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Perfecto, ya tenemos todos tus datos. Ahora falta el pago. Podés transferir al alias que está acá abajo, con un 10% de descuento, o pagar por Mercado&nbsp;Pago.</p>
 
                     <!-- Mercado Pago -->
                     <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="18" alt="MP" style="filter:grayscale(1) brightness(1.3);">
+                            <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="22" alt="Mercado Pago" style="filter:brightness(0) invert(1);">
                             <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$40.000</span>
                         </div>
                         <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="tu-identidad-en-el-cielo" data-ga-nombre="Tu identidad en el cielo" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
@@ -415,17 +427,74 @@ input:focus { outline: none; border-color: var(--curso-accent); }
         });
     }
 
-    inpFecha.addEventListener('input', () => {
-        const val = inpFecha.value;
-        if (val && !/^\d{0,2}\/?\d{0,2}\/?\d{0,4}$/.test(val)) {
-            inpFecha.value = val.slice(0, -1);
+    // Fecha a DD/MM/AAAA desde lo que venga. Copia de normalizarFecha y
+    // completarFecha de la calculadora (C:\dev\tucarta\ui\fecha.js, con sus
+    // tests): si cambian alla, cambiarlas aca tambien. Mientras se escribe,
+    // las barras se ponen solas y "-", "." o un espacio valen como barra; al
+    // salir del campo se entiende "1 de marzo de 1984", "1984-03-01",
+    // "010384"... y el año de dos cifras se completa (hasta 40 es 20xx).
+    const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const sinTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const dos = (n) => String(n).padStart(2, '0');
+    function normalizarFecha(valor, escribiendo) {
+        if (/[a-zñ]/i.test(sinTildes(String(valor)))) return valor;
+        const campos = ['', '', ''];
+        let i = 0;
+        for (const c of String(valor)) {
+            if (c >= '0' && c <= '9') {
+                if (i < 2 && campos[i].length === 2) i++;
+                if (i === 2 && campos[2].length === 4) break;
+                campos[i] += c;
+            } else if (/[\s./-]/.test(c) && i < 2 && campos[i]) {
+                campos[i] = campos[i].padStart(2, '0');
+                i++;
+            }
         }
+        let res = campos[0];
+        if (i >= 1) res += '/' + campos[1];
+        if (i >= 2) res += '/' + campos[2];
+        if (escribiendo && i < 2 && campos[i].length === 2) res += '/';
+        return res;
+    }
+    function anioCompleto(texto) {
+        return texto.replace(/^(\d{1,2}\/\d{1,2}\/)(\d{2})$/, (_, dm, aa) => dm + (+aa <= 40 ? '20' : '19') + aa);
+    }
+    function completarFecha(texto) {
+        const t = sinTildes(String(texto)).trim();
+        if (!t) return '';
+        const mes = MESES.findIndex((m) => new RegExp('(^|[^a-z])' + m + '[a-z]*').test(t)) + 1
+            || (/(^|[^a-z])set[a-z]*/.test(t) ? 9 : 0);
+        if (mes) {
+            const nums = t.replace(/[a-z]+/g, ' ').match(/\d+/g) || [];
+            const anio = nums.find((n) => n.length === 4) || (nums.length > 1 ? nums[nums.length - 1] : '');
+            const dia = nums.find((n) => n !== anio && n.length <= 2);
+            if (!dia || !anio) return texto.trim();
+            return anioCompleto(dos(dia) + '/' + dos(mes) + '/' + anio);
+        }
+        const nums = t.match(/\d+/g) || [];
+        const dig = t.replace(/\D/g, '');
+        const candidatos = [];
+        if (nums.length >= 3) candidatos.push(nums[0].length === 4 ? [nums[2], nums[1], nums[0]] : nums.slice(0, 3));
+        if (dig.length === 8) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)], [dig.slice(6), dig.slice(4, 6), dig.slice(0, 4)]);
+        if (dig.length === 6) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)]);
+        const sirve = ([d, m, a]) => d.length <= 2 && m.length <= 2 && (a.length === 2 || a.length === 4) &&
+            +m >= 1 && +m <= 12 && +d >= 1 && +d <= 31;
+        const elegido = candidatos.find(sirve);
+        if (!elegido) return normalizarFecha(texto, false);
+        return anioCompleto(dos(elegido[0]) + '/' + dos(elegido[1]) + '/' + elegido[2]);
+    }
+    inpFecha.addEventListener('input', (e) => {
+        inpFecha.value = normalizarFecha(inpFecha.value, !e.inputType || e.inputType.startsWith('insert'));
+    });
+    inpFecha.addEventListener('change', () => {
+        inpFecha.value = completarFecha(inpFecha.value);
     });
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorMsg.style.display = 'none';
 
+        inpFecha.value = completarFecha(inpFecha.value);
         const fecha = inpFecha.value.trim();
         if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
             mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.');
@@ -491,7 +560,7 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 <script type="module">
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de
 // cada lugar), para que la carta de cada inscripto salga sola.
-import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.1';
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.2';
 window.sbLugarElegido = null;
 conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
     window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
