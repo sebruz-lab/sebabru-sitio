@@ -111,9 +111,20 @@ html, body { margin: 0; padding: 0; background: #000; }
 #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { padding: 10px 13px; }
 #inscripcion .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
 @media (min-width: 769px) {
-    #inscripcion h2 { font-size: 1.2rem; }
-    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { font-size: 0.85rem; }
+    #inscripcion #form-wrap h2 { font-size: 1.2rem; }
+    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"], #inscripcion select { font-size: 0.85rem; }
 }
+/* El desplegable de modalidad, igual que los campos. */
+#inscripcion select {
+    width: 100%; background: rgba(255,255,255,0.05); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+    padding: 10px 40px 10px 13px; font-size: 16px; font-family: 'Outfit', sans-serif; box-sizing: border-box;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23cccac3' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 15px center;
+}
+#inscripcion select:focus { outline: none; border-color: var(--curso-accent); }
+#inscripcion select option { background: #12141d; color: #fff; }
 #inscripcion h2 {
     color: #fff; font-size: 1.4rem; font-weight: 300; text-align: center; margin: 0 0 22px;
     text-transform: none;
@@ -266,6 +277,35 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 @media (min-width: 769px) {
     .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { font-size: 0.85rem; }
 }
+/* Bloque del curso grabado, al final de la pagina. Convive con el curso en
+   vivo de mas arriba, asi que el kicker y el titulo dicen desde la primera
+   linea que este es el formato abierto, para que no se confundan. */
+.abierta-invitacion {
+    max-width: 760px; margin: 30px auto 120px; padding: 48px 24px 0;
+    border-top: 1px solid rgba(255,255,255,0.14);
+    display: flex; gap: 46px; align-items: center; box-sizing: border-box;
+}
+.abierta-invitacion img {
+    width: 230px; flex-shrink: 0; border-radius: 10px; display: block;
+}
+.abierta-kicker {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    opacity: 0.6; margin: 0 0 10px;
+}
+.abierta-invitacion h2 { margin: 0 0 14px; font-size: 1.6rem; }
+.abierta-invitacion p { margin: 0 0 14px; line-height: 1.6; }
+.abierta-datos { list-style: none; padding: 0; margin: 0 0 18px; }
+.abierta-datos li { margin-bottom: 7px; font-size: 0.92rem; opacity: 0.88; }
+.abierta-precio { font-size: 1.1rem; margin-bottom: 18px; }
+.abierta-precio small { opacity: 0.6; font-size: 0.82rem; }
+@media (max-width: 760px) {
+    .abierta-invitacion { flex-direction: column; gap: 30px; text-align: center; }
+    .abierta-invitacion img { width: 180px; }
+    .abierta-datos li { text-align: left; }
+}
+@media (min-width: 1200px) {
+    .abierta-invitacion { max-width: 980px; gap: 72px; margin: 60px auto 140px; }
+}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..400&display=swap">
 </head>
@@ -351,6 +391,14 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                             <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off" required
                                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
                             <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="inp-modalidad">¿Cursás online o presencial?</label>
+                            <select id="inp-modalidad" required>
+                                <option value="" selected disabled>Elegí una opción</option>
+                                <option value="Presencial">Presencial, en Villa de las Rosas</option>
+                                <option value="Online">Online, por Zoom</option>
+                            </select>
                         </div>
                         <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
                         <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
@@ -448,6 +496,24 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
             </button>
         </form>
         <p class="calc-nota">Tu carta se abre en la calculadora, en una pestaña nueva, con lo que dicen tu Sol, tu Luna y tu Ascendente. <a href="/cartas/" target="_blank" rel="noopener" data-ga="calculadora_abrir" data-ga-origen="link">O abrí la calculadora vacía</a>.</p>
+    </section>
+
+    <section class="abierta-invitacion" id="grabado" data-ga-visible="seccion_visible" data-ga-seccion="grabado" data-ga-producto="identidad">
+        <img src="../img/identidad-astral.webp" alt="Tu identidad en el cielo, en formato grabado" loading="lazy">
+        <div>
+            <p class="abierta-kicker">Formato abierto &middot; grabado</p>
+            <h2>¿No podés en esos horarios?</h2>
+            <p>El mismo curso existe también en la escuela abierta, en tres clases grabadas que mirás cuando quieras y a tu ritmo. No tiene fechas ni horarios: lo empezás el día que quieras y volvés a verlo las veces que necesites.</p>
+            <ul class="abierta-datos">
+                <li>🕜 3 clases grabadas, a tu ritmo</li>
+                <li>📖 No hace falta saber nada de astrología</li>
+                <li>♾️ Acceso permanente, sin plazo para terminarlo</li>
+            </ul>
+            <p class="abierta-precio">$30.000 ARS <small>&middot; USD 20 &middot; Transferencia $27.000</small></p>
+            <a href="/escuela/abierta/#identidad" class="btn-clase-gratis" data-ga="curso_abierto" data-ga-origen="bloque_grabado">
+                <i class="fa-solid fa-circle-play"></i> Ver el curso grabado
+            </a>
+        </div>
     </section>
 </main>
 
@@ -593,6 +659,11 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
             mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Enviar de nuevo y lo vemos nosotros.');
             return;
         }
+        const modalidad = document.getElementById('inp-modalidad').value;
+        if (!modalidad) {
+            mostrarError('Elegí si cursás online o presencial.');
+            return;
+        }
         if (captchaWrap.style.display !== 'none' && !captchaToken) {
             mostrarError('Confirmá que sos una persona en el casillero de arriba.');
             return;
@@ -614,6 +685,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
                         fechaNacimiento: fecha,
                         horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
                         lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
+                        modalidad,
                     },
                     lugar: window.sbLugarElegido || null,
                     captchaToken: captchaToken || undefined,
@@ -702,7 +774,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 <script type="module">
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de
 // cada lugar), para que la carta de cada inscripto salga sola.
-import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.2';
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.3';
 window.sbLugarElegido = null;
 conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
     window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };

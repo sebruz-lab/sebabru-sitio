@@ -10,6 +10,7 @@ const { JWT } = require('google-auth-library');
 
 const CURSO_URLS = {
   luna:      '/escuela/abierta/luna/',
+  identidad: '/escuela/abierta/identidad/',
   tarot:     '/escuela/abierta/tarot/',
   signos:    '/escuela/abierta/signos/',
   casas:     '/escuela/abierta/casas/',
@@ -23,6 +24,9 @@ const CURSO_URLS = {
 
 const PRECIOS = {
   luna:      { ars: 60000, usd: 50 },
+  // Version grabada. El curso en vivo del mismo nombre es
+  // 'tu-identidad-en-el-cielo', mas abajo, y cuesta distinto.
+  identidad: { ars: 30000, usd: 20 },
   tarot:     { ars: 80000, usd: 60 },
   signos:    { ars: 60000, usd: 50 },
   casas:     { ars: 60000, usd: 50 },
@@ -1489,6 +1493,9 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
 // propia dentro del Google Sheets de SHEETS_SPREADSHEET_ID (se crea sola si
 // todavia no existe) y se avisa por mail, igual que guardarPedido.
 // -------------------------------------------------------
+// A donde llegan los avisos de cada inscripcion (pedido de Seba, 2026-11).
+const AVISOS_INSCRIPCION = 'info@sebabru.com';
+
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
@@ -1500,18 +1507,25 @@ const FORMULARIOS_INSCRIPCION = {
       { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: true },
       { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: true },
       { key: 'email', label: 'Email', maxLen: 200, requerido: true },
+      // Al final, para no correr las columnas que ya tenia la planilla.
+      { key: 'modalidad', label: 'Modalidad', maxLen: 20, requerido: true, opciones: ['Presencial', 'Online'] },
     ],
     // La carta de cada inscripto se guarda en "Mis cartas" de la
     // calculadora de esta cuenta, con el nombre del curso como grupo.
     carta: { para: 'sebruz@gmail.com', grupo: 'Tu identidad en el cielo' },
     // Mail de confirmacion a quien se inscribe, con su carta en PDF
-    // (lo manda enviarCartaInscripcion).
+    // (lo manda enviarCartaInscripcion). A quien cursa online, con el Zoom.
     confirmacion: {
       asunto: 'Tu inscripción a Tu identidad en el cielo',
-      parrafos: (nombre, conCarta) => [
+      parrafos: (nombre, conCarta, modalidad) => [
         `Hola, ${nombre}:`,
         '¡Gracias por inscribirte a <em>Tu identidad en el cielo</em>! Ya tenemos tus datos.',
         conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        modalidad === 'Online'
+          ? 'Unite a la reunión de Zoom con este enlace:<br><a href="https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1">https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1</a><br>Meeting ID: 871 1138 5793<br>Passcode: Astro2025'
+          : modalidad === 'Presencial'
+            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
+            : '',
         'Para datos del pago podés escribirle a Clari al +5493544584122.',
         '¡Nos vemos pronto!<br>Seba',
       ].filter(Boolean),
@@ -1609,7 +1623,17 @@ function getSheetsClient() {
 async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados) {
   const meta = await sheets.spreadsheets.get({ spreadsheetId });
   const existe = (meta.data.sheets || []).some(s => s.properties.title === nombreHoja);
-  if (existe) return;
+  if (existe) {
+    // Si el formulario sumo campos, los titulos de la fila 1 se ponen al dia
+    // (los campos nuevos van al final, asi que las columnas viejas no se mueven).
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${nombreHoja}!A1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [encabezados] },
+    });
+    return;
+  }
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
     requestBody: { requests: [{ addSheet: { properties: { title: nombreHoja } } }] },
@@ -1659,6 +1683,9 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     if (campo.requerido && !valor) {
       return res.status(400).json({ error: `Falta el campo obligatorio: ${campo.label}` });
     }
+    if (campo.opciones && valor && !campo.opciones.includes(valor)) {
+      return res.status(400).json({ error: `Elegí una opción en: ${campo.label}` });
+    }
     valores[campo.key] = valor;
   }
 
@@ -1696,7 +1723,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     if (config.confirmacion && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
       try {
         await _db.collection('envios_carta').add({
-          formId, email: valores.email, nombre: valores.nombre || '', carta, creado: new Date().toISOString(),
+          formId, email: valores.email, nombre: valores.nombre || '', modalidad: valores.modalidad || null, carta, creado: new Date().toISOString(),
         });
       } catch (error) {
         functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
@@ -1718,7 +1745,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
     await transporter.sendMail({
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-      to: 'sebruz@gmail.com',
+      to: AVISOS_INSCRIPCION,
       subject: `📝 Nueva inscripción — ${config.nombreEvento}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
@@ -1777,7 +1804,7 @@ exports.enviarCartaInscripcion = onDocumentCreated({
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
   });
   const nombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
-  const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf));
+  const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf), envio.modalidad);
   await transporter.sendMail({
     from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
     to: envio.email,
@@ -1796,7 +1823,7 @@ exports.enviarCartaInscripcion = onDocumentCreated({
   if (!pdf) {
     await transporter.sendMail({
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-      to: 'sebruz@gmail.com',
+      to: AVISOS_INSCRIPCION,
       subject: `Confirmación sin carta — ${config.nombreEvento}`,
       html: `<p>A ${escapeHtml(envio.nombre)} (${escapeHtml(envio.email)}) le llegó la confirmación de la inscripción <strong>sin</strong> la carta en PDF: ${escapeHtml(motivo)}. Mandásela a mano.</p>`,
     });

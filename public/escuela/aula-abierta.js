@@ -21,6 +21,9 @@ const CREAR_PAGO_PAYPAL_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.
 
 const PRECIOS = {
   luna:      { ars: 60000, usd: 50, nombre: 'La Luna en la carta natal' },
+  // 'identidad' es la version grabada; el curso en vivo del mismo nombre va
+  // aparte, con el slug 'tu-identidad-en-el-cielo' y su propia landing.
+  identidad: { ars: 30000, usd: 20, nombre: 'Tu identidad en el cielo' },
   tarot:     { ars: 80000, usd: 60, nombre: 'Tarot — Mazo Rider-Waite' },
   signos:    { ars: 60000, usd: 50, nombre: 'Signos' },
   casas:     { ars: 60000, usd: 50, nombre: 'Casas y ascendentes' },

@@ -124,7 +124,7 @@
         @media (prefers-reduced-motion: reduce) { .flecha-titila { animation: none; opacity: 0.8; } }
 
         /* ---------- Escena / recorrido espacial ---------- */
-        .escena-track { position: relative; height: 880vh; }
+        .escena-track { position: relative; height: 960vh; }
         .escena {
             position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
             background: radial-gradient(120% 80% at 50% 32%, #0d0d15 0%, var(--bg) 68%);
@@ -418,15 +418,16 @@
         <!-- Indice de cursos: entre "Ingresar" y el menu hamburgues, para ir
              directo si ya sabes lo que buscas, sin ocupar espacio propio -->
         <div class="indice" id="indice" aria-hidden="true">
-            <svg viewBox="0 0 300 56" role="img" aria-label="Ir a un curso">
-                <polyline points="24,36 65,18 106,38 147,16 188,38 229,16 270,34"></polyline>
-                <circle class="ipt" data-curso="luna"     data-ir-a-bloque="luna"     cx="24"  cy="36" r="4"><title>La Luna en la carta natal</title></circle>
-                <circle class="ipt" data-curso="tarot"    data-ir-a-bloque="tarot"    cx="65"  cy="18" r="4"><title>Tarot &mdash; Mazo Rider-Waite</title></circle>
-                <circle class="ipt" data-curso="signos"   data-ir-a-bloque="signos"   cx="106" cy="38" r="4"><title>Signos</title></circle>
-                <circle class="ipt" data-curso="casas"    data-ir-a-bloque="casas"    cx="147" cy="16" r="4"><title>Casas y ascendentes</title></circle>
-                <circle class="ipt" data-curso="pluton26" data-ir-a-bloque="pluton26" cx="188" cy="38" r="4"><title>Plutón y los Nodos Lunares</title></circle>
-                <circle class="ipt" data-curso="lilith"   data-ir-a-bloque="lilith"   cx="229" cy="16" r="4"><title>Luna Negra · Lilith en la carta natal</title></circle>
-                <circle class="ipt" data-curso="linaje"   data-ir-a-bloque="linaje"   cx="270" cy="34" r="4"><title>Linaje, clan y genealogía</title></circle>
+            <svg viewBox="0 0 340 56" role="img" aria-label="Ir a un curso">
+                <polyline points="24,36 65,18 106,38 147,16 188,38 229,16 270,34 311,16"></polyline>
+                <circle class="ipt" data-curso="luna"      data-ir-a-bloque="luna"      cx="24"  cy="36" r="4"><title>La Luna en la carta natal</title></circle>
+                <circle class="ipt" data-curso="identidad" data-ir-a-bloque="identidad" cx="65"  cy="18" r="4"><title>Tu identidad en el cielo</title></circle>
+                <circle class="ipt" data-curso="tarot"     data-ir-a-bloque="tarot"     cx="106" cy="38" r="4"><title>Tarot &mdash; Mazo Rider-Waite</title></circle>
+                <circle class="ipt" data-curso="signos"    data-ir-a-bloque="signos"    cx="147" cy="16" r="4"><title>Signos</title></circle>
+                <circle class="ipt" data-curso="casas"     data-ir-a-bloque="casas"     cx="188" cy="38" r="4"><title>Casas y ascendentes</title></circle>
+                <circle class="ipt" data-curso="pluton26"  data-ir-a-bloque="pluton26"  cx="229" cy="16" r="4"><title>Plutón y los Nodos Lunares</title></circle>
+                <circle class="ipt" data-curso="lilith"    data-ir-a-bloque="lilith"    cx="270" cy="34" r="4"><title>Luna Negra · Lilith en la carta natal</title></circle>
+                <circle class="ipt" data-curso="linaje"    data-ir-a-bloque="linaje"    cx="311" cy="16" r="4"><title>Linaje, clan y genealogía</title></circle>
             </svg>
             <p class="ilbl" id="ilbl"></p>
         </div>
@@ -468,7 +469,7 @@
 
             <div class="universo" id="universo">
                 <svg class="starfield" width="2800" height="1800" viewBox="-1400 -900 2800 1800" aria-hidden="true">
-                    <polyline points="100,-640 560,980 1180,480 -1360,500 -1400,-300 -700,-900 260,-1450"></polyline>
+                    <polyline points="100,-640 700,300 560,980 1180,480 -1360,500 -1400,-300 -700,-900 260,-1450"></polyline>
                     <circle cx="-900" cy="-500" r="2.4"></circle><circle cx="-300" cy="-650" r="2"></circle>
                     <circle cx="250" cy="-400" r="2.2"></circle><circle cx="800" cy="-540" r="2"></circle>
                     <circle cx="1050" cy="-150" r="2.3"></circle><circle cx="-1100" cy="-100" r="2"></circle>
@@ -484,6 +485,7 @@
                     <h3>Tenemos todos estos cursos para vos</h3>
                     <ul class="nube">
                         <li><a href="#luna">La Luna en la carta natal</a></li>
+                        <li><a href="#identidad">Tu identidad en el cielo</a></li>
                         <li><a href="#tarot">Tarot &mdash; Mazo Rider-Waite</a></li>
                         <li><a href="#signos">Signos</a></li>
                         <li><a href="#casas">Casas y ascendentes</a></li>
@@ -537,7 +539,37 @@
                     </div>
                 </article>
 
-                <!-- 4: testimonio (Ana Laura) -->
+                <!-- 4: Tu identidad en el cielo -->
+                <article class="efecto-shrink-container bloque bloque--curso" id="identidad" data-curso="identidad" data-x="700" data-y="300"
+                         data-precio-mp="30.000" data-precio-usd="20" data-precio-trans="27.000" data-nombre="Tu identidad en el cielo">
+                    <div class="efecto-shrink-sticky">
+                        <img src="../img/identidad.webp" alt="Tu identidad en el cielo" class="efecto-imagen" loading="lazy">
+                        <div class="efecto-texto">
+                            <p class="kicker">Para empezar</p>
+                            <h2>Tu identidad en el cielo</h2>
+                            <p class="bsub">El Sol, la Luna y el Ascendente: los tres puntos con los que empieza cualquier lectura de una carta natal.</p>
+                            <p class="bhook">Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
+                            <div class="bscroll">
+                                <p>La astrología te permite mirarte en el espejo tridimensional del cielo para descubrir cosas de vos que todavía no sabés y para ponerle nombre a cosas que viste en vos cientos, miles de veces y no sabías cómo decir.</p>
+                                <p>En tres clases vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
+                                <p>Al terminar el curso, podrás entender mejor tu carta natal y reconocer tu identidad astral.</p>
+                            </div>
+                            <ul class="bdatos">
+                                <li>🕜 3 clases grabadas, a tu ritmo</li>
+                                <li>📖 No hace falta saber nada de astrología</li>
+                                <li>🌟 A cargo de Sebastián Bru</li>
+                            </ul>
+                            <p class="bperm">Acceso permanente <span>Mirá y volvé a mirar cuando quieras. No hay plazo para terminarlo.</span></p>
+                            <p class="bprecio">$30.000 ARS <small>&middot; USD 20 &middot; Transferencia $27.000</small></p>
+                            <a href="identidad/" class="btn-acceder" id="btn-acceder-identidad" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                                <i class="fa-solid fa-circle-play"></i> IR AL AULA
+                            </a>
+                            <div class="compra-slot"></div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- 5: testimonio (Ana Laura) -->
                 <article class="bloque bloque--testimonio" data-x="940" data-y="-300">
                     <blockquote>Me parece super rico el contenido del curso, la forma de enseñar me parece que es muy flexible y acorde a nuestra capacidad de ir asimilando y procesando en nuestro interior.</blockquote>
                     <cite>Ana Laura</cite>
@@ -904,6 +936,7 @@
             <p class="drawer-kicker">Escuela Abierta</p>
             <ol>
                 <li><a href="#luna">La Luna en la carta natal</a></li>
+                <li><a href="#identidad">Tu identidad en el cielo</a></li>
                 <li><a href="#tarot">Tarot &mdash; Mazo Rider-Waite</a></li>
                 <li><a href="#signos">Signos</a></li>
                 <li><a href="#casas">Casas y ascendentes</a></li>
@@ -919,6 +952,7 @@
         <button class="panel-mis-cerrar" id="panel-mis-cerrar" aria-label="Cerrar">&times;</button>
         <p class="panel-mis-kicker">Mis cursos</p>
         <a href="#luna" data-curso="luna">La Luna en la carta natal</a>
+        <a href="#identidad" data-curso="identidad">Tu identidad en el cielo</a>
         <a href="#tarot" data-curso="tarot">Tarot &mdash; Mazo Rider-Waite</a>
         <a href="#signos" data-curso="signos">Signos</a>
         <a href="#casas" data-curso="casas">Casas y ascendentes</a>
@@ -988,6 +1022,7 @@
 
         var CURSOS = [
             { id: 'luna',     nombre: 'La Luna en la carta natal' },
+            { id: 'identidad', nombre: 'Tu identidad en el cielo' },
             { id: 'tarot',    nombre: 'Tarot — Mazo Rider-Waite' },
             { id: 'signos',   nombre: 'Signos' },
             { id: 'casas',    nombre: 'Casas y ascendentes' },
@@ -1042,6 +1077,7 @@
 
         const CURSOS = [
             { id: 'luna',     nombre: 'La Luna en la carta natal',        precio: 60000, precioUsd: 50 },
+            { id: 'identidad', nombre: 'Tu identidad en el cielo',       precio: 30000, precioUsd: 20 },
             { id: 'tarot',    nombre: 'Tarot — Mazo Rider-Waite',        precio: 80000, precioUsd: 60 },
             { id: 'signos',   nombre: 'Signos',                           precio: 60000, precioUsd: 50 },
             { id: 'casas',    nombre: 'Casas y ascendentes',              precio: 60000, precioUsd: 50 },

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu identidad en el cielo | Aula Virtual</title>
+    <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
+    <link rel="stylesheet" href="../../../style.css">
+    <link rel="stylesheet" href="../../escuela.css?v=5">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-GDLRMR5D57');
+    </script>
+</head>
+<body>
+    <div id="security-overlay">
+        <div class="spinner" id="spinner-icon"></div>
+        <div class="texto-seguridad" id="status-text">Verificando acceso...</div>
+        <div class="error-seguridad" id="error-msg">
+            <p>No se pudo verificar tu acceso.</p>
+            <a href="../index.html" class="btn-external">VOLVER A CURSOS ABIERTOS</a>
+        </div>
+    </div>
+
+    <div class="mobile-header">
+        <span class="mobile-title">Tu identidad en el cielo</span>
+        <button class="hamburger-btn" id="menu-toggle">
+            <i class="fa-solid fa-bars"></i> Menú
+        </button>
+    </div>
+
+    <div class="aula-layout">
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h3>Tu identidad en el cielo</h3>
+                    <p>Formación abierta</p>
+                </div>
+
+                <nav class="auto-nav">
+                    <ul id="lista-clases"></ul>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Volver a Cursos</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <div>
+                <h2>Las clases</h2>
+            </div>
+
+            <article class="clase-item" id="clase-1" data-titulo="El Sol" data-preview>
+                <header class="clase-header">
+                    <h2><span class="num">#1</span> El Sol <span class="badge-gratis">Gratis</span></h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000;">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-2" data-titulo="La Luna">
+                <header class="clase-header">
+                    <h2><span class="num">#2</span> La Luna</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+            <article class="clase-item" id="clase-3" data-titulo="El Ascendente">
+                <header class="clase-header">
+                    <h2><span class="num">#3</span> El Ascendente</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius:8px; overflow:hidden; margin-bottom:20px; background-color:#000; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe data-video
+                            loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </article>
+
+        </main>
+    </div>
+
+    <script type="module" src="../../escuela.js?v=5"></script>
+    <script type="module">
+        import { initAula } from '../../aula-abierta.js?v=10';
+        initAula('identidad');
+    </script>
+</body>
+</html>
