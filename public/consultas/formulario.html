@@ -209,7 +209,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 
     <div id="pago-pendiente">
         <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-        <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Listo, ya tenemos tus datos. En un rato te llega un mail con tu carta natal para que revises que todo esté bien. Para reservar el espacio falta el pago: podés transferir al alias que está acá abajo, o pagar por Mercado&nbsp;Pago.</p>
+        <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Listo, ya tenemos tus datos. En un rato te llega un mail con tu carta natal para que revises que todo esté bien. Si querés hacer el pago ahora, podés; si no, podés hacerlo más adelante. Acá te dejo todos los medios de pago disponibles.</p>
 
         <!-- Transferencia -->
         <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
@@ -253,7 +253,10 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 <span style="color:#fff; font-weight:500;">Desde el exterior</span>
                 <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">USD 90</span>
             </div>
-            <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;">Escribinos y coordinamos la forma de pago que te quede más cómoda:</p>
+            <button id="btn-pagar-paypal" class="btn-compra" data-ga="pago_paypal" data-ga-producto="consulta" data-ga-nombre="Consulta astrológica" data-ga-valor="90" data-ga-moneda="USD" data-ga-metodo="paypal" style="background:#003087;">
+                <i class="fa-brands fa-paypal"></i> Pagar con PayPal
+            </button>
+            <p style="color:#e8e8e8; font-size:0.87rem; margin:12px 0 10px;">Con tarjeta, aunque no tengas cuenta de PayPal. Si preferís otra forma, escribinos y la coordinamos:</p>
             <a id="wa-exterior" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_exterior" data-ga-producto="consulta" data-ga-metodo="exterior" data-ga-valor="90" data-ga-moneda="USD">
                 <i class="fab fa-whatsapp"></i> Escribir por WhatsApp
             </a>
@@ -578,6 +581,25 @@ document.getElementById('btn-pagar-mp')?.addEventListener('click', async () => {
         irAlPago(result.data.init_point);
     } catch (err) {
         alert('No se pudo iniciar el pago. Intentá de nuevo o escribinos al +54 9 3544 559877.\n' + err.message);
+    } finally {
+        loading.style.display = 'none';
+    }
+});
+
+const crearPagoPaypal = httpsCallable(functionsApi, 'crearPagoPaypal');
+
+document.getElementById('btn-pagar-paypal')?.addEventListener('click', async () => {
+    loading.style.display = 'flex';
+    try {
+        const result = await crearPagoPaypal({
+            cursoId: 'consulta',
+            cursoNombre: 'Consulta astrológica',
+            regalo: false,
+            origen: window.sbOrigen ? window.sbOrigen() : null,
+        });
+        irAlPago(result.data.approve_url);
+    } catch (err) {
+        alert('No se pudo iniciar el pago con PayPal. Intentá de nuevo o escribinos al +54 9 3544 559877.\n' + err.message);
     } finally {
         loading.style.display = 'none';
     }
