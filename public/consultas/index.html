@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
+<title>Consultas | Seba Bru</title>
+<meta name="description" content="Consultas astrológicas: carta natal, revolución solar, sinastría y espacios terapéuticos regulares. Pedí tu espacio y recibí tu carta natal calculada.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/consultas">
+<meta property="og:title" content="Consultas astrológicas | Seba Bru Astrología">
+<meta property="og:description" content="Carta natal, revolución solar, sinastría y espacios terapéuticos. Completá el formulario y te llega tu carta natal calculada por mail.">
+<meta property="og:image" content="https://sebabru.com/img/consultas.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+
+<style>
+html, body { margin: 0; padding: 0; background: #000; }
+/* El menu cerrado no existe (en vez de quedar escondido a la derecha, fuera
+   de la pantalla, donde en el celular ensanchaba la pagina); al abrirlo
+   entra deslizando. */
+.hamburger-menu .menu-list { display: none; }
+.hamburger-menu .menu-toggle:checked ~ .menu-list { display: flex; right: 0; animation: menu-entra .6s cubic-bezier(.23,1,.32,1); }
+@keyframes menu-entra { from { transform: translateX(100%); } to { transform: none; } }
+
+:root {
+    --curso-theme: #ffffff;
+    --curso-text: #cccac3;
+    --curso-accent: #f7d239;
+}
+
+/* ─── Cabecera ─── */
+.consulta-cabecera {
+    min-height: 52vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 14vh 20px 5vh;
+}
+.consulta-cabecera h1 {
+    color: #fff; font-size: clamp(2rem, 5.5vw, 3.2rem);
+    margin: 0 0 6px; letter-spacing: 0.1em; font-weight: 300; text-transform: uppercase;
+}
+.consulta-cabecera h2 {
+    color: var(--curso-theme); font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+    margin: 0; font-weight: 300; letter-spacing: 0.06em; text-transform: none;
+}
+@supports (height: 1lvh) {
+    .consulta-cabecera { min-height: 52lvh; padding: 14lvh 20px 5lvh; }
+}
+
+/* ─── Los textos ─── */
+.consulta-texto {
+    max-width: 760px; margin: 0 auto; padding: 0 24px;
+    color: var(--curso-text); font-weight: 300; line-height: 1.85;
+}
+.consulta-texto h3 {
+    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
+    text-transform: uppercase; margin: 46px 0 10px; font-weight: 400;
+}
+.consulta-texto p { margin: 0 0 14px; font-size: 1rem; }
+.consulta-texto ul { margin: 0 0 14px; padding-left: 20px; }
+.consulta-texto li { margin-bottom: 8px; font-size: 1rem; }
+.consulta-texto strong { color: #fff; font-weight: 500; }
+.consulta-imagen {
+    display: block; width: 100%; max-width: 760px; margin: 0 auto 10px;
+    border-radius: 14px;
+}
+.consulta-valor {
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+    padding: 16px 20px; margin: 26px 0 0; background: rgba(255,255,255,0.03);
+}
+
+/* ─── El formulario, que vive en formulario.html ─── */
+#form-consultas {
+    max-width: 760px; margin: 10px auto 110px; padding: 0 24px; box-sizing: border-box;
+}
+#form-consultas h3 {
+    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
+    text-transform: uppercase; margin: 46px 0 14px; font-weight: 400; text-align: center;
+}
+#iframe-formulario {
+    width: 100%; border: 0; display: block; min-height: 760px;
+    background: transparent; overflow: hidden;
+}
+</style>
+</head>
+<body>
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+        </ul>
+    </nav>
+
+<main>
+    <header class="consulta-cabecera">
+        <h1>Consultas</h1>
+        <h2>Un espacio para mirarte en el espejo del cielo.</h2>
+    </header>
+
+    <section class="consulta-texto" data-ga-visible="seccion_visible" data-ga-seccion="consultas" data-ga-producto="consulta">
+        <img src="../img/consultas.webp" alt="Consultas Astrológicas" class="consulta-imagen" loading="lazy">
+
+        <h3>¿Qué es una carta Natal?</h3>
+        <p>La carta Natal es un mapa del cielo en el momento en el que nacemos. Es una fotografía de cómo estaban los planetas y las estrellas en ese preciso instante. Mirando ese mapa, podemos entender las energías disponibles para nosotros, nuestras fortalezas, desafíos y propósitos de vida.</p>
+        <p>Somos el eco de ese momento en el que nacemos. La carta natal nos permite reconocer ese patrón energético, aceptarlo y transformarlo. Es una herramienta poderosa para el autoconocimiento y la evolución personal.</p>
+
+        <h3>¿Qué sucede en una consulta astrológica?</h3>
+        <p>En una consulta astrológica hay una gran búsqueda: acompañar los procesos de quien consulta. La astrología nos brinda un lenguaje simbólico que nos permite comprender lo que nos sucede. Es una guía para reconocer patrones, entender nuestro potencial y transitar desafíos con mayor conciencia.</p>
+        <p>Exploramos juntos tu carta natal, tus inquietudes y los temas que te resuenan. La idea es que te lleves claridad y herramientas para navegar tu camino. Es un espacio de escucha activa y reflexión profunda, donde la astrología se convierte en un puente hacia tu interior.</p>
+        <p>Las consultas duran entre una hora y media y dos horas, e incluyen el registro de un audio y una imagen digital de tu carta.</p>
+
+        <h3>¿Qué ofrecemos?</h3>
+        <ul>
+            <li><strong>Cartas Natales:</strong> un espacio para aproximarnos a tu esencia.</li>
+            <li><strong>Revoluciones Solares:</strong> Análisis de tu año personal, desde un cumpleaños al siguiente.</li>
+            <li><strong>Sinastrías:</strong> Estudio de la compatibilidad y dinámica entre dos cartas natales (parejas, amistades, socios).</li>
+            <li><strong>Espacios terapéuticos regulares:</strong> Seguimiento y acompañamiento continuo a través de la Escucha Astrológica.</li>
+        </ul>
+
+        <div class="consulta-valor">
+            <p style="margin:0;">El tiempo de espera aproximado para una sesión es de entre una y dos semanas. El valor de las sesiones es de 135.000$ por Mercado Pago, 120.000$ por transferencia o 90 dólares desde el exterior.</p>
+        </div>
+    </section>
+
+    <section id="form-consultas">
+        <h3>Para agendar tu espacio, completá este formulario</h3>
+        <iframe id="iframe-formulario" src="formulario.html" title="Formulario para pedir una consulta" scrolling="no"></iframe>
+    </section>
+</main>
+
+<script src="../medicion.js?v=3"></script>
+
+<script>
+// El formulario vive en formulario.html (asi es el mismo que el del home) y
+// desde adentro del iframe nos avisa cuanto mide, para que no quede con
+// scroll propio.
+(function () {
+    const marco = document.getElementById('iframe-formulario');
+    window.addEventListener('message', (e) => {
+        if (e.origin !== location.origin || !e.data || !e.data.sbAlto) return;
+        marco.style.height = (e.data.sbAlto + 8) + 'px';
+    });
+})();
+</script>
+</body>
+</html>

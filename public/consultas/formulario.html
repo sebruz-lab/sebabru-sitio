@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
+<title>Pedir una consulta | Seba Bru</title>
+<meta name="robots" content="noindex">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+
+<style>
+/* Esta pagina se ve siempre embebida (en /consultas y en el home), asi que
+   no tiene fondo propio: lo pone la pagina que la contiene. El alto se le
+   avisa al padre por postMessage (ver el script del final). */
+html, body { margin: 0; padding: 0; background: transparent; }
+
+:root {
+    --curso-theme: #ffffff;
+    --curso-text: #cccac3;
+    --curso-accent: #f7d239;
+}
+
+#consulta {
+    max-width: 680px; margin: 0 auto; padding: 4px 24px 8px;
+    box-sizing: border-box;
+}
+/* En la compu, los campos en 0.95rem; en el celular, mas compacto y con los
+   campos en 16px (con menos, el iPhone hace zoom al tocarlos). */
+@media (min-width: 769px) {
+    #consulta input[type="text"], #consulta input[type="tel"], #consulta input[type="time"], #consulta input[type="email"], #consulta select, #consulta textarea { font-size: 0.95rem; }
+    #consulta select { padding: 12px 40px 12px 15px; }
+}
+@media (max-width: 768px) {
+    #consulta { padding: 4px 20px 8px; }
+    #consulta .form-group { margin-bottom: 11px; }
+    #consulta .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
+    #consulta input[type="text"], #consulta input[type="tel"], #consulta input[type="time"], #consulta input[type="email"], #consulta textarea { padding: 10px 13px; }
+    #consulta .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
+}
+#consulta select {
+    width: 100%; background: rgba(255,255,255,0.05); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+    padding: 10px 40px 10px 13px; font-size: 16px; font-family: 'Outfit', sans-serif; box-sizing: border-box;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23cccac3' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 15px center;
+}
+#consulta select:focus { outline: none; border-color: var(--curso-accent); }
+#consulta select option { background: #12141d; color: #fff; }
+#consulta h2 {
+    color: #fff; font-size: 1.4rem; font-weight: 300; text-align: center; margin: 0 0 22px;
+    text-transform: none;
+}
+.form-group { margin-bottom: 14px; }
+.form-group label {
+    font-size: 0.78rem; color: var(--curso-theme); display: block; margin-bottom: 7px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.form-group .opcional { color: var(--curso-text); opacity: 0.8; text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
+input[type="text"], input[type="tel"], input[type="time"], input[type="email"], textarea {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.18); color: #fff;
+    padding: 12px 15px; border-radius: 10px; font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif; box-sizing: border-box;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--curso-accent); }
+/* Con letra de menos de 16px, el iPhone hace zoom al tocar el campo y corre
+   la vista para centrarlo. */
+input[type="text"], input[type="tel"], input[type="time"], input[type="email"], textarea { font-size: 16px; }
+textarea { resize: vertical; min-height: 84px; line-height: 1.6; }
+/* La hora en el iPhone tiene un ancho minimo propio que empuja la pagina. */
+input[type="time"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-width: 0; min-height: 46px; text-align: left; }
+/* Los lugares: el buscador de la calculadora (sebabru.com/cartas). */
+.campo-lugar { position: relative; }
+.sugerencias {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 20; margin: 4px 0 0; padding: 4px 0;
+    list-style: none; background: #12141d; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+    max-height: 260px; overflow-y: auto;
+}
+.sugerencias li { padding: 9px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: #fff; }
+.sugerencias li[aria-selected="true"], .sugerencias li:hover { background: rgba(59,194,188,0.15); }
+.sugerencias .lugar-region { font-size: 0.8rem; opacity: 0.7; }
+.sugerencias .sin-resultados { cursor: default; font-size: 0.85rem; opacity: 0.8; }
+.sugerencias .sin-resultados:hover { background: none; }
+
+.btn-compra {
+    display: inline-flex; align-items: center; gap: 9px; padding: 13px 26px;
+    border-radius: 10px; font-size: 0.97rem; font-weight: 500; text-decoration: none;
+    transition: all 0.3s ease; margin-top: 14px; cursor: pointer; border: 1px solid transparent;
+    justify-content: center; width: 100%; font-family: inherit;
+}
+.btn-mp { background: rgba(255,255,255,0.12); color: #e0e0e0; border-color: rgba(255,255,255,0.4); }
+.btn-mp:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); transform: translateY(-2px); color: #e0e0e0; }
+.btn-mp:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-whatsapp { background: rgba(255,255,255,0.1); color: #e0e0e0; border-color: rgba(255,255,255,0.35); }
+.btn-whatsapp:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.65); transform: translateY(-2px); color: #e0e0e0; text-decoration: none; }
+
+.error-msg {
+    background: rgba(245,109,150,0.1); border: 1px solid #f56d96; color: #f56d96;
+    padding: 11px 15px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 16px; display: none;
+}
+
+#pago-pendiente { display: none; }
+#pago-pendiente.visible { display: block; }
+.icon-success { color: var(--curso-accent); font-size: 2.2rem; margin-bottom: 10px; display: block; text-align: center; }
+
+#loading-pago {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;
+    align-items: center; justify-content: center; flex-direction: column; color: #fff; gap: 18px;
+}
+#loading-pago .spinner-loading {
+    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: var(--curso-accent); border-radius: 50%;
+    animation: spin-pago 0.8s linear infinite;
+}
+@keyframes spin-pago { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<section id="consulta" data-ga-visible="seccion_visible" data-ga-seccion="formulario_consultas" data-ga-producto="consulta">
+
+    <div id="form-wrap">
+        <div id="error-msg" class="error-msg"></div>
+
+        <form id="form-consulta">
+            <div class="form-group">
+                <label for="inp-nombre">Nombre</label>
+                <input type="text" id="inp-nombre" maxlength="200" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-telefono">Teléfono</label>
+                <input type="tel" id="inp-telefono" maxlength="50" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-email">Tu mail</label>
+                <input type="email" id="inp-email" maxlength="200" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(formato DD/MM/AAAA)</span></label>
+                <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" title="Por ejemplo 05/03/1990" required>
+            </div>
+            <div class="form-group">
+                <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(formato 24hs; si no la sabés exacta, poné la más aproximada)</span></label>
+                <input type="time" id="inp-hora-nacimiento" required>
+            </div>
+            <div class="form-group campo-lugar">
+                <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(empezá a escribir la ciudad o el pueblo y elegilo de la lista)</span></label>
+                <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off" required
+                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
+                <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
+            </div>
+            <div class="form-group">
+                <label for="inp-modalidad">¿El encuentro es online o presencial?</label>
+                <select id="inp-modalidad" required>
+                    <option value="" selected disabled>Elegí una opción</option>
+                    <option value="Presencial">Presencial, en Villa de las Rosas</option>
+                    <option value="Online">Online, por Zoom</option>
+                </select>
+            </div>
+            <div class="form-group campo-lugar">
+                <label for="inp-lugar-cumpleanos">¿Dónde pasaste tu cumpleaños? <span class="opcional">(opcional; elegilo de la lista)</span></label>
+                <input type="text" id="inp-lugar-cumpleanos" maxlength="200" autocomplete="off"
+                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-cumpleanos">
+                <ul id="sugerencias-cumpleanos" class="sugerencias" role="listbox" hidden></ul>
+            </div>
+            <div class="form-group">
+                <label for="inp-comentario">¿Alguna otra cosa que quieras que sepamos? <span class="opcional">(opcional)</span></label>
+                <textarea id="inp-comentario" maxlength="2000" rows="4"></textarea>
+            </div>
+            <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
+            <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
+                <i class="fa-solid fa-paper-plane"></i> Pedir la consulta
+            </button>
+        </form>
+    </div>
+
+    <div id="pago-pendiente">
+        <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
+        <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Listo, ya tenemos tus datos. En un rato te llega un mail con tu carta natal para que revises que todo esté bien. Para reservar el espacio falta el pago: podés transferir al alias que está acá abajo, o pagar por Mercado&nbsp;Pago.</p>
+
+        <!-- Transferencia -->
+        <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--curso-theme);"></i>
+                <span style="color:#fff; font-weight:500;">Transferencia</span>
+                <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$120.000</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--curso-text); margin-bottom:10px; line-height:2;">
+                <div><strong style="color:#ccc;">Banco:</strong> Galicia</div>
+                <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <strong style="color:#ccc;">Alias:</strong>
+                    <span>Seba.astrologia</span>
+                    <button id="btn-copiar-alias" type="button" data-ga="pago_alias_copiado" data-ga-producto="consulta" data-ga-metodo="transferencia" data-ga-valor="120000" data-ga-moneda="ARS" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:var(--curso-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
+                        <i class="fa-solid fa-copy"></i> Copiar
+                    </button>
+                </div>
+            </div>
+            <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;">Una vez hecha la transferencia, enviá el comprobante:</p>
+            <a id="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_comprobante" data-ga-producto="consulta" data-ga-metodo="transferencia" data-ga-valor="120000" data-ga-moneda="ARS">
+                <i class="fab fa-whatsapp"></i> Enviar comprobante por WhatsApp
+            </a>
+        </div>
+
+        <!-- Mercado Pago -->
+        <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="22" alt="Mercado Pago" style="filter:brightness(0) invert(1);">
+                <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$135.000</span>
+            </div>
+            <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="consulta" data-ga-nombre="Consulta astrológica" data-ga-valor="135000" data-ga-moneda="ARS" data-ga-metodo="mp">
+                <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
+            </button>
+        </div>
+
+        <!-- Desde el exterior -->
+        <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <i class="fas fa-earth-americas" style="font-size:1.2rem; color:var(--curso-theme);"></i>
+                <span style="color:#fff; font-weight:500;">Desde el exterior</span>
+                <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">USD 90</span>
+            </div>
+            <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;">Escribinos y coordinamos la forma de pago que te quede más cómoda:</p>
+            <a id="wa-exterior" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_exterior" data-ga-producto="consulta" data-ga-metodo="exterior" data-ga-valor="90" data-ga-moneda="USD">
+                <i class="fab fa-whatsapp"></i> Escribir por WhatsApp
+            </a>
+        </div>
+    </div>
+
+</section>
+
+<div id="loading-pago">
+    <div class="spinner-loading"></div>
+    <p>Preparando tu pago...</p>
+</div>
+
+<script src="../medicion.js?v=3"></script>
+
+<script>
+(function () {
+    const form = document.getElementById('form-consulta');
+    const btn = document.getElementById('btn-enviar');
+    const errorMsg = document.getElementById('error-msg');
+    const inpFecha = document.getElementById('inp-fecha-nacimiento');
+    const captchaWrap = document.getElementById('captcha-wrap');
+    let lugarAvisado = false;
+    let captchaToken = '';
+    let captchaWidgetId = null;
+
+    // Cada error tambien va a Analytics (inscripcion_error), con el motivo:
+    // asi se ve que parte del formulario traba a la gente.
+    function mostrarError(msg, motivo) {
+        errorMsg.textContent = msg;
+        errorMsg.style.display = 'block';
+        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'consultas', motivo: motivo || 'otro' });
+    }
+
+    // Un campo obligatorio vacio o mal escrito: el navegador frena el envio
+    // con su propio cartel (antes de nuestras validaciones). Tambien va a
+    // Analytics, con el campo (una vez por intento).
+    let invalidoAvisado = false;
+    form.addEventListener('invalid', (e) => {
+        if (invalidoAvisado) return;
+        invalidoAvisado = true;
+        setTimeout(() => { invalidoAvisado = false; }, 0);
+        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'consultas', motivo: 'falta_' + (e.target.id || '').replace(/^inp-/, '') });
+    }, true);
+
+    // Empezar a llenar (una vez): con inscripcion, muestra cuantos abandonan.
+    let empezado = false;
+    form.addEventListener('focusin', () => {
+        if (empezado) return;
+        empezado = true;
+        if (window.gtag) gtag('event', 'inscripcion_inicio', { formulario: 'consultas' });
+    });
+
+    // Solo se pide a partir del 3er envio desde la misma conexion (lo
+    // decide el servidor); hasta entonces este bloque queda oculto.
+    function mostrarCaptcha() {
+        captchaWrap.style.display = 'block';
+        if (captchaWidgetId !== null) return;
+        if (typeof turnstile === 'undefined') { setTimeout(mostrarCaptcha, 300); return; }
+        captchaWidgetId = turnstile.render(captchaWrap, {
+            sitekey: '0x4AAAAAAFwEydZNkPMtSb8Q',
+            callback: (token) => { captchaToken = token; form.requestSubmit(); },
+            'error-callback': () => { captchaToken = ''; },
+            'expired-callback': () => { captchaToken = ''; },
+        });
+    }
+
+    // Fecha a DD/MM/AAAA desde lo que venga. Copia de normalizarFecha y
+    // completarFecha de la calculadora (C:\dev\tucarta\ui\fecha.js, con sus
+    // tests): si cambian alla, cambiarlas aca tambien. Mientras se escribe,
+    // las barras se ponen solas y "-", "." o un espacio valen como barra; al
+    // salir del campo se entiende "1 de marzo de 1984", "1984-03-01",
+    // "010384"... y el año de dos cifras se completa (hasta 40 es 20xx).
+    const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const sinTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const dos = (n) => String(n).padStart(2, '0');
+    function normalizarFecha(valor, escribiendo) {
+        if (/[a-zñ]/i.test(sinTildes(String(valor)))) return valor;
+        const campos = ['', '', ''];
+        let i = 0;
+        for (const c of String(valor)) {
+            if (c >= '0' && c <= '9') {
+                if (i < 2 && campos[i].length === 2) i++;
+                if (i === 2 && campos[2].length === 4) break;
+                campos[i] += c;
+            } else if (/[\s./-]/.test(c) && i < 2 && campos[i]) {
+                campos[i] = campos[i].padStart(2, '0');
+                i++;
+            }
+        }
+        let res = campos[0];
+        if (i >= 1) res += '/' + campos[1];
+        if (i >= 2) res += '/' + campos[2];
+        if (escribiendo && i < 2 && campos[i].length === 2) res += '/';
+        return res;
+    }
+    function anioCompleto(texto) {
+        return texto.replace(/^(\d{1,2}\/\d{1,2}\/)(\d{2})$/, (_, dm, aa) => dm + (+aa <= 40 ? '20' : '19') + aa);
+    }
+    function completarFecha(texto) {
+        const t = sinTildes(String(texto)).trim();
+        if (!t) return '';
+        const mes = MESES.findIndex((m) => new RegExp('(^|[^a-z])' + m + '[a-z]*').test(t)) + 1
+            || (/(^|[^a-z])set[a-z]*/.test(t) ? 9 : 0);
+        if (mes) {
+            const nums = t.replace(/[a-z]+/g, ' ').match(/\d+/g) || [];
+            const anio = nums.find((n) => n.length === 4) || (nums.length > 1 ? nums[nums.length - 1] : '');
+            const dia = nums.find((n) => n !== anio && n.length <= 2);
+            if (!dia || !anio) return texto.trim();
+            return anioCompleto(dos(dia) + '/' + dos(mes) + '/' + anio);
+        }
+        const nums = t.match(/\d+/g) || [];
+        const dig = t.replace(/\D/g, '');
+        const candidatos = [];
+        if (nums.length >= 3) candidatos.push(nums[0].length === 4 ? [nums[2], nums[1], nums[0]] : nums.slice(0, 3));
+        if (dig.length === 8) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)], [dig.slice(6), dig.slice(4, 6), dig.slice(0, 4)]);
+        if (dig.length === 6) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)]);
+        const sirve = ([d, m, a]) => d.length <= 2 && m.length <= 2 && (a.length === 2 || a.length === 4) &&
+            +m >= 1 && +m <= 12 && +d >= 1 && +d <= 31;
+        const elegido = candidatos.find(sirve);
+        if (!elegido) return normalizarFecha(texto, false);
+        return anioCompleto(dos(elegido[0]) + '/' + dos(elegido[1]) + '/' + elegido[2]);
+    }
+    inpFecha.addEventListener('input', (e) => {
+        inpFecha.value = normalizarFecha(inpFecha.value, !e.inputType || e.inputType.startsWith('insert'));
+    });
+    inpFecha.addEventListener('change', () => {
+        inpFecha.value = completarFecha(inpFecha.value);
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.style.display = 'none';
+
+        inpFecha.value = completarFecha(inpFecha.value);
+        const fecha = inpFecha.value.trim();
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.', 'fecha');
+            return;
+        }
+        // El lugar se elige de la lista (asi la carta sale con las
+        // coordenadas justas). Si no aparece, a la segunda se envia igual.
+        if (!window.sbLugarElegido && !lugarAvisado) {
+            lugarAvisado = true;
+            mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, probá con la ciudad más cercana, o tocá Pedir la consulta de nuevo y lo vemos nosotros.', 'lugar');
+            return;
+        }
+        const modalidad = document.getElementById('inp-modalidad').value;
+        if (!modalidad) {
+            mostrarError('Elegí si el encuentro es online o presencial.', 'modalidad');
+            return;
+        }
+        if (captchaWrap.style.display !== 'none' && !captchaToken) {
+            mostrarError('Confirmá que sos una persona en el casillero de arriba.', 'captcha');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+
+        try {
+            const resp = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formId: 'consultas',
+                    campos: {
+                        nombre: document.getElementById('inp-nombre').value.trim(),
+                        telefono: document.getElementById('inp-telefono').value.trim(),
+                        email: document.getElementById('inp-email').value.trim(),
+                        fechaNacimiento: fecha,
+                        horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
+                        lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
+                        modalidad,
+                        lugarCumpleanos: document.getElementById('inp-lugar-cumpleanos').value.trim(),
+                        comentario: document.getElementById('inp-comentario').value.trim(),
+                    },
+                    lugar: window.sbLugarElegido || null,
+                    captchaToken: captchaToken || undefined,
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                if (data.error === 'captcha_requerido') {
+                    captchaToken = '';
+                    mostrarCaptcha();
+                    mostrarError('Antes de enviar, confirmá que sos una persona en el casillero de abajo.', 'captcha');
+                    return;
+                }
+                throw new Error(data.error || 'No pudimos registrar tu pedido de consulta.');
+            }
+
+            document.getElementById('form-wrap').style.display = 'none';
+            document.getElementById('pago-pendiente').classList.add('visible');
+            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'consultas' });
+        } catch (err) {
+            mostrarError(err.message || 'No pudimos registrar tu pedido. Probá de nuevo.', 'servidor');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Pedir la consulta';
+        }
+    });
+})();
+</script>
+
+<script>
+// En el celular, al abrirse el teclado el navegador a veces deja la vista en
+// cualquier lado. Cuando termina de abrirse, se centra en la parte visible
+// el campo que se toco.
+(function () {
+    const vv = window.visualViewport;
+    if (!vv || !matchMedia('(pointer: coarse)').matches) return;
+    let espera = null;
+    function centrar() {
+        const el = document.activeElement;
+        if (!el || !el.matches || !el.matches('#form-consulta input, #form-consulta textarea')) return;
+        clearTimeout(espera);
+        espera = setTimeout(() => {
+            const r = el.getBoundingClientRect();
+            const delta = (r.top + r.height / 2) - (vv.offsetTop + vv.height / 2);
+            if (Math.abs(delta) > 24) window.scrollBy({ top: delta, behavior: 'smooth' });
+        }, 150);
+    }
+    vv.addEventListener('resize', centrar);
+    document.addEventListener('focusin', () => setTimeout(centrar, 400));
+})();
+</script>
+
+<script>
+// Esta pagina va dentro de un iframe (en /consultas y en el home). El alto
+// del iframe no se ajusta solo, asi que se lo avisamos al padre cada vez que
+// cambia (al abrirse el bloque de pago, al rotar el celular...).
+(function () {
+    if (window.self === window.top) return;
+    let ultimo = 0;
+    function avisar() {
+        const alto = Math.ceil(document.body.getBoundingClientRect().height);
+        if (!alto || Math.abs(alto - ultimo) < 2) return;
+        ultimo = alto;
+        parent.postMessage({ sbAlto: alto }, location.origin);
+    }
+    if (window.ResizeObserver) new ResizeObserver(avisar).observe(document.body);
+    window.addEventListener('load', avisar);
+    window.addEventListener('resize', avisar);
+    avisar();
+})();
+</script>
+
+<script type="module">
+// Buscador de lugares de la calculadora (coordenadas y zona horaria de cada
+// lugar), para que la carta de cada consulta salga sola. El ?v= se mantiene
+// igual al tucarta.version del repo.
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.3';
+const sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.';
+window.sbLugarElegido = null;
+conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
+    window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
+}, { sinResultados });
+// El lugar del cumpleaños es opcional y solo sirve para que el nombre quede
+// bien escrito: no arma ninguna carta todavia.
+conectarBuscador(document.getElementById('inp-lugar-cumpleanos'), document.getElementById('sugerencias-cumpleanos'), () => {}, { sinResultados });
+</script>
+
+<script type="module">
+import { app } from '../escuela/firebase.js';
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+const functionsApi = getFunctions(app);
+const crearPago = httpsCallable(functionsApi, 'crearPago');
+const loading = document.getElementById('loading-pago');
+
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) loading.style.display = 'none';
+});
+
+// Mercado Pago no se puede abrir dentro de un iframe, asi que el checkout va
+// en una pestaña nueva; si el navegador la bloquea, se abre en la pagina.
+function irAlPago(url) {
+    if (window.self !== window.top) {
+        const nueva = window.open(url, '_blank', 'noopener');
+        if (nueva) return;
+        window.top.location.href = url;
+        return;
+    }
+    window.location.href = url;
+}
+
+document.getElementById('btn-pagar-mp')?.addEventListener('click', async () => {
+    loading.style.display = 'flex';
+    try {
+        const result = await crearPago({
+            cursoId: 'consulta',
+            cursoNombre: 'Consulta astrológica',
+            origen: window.sbOrigen ? window.sbOrigen() : null,
+        });
+        irAlPago(result.data.init_point);
+    } catch (err) {
+        alert('No se pudo iniciar el pago. Intentá de nuevo o escribinos al +54 9 3544 559877.\n' + err.message);
+    } finally {
+        loading.style.display = 'none';
+    }
+});
+
+async function copiarAlias(btn) {
+    try {
+        await navigator.clipboard.writeText('Seba.astrologia');
+    } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = 'Seba.astrologia';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    }
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
+    setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar'; }, 2500);
+}
+document.getElementById('btn-copiar-alias')?.addEventListener('click', (e) => copiarAlias(e.currentTarget));
+
+const mensajeComprobante = 'Hola Seba, acabo de hacer la transferencia de la consulta astrológica. Te mando el comprobante.';
+document.getElementById('wa-comprobante').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeComprobante);
+
+const mensajeExterior = 'Hola Seba, pedí una consulta astrológica y pago desde el exterior. ¿Cómo hacemos?';
+document.getElementById('wa-exterior').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeExterior);
+
+// Queda anotado en "compras" que alguien aviso que transfirio, para cruzarlo
+// despues con el comprobante.
+let transferenciaAvisada = false;
+document.getElementById('wa-comprobante')?.addEventListener('click', () => {
+    if (transferenciaAvisada) return;
+    transferenciaAvisada = true;
+    fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarTransferencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            cursoId: 'consulta',
+            cursoNombre: 'Consulta astrológica',
+            origen: window.sbOrigen ? window.sbOrigen() : null,
+        }),
+    }).catch(() => {});
+});
+</script>
+</body>
+</html>

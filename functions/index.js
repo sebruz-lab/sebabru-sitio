@@ -34,6 +34,17 @@ const PRECIOS = {
   lilith:    { ars: 80000, usd: 50 },
   'tu-identidad-en-el-cielo': { ars: 40000 },
   linaje:    { ars: 60000, usd: 50 },
+  // Una consulta astrologica. Por transferencia tiene un precio propio
+  // (arsTransferencia) en vez del 10% de descuento que llevan los cursos.
+  consulta:  { ars: 135000, arsTransferencia: 120000, usd: 90 },
+};
+
+// Lo que se paga por aca y no es un curso (una consulta): no hay acceso que
+// dar ni codigo que generar, solo avisar que el pago llego. mpWebhook y
+// exitoPaypal cortan temprano con estos, y el checkout vuelve a su pagina.
+const PRODUCTOS_SIN_ACCESO = new Set(['consulta']);
+const VUELTA_PAGO = {
+  consulta: { ok: '/consultas/?pago=ok', corte: '/consultas/' },
 };
 
 let _db;
@@ -113,6 +124,34 @@ async function registrarCompra(id, datos) {
       functions.logger.error('No se pudo registrar la compra', { id, message: e.message });
     }
   }
+}
+
+// Pago de algo que no es un curso: no hay nada que entregar automaticamente,
+// asi que se le confirma a la persona que el pago llego y nos avisamos para
+// coordinar a mano. Es un agregado: si falla, el pago ya quedo en "compras".
+async function avisarPagoSinAcceso(transporter, { nombreProducto, email, monto, moneda, metodo }) {
+  const importe = monto ? `${moneda || 'ARS'} ${monto}` : 'el importe';
+  if (email) {
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Recibimos tu pago — ${nombreProducto}`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>¡Gracias! Ya nos llegó tu pago de <strong>${escapeHtml(nombreProducto)}</strong>.</p>
+        <p>En los próximos días te escribimos para coordinar el día y la hora del encuentro.</p>
+        <p>Seba</p>
+      </div>`,
+    });
+  }
+  await transporter.sendMail({
+    from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+    to: AVISOS_INSCRIPCION,
+    subject: `Pago recibido — ${nombreProducto}`,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+      <p>Entró un pago de <strong>${escapeHtml(nombreProducto)}</strong> por ${escapeHtml(importe)} (${escapeHtml(metodo)}).</p>
+      <p>Mail de quien pagó: ${escapeHtml(email || 'no lo dejó')}. Hay que coordinar el encuentro a mano.</p>
+    </div>`,
+  });
 }
 
 const ALLOWED_ORIGINS = [
@@ -602,6 +641,9 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
   const descuento = codigoData?.descuento || 0;
   const precio = Math.round(preciosBase.ars * (1 - descuento / 100));
 
+  // Una consulta no vuelve a la pagina de gracias de la escuela.
+  const vuelta = VUELTA_PAGO[cursoId];
+
   functions.logger.info('Iniciando crearPago', { cursoId, userEmail, precio, descuento });
 
   try {
@@ -618,9 +660,9 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
         }],
         ...(userEmail ? { payer: { email: userEmail } } : {}),
         back_urls: {
-          success: `${process.env.SITE_URL}/escuela/abierta/gracias.html`,
-          failure: `${process.env.SITE_URL}/escuela/abierta/`,
-          pending: `${process.env.SITE_URL}/escuela/abierta/`
+          success: `${process.env.SITE_URL}${vuelta ? vuelta.ok : '/escuela/abierta/gracias.html'}`,
+          failure: `${process.env.SITE_URL}${vuelta ? vuelta.corte : '/escuela/abierta/'}`,
+          pending: `${process.env.SITE_URL}${vuelta ? vuelta.corte : '/escuela/abierta/'}`
         },
         auto_approve: false,
         notification_url: 'https://us-central1-sebabru-e5563.cloudfunctions.net/mpWebhook',
@@ -721,6 +763,18 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
     });
 
     const nombreCurso = curso_nombre || curso_id;
+
+    if (PRODUCTOS_SIN_ACCESO.has(curso_id)) {
+      await avisarPagoSinAcceso(transporter, {
+        nombreProducto: nombreCurso,
+        email: user_email || payerEmail,
+        monto: payment.transaction_amount ?? null,
+        moneda: payment.currency_id || 'ARS',
+        metodo: 'Mercado Pago',
+      });
+      functions.logger.info('Pago sin acceso avisado', { id: data.id, curso_id });
+      return res.status(200).send('OK');
+    }
 
     if (porCodigo) {
       const codigo = await asegurarRegalo(pagoRef, {
@@ -1003,7 +1057,7 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
         application_context: {
           brand_name: 'Seba Bru Astrología',
           return_url: 'https://us-central1-sebabru-e5563.cloudfunctions.net/exitoPaypal',
-          cancel_url: `${process.env.SITE_URL}/escuela/abierta/`
+          cancel_url: `${process.env.SITE_URL}${VUELTA_PAGO[cursoId] ? VUELTA_PAGO[cursoId].corte : '/escuela/abierta/'}`
         }
       })
     });
@@ -1228,8 +1282,12 @@ exports.registrarTransferencia = functions.https.onRequest(async (req, res) => {
 
   const codigoData = await validarCodigo(sanitizeTexto(req.body?.codigoDescuento, 30), cursoId);
   const descuento = codigoData?.descuento || 0;
-  // Mismo calculo que el checkout: transferencia = 10% + el descuento del codigo.
-  const monto = Math.round(preciosBase.ars * (1 - (10 + descuento) / 100));
+  // Mismo calculo que el checkout: transferencia = 10% + el descuento del
+  // codigo. Si el producto tiene un precio propio de transferencia (las
+  // consultas), ese reemplaza al 10% y el codigo se aplica sobre el.
+  const monto = preciosBase.arsTransferencia
+    ? Math.round(preciosBase.arsTransferencia * (1 - descuento / 100))
+    : Math.round(preciosBase.ars * (1 - (10 + descuento) / 100));
 
   await registrarCompra(`transferencia_${uuidv4()}`, {
     tipo: 'curso',
@@ -1320,6 +1378,18 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       service: 'gmail',
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
+
+    if (PRODUCTOS_SIN_ACCESO.has(cursoId)) {
+      await avisarPagoSinAcceso(transporter, {
+        nombreProducto: cursoNombre || cursoId,
+        email: userEmail || payerEmail,
+        monto: cobrado ? cobrado.value : null,
+        moneda: cobrado?.currency_code || 'USD',
+        metodo: 'PayPal',
+      });
+      functions.logger.info('Pago sin acceso avisado', { orderId, cursoId });
+      return res.redirect(`${process.env.SITE_URL}${VUELTA_PAGO[cursoId].ok}`);
+    }
 
     if (porCodigo) {
       const destino = userEmail || payerEmail;
@@ -1531,6 +1601,43 @@ const FORMULARIOS_INSCRIPCION = {
       ].filter(Boolean),
     },
   },
+  consultas: {
+    hoja: 'Consultas',
+    // Las consultas van a su propia planilla, no a la de las inscripciones.
+    spreadsheet: process.env.SHEETS_SPREADSHEET_CONSULTAS,
+    etiquetaFecha: 'Fecha del pedido',
+    // Seba le agrega columnas propias a esta hoja, asi que cada valor se
+    // ubica por el titulo de su columna (ver asegurarHojaInscripcion).
+    columnasPorEncabezado: true,
+    nombreEvento: 'Consulta astrológica',
+    campos: [
+      { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
+      { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
+      { key: 'email', label: 'Email', maxLen: 200, requerido: true },
+      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: true },
+      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: true },
+      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: true },
+      { key: 'modalidad', label: 'Modalidad', maxLen: 20, requerido: true, opciones: ['Presencial', 'Online'] },
+      { key: 'lugarCumpleanos', label: 'Dónde pasó el cumpleaños', maxLen: 200 },
+      { key: 'comentario', label: 'Algo más que quiera que sepamos', maxLen: 2000 },
+    ],
+    carta: { para: 'sebruz@gmail.com', grupo: 'Consultas' },
+    confirmacion: {
+      asunto: 'Tu consulta astrológica',
+      parrafos: (nombre, conCarta, modalidad) => [
+        `Hola, ${nombre}:`,
+        'Recibimos tu pedido de consulta. Ya tenemos tus datos.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+        modalidad === 'Online'
+          ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
+          : modalidad === 'Presencial'
+            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
+            : '',
+        '¡Nos vemos pronto!<br>Seba',
+      ].filter(Boolean),
+    },
+  },
 };
 
 // Carta de una inscripcion para la calculadora (sebabru.com/cartas): con
@@ -1620,10 +1727,29 @@ function getSheetsClient() {
 
 // Crea la pestaña (con fila de encabezados) si todavia no existe en el
 // documento -- asi sumar un formulario nuevo no requiere crear la hoja a mano.
-async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados) {
+// Devuelve los titulos que tiene la fila 1, que es lo que usa el modo
+// columnasPorEncabezado para saber en que columna va cada valor.
+async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados, porEncabezado) {
   const meta = await sheets.spreadsheets.get({ spreadsheetId });
   const existe = (meta.data.sheets || []).some(s => s.properties.title === nombreHoja);
   if (existe) {
+    if (porEncabezado) {
+      // Modo para hojas que alguien mas edita a mano: la fila 1 no se pisa.
+      // Solo se agregan al final los titulos que falten, asi las columnas
+      // propias que haya agregado (donde sea) quedan intactas.
+      const filaUno = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${nombreHoja}!1:1` });
+      const actuales = (filaUno.data.values && filaUno.data.values[0]) || [];
+      const faltan = encabezados.filter(t => !actuales.includes(t));
+      if (!faltan.length) return actuales;
+      const todos = [...actuales, ...faltan];
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${nombreHoja}!A1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [todos] },
+      });
+      return todos;
+    }
     // Si el formulario sumo campos, los titulos de la fila 1 se ponen al dia
     // (los campos nuevos van al final, asi que las columnas viejas no se mueven).
     await sheets.spreadsheets.values.update({
@@ -1632,7 +1758,7 @@ async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabe
       valueInputOption: 'RAW',
       requestBody: { values: [encabezados] },
     });
-    return;
+    return encabezados;
   }
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
@@ -1644,6 +1770,7 @@ async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabe
     valueInputOption: 'RAW',
     requestBody: { values: [encabezados] },
   });
+  return encabezados;
 }
 
 exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
@@ -1691,14 +1818,25 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
   try {
     const sheets = getSheetsClient();
-    const spreadsheetId = process.env.SHEETS_SPREADSHEET_ID;
-    const encabezados = ['Fecha de inscripción', ...config.campos.map(c => c.label)];
-    await asegurarHojaInscripcion(sheets, spreadsheetId, config.hoja, encabezados);
+    const spreadsheetId = config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
+    if (!spreadsheetId) throw new Error(`Falta la planilla del formulario ${formId}`);
+    const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
+    const encabezados = [etiquetaFecha, ...config.campos.map(c => c.label)];
+    const titulos = await asegurarHojaInscripcion(
+      sheets, spreadsheetId, config.hoja, encabezados, config.columnasPorEncabezado
+    );
 
-    const fila = [
-      new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
-      ...config.campos.map(c => valores[c.key] || ''),
-    ];
+    const ahora = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+    let fila;
+    if (config.columnasPorEncabezado) {
+      // Cada valor va en la columna que lleva su titulo, sin importar en que
+      // posicion quedo: asi la hoja se puede reordenar o ampliar a mano.
+      const porTitulo = { [etiquetaFecha]: ahora };
+      for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
+      fila = titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
+    } else {
+      fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
+    }
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
