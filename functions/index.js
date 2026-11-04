@@ -1054,10 +1054,23 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
           amount: { currency_code: 'USD', value: precioUsd },
           description: cursoNombre
         }],
-        application_context: {
-          brand_name: 'Seba Bru Astrología',
-          return_url: 'https://us-central1-sebabru-e5563.cloudfunctions.net/exitoPaypal',
-          cancel_url: `${process.env.SITE_URL}${VUELTA_PAGO[cursoId] ? VUELTA_PAGO[cursoId].corte : '/escuela/abierta/'}`
+        // landing_page GUEST_CHECKOUT hace que el checkout arranque en el
+        // formulario de tarjeta en vez de la pantalla de login, para que se
+        // pueda pagar sin cuenta de PayPal. Va en experience_context y no en
+        // application_context: ese ultimo esta deprecado desde la v2.9 y sus
+        // valores aceptados no incluyen GUEST_CHECKOUT. Es una preferencia,
+        // no una garantia: PayPal puede ignorarla segun el pais del
+        // comprador o si ya tiene sesion abierta.
+        payment_source: {
+          paypal: {
+            experience_context: {
+              brand_name: 'Seba Bru Astrología',
+              landing_page: 'GUEST_CHECKOUT',
+              user_action: 'PAY_NOW',
+              return_url: 'https://us-central1-sebabru-e5563.cloudfunctions.net/exitoPaypal',
+              cancel_url: `${process.env.SITE_URL}${VUELTA_PAGO[cursoId] ? VUELTA_PAGO[cursoId].corte : '/escuela/abierta/'}`
+            }
+          }
         }
       })
     });
@@ -1077,7 +1090,11 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
       creadaEn: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    const approveLink = order.links.find(l => l.rel === 'approve');
+    // Al mandar payment_source, PayPal devuelve el link como 'payer-action'
+    // en vez de 'approve' (que es el de las ordenes sin payment_source). Se
+    // aceptan los dos para no depender de ese detalle.
+    const approveLink = order.links?.find(l => l.rel === 'payer-action' || l.rel === 'approve');
+    if (!approveLink) throw new Error('PayPal no devolvio link de aprobacion: ' + JSON.stringify(order.links));
     functions.logger.info('Orden PayPal creada', { orderId: order.id });
     return res.status(200).json({ result: { approve_url: approveLink.href } });
 
