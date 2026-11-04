@@ -431,8 +431,8 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
             <p>El tiempo de espera aproximado para una sesión es de entre una y dos semanas. El valor de las sesiones es de 135.000$ por Mercado Pago, 120.000$ por transferencia o 90 dólares desde el exterior.</p>
             
             <h3>Para agendar tu espacio, completá este formulario:</h3>
-            <div style="border-radius: 12px; margin-top: 20px;">
-                <iframe data-src="/consultas/formulario.html" width="100%" height="460" frameborder="0" marginheight="0" class="lazy-iframe" title="Formulario para pedir una consulta">Cargando…</iframe>
+            <div id="consultas-marco" style="border-radius: 12px; margin-top: 20px;">
+                <iframe data-src="/consultas/formulario.html#vista=previa" width="100%" height="460" frameborder="0" marginheight="0" scrolling="no" tabindex="-1" class="lazy-iframe" title="Formulario para pedir una consulta">Cargando…</iframe>
             </div>
             <p style="margin-top: 10px;"><a href="/consultas/">Verlo en su propia página</a></p>
             
@@ -1193,6 +1193,60 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     // recorrido). { passive: true } y sin throttle: solo nos importa la
     // primera vez que se dispara.
     window.addEventListener('scroll', cargarEmbed, { passive: true });
+})();
+</script>
+<style>
+/* La capa donde se completa el formulario de consultas. Se monta en el body
+   (no dentro del recorrido: ahi los bloques estan transformados y position
+   fixed se posiciona respecto de ellos, no de la pantalla). */
+#consultas-capa {
+    display: none; position: fixed; inset: 0; z-index: 9500;
+    background: #07070a; flex-direction: column;
+}
+#consultas-capa.visible { display: flex; }
+#consultas-capa .capa-barra { flex: none; display: flex; justify-content: flex-end; padding: 8px 12px 0; }
+#consultas-capa .capa-cerrar {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff;
+    width: 38px; height: 38px; border-radius: 50%; font-size: 1.4rem; line-height: 1;
+    cursor: pointer; font-family: inherit;
+}
+#consultas-capa .capa-cerrar:hover { background: rgba(255,255,255,0.22); }
+#consultas-capa iframe { flex: 1; width: 100%; border: 0; display: block; }
+</style>
+<script>
+// El formulario de consultas entra en el recorrido como vista previa; cuando
+// la persona lo toca, nos avisa por postMessage y se abre a pantalla completa.
+// La capa se arma una sola vez: si la cierran y la vuelven a abrir, lo que
+// habian escrito sigue ahi.
+(function () {
+    const marco = document.getElementById('consultas-marco');
+    if (!marco) return;
+    let capa = null;
+
+    function abrir() {
+        if (!capa) {
+            capa = document.createElement('div');
+            capa.id = 'consultas-capa';
+            capa.innerHTML = '<div class="capa-barra"><button type="button" class="capa-cerrar" aria-label="Cerrar el formulario">&times;</button></div>'
+                + '<iframe src="/consultas/formulario.html" title="Formulario para pedir una consulta"></iframe>';
+            document.body.appendChild(capa);
+            capa.querySelector('.capa-cerrar').addEventListener('click', cerrar);
+        }
+        capa.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+    function cerrar() {
+        if (capa) capa.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+
+    window.addEventListener('message', (e) => {
+        if (e.origin !== location.origin || !e.data || !e.data.sbAbrir) return;
+        abrir();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && capa && capa.classList.contains('visible')) cerrar();
+    });
 })();
 </script>
 </body>

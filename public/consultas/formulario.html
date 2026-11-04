@@ -127,6 +127,25 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     animation: spin-pago 0.8s linear infinite;
 }
 @keyframes spin-pago { to { transform: rotate(360deg); } }
+
+/* ─── Vista previa (#vista=previa) ───
+   En el home este formulario entra chico, dentro del recorrido: ahi no se
+   llena, solo se ve. Una tapa encima se lleva el toque y le pide a la pagina
+   que lo abra a pantalla completa, donde se completa de verdad. */
+body.previa #consulta { pointer-events: none; }
+body.previa #consulta input, body.previa #consulta select, body.previa #consulta textarea { opacity: 0.75; }
+#tapa-previa {
+    position: fixed; inset: 0; z-index: 60; cursor: pointer;
+    display: flex; align-items: flex-end; justify-content: center; padding: 0 20px 26px;
+    background: linear-gradient(180deg, rgba(7,7,10,0) 0%, rgba(7,7,10,0.35) 45%, rgba(7,7,10,0.88) 100%);
+}
+#tapa-previa .btn-previa {
+    display: inline-flex; align-items: center; gap: 9px; padding: 13px 24px;
+    border-radius: 10px; font-size: 0.95rem; font-weight: 500;
+    background: rgba(255,255,255,0.14); color: #fff;
+    border: 1px solid rgba(255,255,255,0.45); text-align: center;
+}
+#tapa-previa:hover .btn-previa { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0.75); }
 </style>
 </head>
 <body>
@@ -249,6 +268,32 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 </div>
 
 <script src="../medicion.js?v=3"></script>
+
+<script>
+// Vista previa: es el modo con el que entra en el home (#vista=previa). Los
+// campos quedan a la vista pero no se tocan; al primer toque le pedimos a la
+// pagina de alrededor que abra el formulario a pantalla completa, asi nada de
+// lo que escriba la persona se pierde en el camino.
+(function () {
+    if (!/(^|[#&])vista=previa/.test(location.hash)) return;
+    document.body.classList.add('previa');
+    document.querySelectorAll('#consulta input, #consulta select, #consulta textarea, #consulta button')
+        .forEach((el) => { el.tabIndex = -1; });
+
+    const tapa = document.createElement('div');
+    tapa.id = 'tapa-previa';
+    tapa.setAttribute('role', 'button');
+    tapa.tabIndex = 0;
+    tapa.innerHTML = '<span class="btn-previa"><i class="fa-solid fa-pen-to-square"></i> Completar el formulario</span>';
+    document.body.appendChild(tapa);
+
+    function abrir() { parent.postMessage({ sbAbrir: true }, location.origin); }
+    tapa.addEventListener('click', abrir);
+    tapa.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+    });
+})();
+</script>
 
 <script>
 (function () {
