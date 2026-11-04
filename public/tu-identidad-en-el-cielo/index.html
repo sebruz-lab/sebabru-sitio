@@ -101,18 +101,22 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 /* ─── Bloque "Inscripción" ─── */
 #inscripcion {
-    max-width: 545px; margin: 100px auto 80px; padding: 22px 20px;
+    max-width: 680px; margin: 100px auto 80px; padding: 28px 24px;
     box-sizing: border-box;
 }
-/* Formulario al 80%: en la compu tambien la letra; en el celular los campos
-   quedan en 16px (con menos, el iPhone hace zoom al tocarlos). */
-#inscripcion .form-group { margin-bottom: 11px; }
-#inscripcion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
-#inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { padding: 10px 13px; }
-#inscripcion .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
+/* En la compu el formulario va en su tamaño original (los campos en
+   0.95rem); en el celular, mas compacto y con los campos en 16px (con
+   menos, el iPhone hace zoom al tocarlos). */
 @media (min-width: 769px) {
-    #inscripcion #form-wrap h2 { font-size: 1.2rem; }
-    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"], #inscripcion select { font-size: 0.85rem; }
+    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"], #inscripcion select { font-size: 0.95rem; }
+    #inscripcion select { padding: 12px 40px 12px 15px; }
+}
+@media (max-width: 768px) {
+    #inscripcion { padding: 22px 20px; }
+    #inscripcion .form-group { margin-bottom: 11px; }
+    #inscripcion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
+    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { padding: 10px 13px; }
+    #inscripcion .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
 }
 /* El desplegable de modalidad, igual que los campos. */
 #inscripcion select {
