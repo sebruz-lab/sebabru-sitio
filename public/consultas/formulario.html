@@ -114,6 +114,26 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 }
 
 #pago-pendiente { display: none; }
+#desplegable-pago > summary {
+    list-style: none;
+    cursor: pointer;
+    text-align: center;
+    color: #fff;
+    font-size: 0.95rem;
+    padding: 13px 18px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+}
+#desplegable-pago > summary::-webkit-details-marker { display: none; }
+#desplegable-pago > summary::after {
+    content: ' \25bc';
+    font-size: 0.7rem;
+    color: var(--curso-theme);
+}
+#desplegable-pago[open] > summary::after { content: ' \25b2'; }
+#desplegable-pago > summary:hover { background: rgba(255,255,255,0.12); }
 #pago-pendiente.visible { display: block; }
 .icon-success { color: var(--curso-accent); font-size: 2.2rem; margin-bottom: 10px; display: block; text-align: center; }
 
@@ -209,7 +229,11 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 
     <div id="pago-pendiente">
         <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-        <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Listo, ya tenemos tus datos. En un rato te llega un mail con tu carta natal para que revises que todo esté bien. Si querés hacer el pago ahora, podés; si no, podés hacerlo más adelante. Acá te dejo todos los medios de pago disponibles.</p>
+        <p style="color:#fff; text-align:center; font-size:1.05rem; line-height:1.6; margin-bottom:10px; text-wrap:balance;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para tu sesión.</p>
+        <p style="color:var(--curso-text); text-align:center; font-size:0.93rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Cualquier duda podés escribirle a Clari: <a id="wa-clari" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--curso-theme); white-space:nowrap;">3544 559877</a></p>
+
+        <details id="desplegable-pago">
+            <summary>Si querés pagar ahora, podés hacerlo</summary>
 
         <!-- Transferencia -->
         <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
@@ -261,6 +285,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 <i class="fab fa-whatsapp"></i> Escribir por WhatsApp
             </a>
         </div>
+        </details>
     </div>
 
 </section>
@@ -535,7 +560,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de cada
 // lugar), para que la carta de cada consulta salga sola. El ?v= se mantiene
 // igual al tucarta.version del repo.
-import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.3';
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.9.0';
 const sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.';
 window.sbLugarElegido = null;
 conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
@@ -623,6 +648,9 @@ document.getElementById('btn-copiar-alias')?.addEventListener('click', (e) => co
 
 const mensajeComprobante = 'Hola Seba, acabo de hacer la transferencia de la consulta astrológica. Te mando el comprobante.';
 document.getElementById('wa-comprobante').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeComprobante);
+
+document.getElementById('wa-clari').href = 'https://wa.me/5493544559877?text='
+    + encodeURIComponent('Hola Clari, acabo de pedir una consulta astrológica y tengo una duda.');
 
 const mensajeExterior = 'Hola Seba, pedí una consulta astrológica y pago desde el exterior. ¿Cómo hacemos?';
 document.getElementById('wa-exterior').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeExterior);

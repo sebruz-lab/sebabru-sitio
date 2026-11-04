@@ -800,7 +800,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 <script type="module">
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de
 // cada lugar), para que la carta de cada inscripto salga sola.
-import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.8.3';
+import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.9.0';
 window.sbLugarElegido = null;
 conectarBuscador(document.getElementById('inp-lugar-nacimiento'), document.getElementById('sugerencias-lugar'), (l) => {
     window.sbLugarElegido = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
