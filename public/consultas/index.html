@@ -70,6 +70,9 @@ html, body { margin: 0; padding: 0; background: #000; }
     text-transform: uppercase; margin: 46px 0 10px; font-weight: 400;
 }
 .consulta-texto p { margin: 0 0 14px; font-size: 1rem; }
+@media (min-width: 769px) {
+    .consulta-texto p, .consulta-texto li { font-size: 1.12rem; }
+}
 .consulta-texto ul { margin: 0 0 14px; padding-left: 20px; }
 .consulta-texto li { margin-bottom: 8px; font-size: 1rem; }
 .consulta-texto strong { color: #fff; font-weight: 500; }
@@ -84,7 +87,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 /* ─── El formulario, que vive en formulario.html ─── */
 #form-consultas {
-    max-width: 760px; margin: 10px auto 110px; padding: 0 24px; box-sizing: border-box;
+    max-width: 760px; margin: 76px auto 110px; padding: 0 24px; box-sizing: border-box;
 }
 #form-consultas h3 {
     color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
@@ -146,7 +149,7 @@ html, body { margin: 0; padding: 0; background: #000; }
     </section>
 
     <section id="form-consultas">
-        <h3 id="form">Para agendar tu espacio, completá este formulario</h3>
+        <div id="form"></div>
         <iframe id="iframe-formulario" src="formulario.html" title="Formulario para pedir una consulta" scrolling="no"></iframe>
     </section>
 </main>

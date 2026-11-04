@@ -37,11 +37,19 @@ html, body { margin: 0; padding: 0; background: transparent; }
     max-width: 680px; margin: 0 auto; padding: 4px 24px 8px;
     box-sizing: border-box;
 }
+.titulo-form {
+    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
+    text-transform: uppercase; margin: 0 0 20px; font-weight: 400; text-align: center;
+}
 /* En la compu, los campos en 0.95rem; en el celular, mas compacto y con los
    campos en 16px (con menos, el iPhone hace zoom al tocarlos). */
 @media (min-width: 769px) {
-    #consulta input[type="text"], #consulta input[type="tel"], #consulta input[type="time"], #consulta input[type="email"], #consulta select, #consulta textarea { font-size: 0.95rem; }
-    #consulta select { padding: 12px 40px 12px 15px; }
+    #consulta input[type="text"], #consulta input[type="tel"], #consulta input[type="time"], #consulta input[type="email"], #consulta select, #consulta textarea { font-size: 1.05rem; }
+    #consulta select { padding: 13px 40px 13px 15px; }
+    #consulta .form-group { margin-bottom: 17px; }
+    #consulta .form-group label { font-size: 0.88rem; }
+    #consulta .btn-compra { font-size: 1.05rem; }
+    .titulo-form { font-size: 0.92rem; }
 }
 @media (max-width: 768px) {
     #consulta { padding: 4px 20px 8px; }
@@ -173,6 +181,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 <section id="consulta" data-ga-visible="seccion_visible" data-ga-seccion="formulario_consultas" data-ga-producto="consulta">
 
     <div id="form-wrap">
+        <h3 class="titulo-form">Para agendar tu espacio, completá este formulario</h3>
         <div id="error-msg" class="error-msg"></div>
 
         <form id="form-consulta">
@@ -229,7 +238,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 
     <div id="pago-pendiente">
         <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-        <p style="color:#fff; text-align:center; text-align-last:center; font-size:1.05rem; line-height:1.6; margin-bottom:10px;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para tu sesión.</p>
+        <p style="color:#fff; text-align:center; text-align-last:center; font-size:1.05rem; line-height:1.6; margin-bottom:10px;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para coordinar tu sesión.</p>
         <p style="color:var(--curso-text); text-align:center; text-align-last:center; font-size:0.93rem; line-height:1.6; margin-bottom:30px;">Cualquier duda podés escribirle a Clari: <a id="wa-clari" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--curso-theme); white-space:nowrap;">3544 559877</a></p>
 
         <details id="desplegable-pago">
