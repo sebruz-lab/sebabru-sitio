@@ -142,9 +142,22 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
     font-variation-settings: 'SOFT' 100, 'opsz' 30;
     break-after: avoid; break-inside: avoid;
 }
-.lector-flujo h3#las-doce-lunas {
+.lector-flujo h3.signos {
     margin-top: 2.6em; text-align: center; font-style: normal;
     font-size: 1.45em; font-weight: 300;
+}
+
+/* Las casas de cada elemento, sobre la rueda */
+.lector-flujo .ruedas-elementos {
+    display: flex; flex-wrap: wrap; gap: 1.1em 1.4em; justify-content: center;
+    margin: 1.5em 0 1.6em; break-inside: avoid;
+}
+.lector-flujo .rueda-elemento { margin: 0; width: 5.4em; color: var(--tenue); }
+.lector-flujo .rueda-elemento svg { display: block; width: 100%; height: auto; }
+.lector-flujo .rueda-elemento figcaption {
+    margin-top: 0.5em; text-align: center; text-indent: 0;
+    font: 500 0.62em/1.3 var(--serif-texto);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--tenue);
 }
 /* Cada signo: glifo arriba, nombre en versalitas */
 .lector-flujo h4 {

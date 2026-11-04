@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '1';
+    var VERSION = '2';
     var BASE = document.currentScript && document.currentScript.src
         ? new URL('.', document.currentScript.src).href
         : '/tu-identidad-en-el-cielo/ebook/';
@@ -103,8 +103,8 @@
             h2.parentNode.insertBefore(ap, h2);
             ap.appendChild(h2);
             ap.insertAdjacentHTML('beforeend', '<span class="apertura-filete" aria-hidden="true"></span>');
-            var p = ap.nextElementSibling;
-            if (p && p.tagName === 'P') p.classList.add('inicial');
+            var p = s.querySelector('p');
+            if (p) p.classList.add('inicial');
         }
         Array.prototype.forEach.call(s.querySelectorAll('h4[data-signo]'), function (h) {
             h.insertAdjacentHTML('afterbegin', '<span class="h4-glifo">' + glifos().signo(h.getAttribute('data-signo')) + '</span>');
