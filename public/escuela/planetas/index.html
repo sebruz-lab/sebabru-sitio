@@ -235,15 +235,24 @@
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
                 </div>
             </article>
+            <article class="clase-item" id="clase-13" data-titulo="Clase 13">
+                <header class="clase-header">
+                    <h2><span class="num">#13</span> Clase 13</h2>
+                </header>
+                <div style="position:relative; padding-top:56.25%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; background-color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe loading="lazy" style="border:0; position:absolute; top:0; height:100%; width:100%;"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;" allowfullscreen="true"></iframe>
+                </div>
+            </article>
         </main>
     </div>
 
-    <script type="module" src="../escuela.js?v=5"></script>
+    <script type="module" src="../escuela.js?v=6"></script>
     <script type="module">
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { auth, db } from '../firebase.js';
-        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=5';
+        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=6';
 
         let accesoConcedido = false;
 
