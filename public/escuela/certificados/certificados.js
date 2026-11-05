@@ -9,7 +9,8 @@ const cursos = [
         egresados: [
             { nombre: 'Ana Laura Torres Bainotti', archivo: 'certificado_ana-laura-torres-bainotti.pdf' },
             { nombre: 'Kenny Cardenas', archivo: 'certificado_kenny-cardenas.pdf' },
-            { nombre: 'Luisina Castelli', archivo: 'certificado_luisina-castelli.pdf' }
+            { nombre: 'Luisina Castelli', archivo: 'certificado_luisina-castelli.pdf' },
+            { nombre: 'Sofia Gallinal', archivo: 'certificado_sofia-gallinal.pdf' }
         ]
     }
 ];

@@ -159,6 +159,10 @@
     <div style="display: flex; justify-content: center; margin-bottom: 32px;">
         <details class="desplegable-item aries-theme" style="width: 100%; max-width: 560px;">
             <summary><h3>¿Cómo sé en qué casa me cae esta luna?</h3><i class="fa-solid fa-chevron-down caret"></i></summary>
+            <div class="desplegable-content">
+                <!-- La calculadora la arma /calc-lunacion.js: no tocar el div. -->
+                <div data-calc-lunacion></div>
+            </div>
             <div class="desplegable-content" style="padding: 0;">
                 <iframe src="https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fespaciointeriorastrologia%2Fvideos%2F427856702865377%2F&show_text=false&width=560" width="560" height="314" style="border:none;overflow:hidden;display:block;max-width:100%;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
             </div>
@@ -594,5 +598,6 @@
   gtag('config', 'G-GDLRMR5D57');
 </script>
     <script src="../script.js"></script>
+    <script type="module" src="/calc-lunacion.js?v=1"></script>
 </body>
 </html>
