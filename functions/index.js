@@ -2032,3 +2032,135 @@ exports.fijarClaimsAdmin = functions.https.onRequest(async (req, res) => {
   }
   return res.status(200).json({ admin: esAdminTucarta });
 });
+// -------------------------------------------------------
+// Respaldo del buscador de lugares
+// -------------------------------------------------------
+// El indice de sebabru.com/cartas tiene Argentina, Uruguay y España enteros
+// y del resto del mundo solo las localidades de mas de 1000 habitantes. Un
+// paraje o un pueblito chico de afuera no aparece. Cuando el buscador local
+// no encuentra nada, el formulario pregunta aca y nosotros le preguntamos a
+// GeoNames, que es de donde sale el indice: asi un resultado de afuera se ve
+// igual que uno de adentro.
+//
+// Sin GEONAMES_USER en el .env la funcion contesta vacio: el buscador queda
+// exactamente como estaba.
+
+// En Argentina la zona horaria va por provincia (zone.tab), no por el
+// poligono que usa GeoNames. Es la misma tabla que arma el indice local, y
+// tiene que seguir igual: si no, la misma persona obtendria dos cartas
+// distintas segun por que camino encontro su lugar.
+const ZONA_AR_GEONAMES = {
+  '01': 'Buenos_Aires', '07': 'Buenos_Aires',
+  '05': 'Cordoba', '21': 'Cordoba', '22': 'Cordoba', '03': 'Cordoba',
+  '09': 'Cordoba', '14': 'Cordoba', '08': 'Cordoba', '06': 'Cordoba',
+  '17': 'Salta', '11': 'Salta', '15': 'Salta', '16': 'Salta',
+  '10': 'Jujuy', '24': 'Tucuman', '02': 'Catamarca', '04': 'Catamarca',
+  '12': 'La_Rioja', '18': 'San_Juan', '13': 'Mendoza', '19': 'San_Luis',
+  '20': 'Rio_Gallegos', '23': 'Ushuaia'
+};
+
+// El mismo orden que el indice local: primero el publico de la casa.
+const PRIORIDAD_PAIS = { AR: 3, UY: 2, ES: 1 };
+
+// Poblados (PPL*) y parajes (LCTY). Afuera quedan cerros, arroyos, estancias
+// y las localidades historicas o abandonadas.
+const CODIGOS_LUGAR = /^(PPL|PPLA|PPLA2|PPLA3|PPLA4|PPLC|PPLF|PPLG|PPLL|PPLS|PPLX|STLMT|LCTY)$/;
+
+const cacheLugares = new Map(); // texto buscado -> { hora, lugares }
+const CACHE_LUGARES_MAX = 500;
+const CACHE_LUGARES_MS = 24 * 60 * 60 * 1000;
+
+function lugarDeGeoNames(g) {
+  if (!g || !CODIGOS_LUGAR.test(g.fcode || '')) return null;
+  const lat = Number(g.lat);
+  const lon = Number(g.lng);
+  const zonaGeo = g.timezone && g.timezone.timeZoneId;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !zonaGeo) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+
+  let zona = zonaGeo;
+  if (g.countryCode === 'AR') {
+    const z = ZONA_AR_GEONAMES[g.adminCode1];
+    if (!z) return null; // Antartida: sin provincia, no sabemos la zona
+    zona = 'America/Argentina/' + z;
+  }
+  if (!/^[A-Za-z0-9_+\-/]+$/.test(zona)) return null;
+
+  return {
+    nombre: sanitizeTexto(g.name, 200),
+    provincia: sanitizeTexto(g.adminName1 || '', 200),
+    pais: sanitizeTexto(g.countryCode || '', 3),
+    paisNombre: sanitizeTexto(g.countryName || '', 100),
+    lat: Math.round(lat * 1e4) / 1e4,
+    lon: Math.round(lon * 1e4) / 1e4,
+    zona,
+    poblacion: Number(g.population) || 0,
+  };
+}
+
+exports.buscarLugar = functions.https.onRequest(async (req, res) => {
+  ensureInit();
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+
+  const usuario = process.env.GEONAMES_USER;
+  const q = sanitizeTexto(req.query.q, 80);
+  // Sin cuenta configurada, o con menos de 3 letras, no hay respaldo: el
+  // buscador local sigue siendo el unico, como antes.
+  if (!usuario || !q || q.length < 3) return res.json({ lugares: [] });
+
+  const clave = q.toLowerCase();
+  const guardado = cacheLugares.get(clave);
+  if (guardado && Date.now() - guardado.hora < CACHE_LUGARES_MS) {
+    return res.json({ lugares: guardado.lugares });
+  }
+
+  // GeoNames da 1.000 consultas por hora en total, asi que conviene que una
+  // sola IP no se las lleve puestas.
+  if (!await checkRateLimit('buscarLugar', req, 120)) {
+    return res.status(429).json({ lugares: [] });
+  }
+
+  try {
+    const params = new URLSearchParams({
+      name_startsWith: q,
+      maxRows: '20',
+      style: 'FULL',
+      lang: 'es',
+      orderby: 'relevance',
+      username: usuario,
+    });
+    // Poblados y parajes (el resto lo filtra CODIGOS_LUGAR).
+    params.append('featureClass', 'P');
+    params.append('featureClass', 'L');
+
+    // Si GeoNames tarda, no dejamos esperando a la persona: el formulario
+    // se queda con lo que ya tenia.
+    const corte = AbortSignal.timeout(5000);
+    const r = await fetch(`http://api.geonames.org/searchJSON?${params}`, { signal: corte });
+    if (!r.ok) throw new Error('GeoNames respondio ' + r.status);
+    const data = await r.json();
+
+    if (data.status) {
+      // Cuota agotada o cuenta sin habilitar: queda en el log para verlo.
+      functions.logger.error('GeoNames no atendio', data.status);
+      return res.json({ lugares: [] });
+    }
+
+    const lugares = (data.geonames || [])
+      .map(lugarDeGeoNames)
+      .filter(Boolean)
+      .sort((a, b) =>
+        (PRIORIDAD_PAIS[b.pais] || 0) - (PRIORIDAD_PAIS[a.pais] || 0) ||
+        b.poblacion - a.poblacion)
+      .slice(0, 8)
+      .map(({ poblacion, ...l }) => l);
+
+    if (cacheLugares.size >= CACHE_LUGARES_MAX) cacheLugares.clear();
+    cacheLugares.set(clave, { hora: Date.now(), lugares });
+    return res.json({ lugares });
+  } catch (error) {
+    functions.logger.error('No se pudo preguntar a GeoNames:', error.message);
+    return res.json({ lugares: [] });
+  }
+});

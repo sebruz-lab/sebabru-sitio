@@ -830,6 +830,21 @@ label.sin-lugar input { width: 17px; height: 17px; accent-color: #f7d239; cursor
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de
 // cada lugar), para que la carta de cada inscripto salga sola.
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.9.0';
+
+// Cuando el indice local no tiene el lugar (tiene Argentina, Uruguay y
+// España enteros, y del resto del mundo solo lo de mas de 1000 habitantes),
+// se lo preguntamos a GeoNames por nuestra funcion. Si no contesta, el
+// buscador se queda como estaba.
+async function respaldoDeLugares(texto) {
+    try {
+        const r = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/buscarLugar?q=' + encodeURIComponent(texto));
+        if (!r.ok) return [];
+        return (await r.json()).lugares || [];
+    } catch {
+        return [];
+    }
+}
+
 window.sbLugarElegido = null;
 // El buscador descarta el lugar elegido en cada tecleo: si el texto volvio a
 // quedar igual al del lugar elegido, lo recuperamos (si no, la carta no sale
@@ -845,12 +860,12 @@ conectarBuscador(campoLugar, document.getElementById('sugerencias-lugar'), (l) =
         return;
     }
     window.sbLugarElegido = (lugarRecordado && campoLugar.value.trim() === textoRecordado) ? lugarRecordado : null;
-}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.' });
+}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoDeLugares });
 // El mismo buscador para la calculadora de mas abajo.
 window.sbLugarCalc = null;
 conectarBuscador(document.getElementById('calc-lugar'), document.getElementById('calc-sugerencias'), (l) => {
     window.sbLugarCalc = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
-}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.' });
+}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoDeLugares });
 </script>
 
 <script type="module">

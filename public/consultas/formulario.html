@@ -605,6 +605,20 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 // igual al tucarta.version del repo.
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.9.0';
 const sinResultados = 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.';
+// Cuando el indice local no tiene el lugar (tiene Argentina, Uruguay y
+// España enteros, y del resto del mundo solo lo de mas de 1000 habitantes),
+// se lo preguntamos a GeoNames por nuestra funcion. Si no contesta, el
+// buscador se queda como estaba.
+async function respaldoDeLugares(texto) {
+    try {
+        const r = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/buscarLugar?q=' + encodeURIComponent(texto));
+        if (!r.ok) return [];
+        return (await r.json()).lugares || [];
+    } catch {
+        return [];
+    }
+}
+
 window.sbLugarElegido = null;
 // El buscador descarta el lugar elegido en cada tecleo. Si el texto quedo
 // igual al del lugar que se habia elegido (por ejemplo, borrar una letra y
@@ -621,10 +635,10 @@ conectarBuscador(campoLugar, document.getElementById('sugerencias-lugar'), (l) =
         return;
     }
     window.sbLugarElegido = (lugarRecordado && campoLugar.value.trim() === textoRecordado) ? lugarRecordado : null;
-}, { sinResultados });
+}, { sinResultados, respaldo: respaldoDeLugares });
 // El lugar del cumpleaños es opcional y solo sirve para que el nombre quede
 // bien escrito: no arma ninguna carta todavia.
-conectarBuscador(document.getElementById('inp-lugar-cumpleanos'), document.getElementById('sugerencias-cumpleanos'), () => {}, { sinResultados });
+conectarBuscador(document.getElementById('inp-lugar-cumpleanos'), document.getElementById('sugerencias-cumpleanos'), () => {}, { sinResultados, respaldo: respaldoDeLugares });
 </script>
 
 <script type="module">
