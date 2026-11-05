@@ -207,9 +207,9 @@
     import { auth, db } from '../firebase.js';
     import {
         onAuthStateChanged,
-        signInWithPopup, signInWithEmailAndPassword,
-        GoogleAuthProvider
+        signInWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { entrarConGoogle } from '/escuela/google.js?v=1';
     import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
     import { getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -225,8 +225,6 @@
         signos:       'Los Signos del Zodíaco',
         casas:        'Las Casas Astrológicas',
     };
-
-    const googleProvider = new GoogleAuthProvider();
 
     // Leer token de la URL
     const params = new URLSearchParams(window.location.search);
@@ -301,7 +299,7 @@
     // ── LOGIN CON GOOGLE ──────────────────────────────────────────
     document.getElementById('btn-google').addEventListener('click', async () => {
         try {
-            await signInWithPopup(auth, googleProvider);
+            await entrarConGoogle(auth);
             // onAuthStateChanged lo toma desde acá
         } catch (e) {
             console.error(e);

@@ -8,13 +8,14 @@
 //   (usuarios/{email}.interesados).
 // - Logueado y con el curso comprado: se desbloquea todo.
 import {
-  onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
+  onAuthStateChanged,
   signInWithEmailAndPassword, createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { entrarConGoogle } from './google.js?v=1';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 import { app, auth, db } from './firebase.js';
-import { videoEntryToSrc } from './escuela.js?v=5';
+import { videoEntryToSrc } from './escuela.js?v=6';
 
 const OBTENER_MUESTRA_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/obtenerMuestra';
 const CREAR_PAGO_PAYPAL_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal';
@@ -107,7 +108,7 @@ function asegurarModal() {
     } catch (err) { mostrarError('No se pudo crear la cuenta. ' + err.message); }
   });
   document.getElementById('aula-btn-google').addEventListener('click', async () => {
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); cerrar(); }
+    try { await entrarConGoogle(auth); cerrar(); }
     catch { mostrarError('No se pudo iniciar con Google.'); }
   });
 }

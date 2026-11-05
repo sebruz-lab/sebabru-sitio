@@ -5,13 +5,10 @@ import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
     signOut,
-    GoogleAuthProvider,
-    signInWithPopup,
     sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const googleProvider = new GoogleAuthProvider();
+import { entrarConGoogle } from './google.js?v=1';
 
 // Mensaje genérico a propósito para auth/email-already-in-use: no confirma
 // ni niega si ese email ya tiene cuenta (evita que alguien lo use para
@@ -220,12 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnGoogle) {
         btnGoogle.onclick = async () => {
             try {
-                const result = await signInWithPopup(auth, googleProvider);
+                // entrarConGoogle hace elegir la cuenta y avisa con cuál
+                // entró (y si recén se creó), antes de seguir.
+                const { usuario: user } = await entrarConGoogle(auth);
                 // El popup se cerró — mostrar overlay inmediatamente
                 const loadingOverlay = document.getElementById('loading-overlay');
                 if (loadingOverlay) loadingOverlay.style.display = 'flex';
                 if (modal) modal.style.display = 'none';
-                const user = result.user;
                 const email = user.email.toLowerCase().trim();
 
                 // Verificamos si ya existe en la base de datos "cursos"

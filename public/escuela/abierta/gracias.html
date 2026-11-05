@@ -142,7 +142,8 @@
 
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-      import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { entrarConGoogle } from '/escuela/google.js?v=1';
       import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
       const firebaseConfig = {
@@ -230,7 +231,7 @@
         msg.style.display = 'none';
         btn.disabled = true;
         try {
-          await signInWithPopup(auth, new GoogleAuthProvider());
+          await entrarConGoogle(auth);
           // onAuthStateChanged (abajo) reacciona solo al login y sigue el flujo.
         } catch (err) {
           btn.disabled = false;
