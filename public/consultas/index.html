@@ -60,29 +60,43 @@ html, body { margin: 0; padding: 0; background: #000; }
     .consulta-cabecera { min-height: 52lvh; padding: 14lvh 20px 5lvh; }
 }
 
-/* ─── Los textos ─── */
-.consulta-texto {
-    max-width: 760px; margin: 0 auto; padding: 0 24px;
+/* ─── El bloque: imagen y texto, como los del home ─── */
+.bloque-consulta {
+    max-width: 1140px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: flex-start; gap: 56px;
     color: var(--curso-text); font-weight: 300; line-height: 1.85;
 }
+/* La imagen, con el mismo formato que .efecto-imagen del home. Queda fija
+   mientras se lee, que es como se ve alla cuando el texto entra al lado. */
+.consulta-imagen {
+    flex: none; width: 42%; max-width: 450px; aspect-ratio: 4 / 5;
+    object-fit: cover; border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    position: sticky; top: 48px;
+}
+.consulta-texto { flex: 1; min-width: 0; }
 .consulta-texto h3 {
     color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
-    text-transform: uppercase; margin: 46px 0 10px; font-weight: 400;
+    text-transform: uppercase; margin: 38px 0 12px; font-weight: 400;
 }
-.consulta-texto p { margin: 0 0 14px; font-size: 1rem; }
-@media (min-width: 769px) {
-    .consulta-texto p, .consulta-texto li { font-size: 1.12rem; }
-}
-.consulta-texto ul { margin: 0 0 14px; padding-left: 20px; }
-.consulta-texto li { margin-bottom: 8px; font-size: 1rem; }
+.consulta-texto > h3:first-child { margin-top: 0; }
+.consulta-texto p { margin: 0 0 16px; font-size: 1rem; }
+.consulta-texto ul { margin: 0 0 16px; padding-left: 20px; }
+.consulta-texto li { margin-bottom: 10px; font-size: 1rem; }
 .consulta-texto strong { color: #fff; font-weight: 500; }
-.consulta-imagen {
-    display: block; width: 100%; max-width: 760px; margin: 0 auto 10px;
-    border-radius: 14px;
+@media (min-width: 769px) {
+    .consulta-texto p, .consulta-texto li { font-size: 1.24rem; }
+    .consulta-texto h3 { font-size: 1rem; }
+    .consulta-valor { font-size: 1.15rem; }
+}
+@media (max-width: 768px) {
+    .bloque-consulta { flex-direction: column; gap: 28px; padding: 0 20px; }
+    .consulta-imagen { width: 100%; max-width: none; position: static; }
 }
 .consulta-valor {
     border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
-    padding: 16px 20px; margin: 26px 0 0; background: rgba(255,255,255,0.03);
+    padding: 18px 22px; margin: 30px 0 0; background: rgba(255,255,255,0.03);
+
 }
 
 /* ─── El formulario, que vive en formulario.html ─── */
@@ -123,9 +137,10 @@ html, body { margin: 0; padding: 0; background: #000; }
         <h2>Un espacio para mirarte en el espejo del cielo.</h2>
     </header>
 
-    <section class="consulta-texto" data-ga-visible="seccion_visible" data-ga-seccion="consultas" data-ga-producto="consulta">
+    <section class="bloque-consulta" data-ga-visible="seccion_visible" data-ga-seccion="consultas" data-ga-producto="consulta">
         <img src="../img/consultas.webp" alt="Consultas Astrológicas" class="consulta-imagen" loading="lazy">
 
+        <div class="consulta-texto">
         <h3>¿Qué es una carta Natal?</h3>
         <p>La carta Natal es un mapa del cielo en el momento en el que nacemos. Es una fotografía de cómo estaban los planetas y las estrellas en ese preciso instante. Mirando ese mapa, podemos entender las energías disponibles para nosotros, nuestras fortalezas, desafíos y propósitos de vida.</p>
         <p>Somos el eco de ese momento en el que nacemos. La carta natal nos permite reconocer ese patrón energético, aceptarlo y transformarlo. Es una herramienta poderosa para el autoconocimiento y la evolución personal.</p>
@@ -145,6 +160,7 @@ html, body { margin: 0; padding: 0; background: #000; }
 
         <div class="consulta-valor">
             <p style="margin:0;">El tiempo de espera aproximado para una sesión es de entre una y dos semanas. El valor de las sesiones es de 135.000$ por Mercado Pago, 120.000$ por transferencia o 90 dólares desde el exterior.</p>
+        </div>
         </div>
     </section>
 

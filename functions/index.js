@@ -1586,6 +1586,7 @@ const AVISOS_INSCRIPCION = 'info@sebabru.com';
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
+    columnaCarta: 'Carta',
     nombreEvento: 'Tu identidad en el cielo',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
@@ -1626,6 +1627,7 @@ const FORMULARIOS_INSCRIPCION = {
     // Seba le agrega columnas propias a esta hoja, asi que cada valor se
     // ubica por el titulo de su columna (ver asegurarHojaInscripcion).
     columnasPorEncabezado: true,
+    columnaCarta: 'Carta',
     nombreEvento: 'Consulta astrológica',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
@@ -1839,9 +1841,16 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     if (!spreadsheetId) throw new Error(`Falta la planilla del formulario ${formId}`);
     const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
     const encabezados = [etiquetaFecha, ...config.campos.map(c => c.label)];
+    if (config.columnaCarta) encabezados.push(config.columnaCarta);
     const titulos = await asegurarHojaInscripcion(
       sheets, spreadsheetId, config.hoja, encabezados, config.columnasPorEncabezado
     );
+
+    // La carta se arma antes de escribir la fila, asi la planilla dice si
+    // salio sola o si hay que hacerla a mano (pasa cuando el lugar de
+    // nacimiento no esta en el buscador y la persona lo escribe igual).
+    const carta = config.carta ? cartaDeInscripcion(valores, req.body?.lugar, config.carta.grupo) : null;
+    const estadoCarta = carta ? 'Sí' : 'No: el lugar no se eligió de la lista';
 
     const ahora = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
     let fila;
@@ -1850,9 +1859,11 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       // posicion quedo: asi la hoja se puede reordenar o ampliar a mano.
       const porTitulo = { [etiquetaFecha]: ahora };
       for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
+      if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
       fila = titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
     } else {
       fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
+      if (config.columnaCarta) fila.push(estadoCarta);
     }
 
     await sheets.spreadsheets.values.append({
@@ -1863,7 +1874,6 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       requestBody: { values: [fila] },
     });
 
-    const carta = config.carta ? cartaDeInscripcion(valores, req.body?.lugar, config.carta.grupo) : null;
     let cartaGuardada = false;
     if (carta) {
       try {
