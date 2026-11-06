@@ -208,8 +208,8 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" title="Por ejemplo 05/03/1990" required>
             </div>
             <div class="form-group">
-                <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(formato 24hs; si no la sabés exacta, poné la más aproximada)</span></label>
-                <input type="time" id="inp-hora-nacimiento" required>
+                <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(si no la sabés exacta, poné la más aproximada)</span></label>
+                <input type="text" id="inp-hora-nacimiento" required inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
             </div>
             <div class="form-group campo-lugar">
                 <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(empezá a escribir la ciudad o el pueblo y elegilo de la lista)</span></label>
@@ -451,11 +451,50 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
         if (!elegido) return normalizarFecha(texto, false);
         return anioCompleto(dos(elegido[0]) + '/' + dos(elegido[1]) + '/' + elegido[2]);
     }
+
+    // Hora a HH:MM desde lo que venga, al salir del campo. Copia de
+    // completarHora de la calculadora (mismo archivo que la fecha): si cambia
+    // alla, cambiarla aca. Entiende "9", "930", "9.30", "9 pm", "9 y media".
+    function completarHora(texto) {
+        const t = sinTildes(String(texto)).trim();
+        if (!t) return '';
+        if (/mediodia/.test(t)) return '12:00';
+        if (/medianoche/.test(t)) return '00:00';
+        const tarde = /(^|[^a-z])(pm|p\.m|tarde|noche)/.test(t);
+        const manana = /(^|[^a-z])(am|a\.m|manana|madrugada)/.test(t);
+        const media = /(y\s*)?media/.test(t) && !/mediodia|medianoche/.test(t);
+        const cuarto = /(y\s*)?cuarto/.test(t);
+        const nums = t.match(/\d+/g) || [];
+        if (!nums.length) return texto.trim();
+        let h;
+        let m = 0;
+        if (nums.length >= 2) {
+            h = +nums[0];
+            m = +nums[1];
+        } else {
+            const d = nums[0];
+            if (d.length === 4) { h = +d.slice(0, 2); m = +d.slice(2); }
+            else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+            else { h = +d; }
+        }
+        if (media && !m) m = 30;
+        if (cuarto && !m) m = 15;
+        if (!Number.isFinite(h) || !Number.isFinite(m) || m > 59) return texto.trim();
+        if (tarde && h < 12) h += 12;
+        if (manana && h === 12) h = 0;
+        if (h > 23) return texto.trim();
+        return dos(h) + ':' + dos(m);
+    }
+
     inpFecha.addEventListener('input', (e) => {
         inpFecha.value = normalizarFecha(inpFecha.value, !e.inputType || e.inputType.startsWith('insert'));
     });
     inpFecha.addEventListener('change', () => {
         inpFecha.value = completarFecha(inpFecha.value);
+    });
+    const inpHora = document.getElementById('inp-hora-nacimiento');
+    inpHora.addEventListener('change', () => {
+        inpHora.value = completarHora(inpHora.value);
     });
 
     form.addEventListener('submit', async (e) => {
@@ -483,6 +522,12 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 return;
             }
             if (window.gtag) gtag('event', 'lugar_sin_resultado', { formulario: 'consultas' });
+        }
+        inpHora.value = completarHora(inpHora.value);
+        const hora = inpHora.value.trim();
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+            mostrarError('No entendimos la hora de nacimiento. Escribila como 09:30 (o 9, 930, 9.30, 9 pm...).', 'hora');
+            return;
         }
         const modalidad = document.getElementById('inp-modalidad').value;
         if (!modalidad) {
