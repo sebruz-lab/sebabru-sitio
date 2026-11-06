@@ -2098,6 +2098,49 @@ function lugarDeGeoNames(g) {
   };
 }
 
+// Avisa que GeoNames dejo de atender (cuota agotada, o la cuenta sin
+// habilitar). Como el error se repite en cada consulta hasta que se arregla,
+// manda un solo mail cada 6 horas y no uno por intento.
+const AVISO_GEONAMES_CADA_MS = 6 * 60 * 60 * 1000;
+
+async function avisarGeoNamesCaido(estado) {
+  try {
+    const ref = _db.collection('avisos').doc('geonames');
+    const puedeAvisar = await _db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const ahora = Date.now();
+      if (snap.exists && (ahora - (snap.data().ultimo || 0)) < AVISO_GEONAMES_CADA_MS) return false;
+      tx.set(ref, { ultimo: ahora, mensaje: estado.message || '', codigo: estado.value ?? null });
+      return true;
+    });
+    if (!puedeAvisar) return;
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+    });
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: AVISOS_INSCRIPCION,
+      subject: 'El buscador de lugares se quedó sin respaldo',
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>GeoNames dejó de contestar, así que el buscador de los formularios
+        volvió a funcionar solo con el índice propio: los parajes y los pueblos
+        chicos de afuera no van a aparecer hasta que se normalice.</p>
+        <p>Los formularios siguen andando. Quien no encuentre su lugar lo va a
+        mandar igual, y esos pedidos quedan con <strong>Carta: No</strong> en la
+        planilla para hacerlos a mano.</p>
+        <p>Lo que contestó GeoNames:<br><em>${escapeHtml(estado.message || 'sin mensaje')}</em></p>
+        <p>Si es la cuota por hora, se arregla solo. Si se repite seguido, hay
+        que revisar el tope por IP o pasar a una cuenta paga.</p>
+      </div>`,
+    });
+  } catch (error) {
+    // Avisar es lo secundario: si falla, no rompemos la busqueda.
+    functions.logger.error('No se pudo avisar que GeoNames no atiende:', error.message);
+  }
+}
+
 exports.buscarLugar = functions.https.onRequest(async (req, res) => {
   ensureInit();
   setCors(req, res, 'GET, OPTIONS');
@@ -2115,9 +2158,11 @@ exports.buscarLugar = functions.https.onRequest(async (req, res) => {
     return res.json({ lugares: guardado.lugares });
   }
 
-  // GeoNames da 1.000 consultas por hora en total, asi que conviene que una
-  // sola IP no se las lleve puestas.
-  if (!await checkRateLimit('buscarLugar', req, 120)) {
+  // GeoNames da 1.000 consultas por hora para todo el sitio, asi que una
+  // sola IP no puede llevarselas puestas. Llenar el formulario gasta una o
+  // dos: 30 cada 10 minutos deja margen de sobra y frena a un bot enseguida.
+  // Pasarse no rompe nada: se pierde el respaldo, no el formulario.
+  if (!await checkRateLimit('buscarLugar', req, 30)) {
     return res.status(429).json({ lugares: [] });
   }
 
@@ -2142,8 +2187,10 @@ exports.buscarLugar = functions.https.onRequest(async (req, res) => {
     const data = await r.json();
 
     if (data.status) {
-      // Cuota agotada o cuenta sin habilitar: queda en el log para verlo.
+      // Cuota agotada o cuenta sin habilitar. El buscador sigue andando con
+      // el indice local, asi que nadie se daria cuenta: por eso avisamos.
       functions.logger.error('GeoNames no atendio', data.status);
+      await avisarGeoNamesCaido(data.status);
       return res.json({ lugares: [] });
     }
 

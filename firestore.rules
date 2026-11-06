@@ -72,6 +72,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Cada cuánto ya se avisó de algo (hoy, que GeoNames dejó de atender):
+    // lo escribe solo la Cloud Function.
+    match /avisos/{id} {
+      allow read, write: if false;
+    }
+
     match /codigos_descuento/{codigo} {
       // Lectura de un código puntual (ya conocido) sigue siendo publica, la
       // usa la pagina de checkout para validar el cupon que escribe el usuario.

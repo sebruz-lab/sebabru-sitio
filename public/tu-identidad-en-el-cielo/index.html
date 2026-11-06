@@ -190,15 +190,9 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 .btn-whatsapp { background: rgba(255,255,255,0.1); color: #e0e0e0; border-color: rgba(255,255,255,0.35); }
 .btn-whatsapp:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.65); transform: translateY(-2px); color: #e0e0e0; text-decoration: none; }
 
-.form-group label.sin-lugar {
-    display: flex; align-items: center; gap: 9px; cursor: pointer;
-    color: #cccac3; font-size: 0.95rem; text-transform: none;
-    letter-spacing: 0; margin: 0;
-}
-label.sin-lugar input { width: 17px; height: 17px; accent-color: #f7d239; cursor: pointer; }
-.sin-lugar-aviso { margin: 7px 0 0; color: #b9b7b0; font-size: 0.87rem; line-height: 1.5; display: none; }
-#lugar-ausente { margin-top: 10px; }
-#lugar-ausente.marcado .sin-lugar-aviso { display: block; }
+/* Mientras le preguntamos a GeoNames por un lugar que el indice local no
+   tiene: asi nadie lo da por perdido antes de tiempo. */
+.sugerencias .buscando { color: #cccac3; font-style: italic; }
 
 .error-msg {
     background: rgba(245,109,150,0.1); border: 1px solid #f56d96; color: #f56d96;
@@ -405,13 +399,6 @@ label.sin-lugar input { width: 17px; height: 17px; accent-color: #f7d239; cursor
                             <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off" required
                                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
                             <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
-                            <div id="lugar-ausente" hidden>
-                                <label class="sin-lugar">
-                                    <input type="checkbox" id="inp-sin-lugar">
-                                    <span>No encuentro mi lugar en la lista</span>
-                                </label>
-                                <p class="sin-lugar-aviso">Mandalo igual y la carta la calculamos a mano. Escribí el nombre completo: localidad, provincia y país.</p>
-                            </div>
                         </div>
                         <div class="form-group">
                             <label for="inp-modalidad">¿Cursás online o presencial?</label>
@@ -577,18 +564,12 @@ label.sin-lugar input { width: 17px; height: 17px; accent-color: #f7d239; cursor
     const errorMsg = document.getElementById('error-msg');
     const inpFecha = document.getElementById('inp-fecha-nacimiento');
     const captchaWrap = document.getElementById('captcha-wrap');
-    // El casillero para cuando el lugar no esta en el buscador: aparece al no
-    // encontrar nada, o al querer enviar sin haberlo elegido de la lista.
-    const bloqueSinLugar = document.getElementById('lugar-ausente');
-    const sinLugar = document.getElementById('inp-sin-lugar');
+    // La lista de sugerencias dice en que estamos: si avisa que no encontro
+    // nada, el lugar no existe en ningun lado y la inscripcion entra igual;
+    // si dice "Buscando...", todavia no sabemos.
     const listaLugar = document.getElementById('sugerencias-lugar');
-    sinLugar.addEventListener('change', () => {
-        bloqueSinLugar.classList.toggle('marcado', sinLugar.checked);
-        if (sinLugar.checked && window.gtag) gtag('event', 'lugar_sin_resultado', { formulario: 'tu-identidad-en-el-cielo' });
-    });
-    new MutationObserver(() => {
-        if (listaLugar.querySelector('.sin-resultados')) bloqueSinLugar.hidden = false;
-    }).observe(listaLugar, { childList: true });
+    const buscandoLugar = () => Boolean(listaLugar.querySelector('.buscando'));
+    const lugarNoEncontrado = () => Boolean(listaLugar.querySelector('.sin-resultados:not(.buscando)'));
     let captchaToken = '';
     let captchaWidgetId = null;
 
@@ -707,12 +688,19 @@ label.sin-lugar input { width: 17px; height: 17px; accent-color: #f7d239; cursor
             return;
         }
         // El lugar se elige de la lista, asi la carta sale con las coordenadas
-        // justas. Si no esta en el buscador, la inscripcion entra igual
-        // (marcando el casillero) y la carta se hace a mano.
-        if (!window.sbLugarElegido && !sinLugar.checked) {
-            bloqueSinLugar.hidden = false;
-            mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir. Si no aparece, marcá "No encuentro mi lugar en la lista" acá abajo y lo calculamos a mano.', 'lugar');
-            return;
+        // justas. Si no aparece en ningun lado, la inscripcion entra igual y
+        // la carta se hace a mano. Lo que no conviene es mandarlo sin elegir
+        // cuando la lista tiene justo el lugar: ahi la carta saldria sola.
+        if (!window.sbLugarElegido) {
+            if (buscandoLugar()) {
+                mostrarError('Esperá un segundo, estamos buscando ese lugar.', 'lugar');
+                return;
+            }
+            if (!lugarNoEncontrado()) {
+                mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir.', 'lugar');
+                return;
+            }
+            if (window.gtag) gtag('event', 'lugar_sin_resultado', { formulario: 'tu-identidad-en-el-cielo' });
         }
         const modalidad = document.getElementById('inp-modalidad').value;
         if (!modalidad) {
@@ -835,14 +823,33 @@ import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.11.0';
 // España enteros, y del resto del mundo solo lo de mas de 1000 habitantes),
 // se lo preguntamos a GeoNames por nuestra funcion. Si no contesta, el
 // buscador se queda como estaba.
-async function respaldoDeLugares(texto) {
-    try {
-        const r = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/buscarLugar?q=' + encodeURIComponent(texto));
-        if (!r.ok) return [];
-        return (await r.json()).lugares || [];
-    } catch {
-        return [];
-    }
+const cacheRespaldo = new Map();
+
+// Cada buscador necesita el suyo: para avisar "Buscando..." en su propia
+// lista, y para no salir a la red si la persona siguio escribiendo.
+function respaldoPara(campo, lista) {
+    return async function (texto) {
+        const clave = texto.trim().toLowerCase();
+        if (!clave) return [];
+        if (cacheRespaldo.has(clave)) return cacheRespaldo.get(clave);
+
+        lista.innerHTML = '<li class="sin-resultados buscando" role="presentation">Buscando...</li>';
+        lista.hidden = false;
+        // GeoNames da 1.000 consultas por hora para todo el sitio, asi que
+        // no vamos a la red en cada tecla: esperamos a que la persona frene.
+        await new Promise((listo) => setTimeout(listo, 350));
+        if (campo.value.trim().toLowerCase() !== clave) return [];
+
+        try {
+            const r = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/buscarLugar?q=' + encodeURIComponent(texto));
+            if (!r.ok) return [];
+            const lugares = (await r.json()).lugares || [];
+            cacheRespaldo.set(clave, lugares);
+            return lugares;
+        } catch {
+            return [];
+        }
+    };
 }
 
 window.sbLugarElegido = null;
@@ -860,12 +867,16 @@ conectarBuscador(campoLugar, document.getElementById('sugerencias-lugar'), (l) =
         return;
     }
     window.sbLugarElegido = (lugarRecordado && campoLugar.value.trim() === textoRecordado) ? lugarRecordado : null;
-}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoDeLugares });
+}, { sinResultados: 'No encontramos ese lugar. Si está bien escrito, envialo así.', respaldo: respaldoPara(campoLugar, document.getElementById('sugerencias-lugar')) });
 // El mismo buscador para la calculadora de mas abajo.
 window.sbLugarCalc = null;
-conectarBuscador(document.getElementById('calc-lugar'), document.getElementById('calc-sugerencias'), (l) => {
+const campoCalc = document.getElementById('calc-lugar');
+const listaCalc = document.getElementById('calc-sugerencias');
+conectarBuscador(campoCalc, listaCalc, (l) => {
     window.sbLugarCalc = l && { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
-}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoDeLugares });
+    // Aca no se puede seguir sin elegir: sin coordenadas no hay carta que
+    // calcular, asi que el aviso no invita a mandarlo igual.
+}, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoPara(campoCalc, listaCalc) });
 </script>
 
 <script type="module">
