@@ -1622,7 +1622,10 @@ const FORMULARIOS_INSCRIPCION = {
   consultas: {
     hoja: 'Consultas',
     // Las consultas van a su propia planilla, no a la de las inscripciones.
-    spreadsheet: process.env.SHEETS_SPREADSHEET_CONSULTAS,
+    // Se resuelve al atender el pedido, no al cargar el archivo: asi, si la
+    // variable no esta, se nota con un error en vez de escribir en la
+    // planilla de las inscripciones.
+    spreadsheetEnv: 'SHEETS_SPREADSHEET_CONSULTAS',
     etiquetaFecha: 'Fecha del pedido',
     // Seba le agrega columnas propias a esta hoja, asi que cada valor se
     // ubica por el titulo de su columna (ver asegurarHojaInscripcion).
@@ -1837,7 +1840,15 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
   try {
     const sheets = getSheetsClient();
-    const spreadsheetId = config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
+    // Si el formulario declara su propia planilla por variable de entorno y
+    // esa variable no llego al deploy, antes caia en silencio en la planilla
+    // de las inscripciones y escribia ahi: todo contestaba 200 y la fila
+    // aparecia en otro lado. Mejor fallar y que se vea.
+    if (config.spreadsheetEnv && !process.env[config.spreadsheetEnv]) {
+      throw new Error(`Falta ${config.spreadsheetEnv} en el entorno de la función (formulario ${formId})`);
+    }
+    const spreadsheetId = (config.spreadsheetEnv && process.env[config.spreadsheetEnv])
+      || config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
     if (!spreadsheetId) throw new Error(`Falta la planilla del formulario ${formId}`);
     const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
     const encabezados = [etiquetaFecha, ...config.campos.map(c => c.label)];
@@ -1866,12 +1877,25 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       if (config.columnaCarta) fila.push(estadoCarta);
     }
 
-    await sheets.spreadsheets.values.append({
+    // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a
+    // todas las columnas pegadas y, si alguna arrastra formato o una formula
+    // hasta el fondo de la hoja, la fila nueva termina mil filas mas abajo,
+    // lejos de los datos. Mirando solo la columna A (la fecha, que siempre
+    // escribimos nosotros) cae siempre despues del ultimo pedido.
+    const escrito = await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${config.hoja}!A1`,
+      range: `${config.hoja}!A:A`,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [fila] },
+    });
+    // En que planilla y en que celdas quedo, para no tener que adivinar
+    // cuando alguien no encuentra una fila.
+    functions.logger.info('Fila agregada', {
+      formId,
+      planilla: spreadsheetId,
+      rango: escrito.data?.updates?.updatedRange || '(no lo dijo)',
+      columnas: titulos.length,
     });
 
     let cartaGuardada = false;
