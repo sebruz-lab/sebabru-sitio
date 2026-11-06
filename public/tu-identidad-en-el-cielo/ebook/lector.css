@@ -169,6 +169,19 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
 .lector-flujo h4 .h4-glifo { display: block; color: var(--acento); margin: 0 auto 0.75em; line-height: 0; }
 .lector-flujo h4 .h4-glifo .glifo { width: 1.95em; height: 1.95em; }
 
+/* Ilustraciones del libro (la carta de tarot del capitulo El Sol) */
+.lector-flujo .ilustracion {
+    margin: 1.6em auto 1.7em; width: min(14em, 100%); break-inside: avoid;
+}
+.lector-flujo .ilustracion img {
+    display: block; width: 100%; height: auto; border-radius: 2px;
+}
+.lector-flujo .ilustracion figcaption {
+    margin-top: 0.6em; text-align: center; text-indent: 0;
+    font: 500 0.62em/1.3 var(--serif-texto);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--tenue);
+}
+
 .lector-flujo .nota-cierre {
     margin-top: 2.5em; text-align: center; text-indent: 0;
     font-style: italic; color: var(--tenue);
