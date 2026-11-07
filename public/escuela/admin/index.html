@@ -655,6 +655,11 @@
                     ? `${c.moneda === 'USD' ? 'USD ' : '$'}${Number(c.monto).toLocaleString('es-AR')}`
                     : '—';
                 const aConfirmar = /confirmar/.test(c.estado || '');
+                // facturaId lo escribe el facturador local (C:\dev\facturador-afip)
+                // cuando AFIP devuelve el CAE. Aca es solo informativo.
+                const facturada = c.facturaId
+                    ? `<span style="color:#7bbf8a">${escapeHtml(String(c.facturaId).replace(/^C-/, '').replace(/-homo$/, ''))}</span>${/-homo$/.test(c.facturaId) ? '<div style="font-size:0.72rem;color:var(--muted)">prueba</div>' : ''}`
+                    : '<span style="color:#555">—</span>';
                 return `
                     <tr>
                         <td style="font-size:0.78rem;color:var(--muted);white-space:nowrap">${fecha ? fecha.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
@@ -662,6 +667,7 @@
                         <td style="font-size:0.8rem">${c.email ? escapeHtml(c.email) : '<span style="color:#555">—</span>'}</td>
                         <td style="font-size:0.8rem">${escapeHtml(metodos[c.metodo] || c.metodo || '—')}<div style="font-size:0.72rem;color:${aConfirmar ? '#e0a040' : 'var(--muted)'}">${escapeHtml(c.estado || '')}${c.codigoDescuento ? ' · código ' + escapeHtml(c.codigoDescuento) : ''}</div></td>
                         <td style="white-space:nowrap">${escapeHtml(monto)}</td>
+                        <td style="font-size:0.8rem">${facturada}</td>
                         <td style="font-size:0.8rem">${textoOrigen(c.origen)}</td>
                     </tr>`;
             }).join('');
@@ -669,7 +675,7 @@
                 <div style="overflow-x:auto">
                     <table class="user-table">
                         <thead>
-                            <tr><th>Fecha</th><th>Producto</th><th>Email</th><th>Método</th><th>Monto</th><th>Origen</th></tr>
+                            <tr><th>Fecha</th><th>Producto</th><th>Email</th><th>Método</th><th>Monto</th><th>Factura</th><th>Origen</th></tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>

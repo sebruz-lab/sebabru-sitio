@@ -125,6 +125,20 @@ service cloud.firestore {
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
 
+    match /facturas/{id} {
+      // Las facturas C emitidas ante AFIP. Las escribe solo el facturador local
+      // (Admin SDK, no pasa por estas reglas); lxs admins las leen en el panel.
+      // Un comprobante emitido no se borra: se anula con nota de credito.
+      allow write: if false;
+      allow read: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    match /facturacion_estado/{id} {
+      // Candado para que no haya dos emisiones a la vez. Solo Admin SDK.
+      allow read, write: if false;
+    }
+
     // ---------- Calculadora de cartas (/tucarta) ----------
 
     // Textos de Sol, Luna y Ascendente y links de los botones: los lee
