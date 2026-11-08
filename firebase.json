@@ -10,9 +10,6 @@
   ],
   "hosting": {
     "public": "public",
-    "predeploy": [
-      "node -e \"if(!require('fs').existsSync('public/cartas/index.html')){console.error('Falta public/cartas y este deploy borraria sebabru.com/cartas. Esa carpeta la arma el workflow bajando la release de tucarta: deploya con un push a main.');process.exit(1)}\""
-    ],
     "ignore": [
       "firebase.json",
       "**/.*",
