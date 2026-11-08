@@ -9,7 +9,7 @@
 // Para usarlo:
 //   <div data-calc-lunacion></div>
 //   <script type="module" src="/calc-lunacion.js?v=1"></script>
-import { conectarBuscador, normalizarFecha, completarFecha } from '/cartas/buscador-lugares.js?v=1.11.0';
+import { conectarBuscador, normalizarFecha, completarFecha } from '/cartas/buscador-lugares.js?v=1.16.0';
 
 const TEXTO = 'En esta calculadora vas a poder saberlo con exactitud. '
     + 'Solo poné tus datos natales y enterate.';
