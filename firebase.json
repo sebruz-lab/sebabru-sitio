@@ -10,6 +10,9 @@
   ],
   "hosting": {
     "public": "public",
+    "predeploy": [
+      "node -e \"if(!require('fs').existsSync('public/cartas/index.html')){console.error('\n  La calculadora no esta en public/cartas: este deploy la borraria de sebabru.com/cartas.\n  Esa carpeta la arma el workflow bajando la release de tucarta; nunca se arma a mano.\n  Deploya con un push a main en vez de firebase deploy.\n');process.exit(1)}\""
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

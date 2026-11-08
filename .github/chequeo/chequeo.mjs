@@ -148,6 +148,18 @@ function chequearPrecios() {
 // 2. Servidor (Cloud Functions): pedidos inofensivos
 // ---------------------------------------------------------------
 async function chequearServidor() {
+    // La calculadora no vive en este repo: la baja el workflow desde la
+    // release de tucarta y la deja en public/cartas. Por eso el chequeo de
+    // enlaces la saltea, y por eso hay que mirarla en vivo: si un deploy
+    // sale sin esa carpeta, sebabru.com/cartas da 404 y nadie se entera.
+    for (const ruta of ['/cartas/', '/cartas/buscador-lugares.js']) {
+        try {
+            const r = await fetch(SITIO + ruta);
+            if (r.ok) ok('Calculadora', `\`${ruta}\` responde`);
+            else falla('Calculadora', `\`${ruta}\` respondió ${r.status}. Si es 404, el último deploy salió sin public/cartas: volvé a deployar con un push a main.`);
+        } catch (e) { falla('Calculadora', `\`${ruta}\` no responde: ${e.message}`); }
+    }
+
     // OPTIONS = la consulta previa del navegador: no crea nada.
     for (const fn of ['crearPago', 'crearPagoPaypal', 'crearPagoLibro', 'verificarPagoMP', 'guardarPedido', 'registrarTransferencia']) {
         try {
