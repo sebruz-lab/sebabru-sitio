@@ -1631,6 +1631,7 @@ const FORMULARIOS_INSCRIPCION = {
     // ubica por el titulo de su columna (ver asegurarHojaInscripcion).
     columnasPorEncabezado: true,
     columnaCarta: 'Carta',
+    columnasFijas: { Regalo: 'No' },
     nombreEvento: 'Consulta astrológica',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
@@ -1649,6 +1650,48 @@ const FORMULARIOS_INSCRIPCION = {
       parrafos: (nombre, conCarta, modalidad) => [
         `Hola, ${nombre}:`,
         'Recibimos tu pedido de consulta. Ya tenemos tus datos.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+        modalidad === 'Online'
+          ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
+          : modalidad === 'Presencial'
+            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
+            : '',
+        '¡Nos vemos pronto!<br>Seba',
+      ].filter(Boolean),
+    },
+  },
+
+  // La consulta que alguien regala: quien la recibe solo carga sus datos.
+  // Va a la misma hoja que las demas, marcada en la columna Regalo, para que
+  // la agenda se lea de un solo lado. Nada de precios ni de pago: eso ya lo
+  // arreglo quien la regalo.
+  'consultas-regalo': {
+    hoja: 'Consultas',
+    spreadsheetEnv: 'SHEETS_SPREADSHEET_CONSULTAS',
+    etiquetaFecha: 'Fecha del pedido',
+    columnasPorEncabezado: true,
+    columnaCarta: 'Carta',
+    columnasFijas: { Regalo: 'Sí' },
+    nombreEvento: 'Consulta regalada',
+    campos: [
+      { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
+      { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
+      { key: 'email', label: 'Email', maxLen: 200, requerido: true },
+      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20, requerido: true },
+      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20, requerido: true },
+      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200, requerido: true },
+      { key: 'modalidad', label: 'Modalidad', maxLen: 20, requerido: true, opciones: ['Presencial', 'Online'] },
+      { key: 'lugarCumpleanos', label: 'Dónde pasó el cumpleaños', maxLen: 200 },
+      { key: 'regalaQuien', label: 'Quién la regaló', maxLen: 200 },
+      { key: 'comentario', label: 'Algo más que quiera que sepamos', maxLen: 2000 },
+    ],
+    carta: { para: 'sebruz@gmail.com', grupo: 'Consultas' },
+    confirmacion: {
+      asunto: 'Tu consulta astrológica',
+      parrafos: (nombre, conCarta, modalidad) => [
+        `Hola, ${nombre}:`,
+        'Recibimos tus datos para la consulta que te regalaron. Está todo listo de tu lado.',
         conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
         'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
         modalidad === 'Online'
@@ -1853,6 +1896,9 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
     const encabezados = [etiquetaFecha, ...config.campos.map(c => c.label)];
     if (config.columnaCarta) encabezados.push(config.columnaCarta);
+    // Columnas que no vienen del formulario sino del formulario mismo (hoy,
+    // si la consulta es un regalo): el mismo valor en todas sus filas.
+    for (const titulo of Object.keys(config.columnasFijas || {})) encabezados.push(titulo);
     const titulos = await asegurarHojaInscripcion(
       sheets, spreadsheetId, config.hoja, encabezados, config.columnasPorEncabezado
     );
@@ -1871,10 +1917,12 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       const porTitulo = { [etiquetaFecha]: ahora };
       for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
       if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
+      Object.assign(porTitulo, config.columnasFijas || {});
       fila = titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
     } else {
       fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
       if (config.columnaCarta) fila.push(estadoCarta);
+      fila.push(...Object.values(config.columnasFijas || {}));
     }
 
     // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a

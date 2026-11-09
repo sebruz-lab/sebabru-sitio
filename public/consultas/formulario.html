@@ -231,6 +231,10 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                     role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-cumpleanos">
                 <ul id="sugerencias-cumpleanos" class="sugerencias" role="listbox" hidden></ul>
             </div>
+            <div class="form-group" id="grupo-regala" hidden>
+                <label for="inp-regala">¿Quién te regaló la consulta? <span class="opcional">(opcional)</span></label>
+                <input type="text" id="inp-regala" maxlength="200" autocomplete="off">
+            </div>
             <div class="form-group">
                 <label for="inp-comentario">¿Alguna otra cosa que quieras que sepamos? <span class="opcional">(opcional)</span></label>
                 <textarea id="inp-comentario" maxlength="2000" rows="4"></textarea>
@@ -244,7 +248,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 
     <div id="pago-pendiente">
         <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-        <p style="color:#fff; text-align:center; text-align-last:center; font-size:1.05rem; line-height:1.6; margin-bottom:10px;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para coordinar tu sesión.</p>
+        <p id="aviso-listo" style="color:#fff; text-align:center; text-align-last:center; font-size:1.05rem; line-height:1.6; margin-bottom:10px;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para coordinar tu sesión.</p>
         <p style="color:var(--curso-text); text-align:center; text-align-last:center; font-size:0.93rem; line-height:1.6; margin-bottom:30px;">Cualquier duda podés escribirle a Clari: <a id="wa-clari" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--curso-theme); white-space:nowrap;">3544 559877</a></p>
 
         <details id="desplegable-pago">
@@ -313,6 +317,19 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 <script src="../medicion.js?v=3"></script>
 
 <script>
+// La consulta regalada (#modo=regalo): se pregunta quien la regalo y, al
+// terminar, no se habla de pago. Lo usa /consultas/regalo.
+const esRegalo = /(^|[#&])modo=regalo/.test(location.hash);
+if (esRegalo) {
+    document.getElementById('grupo-regala').hidden = false;
+    document.title = 'Tu consulta de regalo | Seba Bru';
+    document.querySelector('.titulo-form').textContent = 'Dejanos tus datos y coordinamos el encuentro';
+    // La consulta ya esta pagada por quien la regalo: nada de precios.
+    document.getElementById('desplegable-pago').hidden = true;
+    document.getElementById('aviso-listo').textContent =
+        '¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para coordinar tu sesión.';
+}
+
 // Vista previa: es el modo con el que entra en el home (#vista=previa). Los
 // campos quedan a la vista pero no se tocan; al primer toque le pedimos a la
 // pagina de alrededor que abra el formulario a pantalla completa, asi nada de
@@ -547,7 +564,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    formId: 'consultas',
+                    formId: esRegalo ? 'consultas-regalo' : 'consultas',
                     campos: {
                         nombre: document.getElementById('inp-nombre').value.trim(),
                         telefono: document.getElementById('inp-telefono').value.trim(),
@@ -557,6 +574,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                         lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
                         modalidad,
                         lugarCumpleanos: document.getElementById('inp-lugar-cumpleanos').value.trim(),
+                        regalaQuien: document.getElementById('inp-regala').value.trim(),
                         comentario: document.getElementById('inp-comentario').value.trim(),
                     },
                     lugar: window.sbLugarElegido || null,
@@ -576,7 +594,7 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
 
             document.getElementById('form-wrap').style.display = 'none';
             document.getElementById('pago-pendiente').classList.add('visible');
-            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'consultas' });
+            if (window.gtag) gtag('event', 'inscripcion', { formulario: esRegalo ? 'consultas-regalo' : 'consultas' });
         } catch (err) {
             mostrarError(err.message || 'No pudimos registrar tu pedido. Probá de nuevo.', 'servidor');
         } finally {
