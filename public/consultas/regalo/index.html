@@ -44,9 +44,8 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 /* ─── Cabecera ─── */
 .consulta-cabecera {
-    min-height: 52vh;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 14vh 20px 5vh;
+    text-align: center; padding: 16vh 20px 2vh;
 }
 .consulta-cabecera h1 {
     color: #fff; font-size: clamp(2rem, 5.5vw, 3.2rem);
@@ -57,41 +56,12 @@ html, body { margin: 0; padding: 0; background: #000; }
     margin: 0; font-weight: 300; letter-spacing: 0.06em; text-transform: none;
 }
 @supports (height: 1lvh) {
-    .consulta-cabecera { min-height: 52lvh; padding: 14lvh 20px 5lvh; }
-}
-
-/* ─── El bloque: imagen y texto, igual que en /consultas ─── */
-.bloque-consulta {
-    max-width: 1140px; margin: 0 auto; padding: 0 24px;
-    display: flex; align-items: flex-start; gap: 56px;
-    color: var(--curso-text); font-weight: 300; line-height: 1.85;
-}
-.consulta-imagen {
-    flex: none; width: 42%; max-width: 450px; aspect-ratio: 4 / 5;
-    object-fit: cover; border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    position: sticky; top: 48px;
-}
-.consulta-texto { flex: 1; min-width: 0; }
-.consulta-texto h3 {
-    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
-    text-transform: uppercase; margin: 38px 0 12px; font-weight: 400;
-}
-.consulta-texto > h3:first-child { margin-top: 0; }
-.consulta-texto p { margin: 0 0 16px; font-size: 1rem; }
-.consulta-texto strong { color: #fff; font-weight: 500; }
-@media (min-width: 769px) {
-    .consulta-texto p { font-size: 1.24rem; }
-    .consulta-texto h3 { font-size: 1rem; }
-}
-@media (max-width: 768px) {
-    .bloque-consulta { flex-direction: column; gap: 28px; padding: 0 20px; }
-    .consulta-imagen { width: 100%; max-width: none; position: static; }
+    .consulta-cabecera { padding: 16lvh 20px 2lvh; }
 }
 
 /* ─── El formulario, que vive en ../formulario.html ─── */
 #form-consultas {
-    max-width: 760px; margin: 76px auto 110px; padding: 0 24px; box-sizing: border-box;
+    max-width: 760px; margin: 24px auto 110px; padding: 0 24px; box-sizing: border-box;
 }
 #iframe-formulario {
     width: 100%; border: 0; display: block; min-height: 760px;
@@ -119,28 +89,9 @@ html, body { margin: 0; padding: 0; background: #000; }
 
 <main>
     <header class="consulta-cabecera">
-        <h1>Te regalaron una consulta</h1>
-        <h2>Un espacio para mirarte en el espejo del cielo.</h2>
+        <h1>Felicitaciones</h1>
+        <h2>te regalaron una Sesión con Seba Bru.</h2>
     </header>
-
-    <section class="bloque-consulta" data-ga-visible="seccion_visible" data-ga-seccion="consulta-regalo" data-ga-producto="consulta">
-        <img src="../../img/consultas.webp" alt="Consultas Astrológicas" class="consulta-imagen" loading="lazy">
-
-        <div class="consulta-texto">
-        <h3>¿Qué es una carta Natal?</h3>
-        <p>La carta Natal es un mapa del cielo en el momento en el que nacemos. Es una fotografía de cómo estaban los planetas y las estrellas en ese preciso instante. Mirando ese mapa, podemos entender las energías disponibles para nosotros, nuestras fortalezas, desafíos y propósitos de vida.</p>
-        <p>Somos el eco de ese momento en el que nacemos. La carta natal nos permite reconocer ese patrón energético, aceptarlo y transformarlo. Es una herramienta poderosa para el autoconocimiento y la evolución personal.</p>
-
-        <h3>¿Qué sucede en una consulta astrológica?</h3>
-        <p>En una consulta astrológica hay una gran búsqueda: acompañar los procesos de quien consulta. La astrología nos brinda un lenguaje simbólico que nos permite comprender lo que nos sucede. Es una guía para reconocer patrones, entender nuestro potencial y transitar desafíos con mayor conciencia.</p>
-        <p>Exploramos juntos tu carta natal, tus inquietudes y los temas que te resuenan. La idea es que te lleves claridad y herramientas para navegar tu camino. Es un espacio de escucha activa y reflexión profunda, donde la astrología se convierte en un puente hacia tu interior.</p>
-        <p>Las consultas duran entre una hora y media y dos horas, e incluyen el registro de un audio y una imagen digital de tu carta.</p>
-
-        <h3>¿Qué tenés que hacer?</h3>
-        <p>Nada más que dejarnos tus datos de nacimiento acá abajo. Con eso calculamos tu carta y te la mandamos por mail para que revises que esté todo bien.</p>
-        <p>Después te escribimos para coordinar el día y la hora del encuentro. El tiempo de espera es de entre una y dos semanas.</p>
-        </div>
-    </section>
 
     <section id="form-consultas">
         <!-- El titulo lo pone el formulario, adentro del iframe. -->
