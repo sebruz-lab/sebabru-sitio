@@ -35,6 +35,16 @@
         </header>
 
         <main>
+
+            <!-- El formulario lo arma /suscribirse.js: no tocar el div. El kit
+                 queda accesible abajo igual, sin muro: preferimos menos mails
+                 pero de gente que los quiere de verdad. -->
+            <section class="section-container fade-in-element" style="padding-bottom: 0;">
+                <div data-suscribirse data-origen="kit"
+                     data-titulo="Te lo mandamos por mail"
+                     data-texto="Si querés, te dejo el kit y los informes de cada lunación en tu casilla. El material de abajo lo podés usar igual, sin dejar nada."></div>
+            </section>
+
              <section id="contenido" class="section-container section-contenido fade-in-element">
                         <div class="layout-wrapper-special">
                 <div class="special-column">
@@ -191,5 +201,6 @@
   gtag('config', 'G-GDLRMR5D57');
 </script>
     <script src="../script.js"></script>
+    <script src="/suscribirse.js?v=1" defer></script>
 </body>
 </html>

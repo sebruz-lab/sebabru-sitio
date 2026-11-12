@@ -174,10 +174,10 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
             <h3>El Sol, la Luna y el Ascendente en tu carta natal</h3>
             <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
             <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
-            <p>⏰ Viernes 13, 20 y 27 de noviembre · 💵 $40.000 (presencial en Villa de las Rosas o por Zoom)</p>
+            <p>📖 El libro online, gratis · 🕒 Tres clases grabadas, a tu ritmo</p>
 
            <div class="grupo-botones-sutiles">
-    <a href="/tu-identidad-en-el-cielo/" class="btn-sutil">Anotarme</a>
+    <a href="/tu-identidad-en-el-cielo/" class="btn-sutil">Ver el curso</a>
 </div>
         </div>
 
@@ -378,6 +378,14 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
                 Telegram
             </a>
         </div>
+
+        <!-- El formulario lo arma /suscribirse.js: no tocar el div. Va adentro
+             de la tarjeta porque los bloques de esta pagina estan ubicados por
+             coordenadas (data-x / data-y) y una seccion nueva habria que
+             ubicarla a mano en el recorrido. -->
+        <div data-suscribirse data-origen="home" style="margin: 36px auto 0;"
+             data-titulo="O por mail, dos veces al mes"
+             data-texto="El informe de cada luna nueva y cada luna llena, con lo que conviene mirar de tu carta."></div>
 
     </div>
 </section>
@@ -1109,6 +1117,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
   gtag('config', 'G-GDLRMR5D57');
 </script>
     <script src="script.js?v=25" defer></script>
+    <script src="/suscribirse.js?v=1" defer></script>
 <style>
 .yt-facade {
     position: relative;

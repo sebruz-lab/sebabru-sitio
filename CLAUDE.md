@@ -15,6 +15,16 @@ Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerS
 - Archivos en `public/`
 - Imágenes en `public/img/` — deben estar descargadas de Google Drive antes de deployar
 
+## Mailing (Brevo)
+
+- Cliente de la API: `functions/brevo.js` (fetch nativo, sin SDK). Hay una copia en `C:\dev\herramientas-sebabru\brevo.js`: si cambia uno, copiar al otro.
+- **Un fallo de Brevo nunca puede romper una compra ni una inscripción.** Las altas se encolan en la colección `brevo_contactos` de Firestore y las procesa el trigger `sincronizarContactoBrevo`. No llamar a Brevo en línea desde un `onRequest`: la instancia se congela después del `res.send()`.
+- El único que llama en línea es `exports.suscribir`, porque ahí Brevo es el flujo. Si falla, encola con `doi: true` y contesta que el mail va a demorar.
+- Mientras `BREVO_API_KEY` esté vacía en `functions/.env`, todo el mailing es un no-op que loguea un warning. **Pero `suscribir` contesta 503 `no_configurado` a propósito**: nunca decirle a alguien que revise su casilla si el mail no va a salir.
+- Los transaccionales (confirmaciones, accesos, la carta en PDF) **siguen en nodemailer/Gmail**, no en Brevo. El plan gratis tiene 300 mails por día compartidos: una newsletter grande dejaría sin mail a quien acaba de comprar.
+- Orden de deploy: primero las functions y la configuración de Brevo, después el frontend. Al revés, el formulario queda publicado contra un endpoint que no existe.
+- Las herramientas de listas, migración y campañas están en `C:\dev\herramientas-sebabru` (ver `BREVO.md` ahí).
+
 ## OG Tags
 
 Toda página nueva debe incluir estos 6 meta OG en el `<head>`:

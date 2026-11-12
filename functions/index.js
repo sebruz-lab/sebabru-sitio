@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { sheets: sheetsApi } = require('@googleapis/sheets');
 const { JWT } = require('google-auth-library');
+const brevo = require('./brevo');
 
 const CURSO_URLS = {
   luna:      '/escuela/abierta/luna/',
@@ -123,7 +124,30 @@ async function registrarCompra(id, datos) {
     if (e.code !== 6 /* ALREADY_EXISTS */) {
       functions.logger.error('No se pudo registrar la compra', { id, message: e.message });
     }
+    // Sea porque ya estaba (el webhook y verificarPagoMP llegan los dos) o
+    // porque fallo, no encolamos el contacto: asi no se duplica el alta.
+    return;
   }
+
+  // Una transferencia se declara, no se confirma: queda anotada igual,
+  // pero sin fecha de compra, para no contar como ingreso algo que todavia
+  // no entro.
+  const declarada = datos.estado === 'pendiente' || datos.metodo === 'transferencia';
+  await encolarContactoBrevo({
+    email: datos.email,
+    nombre: datos.nombre || '',
+    listas: [datos.tipo === 'libro' ? 'libro'
+      : PRODUCTOS_SIN_ACCESO.has(datos.producto) ? 'consultas'
+      : 'alumnos'],
+    atributos: {
+      ORIGEN: 'compra',
+      CONSENTIMIENTO: 'relacion-comercial',
+      UTM: utmComoTexto(datos.origen),
+      PRODUCTO_ULTIMO: `${declarada ? 'pendiente: ' : ''}${datos.nombre || datos.producto || ''}`.slice(0, 200),
+      ...(declarada ? {} : { ULTIMA_COMPRA: brevo.fechaBrevo(new Date()) }),
+    },
+    motivo: 'compra',
+  });
 }
 
 // Pago de algo que no es un curso: no hay nada que entregar automaticamente,
@@ -253,6 +277,47 @@ async function verificarTurnstile(token, req) {
     functions.logger.error('Error verificando captcha', e.message);
     return false;
   }
+}
+
+// -------------------------------------------------------
+// Mailing (Brevo). El alta de un contacto NO se hace en linea desde una
+// compra ni desde una inscripcion: se deja un pedido en "brevo_contactos" y
+// lo levanta el trigger sincronizarContactoBrevo. Dos razones:
+//
+//  1. Si Brevo esta caido o lento, el cobro y la inscripcion siguen igual.
+//  2. En un onRequest no se puede dejar una promesa sin await: la instancia
+//     se congela despues del res.send() y la llamada queda a medias o se
+//     ejecuta en la invocacion siguiente. La cola lo resuelve bien, y es el
+//     mismo patron que ya usamos con envios_carta.
+//
+// Encolar es un add() a Firestore y va siempre dentro de un try/catch que
+// solo loguea: tampoco el encolado puede romper nada.
+async function encolarContactoBrevo(datos) {
+  if (!datos || !datos.email) return;
+  try {
+    await _db.collection('brevo_contactos').add({
+      ...datos,
+      email: String(datos.email).trim().toLowerCase(),
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo encolar el contacto para el mailing:', error.message);
+  }
+}
+
+// Los cursos de un usuario como texto, que es lo que entiende Brevo (no
+// tiene atributos de tipo lista).
+function cursosComoTexto(cursos) {
+  return (Array.isArray(cursos) ? cursos : []).join(', ');
+}
+
+// El origen de una compra ({utm_source, utm_medium, ...}) resumido en una
+// linea, para que entre en el atributo UTM.
+function utmComoTexto(origen) {
+  if (!origen || typeof origen !== 'object') return '';
+  // Solo de donde vino, no la landing ni la fecha: eso ya esta en "compras".
+  return ['source', 'medium', 'campaign', 'gclid']
+    .map(k => origen[k]).filter(Boolean).join('/').slice(0, 200);
 }
 
 async function validarCodigo(codigo, cursoId) {
@@ -1583,11 +1648,22 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
 // A donde llegan los avisos de cada inscripcion (pedido de Seba, 2026-11).
 const AVISOS_INSCRIPCION = 'info@sebabru.com';
 
+// El consentimiento para la newsletter, aparte de la inscripcion: quien
+// pide una consulta entra en la lista de consultas igual (es comunicacion
+// sobre algo que pidio), pero a la lista de lunaciones solo entra si marca
+// el casillero, que en el formulario viene desmarcado. Va como "campo
+// final" para que la columna caiga al final de la planilla, y asi queda
+// escrito con fecha, que es el respaldo si alguien alguna vez pregunta de
+// donde salio su direccion.
+const CAMPO_NOVEDADES = { key: 'novedades', label: 'Quiere novedades', maxLen: 3, opciones: ['Sí', 'No'] };
+
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
     columnaCarta: 'Carta',
     nombreEvento: 'Tu identidad en el cielo',
+    camposFinales: [CAMPO_NOVEDADES],
+    brevoLista: 'alumnos',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
       { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
@@ -1633,6 +1709,8 @@ const FORMULARIOS_INSCRIPCION = {
     columnaCarta: 'Carta',
     columnasFijas: { Regalo: 'No' },
     nombreEvento: 'Consulta astrológica',
+    camposFinales: [CAMPO_NOVEDADES],
+    brevoLista: 'consultas',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
       { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
@@ -1674,6 +1752,8 @@ const FORMULARIOS_INSCRIPCION = {
     columnaCarta: 'Carta',
     columnasFijas: { Regalo: 'Sí' },
     nombreEvento: 'Consulta regalada',
+    camposFinales: [CAMPO_NOVEDADES],
+    brevoLista: 'consultas',
     campos: [
       { key: 'nombre', label: 'Nombre', maxLen: 200, requerido: true },
       { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
@@ -1870,7 +1950,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
   const camposRecibidos = (req.body?.campos && typeof req.body.campos === 'object') ? req.body.campos : {};
   const valores = {};
-  for (const campo of config.campos) {
+  for (const campo of [...config.campos, ...(config.camposFinales || [])]) {
     const valor = sanitizeTexto(camposRecibidos[campo.key], campo.maxLen);
     if (campo.requerido && !valor) {
       return res.status(400).json({ error: `Falta el campo obligatorio: ${campo.label}` });
@@ -1899,6 +1979,10 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     // Columnas que no vienen del formulario sino del formulario mismo (hoy,
     // si la consulta es un regalo): el mismo valor en todas sus filas.
     for (const titulo of Object.keys(config.columnasFijas || {})) encabezados.push(titulo);
+    // Los campos "finales" van despues de la columna Carta y de las fijas,
+    // asi un campo nuevo del formulario no corre ninguna columna que ya
+    // tenga datos en la planilla.
+    for (const c of config.camposFinales || []) encabezados.push(c.label);
     const titulos = await asegurarHojaInscripcion(
       sheets, spreadsheetId, config.hoja, encabezados, config.columnasPorEncabezado
     );
@@ -1918,11 +2002,13 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
       if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
       Object.assign(porTitulo, config.columnasFijas || {});
+      for (const c of config.camposFinales || []) porTitulo[c.label] = valores[c.key] || '';
       fila = titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
     } else {
       fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
       if (config.columnaCarta) fila.push(estadoCarta);
       fila.push(...Object.values(config.columnasFijas || {}));
+      fila.push(...(config.camposFinales || []).map(c => valores[c.key] || ''));
     }
 
     // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a
@@ -1967,7 +2053,27 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       }
     }
 
-    const filasHtml = config.campos.map(c =>
+    // Y el alta en el mailing, por la misma cola. A la lista del formulario
+    // entra siempre; a la de lunaciones, solo si marco el casillero.
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
+      const quiereNovedades = valores.novedades === 'Sí';
+      await encolarContactoBrevo({
+        email: valores.email,
+        nombre: valores.nombre || '',
+        listas: [
+          ...(config.brevoLista ? [config.brevoLista] : []),
+          ...(quiereNovedades ? ['suscriptores'] : []),
+        ],
+        atributos: {
+          ORIGEN: `formulario-${formId}`,
+          CONSENTIMIENTO: quiereNovedades ? 'formulario-checkbox' : 'relacion-comercial',
+          TELEFONO_TXT: valores.telefono || '',
+        },
+        motivo: `inscripcion:${formId}`,
+      });
+    }
+
+    const filasHtml = [...config.campos, ...(config.camposFinales || [])].map(c =>
       `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
     ).join('') + (config.carta
       ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
@@ -2281,5 +2387,328 @@ exports.buscarLugar = functions.https.onRequest(async (req, res) => {
   } catch (error) {
     functions.logger.error('No se pudo preguntar a GeoNames:', error.message);
     return res.json({ lugares: [] });
+  }
+});
+
+// -------------------------------------------------------
+// suscribir: el alta a la newsletter desde el formulario del sitio, con
+// doble opt-in. Brevo guarda el contacto sin confirmar y lo mete en la
+// lista recien cuando la persona hace clic en el mail que le llega, asi la
+// lista solo tiene direcciones de gente que quiso estar (y que existe).
+//
+// Es el unico lugar que le habla a Brevo en linea, porque aca Brevo ES el
+// flujo: sin el no hay nada que contestar. Igual tiene plan B, abajo.
+// -------------------------------------------------------
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// De donde se puede suscribir alguien. Es una lista cerrada a proposito:
+// el atributo ORIGEN de Brevo no puede ser texto libre que venga del
+// navegador.
+const ORIGENES_SUSCRIPCION = new Set([
+  'home', 'lunanueva', 'lunallena', 'kit', 'links', 'suscribirse', 'formulario',
+]);
+
+// Los errores de tipeo mas comunes en el dominio. No se rechaza la
+// direccion: se le ofrece la correccion, que es lo que salva la
+// suscripcion.
+const DOMINIOS_TIPEADOS = {
+  'gmail.con': 'gmail.com', 'gmai.com': 'gmail.com', 'gmial.com': 'gmail.com',
+  'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com', 'gamil.com': 'gmail.com',
+  'hotmial.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'hotmai.com': 'hotmail.com',
+  'yahoo.co': 'yahoo.com', 'outlook.con': 'outlook.com', 'icloud.con': 'icloud.com',
+};
+
+exports.suscribir = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  // Mas bajo que en los formularios de inscripcion: nadie se suscribe cinco
+  // veces en diez minutos.
+  if (!(await checkRateLimit('suscribir', req, 5))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  // Honeypot: un campo que la persona no ve y que los bots llenan igual. Se
+  // contesta que salio todo bien y no se hace nada, asi el bot no aprende
+  // que fue descubierto.
+  if (sanitizeTexto(req.body?.hp, 200)) {
+    functions.logger.info('Suscripción descartada por el honeypot.');
+    return res.status(200).json({ ok: true, estado: 'doi_enviado' });
+  }
+
+  // El captcha desde el primer envio, al contrario de registrarInscripcion,
+  // que deja pasar los dos primeros. Un formulario de un campo es el blanco
+  // favorito de los bots de listas, y el widget invisible no molesta a
+  // nadie.
+  if (!(await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req))) {
+    return res.status(400).json({ error: 'captcha_requerido' });
+  }
+
+  const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  if (!EMAIL_VALIDO.test(email)) {
+    return res.status(400).json({ error: 'email_invalido' });
+  }
+
+  const [parte, dominio] = email.split('@');
+  if (DOMINIOS_TIPEADOS[dominio]) {
+    return res.status(400).json({
+      error: 'email_sospechoso',
+      sugerencia: `${parte}@${DOMINIOS_TIPEADOS[dominio]}`,
+    });
+  }
+
+  if (req.body?.consentimiento !== true) {
+    return res.status(400).json({ error: 'consentimiento_requerido' });
+  }
+
+  const nombre = sanitizeTexto(req.body?.nombre, 100);
+  const origenCrudo = sanitizeTexto(req.body?.origen, 40);
+  const origen = ORIGENES_SUSCRIPCION.has(origenCrudo) ? origenCrudo : 'otro';
+
+  const atributos = {
+    ORIGEN: origen,
+    UTM: utmComoTexto(sanitizeOrigen(req.body?.utm)),
+    FECHA_ALTA: brevo.fechaBrevo(new Date()),
+    CONSENTIMIENTO: 'doi-sitio',
+  };
+  const redirectUrl = `${process.env.SITE_URL || 'https://sebabru.com'}/suscripcion/confirmado/`;
+
+  // La constancia del consentimiento queda tambien de este lado, no solo en
+  // Brevo: con fecha, origen e IP. Es lo que prueba de donde salio cada
+  // direccion si alguna vez alguien pregunta, y sobrevive a un cambio de
+  // proveedor de mailing.
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  const anotarPedido = async estado => {
+    try {
+      await _db.collection('suscripciones').doc(email).set({
+        email,
+        origen,
+        nombre: nombre || '',
+        ip,
+        userAgent: sanitizeTexto(req.headers['user-agent'], 300),
+        estado,
+        pedido: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+      functions.logger.error('No se pudo anotar la suscripción:', error.message);
+    }
+  };
+
+  // Sin la llave de Brevo no hay mail de confirmacion posible. Lo importante
+  // es NO contestar "revisa tu casilla", porque ese mail no va a llegar
+  // nunca: se guarda el pedido para no perder a nadie y se dice la verdad.
+  // Pasa si el formulario se publica antes de configurar Brevo.
+  if (!brevo.brevoConfigurado()) {
+    functions.logger.error('Alguien quiso suscribirse y BREVO_API_KEY no esta configurada.');
+    await encolarContactoBrevo({
+      email, nombre, listas: ['suscriptores'], atributos,
+      doi: true, redirectUrl, motivo: 'suscripcion',
+    });
+    await anotarPedido('sin_configurar');
+    return res.status(503).json({ error: 'no_configurado' });
+  }
+
+  try {
+    // Si ya esta en la lista no se le manda otro mail: si no, el formulario
+    // serviria para molestar a cualquiera cargando su direccion una y otra
+    // vez.
+    const contacto = await brevo.obtenerContacto(email);
+    const idSuscriptores = brevo.idsDeListas(['suscriptores'])[0];
+    if (contacto && idSuscriptores && (contacto.listIds || []).includes(idSuscriptores)) {
+      await anotarPedido('ya_suscrito');
+      return res.status(200).json({ ok: true, estado: 'ya_suscrito' });
+    }
+
+    await brevo.pedirDobleOptin({ email, nombre, atributos, listas: ['suscriptores'], redirectUrl });
+    await anotarPedido('pendiente');
+    functions.logger.info('Doble opt-in pedido', { origen });
+    return res.status(200).json({ ok: true, estado: 'doi_enviado' });
+
+  } catch (error) {
+    // Brevo no contesto. En vez de perder a quien se quiso suscribir, el
+    // pedido queda en la cola con doi:true y el trigger lo reintenta: el
+    // mail de confirmacion sale igual, un rato mas tarde. Nunca se lo mete
+    // en la lista sin confirmar.
+    functions.logger.error('Brevo no respondió al pedir el doble opt-in:', error.message);
+    await encolarContactoBrevo({
+      email, nombre, listas: ['suscriptores'], atributos,
+      doi: true, redirectUrl, motivo: 'suscripcion',
+    });
+    await anotarPedido('reintentando');
+    return res.status(200).json({ ok: true, estado: 'doi_demorado' });
+  }
+});
+
+// -------------------------------------------------------
+// sincronizarContactoBrevo: el que vacia la cola de brevo_contactos. Cada
+// compra y cada inscripcion deja ahi un pedido en vez de llamar a Brevo en
+// el momento, asi un problema del mailing no puede demorar ni romper un
+// cobro.
+//
+// retry en true: si Brevo esta caido, Cloud Functions reintenta solo. Pero
+// un error permanente (una direccion que Brevo rechaza) no se reintenta al
+// infinito: se anota en el documento y queda ahi para mirarlo.
+// -------------------------------------------------------
+
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
+
+exports.sincronizarContactoBrevo = onDocumentCreated({
+  document: 'brevo_contactos/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  retry: true,
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+  const pedido = event.data?.data();
+  if (!pedido || !EMAIL_VALIDO.test(pedido.email || '')) return;
+
+  // Sin llave no hay nada que hacer, y reintentarlo no la va a traer.
+  if (!brevo.brevoConfigurado()) {
+    functions.logger.warn('Pedido de mailing sin BREVO_API_KEY: queda en la cola.', { id: event.params.id });
+    return;
+  }
+
+  try {
+    if (pedido.doi) {
+      await brevo.pedirDobleOptin({
+        email: pedido.email,
+        nombre: pedido.nombre,
+        atributos: pedido.atributos,
+        listas: pedido.listas,
+        redirectUrl: pedido.redirectUrl,
+      });
+    } else {
+      await brevo.upsertContacto({
+        email: pedido.email,
+        nombre: pedido.nombre,
+        listas: pedido.listas,
+        atributos: pedido.atributos,
+        quitarDeListas: pedido.quitarDeListas,
+      });
+    }
+    // Listo: la cola no tiene por que crecer.
+    await event.data.ref.delete();
+  } catch (error) {
+    const permanente = error instanceof brevo.BrevoError
+      && error.status >= 400 && error.status < 500 && error.status !== 429;
+
+    if (permanente) {
+      functions.logger.error('Brevo rechazó el contacto, no se reintenta:', { message: error.message, code: error.code });
+      await event.data.ref.update({
+        error: String(error.message).slice(0, 500),
+        fallo: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+    // Transitorio: que lo reintente Cloud Functions.
+    throw error;
+  }
+});
+
+// -------------------------------------------------------
+// sincronizarAlumnoBrevo: mantiene al dia la lista de alumnos y la de
+// interesados. Mira "usuarios/{email}", que es por donde pasan todos los
+// accesos (los pagos, las invitaciones, los regalos, los enlaces y la
+// carga a mano del panel), asi que con este trigger no hay que tocar
+// ninguna ruta de cobro.
+//
+// Nunca escribe en "usuarios": si lo hiciera, se dispararia a si mismo.
+// -------------------------------------------------------
+exports.sincronizarAlumnoBrevo = onDocumentWritten({
+  document: 'usuarios/{email}',
+  database: 'cursos',
+  region: 'us-central1',
+  maxInstances: 3,
+}, async (event) => {
+  if (!brevo.brevoConfigurado()) return;
+
+  const antes = event.data?.before?.data() || {};
+  const despues = event.data?.after?.data();
+  if (!despues) return; // se borro el usuario: el contacto no se toca
+
+  const email = String(event.params.email || '').toLowerCase();
+  if (!EMAIL_VALIDO.test(email)) return;
+
+  const cursos = Array.isArray(despues.cursos) ? despues.cursos : [];
+  const interesados = Array.isArray(despues.interesados) ? despues.interesados : [];
+
+  // El documento tambien se escribe cuando alguien cambia solo su nombre:
+  // ahi no hay nada que sincronizar.
+  const igual = cursosComoTexto(antes.cursos) === cursosComoTexto(cursos)
+    && cursosComoTexto(antes.interesados) === cursosComoTexto(interesados);
+  if (igual) return;
+
+  // Recien registrado, sin cursos ni intereses todavia: no es ni alumno ni
+  // interesado, no va a ninguna lista.
+  if (!cursos.length && !interesados.length) return;
+
+  const esAlumno = cursos.length > 0;
+
+  // Si el contacto es nuevo le ponemos origen y consentimiento; si ya
+  // existe no se los pisamos, porque los de la compra o del formulario
+  // dicen mas que "escuela".
+  const existente = await brevo.obtenerContacto(email);
+  const atributosNuevos = existente ? {} : {
+    ORIGEN: 'escuela',
+    CONSENTIMIENTO: 'relacion-comercial',
+    FECHA_ALTA: brevo.fechaBrevo(new Date()),
+  };
+
+  await brevo.upsertContacto({
+    email,
+    nombre: despues.nombre || '',
+    listas: [esAlumno ? 'alumnos' : 'interesados'],
+    // Quien compro deja de ser un interesado: no tiene sentido que le siga
+    // llegando el aviso de "mirá la clase gratis" de un curso que ya tiene.
+    quitarDeListas: esAlumno ? ['interesados'] : [],
+    atributos: { CURSOS: cursosComoTexto(cursos), ...atributosNuevos },
+  });
+});
+
+// -------------------------------------------------------
+// sincronizarNovedadesTucarta: el casillero "quiero recibir novedades" de
+// la calculadora de cartas, que hasta ahora se leia copiando mails a mano
+// desde el panel.
+//
+// Reacciona SOLO al cambio del casillero, no a cualquier escritura del
+// documento. Es importante: si alguien se da de baja desde un mail y el
+// documento sigue diciendo novedades:true, un trigger menos cuidadoso lo
+// volveria a suscribir en la proxima carta que guarde.
+// -------------------------------------------------------
+exports.sincronizarNovedadesTucarta = onDocumentWritten({
+  document: 'tucarta_usuarios/{uid}',
+  database: 'cursos',
+  region: 'us-central1',
+  maxInstances: 3,
+}, async (event) => {
+  if (!brevo.brevoConfigurado()) return;
+
+  const antes = event.data?.before?.data() || {};
+  const despues = event.data?.after?.data() || {};
+
+  const email = String(despues.email || antes.email || '').toLowerCase();
+  if (!EMAIL_VALIDO.test(email)) return;
+
+  const queria = antes.novedades === true;
+  const quiere = despues.novedades === true;
+  if (queria === quiere) return;
+
+  if (quiere) {
+    await brevo.upsertContacto({
+      email,
+      listas: ['suscriptores'],
+      atributos: {
+        ORIGEN: 'tucarta',
+        CONSENTIMIENTO: 'tucarta-novedades',
+        FECHA_ALTA: brevo.fechaBrevo(new Date()),
+      },
+    });
+  } else {
+    await brevo.quitarDeLista(email, ['suscriptores']);
   }
 });

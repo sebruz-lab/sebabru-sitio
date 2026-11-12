@@ -207,5 +207,20 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
     }
+
+    match /brevo_contactos/{id} {
+      // La cola de altas en el mailing: la llenan las Cloud Functions y la
+      // vacia el trigger sincronizarContactoBrevo. Ningun cliente la toca.
+      allow read, write: if false;
+    }
+
+    match /suscripciones/{email} {
+      // La constancia de cada consentimiento (origen, fecha e IP de quien
+      // se suscribio). La escribe solo la funcion suscribir; se lee desde
+      // el panel si hay que mostrar de donde salio una direccion.
+      allow write: if false;
+      allow read: if request.auth != null &&
+        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
   }
 }

@@ -80,6 +80,12 @@ html, body { margin: 0; padding: 0; background: transparent; }
     text-transform: uppercase; letter-spacing: 0.06em;
 }
 .form-group .opcional { color: var(--curso-text); opacity: 0.8; text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
+.form-novedades {
+    display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 18px;
+    color: var(--curso-text); font-size: 0.82rem; line-height: 1.6; cursor: pointer;
+}
+.form-novedades input { margin: 2px 0 0; flex-shrink: 0; accent-color: var(--curso-theme); }
+.form-novedades a { color: inherit; text-decoration: underline; }
 input[type="text"], input[type="tel"], input[type="time"], input[type="email"], textarea {
     width: 100%; background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.18); color: #fff;
@@ -239,6 +245,12 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
                 <label for="inp-comentario">¿Alguna otra cosa que quieras que sepamos? <span class="opcional">(opcional)</span></label>
                 <textarea id="inp-comentario" maxlength="2000" rows="4"></textarea>
             </div>
+            <!-- Viene desmarcado a proposito: la confirmacion de la consulta
+                 llega igual, esto es solo para la newsletter. -->
+            <label class="form-novedades" for="inp-novedades">
+                <input type="checkbox" id="inp-novedades">
+                <span>Quiero recibir el informe de las lunaciones por mail. Me puedo dar de baja cuando quiera. <a href="/privacidad/" target="_blank" rel="noopener noreferrer">Cómo cuidamos tus datos</a>.</span>
+            </label>
             <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
             <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
                 <i class="fa-solid fa-paper-plane"></i> Pedir la consulta
@@ -576,6 +588,7 @@ if (esRegalo) {
                         lugarCumpleanos: document.getElementById('inp-lugar-cumpleanos').value.trim(),
                         regalaQuien: document.getElementById('inp-regala').value.trim(),
                         comentario: document.getElementById('inp-comentario').value.trim(),
+                        novedades: document.getElementById('inp-novedades').checked ? 'Sí' : 'No',
                     },
                     lugar: window.sbLugarElegido || null,
                     captchaToken: captchaToken || undefined,
