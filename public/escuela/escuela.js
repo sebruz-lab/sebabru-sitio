@@ -236,7 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         nombre: user.displayName,
                         fechaRegistro: new Date(),
                         cohorte: "2026",
+                        novedades: quiereNovedades(),
                     });
+                } else {
+                    await prenderNovedades(docRef, docSnap.data());
                 }
 
                 if (urlDestino) {
@@ -298,6 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
+                try {
+                    const ref = doc(db, "usuarios", email);
+                    const snap = await getDoc(ref);
+                    if (snap.exists()) await prenderNovedades(ref, snap.data());
+                } catch (e) {
+                    // Que no se caiga el ingreso por esto.
+                    console.error(e);
+                }
                 await verificarYEntrar(email, urlDestino); 
             } catch (error) {
                 btn.innerText = "ENTRAR";
@@ -307,6 +318,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         };
+    }
+
+    // El casillero de la lista de correo. Vive arriba del modal porque
+    // los tres caminos de abajo (Google, entrar, crear cuenta) pueden
+    // terminar en una cuenta nueva.
+    //
+    // Solo se escribe cuando esta MARCADO. Que alguien entre con el
+    // casillero vacio no significa que quiera darse de baja: se dio de
+    // alta otro dia, y la baja se hace desde el enlace de cualquier mail.
+    // Si lo escribieramos en false, cada ingreso lo desuscribiria.
+    function quiereNovedades() {
+        const c = document.getElementById('acepta-novedades');
+        return Boolean(c && c.checked);
+    }
+
+    async function prenderNovedades(ref, datos) {
+        if (!quiereNovedades()) return;
+        if (datos && datos.novedades === true) return;
+        await setDoc(ref, { novedades: true }, { merge: true });
     }
 
     // --- FORMULARIO DE REGISTRO EMAIL ---
@@ -324,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "usuarios", email), {
                     cursos: [],
                     cohorte: "2026",
+                    novedades: quiereNovedades(),
                 });
                 mostrarAviso("¡Cuenta creada! Verificá si tenés acceso al curso, sino pedile a Seba o a Clari.");
                 setTimeout(() => window.location.reload(), 1800);

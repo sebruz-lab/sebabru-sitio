@@ -2664,6 +2664,43 @@ exports.sincronizarContactoBrevo = onDocumentCreated({
 });
 
 // -------------------------------------------------------
+// altaEnNovedades: el alta en la lista de correo cuando alguien marca un
+// casillero del sitio (el modal de la escuela o la calculadora).
+//
+// Manda la bienvenida, que no es un lujo: es el primer aviso de que quedo
+// en la lista. Sin ella, la primera campana le llega a alguien que no se
+// acuerda de haberse anotado, y eso se denuncia como spam.
+// -------------------------------------------------------
+async function altaEnNovedades({ email, nombre, origen, consentimiento }) {
+  // Si el contacto ya existia, no le pisamos el origen: el de la compra o
+  // del formulario dice mas que "escuela".
+  const existente = await brevo.obtenerContacto(email);
+
+  await brevo.upsertContacto({
+    email,
+    nombre: nombre || '',
+    listas: ['suscriptores'],
+    atributos: existente ? {} : {
+      ORIGEN: origen,
+      CONSENTIMIENTO: consentimiento,
+      FECHA_ALTA: brevo.fechaBrevo(new Date()),
+    },
+  });
+
+  // La bienvenida es un agregado: la persona ya quedo en la lista, asi que
+  // no tiene sentido que el trigger reintente el alta entera por esto.
+  try {
+    await brevo.enviarConPlantilla({
+      email,
+      nombre: nombre || '',
+      templateId: process.env.BREVO_BIENVENIDA_TEMPLATE_ID,
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo mandar la bienvenida:', error.message);
+  }
+}
+
+// -------------------------------------------------------
 // sincronizarAlumnoBrevo: mantiene al dia la lista de alumnos y la de
 // interesados. Mira "usuarios/{email}", que es por donde pasan todos los
 // accesos (los pagos, las invitaciones, los regalos, los enlaces y la
@@ -2686,6 +2723,28 @@ exports.sincronizarAlumnoBrevo = onDocumentWritten({
 
   const email = String(event.params.email || '').toLowerCase();
   if (!EMAIL_VALIDO.test(email)) return;
+
+  // El casillero "quiero recibir contenido astrologico" del modal de
+  // ingreso. Se mira aparte de los cursos porque quien recien se registro
+  // todavia no tiene ninguno y, sin embargo, ya dijo que si.
+  //
+  // Igual que en la calculadora, reacciona SOLO al cambio del casillero: si
+  // la persona se dio de baja desde un mail y el documento sigue diciendo
+  // true, cualquier otra escritura la volveria a suscribir.
+  const queriaNovedades = antes.novedades === true;
+  const quiereNovedades = despues.novedades === true;
+  if (queriaNovedades !== quiereNovedades) {
+    if (quiereNovedades) {
+      await altaEnNovedades({
+        email,
+        nombre: despues.nombre || '',
+        origen: 'escuela',
+        consentimiento: 'escuela-novedades',
+      });
+    } else {
+      await brevo.quitarDeLista(email, ['suscriptores']);
+    }
+  }
 
   const cursos = Array.isArray(despues.cursos) ? despues.cursos : [];
   const interesados = Array.isArray(despues.interesados) ? despues.interesados : [];
@@ -2752,14 +2811,11 @@ exports.sincronizarNovedadesTucarta = onDocumentWritten({
   if (queria === quiere) return;
 
   if (quiere) {
-    await brevo.upsertContacto({
+    await altaEnNovedades({
       email,
-      listas: ['suscriptores'],
-      atributos: {
-        ORIGEN: 'tucarta',
-        CONSENTIMIENTO: 'tucarta-novedades',
-        FECHA_ALTA: brevo.fechaBrevo(new Date()),
-      },
+      nombre: despues.nombre || '',
+      origen: 'tucarta',
+      consentimiento: 'tucarta-novedades',
     });
   } else {
     await brevo.quitarDeLista(email, ['suscriptores']);
