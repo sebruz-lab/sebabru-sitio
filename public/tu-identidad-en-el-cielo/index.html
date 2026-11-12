@@ -9,14 +9,13 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://sebabru.com/tu-identidad-en-el-cielo">
 <meta property="og:title" content="Tu identidad en el cielo | Seba Bru Astrología">
-<meta property="og:description" content="Un curso corto de tres encuentros para entender el Sol, la Luna y el Ascendente, y empezar a leer tu carta natal.">
+<meta property="og:description" content="El libro online sobre el Sol, la Luna y el Ascendente, y el curso grabado para empezar a leer tu carta natal.">
 <meta property="og:image" content="https://sebabru.com/img/identidad-astral.webp">
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
@@ -61,34 +60,6 @@ html, body { margin: 0; padding: 0; background: #000; }
     max-width: 520px; margin: 22px 0 0;
 }
 
-/* ─── Bloque "El curso": unica animacion que queda, la imagen se corre
-     y deja leer el texto a medida que se scrollea (mecanismo lineal de
-     la home, en style.css seccion 7). ─── */
-#curso-info .efecto-texto {
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-}
-.efecto-texto h3 {
-    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
-    text-transform: uppercase; margin: 0 0 8px; font-weight: 400;
-}
-.efecto-texto h2 {
-    color: #fff; font-size: clamp(1.2rem, 2.5vw, 1.6rem); font-weight: 300;
-    margin: 0 0 22px; line-height: 1.35;
-}
-.efecto-texto p { font-size: 1.1rem !important; }
-.efecto-texto .evento-info {
-    font-size: 1.02rem; color: var(--curso-text); line-height: 2.1; margin-bottom: 16px;
-}
-@media (min-width: 769px) {
-    #curso-info .efecto-imagen {
-        transform: scale(calc(1 - (0.35 * var(--scroll-progress)))) translateX(calc(-95% * var(--scroll-progress)));
-    }
-    #curso-info .efecto-texto {
-        transform: translateX(calc(100% - (58% * var(--scroll-progress))));
-    }
-}
 
 .btn-clase-gratis {
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
@@ -99,40 +70,6 @@ html, body { margin: 0; padding: 0; background: #000; }
 }
 .btn-clase-gratis:hover { background: transparent; color: #fff; text-decoration: none; }
 
-/* ─── Bloque "Inscripción" ─── */
-#inscripcion {
-    max-width: 680px; margin: 100px auto 80px; padding: 28px 24px;
-    box-sizing: border-box;
-}
-/* En la compu el formulario va en su tamaño original (los campos en
-   0.95rem); en el celular, mas compacto y con los campos en 16px (con
-   menos, el iPhone hace zoom al tocarlos). */
-@media (min-width: 769px) {
-    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"], #inscripcion select { font-size: 0.95rem; }
-    #inscripcion select { padding: 12px 40px 12px 15px; }
-}
-@media (max-width: 768px) {
-    #inscripcion { padding: 22px 20px; }
-    #inscripcion .form-group { margin-bottom: 11px; }
-    #inscripcion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
-    #inscripcion input[type="text"], #inscripcion input[type="tel"], #inscripcion input[type="time"], #inscripcion input[type="email"] { padding: 10px 13px; }
-    #inscripcion .btn-compra { padding: 11px 22px; font-size: 0.9rem; }
-}
-/* El desplegable de modalidad, igual que los campos. */
-#inscripcion select {
-    width: 100%; background: rgba(255,255,255,0.05); color: #fff;
-    border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
-    padding: 10px 40px 10px 13px; font-size: 16px; font-family: 'Outfit', sans-serif; box-sizing: border-box;
-    -webkit-appearance: none; appearance: none; cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23cccac3' stroke-width='1.5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 15px center;
-}
-#inscripcion select:focus { outline: none; border-color: var(--curso-accent); }
-#inscripcion select option { background: #12141d; color: #fff; }
-#inscripcion h2 {
-    color: #fff; font-size: 1.4rem; font-weight: 300; text-align: center; margin: 0 0 22px;
-    text-transform: none;
-}
 .form-group { margin-bottom: 14px; }
 .form-group label {
     font-size: 0.78rem; color: var(--curso-theme); display: block; margin-bottom: 7px;
@@ -149,19 +86,11 @@ input:focus { outline: none; border-color: var(--curso-accent); }
 /* Con letra de menos de 16px, el iPhone hace zoom al tocar el campo y corre
    la vista para centrarlo. */
 input[type="text"], input[type="tel"], input[type="time"], input[type="email"] { font-size: 16px; }
-/* El teclado achica la pantalla visible. Con vh, lo que esta arriba del
-   formulario (la cabecera, 60vh; el bloque del curso, 190vh) cambiaba de
-   alto al abrirse el teclado y el formulario saltaba. lvh es el alto con
-   la pantalla entera: no cambia con el teclado. */
+/* El teclado achica la pantalla visible: con vh, la cabecera cambiaba de
+   alto al abrirse y la pagina saltaba. lvh es el alto con la pantalla
+   entera: no cambia con el teclado. */
 @supports (height: 1lvh) {
     .curso-cabecera { min-height: 60lvh; padding: 14lvh 20px 6lvh; }
-    .efecto-shrink-container { height: 190lvh; }
-    .efecto-shrink-sticky { height: 100lvh; }
-    @media (max-width: 768px) {
-        .efecto-shrink-sticky { height: 100lvh !important; padding-top: 10lvh; gap: 3lvh; }
-        .efecto-imagen, .efecto-visual, .video-container { height: calc(80lvh - (55lvh * var(--progreso-mobile))); }
-        .efecto-texto { height: 55lvh; max-height: 55lvh; }
-    }
 }
 /* La hora en el iPhone tiene un ancho minimo propio que empuja la pagina. */
 input[type="time"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-width: 0; min-height: 46px; text-align: left; }
@@ -178,18 +107,6 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 .sugerencias .sin-resultados { cursor: default; font-size: 0.85rem; opacity: 0.8; }
 .sugerencias .sin-resultados:hover { background: none; }
 
-.btn-compra {
-    display: inline-flex; align-items: center; gap: 9px; padding: 13px 26px;
-    border-radius: 10px; font-size: 0.97rem; font-weight: 500; text-decoration: none;
-    transition: all 0.3s ease; margin-top: 14px; cursor: pointer; border: 1px solid transparent;
-    justify-content: center; width: 100%; font-family: inherit;
-}
-.btn-mp { background: rgba(255,255,255,0.12); color: #e0e0e0; border-color: rgba(255,255,255,0.4); }
-.btn-mp:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.7); transform: translateY(-2px); color: #e0e0e0; }
-.btn-mp:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.btn-whatsapp { background: rgba(255,255,255,0.1); color: #e0e0e0; border-color: rgba(255,255,255,0.35); }
-.btn-whatsapp:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.65); transform: translateY(-2px); color: #e0e0e0; text-decoration: none; }
-
 /* Mientras le preguntamos a GeoNames por un lugar que el indice local no
    tiene: asi nadie lo da por perdido antes de tiempo. */
 .sugerencias .buscando { color: #cccac3; font-style: italic; }
@@ -199,24 +116,10 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     padding: 11px 15px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 16px; display: none;
 }
 
-#pago-pendiente { display: none; }
-#pago-pendiente.visible { display: block; }
-.icon-success { color: var(--curso-accent); font-size: 2.2rem; margin-bottom: 10px; display: block; text-align: center; }
-
-#loading-pago-identidad {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;
-    align-items: center; justify-content: center; flex-direction: column; color: #fff; gap: 18px;
-}
-#loading-pago-identidad .spinner-loading {
-    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2);
-    border-top-color: var(--curso-accent); border-radius: 50%;
-    animation: spin-identidad 0.8s linear infinite;
-}
-@keyframes spin-identidad { to { transform: rotate(360deg); } }
 
 /* ─── Ebook: invitacion a leer (el lector lo arma ebook/lector.js) ─── */
 .ebook-invitacion {
-    max-width: 760px; margin: 30px auto 120px; padding: 0 24px;
+    max-width: 760px; margin: 10px auto 110px; padding: 0 24px;
     display: flex; gap: 46px; align-items: center; box-sizing: border-box;
 }
 .ebook-tapa {
@@ -253,9 +156,9 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     .ebook-invitacion { flex-direction: column; gap: 34px; text-align: center; }
     .ebook-tapa { width: 170px; }
 }
-/* En la compu, el ebook mas grande y mas separado del formulario. */
+/* En la compu, el ebook mas grande y con mas aire. */
 @media (min-width: 769px) {
-    .ebook-invitacion { max-width: 980px; margin: 170px auto 140px; gap: 72px; }
+    .ebook-invitacion { max-width: 980px; margin: 40px auto 140px; gap: 72px; }
     .ebook-tapa { width: 270px; gap: 24px; padding: 32px 24px; }
     .tapa-glifos .glifo { width: 26px; height: 26px; }
     .tapa-titulo { font-size: 2.1rem; }
@@ -285,9 +188,9 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 @media (min-width: 769px) {
     .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { font-size: 0.85rem; }
 }
-/* Bloque del curso grabado, al final de la pagina. Convive con el curso en
-   vivo de mas arriba, asi que el kicker y el titulo dicen desde la primera
-   linea que este es el formato abierto, para que no se confundan. */
+/* Bloque del curso grabado, al final de la pagina: desde noviembre de 2026
+   es la unica forma de hacer el curso, asi que el kicker y el titulo dicen
+   desde la primera linea que se cursa en la escuela abierta. */
 .abierta-invitacion {
     max-width: 760px; margin: 30px auto 120px; padding: 48px 24px 0;
     border-top: 1px solid rgba(255,255,255,0.14);
@@ -342,121 +245,6 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
         <p class="curso-cabecera-bajada">La astrología te permite mirarte en el espejo tridimensional del cielo para descubrir cosas de vos que todavía no sabés y para ponerle nombre a cosas que viste en vos cientos, miles de veces y no sabías cómo decir.</p>
     </header>
 
-    <section class="efecto-shrink-container" id="curso-info" data-ga-visible="seccion_visible" data-ga-seccion="curso" data-ga-producto="tu-identidad-en-el-cielo">
-        <div class="efecto-shrink-sticky">
-            <img src="../img/identidad-astral.webp" alt="Tu identidad en el cielo" class="efecto-imagen">
-            <div class="efecto-texto">
-                <h3>Curso en vivo · 3 encuentros</h3>
-                <h2>Tu identidad en el cielo</h2>
-                <p>Si tus amigxs hablan de astro y vos no entendés un pepino, este curso es para vos.</p>
-                <p>En tres encuentros vemos los tres puntos con los que empieza cualquier lectura de una carta natal: qué es cada uno, qué dice de vos y cómo se lee, para mirarte desde un lugar nuevo.</p>
-                <p>Al terminar el curso, podrás entender mejor tu carta natal y reconocer tu identidad astral.</p>
-                <div class="evento-info">
-                    ⏰ Viernes 13, 20 y 27 de noviembre, de 18 a 20hs (hora de Argentina)<br>
-                    📍 Presencial en Villa de las Rosas, o virtual por Zoom, como te quede mejor<br>
-                    💵 40.000$ar o su equivalente en otras monedas<br>
-                    📖 No hace falta saber nada de astrología.<br>
-                    👯 Si tus amigxs no hablan de astro, pueden venir juntx: 20% de descuento para cada unx si se anotan juntxs.<br>
-                    🌟 A cargo de Sebastián Bru.
-                </div>
-                <a href="#inscripcion" class="btn-clase-gratis" data-ga="hero_boton" data-ga-destino="inscripcion" data-ga-origen="boton_curso">
-                    <i class="fa-solid fa-pen"></i> Anotarme
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <section id="inscripcion" data-ga-visible="seccion_visible" data-ga-seccion="inscripcion" data-ga-producto="tu-identidad-en-el-cielo">
-
-                <div id="form-wrap">
-                    <h2>Info e inscripción</h2>
-
-                    <div id="error-msg" class="error-msg"></div>
-
-                    <form id="form-inscripcion">
-                        <div class="form-group">
-                            <label for="inp-nombre">Nombre</label>
-                            <input type="text" id="inp-nombre" maxlength="200" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-telefono">Teléfono</label>
-                            <input type="tel" id="inp-telefono" maxlength="50" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-email">Tu mail</label>
-                            <input type="email" id="inp-email" maxlength="200" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-fecha-nacimiento">Día de nacimiento <span class="opcional">(formato DD/MM/AAAA)</span></label>
-                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" title="Por ejemplo 05/03/1990" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(si no la sabés exacta, poné la más aproximada)</span></label>
-                            <input type="text" id="inp-hora-nacimiento" required inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
-                        </div>
-                        <div class="form-group campo-lugar">
-                            <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(empezá a escribir la ciudad o el pueblo y elegilo de la lista)</span></label>
-                            <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off" required
-                                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
-                            <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-modalidad">¿Cursás online o presencial?</label>
-                            <select id="inp-modalidad" required>
-                                <option value="" selected disabled>Elegí una opción</option>
-                                <option value="Presencial">Presencial, en Villa de las Rosas</option>
-                                <option value="Online">Online, por Zoom</option>
-                            </select>
-                        </div>
-                        <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
-                        <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
-                            <i class="fa-solid fa-paper-plane"></i> Enviar inscripción
-                        </button>
-                    </form>
-                </div>
-
-                <div id="pago-pendiente">
-                    <span class="icon-success"><i class="fa-solid fa-circle-check"></i></span>
-                    <p style="color:#fff; text-align:center; text-align-last:center; font-size:1.05rem; line-height:1.6; margin-bottom:22px; text-wrap:balance;">Perfecto, ya tenemos todos tus datos. Ahora falta el pago. Podés transferir al alias que está acá abajo, con un 10% de descuento, o pagar por Mercado&nbsp;Pago.</p>
-
-                    <!-- Mercado Pago -->
-                    <div style="border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-bottom:12px;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.19.1/mercadopago/logo__large@2x.png" height="22" alt="Mercado Pago" style="filter:brightness(0) invert(1);">
-                            <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$40.000</span>
-                        </div>
-                        <button id="btn-pagar-mp" class="btn-compra btn-mp" data-ga="pago_mercadopago" data-ga-producto="tu-identidad-en-el-cielo" data-ga-nombre="Tu identidad en el cielo" data-ga-valor="40000" data-ga-moneda="ARS" data-ga-metodo="mp" data-ga-compra>
-                            <i class="fas fa-credit-card"></i> Pagar con Mercado Pago
-                        </button>
-                    </div>
-
-                    <!-- Transferencia -->
-                    <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; margin-bottom:12px;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <i class="fas fa-building-columns" style="font-size:1.3rem; color:var(--curso-theme);"></i>
-                            <span style="color:#fff; font-weight:500;">Transferencia</span>
-                            <span style="margin-left:auto; color:var(--curso-accent); font-weight:600; font-size:1.05rem;">$36.000 <span style="font-size:0.72em; color:#e8e8e8; font-weight:400;">−10%</span></span>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; font-size:0.87rem; color:var(--curso-text); margin-bottom:10px; line-height:2;">
-                            <div><strong style="color:#ccc;">Banco:</strong> Galicia</div>
-                            <div><strong style="color:#ccc;">CBU:</strong> 00702746-30004034684549</div>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <strong style="color:#ccc;">Alias:</strong>
-                                <span>Seba.astrologia</span>
-                                <button id="btn-copiar-alias" type="button" data-ga="pago_alias_copiado" data-ga-producto="tu-identidad-en-el-cielo" data-ga-metodo="transferencia" data-ga-valor="36000" data-ga-moneda="ARS" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:var(--curso-theme); padding:3px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:inherit;">
-                                    <i class="fa-solid fa-copy"></i> Copiar
-                                </button>
-                            </div>
-                        </div>
-                        <p style="color:#e8e8e8; font-size:0.87rem; margin-bottom:10px;">Una vez hecha la transferencia, enviá el comprobante:</p>
-                        <a id="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer" class="btn-compra btn-whatsapp" data-ga="pago_comprobante" data-ga-producto="tu-identidad-en-el-cielo" data-ga-metodo="transferencia" data-ga-valor="36000" data-ga-moneda="ARS">
-                            <i class="fab fa-whatsapp"></i> Enviar comprobante por WhatsApp
-                        </a>
-                    </div>
-                </div>
-
-    </section>
-
     <section class="ebook-invitacion" id="ebook" data-ga-visible="seccion_visible" data-ga-seccion="ebook" data-ga-producto="tu-identidad-en-el-cielo">
         <button type="button" class="ebook-tapa" data-abrir-ebook data-ga="ebook_leer" data-ga-origen="tapa" aria-label="Leer el libro Tu identidad en el cielo">
             <span class="tapa-glifos" data-ebook-glifos aria-hidden="true"></span>
@@ -509,9 +297,9 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     <section class="abierta-invitacion" id="grabado" data-ga-visible="seccion_visible" data-ga-seccion="grabado" data-ga-producto="identidad">
         <img src="../img/identidad-astral.webp" alt="Tu identidad en el cielo, en formato grabado" loading="lazy">
         <div>
-            <p class="abierta-kicker">Formato abierto &middot; grabado</p>
-            <h2>¿No podés en esos horarios?</h2>
-            <p>El mismo curso existe también en la escuela abierta, en tres clases grabadas que mirás cuando quieras y a tu ritmo. No tiene fechas ni horarios: lo empezás el día que quieras y volvés a verlo las veces que necesites.</p>
+            <p class="abierta-kicker">Escuela abierta &middot; curso grabado</p>
+            <h2>Y si querés seguir, el curso completo</h2>
+            <p>El curso vive en la escuela abierta, en tres clases grabadas que mirás cuando quieras y a tu ritmo. No tiene fechas ni horarios: lo empezás el día que quieras y volvés a verlo las veces que necesites.</p>
             <ul class="abierta-datos">
                 <li>🕜 3 clases grabadas, a tu ritmo</li>
                 <li>📖 No hace falta saber nada de astrología</li>
@@ -525,95 +313,14 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     </section>
 </main>
 
-<div id="loading-pago-identidad">
-    <div class="spinner-loading"></div>
-    <p>Preparando tu pago...</p>
-</div>
 
 <script src="../medicion.js?v=3"></script>
 <script src="ebook/glifos.js?v=2" defer></script>
 <script src="ebook/lector.js?v=4" defer></script>
 
-<script>
-(function () {
-    function clamp01(n) { return Math.max(0, Math.min(1, n)); }
-    var containers = document.querySelectorAll('.efecto-shrink-container');
-    if (!containers.length) return;
-    var ticking = false;
-    function frame() {
-        containers.forEach(function (container) {
-            var rect = container.getBoundingClientRect();
-            var progress = clamp01(-rect.top / (rect.height - window.innerHeight));
-            container.style.setProperty('--scroll-progress', progress);
-            container.style.setProperty('--progreso-mobile', progress * progress * (3 - 2 * progress));
-        });
-        ticking = false;
-    }
-    window.addEventListener('scroll', function () {
-        if (!ticking) { window.requestAnimationFrame(frame); ticking = true; }
-    }, { passive: true });
-    window.addEventListener('resize', frame, { passive: true });
-    frame();
-})();
-</script>
 
 <script>
 (function () {
-    const form = document.getElementById('form-inscripcion');
-    const btn = document.getElementById('btn-enviar');
-    const errorMsg = document.getElementById('error-msg');
-    const inpFecha = document.getElementById('inp-fecha-nacimiento');
-    const captchaWrap = document.getElementById('captcha-wrap');
-    // La lista de sugerencias dice en que estamos: si avisa que no encontro
-    // nada, el lugar no existe en ningun lado y la inscripcion entra igual;
-    // si dice "Buscando...", todavia no sabemos.
-    const listaLugar = document.getElementById('sugerencias-lugar');
-    const buscandoLugar = () => Boolean(listaLugar.querySelector('.buscando'));
-    const lugarNoEncontrado = () => Boolean(listaLugar.querySelector('.sin-resultados:not(.buscando)'));
-    let captchaToken = '';
-    let captchaWidgetId = null;
-
-    // Cada error tambien va a Analytics (inscripcion_error), con el motivo:
-    // asi se ve que parte del formulario traba a la gente.
-    function mostrarError(msg, motivo) {
-        errorMsg.textContent = msg;
-        errorMsg.style.display = 'block';
-        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'tu-identidad-en-el-cielo', motivo: motivo || 'otro' });
-    }
-
-    // Un campo obligatorio vacio o mal escrito: el navegador frena el envio
-    // con su propio cartel (antes de nuestras validaciones). Tambien va a
-    // Analytics, con el campo (una vez por intento).
-    let invalidoAvisado = false;
-    form.addEventListener('invalid', (e) => {
-        if (invalidoAvisado) return;
-        invalidoAvisado = true;
-        setTimeout(() => { invalidoAvisado = false; }, 0);
-        if (window.gtag) gtag('event', 'inscripcion_error', { formulario: 'tu-identidad-en-el-cielo', motivo: 'falta_' + (e.target.id || '').replace(/^inp-/, '') });
-    }, true);
-
-    // Empezar a llenar (una vez): con inscripcion, muestra cuantos abandonan.
-    let empezado = false;
-    form.addEventListener('focusin', () => {
-        if (empezado) return;
-        empezado = true;
-        if (window.gtag) gtag('event', 'inscripcion_inicio', { formulario: 'tu-identidad-en-el-cielo' });
-    });
-
-    // Solo se pide a partir del 3er envio desde la misma conexion (lo
-    // decide el servidor); hasta entonces este bloque queda oculto.
-    function mostrarCaptcha() {
-        captchaWrap.style.display = 'block';
-        if (captchaWidgetId !== null) return;
-        if (typeof turnstile === 'undefined') { setTimeout(mostrarCaptcha, 300); return; }
-        captchaWidgetId = turnstile.render(captchaWrap, {
-            sitekey: '0x4AAAAAAFwEydZNkPMtSb8Q',
-            callback: (token) => { captchaToken = token; form.requestSubmit(); },
-            'error-callback': () => { captchaToken = ''; },
-            'expired-callback': () => { captchaToken = ''; },
-        });
-    }
-
     // Fecha a DD/MM/AAAA desde lo que venga. Copia de normalizarFecha y
     // completarFecha de la calculadora (C:\dev\tucarta\ui\fecha.js, con sus
     // tests): si cambian alla, cambiarlas aca tambien. Mientras se escribe,
@@ -705,102 +412,6 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
         return dos(h) + ':' + dos(m);
     }
 
-    inpFecha.addEventListener('input', (e) => {
-        inpFecha.value = normalizarFecha(inpFecha.value, !e.inputType || e.inputType.startsWith('insert'));
-    });
-    inpFecha.addEventListener('change', () => {
-        inpFecha.value = completarFecha(inpFecha.value);
-    });
-    const inpHora = document.getElementById('inp-hora-nacimiento');
-    inpHora.addEventListener('change', () => {
-        inpHora.value = completarHora(inpHora.value);
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorMsg.style.display = 'none';
-
-        inpFecha.value = completarFecha(inpFecha.value);
-        const fecha = inpFecha.value.trim();
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
-            mostrarError('La fecha de nacimiento tiene que tener el formato DD/MM/AAAA, por ejemplo 05/03/1990.', 'fecha');
-            return;
-        }
-        // El lugar se elige de la lista, asi la carta sale con las coordenadas
-        // justas. Si no aparece en ningun lado, la inscripcion entra igual y
-        // la carta se hace a mano. Lo que no conviene es mandarlo sin elegir
-        // cuando la lista tiene justo el lugar: ahi la carta saldria sola.
-        if (!window.sbLugarElegido) {
-            if (buscandoLugar()) {
-                mostrarError('Esperá un segundo, estamos buscando ese lugar.', 'lugar');
-                return;
-            }
-            if (!lugarNoEncontrado()) {
-                mostrarError('Elegí tu lugar de nacimiento de la lista que aparece al escribir.', 'lugar');
-                return;
-            }
-            if (window.gtag) gtag('event', 'lugar_sin_resultado', { formulario: 'tu-identidad-en-el-cielo' });
-        }
-        inpHora.value = completarHora(inpHora.value);
-        const hora = inpHora.value.trim();
-        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
-            mostrarError('No entendimos la hora de nacimiento. Escribila como 09:30 (o 9, 930, 9.30, 9 pm...).', 'hora');
-            return;
-        }
-        const modalidad = document.getElementById('inp-modalidad').value;
-        if (!modalidad) {
-            mostrarError('Elegí si cursás online o presencial.', 'modalidad');
-            return;
-        }
-        if (captchaWrap.style.display !== 'none' && !captchaToken) {
-            mostrarError('Confirmá que sos una persona en el casillero de arriba.', 'captcha');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Enviando...';
-
-        try {
-            const resp = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    formId: 'tu-identidad-en-el-cielo',
-                    campos: {
-                        nombre: document.getElementById('inp-nombre').value.trim(),
-                        telefono: document.getElementById('inp-telefono').value.trim(),
-                        email: document.getElementById('inp-email').value.trim(),
-                        fechaNacimiento: fecha,
-                        horaNacimiento: document.getElementById('inp-hora-nacimiento').value.trim(),
-                        lugarNacimiento: document.getElementById('inp-lugar-nacimiento').value.trim(),
-                        modalidad,
-                    },
-                    lugar: window.sbLugarElegido || null,
-                    captchaToken: captchaToken || undefined,
-                }),
-            });
-            const data = await resp.json();
-            if (!resp.ok) {
-                if (data.error === 'captcha_requerido') {
-                    captchaToken = '';
-                    mostrarCaptcha();
-                    mostrarError('Antes de enviar, confirmá que sos una persona en el casillero de abajo.', 'captcha');
-                    return;
-                }
-                throw new Error(data.error || 'No pudimos registrar tu inscripción.');
-            }
-
-            document.getElementById('form-wrap').style.display = 'none';
-            document.getElementById('pago-pendiente').classList.add('visible');
-            if (window.gtag) gtag('event', 'inscripcion', { formulario: 'tu-identidad-en-el-cielo' });
-        } catch (err) {
-            mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.', 'servidor');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar inscripción';
-        }
-    });
-
     // Calculadora: con los datos de aca, la carta se abre en sebabru.com/cartas
     // en una pestaña nueva (la calculadora la lee de #carta=..., en base64url).
     const formCalc = document.getElementById('form-calculadora');
@@ -849,7 +460,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     let espera = null;
     function centrar() {
         const el = document.activeElement;
-        if (!el || !el.matches || !el.matches('#form-inscripcion input, #form-calculadora input')) return;
+        if (!el || !el.matches || !el.matches('#form-calculadora input')) return;
         clearTimeout(espera);
         espera = setTimeout(() => {
             const r = el.getBoundingClientRect();
@@ -864,7 +475,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 
 <script type="module">
 // Buscador de lugares de la calculadora (coordenadas y zona horaria de
-// cada lugar), para que la carta de cada inscripto salga sola.
+// cada lugar), para que la carta salga bien calculada.
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.14.0';
 
 // Cuando el indice local no tiene el lugar (tiene Argentina, Uruguay y
@@ -900,23 +511,6 @@ function respaldoPara(campo, lista) {
     };
 }
 
-window.sbLugarElegido = null;
-// El buscador descarta el lugar elegido en cada tecleo: si el texto volvio a
-// quedar igual al del lugar elegido, lo recuperamos (si no, la carta no sale
-// y la persona no se entera).
-const campoLugar = document.getElementById('inp-lugar-nacimiento');
-let lugarRecordado = null;
-let textoRecordado = '';
-conectarBuscador(campoLugar, document.getElementById('sugerencias-lugar'), (l) => {
-    if (l) {
-        lugarRecordado = { nombre: l.nombre, provincia: l.provincia, pais: l.pais, paisNombre: l.paisNombre, lat: l.lat, lon: l.lon, zona: l.zona };
-        textoRecordado = campoLugar.value.trim();
-        window.sbLugarElegido = lugarRecordado;
-        return;
-    }
-    window.sbLugarElegido = (lugarRecordado && campoLugar.value.trim() === textoRecordado) ? lugarRecordado : null;
-}, { sinResultados: 'No encontramos ese lugar. Si está bien escrito, envialo así.', respaldo: respaldoPara(campoLugar, document.getElementById('sugerencias-lugar')) });
-// El mismo buscador para la calculadora de mas abajo.
 window.sbLugarCalc = null;
 const campoCalc = document.getElementById('calc-lugar');
 const listaCalc = document.getElementById('calc-sugerencias');
@@ -927,66 +521,5 @@ conectarBuscador(campoCalc, listaCalc, (l) => {
 }, { sinResultados: 'No encontramos ese lugar. Probá con otra forma de escribirlo o con la ciudad más cercana.', respaldo: respaldoPara(campoCalc, listaCalc) });
 </script>
 
-<script type="module">
-import { app } from '../escuela/firebase.js';
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
-
-const functionsApi = getFunctions(app);
-const crearPago = httpsCallable(functionsApi, 'crearPago');
-const loading = document.getElementById('loading-pago-identidad');
-
-window.addEventListener('pageshow', (e) => {
-    if (e.persisted) loading.style.display = 'none';
-});
-
-document.getElementById('btn-pagar-mp')?.addEventListener('click', async () => {
-    loading.style.display = 'flex';
-    try {
-        const result = await crearPago({
-            cursoId: 'tu-identidad-en-el-cielo',
-            cursoNombre: 'Tu identidad en el cielo',
-            origen: window.sbOrigen ? window.sbOrigen() : null,
-        });
-        window.location.href = result.data.init_point;
-    } catch (err) {
-        loading.style.display = 'none';
-        alert('No se pudo iniciar el pago. Intentá de nuevo o escribinos al +54 9 3544 559877.\n' + err.message);
-    }
-});
-
-async function copiarAlias(btn) {
-    try {
-        await navigator.clipboard.writeText('Seba.astrologia');
-    } catch (e) {
-        const ta = document.createElement('textarea');
-        ta.value = 'Seba.astrologia';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-    }
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
-    setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar'; }, 2500);
-}
-document.getElementById('btn-copiar-alias')?.addEventListener('click', (e) => copiarAlias(e.currentTarget));
-
-const mensajeComprobante = 'Hola Seba, acabo de hacer la transferencia para el curso Tu identidad en el cielo. Te mando el comprobante.';
-document.getElementById('wa-comprobante').href = 'https://wa.me/5493544559877?text=' + encodeURIComponent(mensajeComprobante);
-
-let transferenciaAvisada = false;
-document.getElementById('wa-comprobante')?.addEventListener('click', () => {
-    if (transferenciaAvisada) return;
-    transferenciaAvisada = true;
-    fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarTransferencia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            cursoId: 'tu-identidad-en-el-cielo',
-            cursoNombre: 'Tu identidad en el cielo',
-            origen: window.sbOrigen ? window.sbOrigen() : null,
-        }),
-    }).catch(() => {});
-});
-</script>
 </body>
 </html>
