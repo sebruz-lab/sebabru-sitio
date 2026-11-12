@@ -46,6 +46,11 @@ const ATRIBUTOS = {
   ULTIMA_COMPRA:   'date',
   TOTAL_COMPRAS:   'float',
   TELEFONO_TXT:    'text',
+  // De las consultas: cuando fue la ultima y cuantas lleva. Sirven para
+  // segmentar por que tan reciente es la relacion, que es lo que mas pesa
+  // a la hora de escribirle a alguien que hace rato no sabe de nosotros.
+  ULTIMA_CONSULTA: 'date',
+  CONSULTAS:       'float',
 };
 
 class BrevoError extends Error {
@@ -308,7 +313,7 @@ async function estadoProceso(id) {
 // Crea la campana como BORRADOR, a proposito: sin scheduledAt Brevo la deja
 // sin enviar. No hay en todo este archivo una forma de disparar una campana
 // de verdad, y es la garantia de que siempre la revisa una persona antes.
-async function crearCampaniaBorrador({ nombre, asunto, html, listas, previo } = {}) {
+async function crearCampaniaBorrador({ nombre, asunto, html, listas, listaIds, previo } = {}) {
   return pedirBrevo('POST', '/emailCampaigns', {
     name: nombre,
     subject: asunto,
@@ -319,7 +324,9 @@ async function crearCampaniaBorrador({ nombre, asunto, html, listas, previo } = 
     },
     type: 'classic',
     htmlContent: html,
-    recipients: { listIds: idsDeListas(listas) },
+    // listaIds es para las listas que no estan en LISTAS_ENV (una tanda
+    // armada a mano, por ejemplo). Si no viene, se resuelven por nombre.
+    recipients: { listIds: (listaIds && listaIds.length) ? listaIds.map(Number) : idsDeListas(listas) },
     inlineImageActivation: false,
   });
 }
