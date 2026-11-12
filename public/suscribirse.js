@@ -9,7 +9,8 @@
 //
 // data-origen es obligatorio y tiene que estar en la lista cerrada que
 // valida la funcion suscribir (home, lunanueva, lunallena, kit, links,
-// suscribirse, formulario). data-titulo y data-texto son opcionales.
+// suscribirse, formulario). data-titulo, data-texto y data-exito (lo que
+// dice una vez que la persona ya se anoto) son opcionales.
 //
 // El alta es con doble opt-in: esto no suscribe a nadie, pide el mail de
 // confirmacion. Quien no hace clic no entra en la lista.
@@ -161,6 +162,9 @@ function armar(caja, n) {
     var origen = caja.getAttribute('data-origen') || 'home';
     var titulo = caja.getAttribute('data-titulo') || TITULO;
     var texto = caja.getAttribute('data-texto') || TEXTO;
+    // Lo que dice al terminar. La pagina del ebook lo cambia, porque ahi
+    // lo que llega no es una bienvenida: es el libro.
+    var exito = caja.getAttribute('data-exito') || '';
 
     caja.classList.add('suscribirse');
     caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
@@ -220,8 +224,8 @@ function armar(caja, n) {
 
     var mostrarListo = function (estadoAlta, direccion) {
         var textos = {
-            suscrito: 'Listo, ya estás en la lista. Te mandamos un mail de bienvenida a <strong>'
-                + direccion + '</strong>.'
+            suscrito: (exito || 'Listo, ya estás en la lista. Te mandamos un mail de bienvenida a <strong>'
+                + direccion + '</strong>.')
                 + '<span class="sus-nota">Si no lo ves, mirá en spam o en promociones.</span>',
             demorado: 'Te anotamos. El mail de bienvenida puede demorar un rato en llegar.'
                 + '<span class="sus-nota">Si no llega, escribinos a info@sebabru.com.</span>',

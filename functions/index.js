@@ -2408,7 +2408,19 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // navegador.
 const ORIGENES_SUSCRIPCION = new Set([
   'home', 'lunanueva', 'lunallena', 'kit', 'links', 'suscribirse', 'formulario',
+  'ebook',
 ]);
+
+// Que mail sale al darse de alta. Casi siempre la bienvenida; desde la
+// pagina del regalo, el que lleva al libro — ahi la persona no vino a
+// suscribirse, vino por el ebook, y recibir una bienvenida en su lugar
+// seria no darle lo que le prometimos.
+function plantillaDeAlta(origen) {
+  if (origen === 'ebook' && process.env.BREVO_EBOOK_TEMPLATE_ID) {
+    return process.env.BREVO_EBOOK_TEMPLATE_ID;
+  }
+  return process.env.BREVO_BIENVENIDA_TEMPLATE_ID;
+}
 
 // Los errores de tipeo mas comunes en el dominio. No se rechaza la
 // direccion: se le ofrece la correccion, que es lo que salva la
@@ -2571,15 +2583,15 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     // bots, el control de tipeos y la revision de MX de mas arriba.
     await brevo.upsertContacto({ email, nombre, listas: ['suscriptores'], atributos });
 
-    // La bienvenida es un agregado: si falla, la persona ya quedo suscrita
-    // igual y no tiene sentido devolverle un error por eso.
+    // El mail es un agregado: si falla, la persona ya quedo suscrita igual
+    // y no tiene sentido devolverle un error por eso.
     try {
       await brevo.enviarConPlantilla({
         email, nombre,
-        templateId: process.env.BREVO_BIENVENIDA_TEMPLATE_ID,
+        templateId: plantillaDeAlta(origen),
       });
     } catch (error) {
-      functions.logger.error('No se pudo mandar la bienvenida:', error.message);
+      functions.logger.error('No se pudo mandar el mail del alta:', error.message);
     }
 
     await anotarPedido('suscrito');

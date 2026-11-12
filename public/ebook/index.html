@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ebook gratuito | Seba Bru</title>
+<meta name="description" content="Tu identidad en el cielo: el ebook sobre la Luna, el Ascendente y el Sol de tu carta. Dejame tu mail y te lo mando.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/ebook">
+<meta property="og:title" content="Tu identidad en el cielo, gratis | Seba Bru Astrología">
+<meta property="og:description" content="El ebook sobre la Luna, el Ascendente y el Sol de tu carta. Dejame tu mail y te lo mando.">
+<meta property="og:image" content="https://sebabru.com/img/dni.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css?v=26">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+
+<!--
+  El regalo del ebook. El libro NO se linkea desde aca: el enlace sale por
+  mail, y es lo que hace que el regalo valga como alta en la lista. El
+  origen "ebook" le dice al servidor que mande la plantilla del libro en
+  lugar de la de bienvenida.
+
+  Sin comillas tipograficas: rompen los atributos (ver CLAUDE.md).
+-->
+<style>
+    .ebook-pagina { max-width: 620px; margin: 0 auto; padding: 0 20px; }
+    .ebook-pagina .ebook-encabezado { text-align: center; margin-bottom: 10px; }
+    .ebook-pagina .ebook-encabezado h2 {
+        font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase;
+        font-size: 1.05rem; margin-bottom: 22px;
+    }
+    .ebook-pagina .ebook-encabezado p { color: #cccac3; line-height: 1.8; margin-bottom: 14px; }
+    .ebook-pagina .ebook-lista {
+        margin: 0 auto 10px; max-width: 460px; padding: 0 0 0 20px;
+        color: #cccac3; line-height: 1.8; text-align: left;
+    }
+    .ebook-pagina .ebook-lista li { margin-bottom: 8px; }
+    .ebook-pagina .ebook-despues {
+        margin: 40px auto 0; max-width: 520px; text-align: center;
+        color: #9a958c; font-size: 0.82rem; line-height: 1.7;
+    }
+</style>
+</head>
+<body>
+
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+            <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+            <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
+        </ul>
+    </nav>
+
+    <div class="content-wrapper">
+
+        <header class="main-header" id="top">
+            <h1>Ebook gratuito | Seba Bru astrología</h1>
+        </header>
+
+        <main>
+            <section class="section-container fade-in-element">
+                <div class="ebook-pagina">
+
+                    <div class="ebook-encabezado">
+                        <h2>Tu identidad en el cielo</h2>
+                        <p>Un ebook sobre las tres piezas con las que se arma lo que sos en una carta natal:</p>
+                        <ul class="ebook-lista">
+                            <li>La <strong>Luna</strong>: de dónde venís, qué te calma, qué te cría.</li>
+                            <li>El <strong>Ascendente</strong>: cómo te asomás al mundo y qué camino te pide.</li>
+                            <li>El <strong>Sol</strong>: hacia dónde vas, qué viniste a encender.</li>
+                        </ul>
+                        <p>Es gratis. Dejame tu mail y te lo mando ahí.</p>
+                    </div>
+
+                    <!-- El formulario lo arma /suscribirse.js: no tocar el div. -->
+                    <div data-suscribirse data-origen="ebook"
+                         data-titulo="Te lo mando por mail"
+                         data-texto="Te llega el enlace al libro en un minuto. De paso quedás en la lista de contenidos astrológicos, y en cada mail tenés un enlace para darte de baja en un clic."
+                         data-exito="Listo. Te mandamos el ebook a <strong>tu casilla</strong>: abrilo y leelo cuando quieras."></div>
+
+                    <p class="ebook-despues">Si querés seguir después del libro, hay un curso grabado sobre lo mismo, con los videos y el material completo.
+                        <a href="/tu-identidad-en-el-cielo/">Mirá de qué va</a>.</p>
+
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+        </div>
+        <div class="social-links">
+            <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fab fa-spotify"></i></a>
+            <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+            <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+        <p><a href="/privacidad/">Privacidad y datos</a></p>
+        <p>© 2024 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+    </footer>
+
+    <script src="../script.js"></script>
+    <script src="/suscribirse.js?v=3" defer></script>
+</body>
+</html>

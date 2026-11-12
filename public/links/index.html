@@ -2,13 +2,22 @@
 <html lang="es">
 <head>
 <script src="/origen.js?v=1"></script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sebabru | Enlaces</title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Links | Seba Bru Astrología</title>
+<meta name="description" content="Todo en un lugar: la lista de correo, las formaciones, el podcast, las consultas, el ebook gratuito y la calculadora de cartas natales.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/links">
+<meta property="og:title" content="Links | Seba Bru Astrología">
+<meta property="og:description" content="La lista de correo, las formaciones, el podcast, las consultas, el ebook gratuito y la calculadora de cartas.">
+<meta property="og:image" content="https://sebabru.com/img/nueva.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css?v=26">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
 <script>
@@ -17,79 +26,213 @@
     gtag('js', new Date());
     gtag('config', 'G-GDLRMR5D57');
 </script>
+
+<!--
+  Pagina de la bio (el link de Instagram). Los estilos van aca adentro a
+  proposito: las clases que usaba antes (.link-button, .links-grid,
+  .parallax-container) no existen en ningun CSS del sitio, asi que la pagina
+  se veia como una lista de enlaces sueltos. Al ser autocontenida, tampoco
+  depende de un cambio futuro en style.css.
+
+  Sin comillas tipograficas: rompen los atributos (ver CLAUDE.md).
+-->
+<style>
+    .bio {
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .bio-intro {
+        text-align: center;
+        margin-bottom: 14px;
+    }
+    .bio-intro p {
+        color: #cccac3;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    /* Un enlace de la lista. Fino, mucho aire, sin relleno de color: el
+       color lo pone el borde al pasar el dedo o el mouse. */
+    .bio-link {
+        display: block;
+        padding: 17px 20px;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 12px;
+        color: #fff;
+        text-decoration: none;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 300;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        text-align: center;
+        transition: background-color 0.25s, border-color 0.25s, transform 0.25s;
+    }
+    .bio-link:hover,
+    .bio-link:focus-visible {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: var(--color, rgba(255, 255, 255, 0.35));
+        transform: translateY(-2px);
+        text-decoration: none;
+        color: #fff;
+    }
+    .bio-link .bio-sub {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #9a958c;
+    }
+
+    /* El de suscribirse va partido al medio: el mismo marco, dos destinos.
+       Es un grid de dos columnas con un separador en el medio, no dos
+       botones pegados, asi los bordes redondeados quedan solo por fuera. */
+    .bio-partido {
+        display: grid;
+        grid-template-columns: 1fr 1px 1fr;
+        align-items: stretch;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .bio-partido .bio-separador {
+        background: rgba(255, 255, 255, 0.14);
+    }
+    .bio-partido > a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 16px 12px;
+        color: #fff;
+        text-decoration: none;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 300;
+        font-size: 0.88rem;
+        letter-spacing: 0.04em;
+        transition: background-color 0.25s;
+    }
+    .bio-partido > a:hover,
+    .bio-partido > a:focus-visible {
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        color: #fff;
+    }
+    .bio-partido i {
+        font-size: 1.15rem;
+        opacity: 0.85;
+    }
+
+    .bio-titulo-partido {
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 300;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #cccac3;
+        margin: 10px 0 2px;
+    }
+
+    .bio-social {
+        display: flex;
+        justify-content: center;
+        gap: 22px;
+        margin-top: 26px;
+    }
+    .bio-social a {
+        color: #9a958c;
+        font-size: 1.25rem;
+        transition: color 0.25s;
+    }
+    .bio-social a:hover { color: #fff; }
+</style>
 </head>
 <body>
-    <div class="parallax-container">
-        <div class="parallax-layer layer-back"></div>
-        <div class="parallax-layer layer-mid"></div>
 
-        <header class="main-header">
-            <h1>Seba Bru Astrología | Links</h1>
+    <div class="content-wrapper">
+
+        <header class="main-header" id="top">
+            <h1>Seba Bru Astrología</h1>
         </header>
 
         <main>
-            
-                <div class="links-grid">
-                    <a href="https://sebabru.com#formaciones/" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-formaciones">
-                        Formaciones y talleres
+            <section class="section-container">
+                <div class="bio">
+
+                    <div class="bio-intro">
+                        <p>Astrología para habitar el cielo que te toca.</p>
+                    </div>
+
+                    <p class="bio-titulo-partido">Sumate a la lista</p>
+                    <div class="bio-partido">
+                        <a href="https://sebabru.com/suscribirse/?utm_source=links&amp;utm_medium=bio">
+                            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                            Por mail
+                        </a>
+                        <span class="bio-separador" aria-hidden="true"></span>
+                        <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G?mode=r_t" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                            Por WhatsApp
+                        </a>
+                    </div>
+
+                    <a href="https://sebabru.com/#formaciones" class="bio-link" style="--color: var(--primary-color);">
+                        Formaciones
+                        <span class="bio-sub">Cursos, talleres y seminarios</span>
                     </a>
 
-                    <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-podcast-spotify">
-                        Podcast (Spotify)
+                    <a href="https://sebabru.com/#podcast" class="bio-link" style="--color: var(--contenido-color);">
+                        Podcast
+                        <span class="bio-sub">Los tránsitos, para escuchar</span>
                     </a>
 
-                    <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-podcast-youtube">
-                        Podcast (YouTube)
+                    <a href="https://sebabru.com/consultas/" class="bio-link" style="--color: var(--consultas-color);">
+                        Consultas
+                        <span class="bio-sub">Pedí tu lectura de carta</span>
                     </a>
 
-                    <a href="http://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-whatsapp">
-                        Contacto | WhatsApp
+                    <a href="https://sebabru.com/ebook/?utm_source=links&amp;utm_medium=bio" class="bio-link" style="--color: var(--secondary-color);">
+                        Ebook gratuito
+                        <span class="bio-sub">Tu identidad en el cielo</span>
                     </a>
 
-                    <a href="https://sebabru.com/suscribirse/?utm_source=links&utm_medium=bio" class="link-button button-web">
-                        Contenidos astrológicos por mail
+                    <a href="https://sebabru.com/cartas/" class="bio-link">
+                        Calculá tu carta natal
+                        <span class="bio-sub">Gratis, en el navegador</span>
                     </a>
 
-                    <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G?mode=r_t" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-canal-whatsapp">
-                        Comunidad de WhatsApp
-                    </a>
+                    <div class="bio-social">
+                        <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fab fa-spotify"></i></a>
+                        <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+                        <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                    </div>
 
-                    <a href="https://t.me/espaciointeriorastrologia" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-telegram">
-                        Canal de Telegram
-                    </a>
-
-                    <a href="https://sebabru.com/" class="link-button button-web">
-                        Nuestra web
-                    </a>
-
-                    <a href="http://eepurl.com/hT_Q-L" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-suscribir">
-                        Suscribite (mail)
-                    </a>
-
-                    <a href="https://link.mercadopago.com.ar/sebabru" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-donar-mp">
-                        Donar (Mercado Pago)
-                    </a>
-
-                    <a href="http://paypal.me/Sebabruzzese" target="_blank" rel="noopener noreferrer" rel="noreferrer noopener" class="link-button button-donar-paypal">
-                        Donar (PayPal)
-                    </a>
                 </div>
-            </div>
+            </section>
         </main>
 
-        <footer class="main-footer">
-            <div class="contact-info">
-                <span>sebabru.com</span> |
-                <span>seba@sebabru.com</span>
-            </div>
-            <div class="social-links">
-                <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                <a href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-            </div>
-            <p>© 2025. Todos los derechos y los izquierdos tamnbién.</p>
-        </footer>
     </div>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p><a href="https://sebabru.com/">sebabru.com</a> &middot; <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+        </div>
+        <p><a href="/privacidad/">Privacidad y datos</a></p>
+        <p>© 2024 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+    </footer>
+
 </body>
 </html>

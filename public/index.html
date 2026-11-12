@@ -33,7 +33,7 @@ a:hover{text-decoration:underline}
 .menu-toggle:checked + .menu-button .bar:nth-child(1){width:100%;transform:translateY(8px) rotate(45deg)}
 .menu-toggle:checked + .menu-button .bar:nth-child(2){opacity:0;transform:scale(0)}
 .menu-toggle:checked + .menu-button .bar:nth-child(3){width:100%;transform:translateY(-8px) rotate(-45deg)}
-.menu-list{list-style:none!important;padding:0!important;margin:0!important;position:fixed;top:0;right:-100%;width:320px;height:100vh;background:rgba(10,10,15,.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center;align-items:center;transition:right .6s cubic-bezier(.23,1,.32,1);z-index:999999!important;border-left:1px solid rgba(255,255,255,.05);box-shadow:-10px 0 30px rgba(0,0,0,.5)}
+.menu-list{list-style:none!important;padding:0!important;margin:0!important;position:fixed;top:0;right:-100%;width:320px;height:100vh;background:rgba(10,10,15,.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;justify-content:center;align-items:center;overflow-y:auto;overscroll-behavior:contain;transition:right .6s cubic-bezier(.23,1,.32,1);z-index:999999!important;border-left:1px solid rgba(255,255,255,.05);box-shadow:-10px 0 30px rgba(0,0,0,.5)}
 .menu-toggle:checked ~ .menu-list{right:0}
 .menu-list li{width:100%;text-align:center;padding:15px 0;opacity:0;transform:translateX(20px);transition:all .4s ease}
 .menu-toggle:checked ~ .menu-list li{opacity:1;transform:translateX(0)}
@@ -64,8 +64,8 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </style>
     <!-- Resto del CSS: no bloqueante -->
     <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="style.css?v=25" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css?v=25"></noscript>
+    <link rel="preload" href="style.css?v=26" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.css?v=26"></noscript>
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 </head>
 <body>
@@ -93,9 +93,10 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
         <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
         <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
         <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
-        <li><a href="https://sebabru.com/#bios">BIOS</a></li>
         <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
-        <li><a href="https://sebabru.com/escuela/" target="_blank" rel="noopener noreferrer">ESCUELA</a></li>
+        <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+        <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+        <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
     </ul>
 </nav>
     
@@ -555,10 +556,10 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
                 <a href="#seminario-saturno" class="carrusel-item"><img src="img/saturno.webp" width="1081" height="1351" alt="Seminario Saturno" class="media-cover" loading="lazy"></a>
                 <a href="#planetas" class="carrusel-item"><img src="img/planetas.webp" width="1081" height="1352" alt="Planetas y aspectos" class="media-cover" loading="lazy"></a>
                 <a href="#curso-identidad-astral" class="carrusel-item"><img src="img/dni.webp" width="1081" height="1351" alt="Curso Identidad Astral" class="media-cover" loading="lazy"></a>
-                <a href="#seminario-pluton-nodos" class="carrusel-item"><img src="img/pluton.webp" width="1081" height="1351" alt="Seminario Plutón y Nodos" class="media-cover" loading="lazy"></a>
+                <a href="#pluton" class="carrusel-item"><img src="img/pluton.webp" width="1081" height="1351" alt="Seminario Plutón y Nodos" class="media-cover" loading="lazy"></a>
                 <a href="#seminario-singularidad" class="carrusel-item"><img src="img/quiron.webp" width="1081" height="1351" alt="Seminario Quirón y Singularidad" class="media-cover" loading="lazy"></a>
                 <a href="#seminario-linaje" class="carrusel-item"><img src="img/taller2.webp" width="1081" height="1351" alt="Seminario Linaje" class="media-cover" loading="lazy"></a>
-                <a href="#luna-negra" class="carrusel-item"><img src="img/taller3.webp" width="1081" height="1351" alt="Seminario Luna Negra" class="media-cover" loading="lazy"></a>
+                <a href="#seminario-luna-negra" class="carrusel-item"><img src="img/taller3.webp" width="1081" height="1351" alt="Seminario Luna Negra" class="media-cover" loading="lazy"></a>
                 <a href="#taller-tarot" class="carrusel-item"><img src="img/taller4.webp" width="1081" height="1351" alt="Taller de Tarot" class="media-cover" loading="lazy"></a>
             </div>
             
@@ -1116,7 +1117,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
 
   gtag('config', 'G-GDLRMR5D57');
 </script>
-    <script src="script.js?v=25" defer></script>
+    <script src="script.js?v=26" defer></script>
     <script src="/suscribirse.js?v=3" defer></script>
 <style>
 .yt-facade {

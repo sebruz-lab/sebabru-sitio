@@ -186,35 +186,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lleva la cámara del recorrido a un bloque puntual (usado por los
     // links internos de más abajo). Devuelve false si el id no es un
     // bloque del recorrido, para que el link siga su comportamiento normal.
-    function goToBloque(id) {
+    function goToBloque(id, inmediato) {
         // Con movimiento reducido no hay camara: el link sigue con el
         // scroll comun hasta la seccion.
         if (!escenaTrack || reduce) return false;
         const idx = BLOQUES.findIndex(b => b.id === id);
         if (idx < 0) return false;
         const scrollable = escenaTrack.offsetHeight - window.innerHeight;
-        window.scrollTo({
-            top: escenaTrack.offsetTop + scrollable * (idx / (NB - 1)),
-            behavior: 'smooth'
-        });
+        const destino = escenaTrack.offsetTop + scrollable * (idx / (NB - 1));
+        if (inmediato) {
+            // Llegando con un #hash no hay nada que animar: la camara se
+            // planta en el bloque. Sin plantar tambien segActual, la
+            // resistencia del recorrido arranca en 0 y la persona ve el
+            // viaje entero pasar solo durante varios segundos.
+            segActual = idx;
+            window.scrollTo({ top: destino, behavior: 'auto' });
+            frameRecorrido();
+        } else {
+            window.scrollTo({ top: destino, behavior: 'smooth' });
+        }
         return true;
+    }
+
+    // Que ancla de ESTA pagina apunta un link, o '' si apunta a otra parte.
+    //
+    // No alcanza con mirar si el href empieza con '#': el menu de la home
+    // usa URLs absolutas (https://sebabru.com/#podcast), asi que sin esto
+    // el navegador recarga la pagina entera en vez de scrollear — y al
+    // recargar cae en el lugar equivocado, porque las secciones del
+    // recorrido son bloques posicionados a mano.
+    function anclaDeEstaPagina(link) {
+        const href = link.getAttribute('href');
+        if (!href) return '';
+        if (href.charAt(0) === '#') return href.length > 1 ? href.slice(1) : '';
+        let u;
+        try { u = new URL(href, window.location.href); } catch (e) { return ''; }
+        if (!u.hash || u.hash.length < 2) return '';
+        if (u.origin !== window.location.origin) return '';
+        // "/", "/index.html" y "" son la misma pagina.
+        const normalizar = (ruta) => ruta.replace(/index\.html$/, '') || '/';
+        if (normalizar(u.pathname) !== normalizar(window.location.pathname)) return '';
+        return decodeURIComponent(u.hash.slice(1));
     }
 
     // 2. SCROLL SUAVE PARA EL MENÚ Y ENLACES (Offset corregido)
     const menuToggle = document.getElementById('menu-toggle');
-    const menuLinks = document.querySelectorAll('.menu-list a, a[href^="#"]');
+    const menuLinks = document.querySelectorAll('.menu-list a, a[href*="#"]');
     menuLinks.forEach(link => {
         link.addEventListener('click', (event) => {
-            const targetId = link.getAttribute('href');
-            if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+            const ancla = anclaDeEstaPagina(link);
+            if (ancla) {
                 event.preventDefault();
                 if (menuToggle && menuToggle.checked) {
                     menuToggle.checked = false;
                 }
+                // Que el #hash quede en la barra de direcciones, para que
+                // la persona pueda copiar el link de la seccion.
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, '', '#' + ancla);
+                }
 
-                if (goToBloque(targetId.slice(1))) return;
+                if (goToBloque(ancla)) return;
 
-                const targetElement = document.querySelector(targetId);
+                const targetElement = document.getElementById(ancla);
                 if (targetElement) {
                     const header = document.querySelector('.main-header');
                     const headerHeight = header ? header.offsetHeight : 0;
@@ -323,5 +357,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 9. LLEGADA CON #HASH
+    //
+    // Es lo que hace el menu de cualquier OTRA pagina del sitio, y
+    // cualquier link compartido a una seccion. El navegador por su cuenta
+    // no puede acertar, por dos motivos distintos:
+    //
+    //  - Las secciones del recorrido (podcast, consultas, bios...) son
+    //    bloques posicionados a mano dentro del universo. Su posicion de
+    //    maquetado es el centro del track, no la posicion de scroll que
+    //    pone la camara enfrente: el navegador salta siempre al mismo
+    //    lugar, que no es ninguno de los que se pidio.
+    //  - Las secciones de mas abajo si estan en el flujo normal, pero el
+    //    navegador calcula su posicion antes de que carguen las imagenes
+    //    (que son casi todas lazy y sin alto reservado): cuando cargan, la
+    //    pagina crece y lo que se habia enfocado quedo mas arriba.
+    //
+    // Por eso se corrige dos veces: ahora y cuando termino de cargar todo.
+    if (window.location.hash.length > 1) {
+        const idDestino = decodeURIComponent(window.location.hash.slice(1));
+        const irAlDestino = () => {
+            if (goToBloque(idDestino, true)) return;
+            const el = document.getElementById(idDestino);
+            if (!el) return;
+            const header = document.querySelector('.main-header');
+            const alto = header ? header.offsetHeight : 0;
+            window.scrollTo({
+                top: el.getBoundingClientRect().top + window.pageYOffset - alto,
+                behavior: 'auto'
+            });
+        };
+        irAlDestino();
+        window.addEventListener('load', irAlDestino, { once: true });
+    }
 
 });
