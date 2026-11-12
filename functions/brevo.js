@@ -261,6 +261,29 @@ async function quitarDeLista(email, listas) {
   }
 }
 
+// --- Mails sueltos --------------------------------------------------------
+
+// Un mail transaccional (hoy: el de bienvenida al suscribirse). Usa una
+// plantilla del panel, asi el texto se edita ahi sin tocar codigo.
+//
+// Ojo con el cupo: en el plan gratis estos mails salen de los mismos 300
+// por dia que las campanas. Para el ritmo de suscripciones del sitio no se
+// nota, pero por eso los mails del sitio (compras, accesos, la carta en
+// PDF) siguen saliendo por Gmail y no por aca.
+//
+// soloRateLimit: manda un mail, asi que no se reintenta ante un 500 ni ante
+// un timeout, para no mandarlo dos veces.
+async function enviarConPlantilla({ email, nombre, templateId, params } = {}) {
+  if (!email || !templateId) return null;
+  if (!brevoConfigurado()) return avisarSinLlave('/smtp/email');
+
+  return pedirBrevo('POST', '/smtp/email', {
+    to: [{ email: String(email).trim().toLowerCase(), ...(nombre ? { name: nombre } : {}) }],
+    templateId: Number(templateId),
+    ...(params ? { params } : {}),
+  }, { reintentos: 1, soloRateLimit: true });
+}
+
 // --- Importacion (la usa la herramienta local de migracion) --------------
 
 // emptyContactsAttributes en false es clave: asi un CSV que no trae la
@@ -346,6 +369,7 @@ module.exports = {
   upsertContacto,
   obtenerContacto,
   pedirDobleOptin,
+  enviarConPlantilla,
   quitarDeLista,
   importarContactos,
   estadoProceso,

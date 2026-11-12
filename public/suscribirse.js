@@ -216,15 +216,15 @@ function armar(caja, n) {
 
     var mostrarListo = function (estadoAlta, direccion) {
         var textos = {
-            doi_enviado: 'Te mandamos un mail a <strong>' + direccion + '</strong>. '
-                + 'Abrilo y confirmá el enlace para quedar en la lista.'
+            suscrito: 'Listo, ya estás en la lista. Te mandamos un mail de bienvenida a <strong>'
+                + direccion + '</strong>.'
                 + '<span class="sus-nota">Si no lo ves, mirá en spam o en promociones.</span>',
-            doi_demorado: 'Te anotamos. En un rato te va a llegar el mail para confirmar la suscripción.'
+            demorado: 'Te anotamos. El mail de bienvenida puede demorar un rato en llegar.'
                 + '<span class="sus-nota">Si no llega, escribinos a info@sebabru.com.</span>',
             ya_suscrito: 'Ya estabas en la lista. Nos vemos en la próxima luna.',
         };
         caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
-            + '<p class="sus-listo">' + (textos[estadoAlta] || textos.doi_enviado) + '</p>';
+            + '<p class="sus-listo">' + (textos[estadoAlta] || textos.suscrito) + '</p>';
     };
 
     form.addEventListener('submit', function (e) {
@@ -293,6 +293,12 @@ function armar(caja, n) {
             }
             if (fallo === 'email_invalido') {
                 return avisar('Revisá el mail: parece que falta algo.');
+            }
+            if (fallo === 'dominio_sin_correo') {
+                // El servidor no encontro servidores de correo en ese
+                // dominio: casi siempre es un error de tipeo despues de la
+                // arroba.
+                return avisar('No encontramos ese dominio de correo. Revisá lo que va después de la arroba.');
             }
             if (fallo === 'no_configurado') {
                 // El formulario esta publicado pero el mailing todavia no

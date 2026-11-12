@@ -5,6 +5,7 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const dnsPromesas = require('dns').promises;
 const { sheets: sheetsApi } = require('@googleapis/sheets');
 const { JWT } = require('google-auth-library');
 const brevo = require('./brevo');
@@ -2419,6 +2420,46 @@ const DOMINIOS_TIPEADOS = {
   'yahoo.co': 'yahoo.com', 'outlook.con': 'outlook.com', 'icloud.con': 'icloud.com',
 };
 
+// Verifica que el dominio del mail tenga servidores de correo. Es lo que
+// reemplaza al doble opt-in para atajar los rebotes: una direccion mal
+// tipeada como "gmial.com" no tiene MX, asi que se rechaza en el momento y
+// la persona la corrige. Los rebotes duros son lo que hace que Brevo
+// suspenda una cuenta, asi que esta es la defensa principal.
+//
+// Si la consulta falla o tarda, deja pasar: mejor un contacto de mas que
+// trabar a alguien por un problema de DNS nuestro.
+async function dominioRecibeCorreo(dominio) {
+  if (!dominio) return false;
+  try {
+    const mx = await Promise.race([
+      dnsPromesas.resolveMx(dominio),
+      new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('timeout')), 3000)),
+    ]);
+    return Array.isArray(mx) && mx.length > 0;
+  } catch (error) {
+    // El dominio no existe: error de tipeo seguro.
+    if (error.code === 'ENOTFOUND' || error.code === 'NXDOMAIN') return false;
+
+    // ENODATA: el dominio existe pero no tiene MX. Pasa con los dominios
+    // registrados para aprovechar errores de tipeo, como gmial.com. El
+    // estandar permite caer al registro A cuando no hay MX, asi que antes
+    // de rechazar miramos si hay alguno: si tampoco hay, no hay forma de
+    // que reciba correo.
+    if (error.code === 'ENODATA') {
+      try {
+        const direcciones = await dnsPromesas.resolve4(dominio).catch(() => dnsPromesas.resolve6(dominio));
+        return Array.isArray(direcciones) && direcciones.length > 0;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Timeout, servidor caido, lo que sea: no sabemos, no bloqueamos.
+    functions.logger.warn('No pude revisar el correo del dominio', { dominio, error: error.code || error.message });
+    return true;
+  }
+}
+
 exports.suscribir = functions.https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -2437,7 +2478,7 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
   // que fue descubierto.
   if (sanitizeTexto(req.body?.hp, 200)) {
     functions.logger.info('Suscripción descartada por el honeypot.');
-    return res.status(200).json({ ok: true, estado: 'doi_enviado' });
+    return res.status(200).json({ ok: true, estado: 'suscrito' });
   }
 
   // El captcha desde el primer envio, al contrario de registrarInscripcion,
@@ -2465,6 +2506,13 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     return res.status(400).json({ error: 'consentimiento_requerido' });
   }
 
+  // Sin doble opt-in, esta es la unica barrera contra las direcciones que no
+  // existen. Va despues del captcha para que nadie pueda usar el endpoint
+  // como un escaner de dominios.
+  if (!(await dominioRecibeCorreo(dominio))) {
+    return res.status(400).json({ error: 'dominio_sin_correo', dominio });
+  }
+
   const nombre = sanitizeTexto(req.body?.nombre, 100);
   const origenCrudo = sanitizeTexto(req.body?.origen, 40);
   const origen = ORIGENES_SUSCRIPCION.has(origenCrudo) ? origenCrudo : 'otro';
@@ -2475,7 +2523,6 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     FECHA_ALTA: brevo.fechaBrevo(new Date()),
     CONSENTIMIENTO: 'doi-sitio',
   };
-  const redirectUrl = `${process.env.SITE_URL || 'https://sebabru.com'}/suscripcion/confirmado/`;
 
   // La constancia del consentimiento queda tambien de este lado, no solo en
   // Brevo: con fecha, origen e IP. Es lo que prueba de donde salio cada
@@ -2498,24 +2545,20 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     }
   };
 
-  // Sin la llave de Brevo no hay mail de confirmacion posible. Lo importante
-  // es NO contestar "revisa tu casilla", porque ese mail no va a llegar
-  // nunca: se guarda el pedido para no perder a nadie y se dice la verdad.
-  // Pasa si el formulario se publica antes de configurar Brevo.
+  // Sin la llave de Brevo no hay alta posible. El pedido se guarda para no
+  // perder a nadie, pero se dice la verdad en vez de contestar que salio
+  // bien. Pasa si el formulario se publica antes de configurar Brevo.
   if (!brevo.brevoConfigurado()) {
     functions.logger.error('Alguien quiso suscribirse y BREVO_API_KEY no esta configurada.');
-    await encolarContactoBrevo({
-      email, nombre, listas: ['suscriptores'], atributos,
-      doi: true, redirectUrl, motivo: 'suscripcion',
-    });
+    await encolarContactoBrevo({ email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion' });
     await anotarPedido('sin_configurar');
     return res.status(503).json({ error: 'no_configurado' });
   }
 
   try {
-    // Si ya esta en la lista no se le manda otro mail: si no, el formulario
-    // serviria para molestar a cualquiera cargando su direccion una y otra
-    // vez.
+    // Si ya esta en la lista, no se le manda otro mail de bienvenida: si
+    // no, el formulario serviria para molestar a cualquiera cargando su
+    // direccion una y otra vez.
     const contacto = await brevo.obtenerContacto(email);
     const idSuscriptores = brevo.idsDeListas(['suscriptores'])[0];
     if (contacto && idSuscriptores && (contacto.listIds || []).includes(idSuscriptores)) {
@@ -2523,23 +2566,33 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
       return res.status(200).json({ ok: true, estado: 'ya_suscrito' });
     }
 
-    await brevo.pedirDobleOptin({ email, nombre, atributos, listas: ['suscriptores'], redirectUrl });
-    await anotarPedido('pendiente');
-    functions.logger.info('Doble opt-in pedido', { origen });
-    return res.status(200).json({ ok: true, estado: 'doi_enviado' });
+    // Alta directa, sin paso de confirmacion. Lo que cuida que la direccion
+    // sea de verdad es el captcha (desde el primer envio), la trampa para
+    // bots, el control de tipeos y la revision de MX de mas arriba.
+    await brevo.upsertContacto({ email, nombre, listas: ['suscriptores'], atributos });
+
+    // La bienvenida es un agregado: si falla, la persona ya quedo suscrita
+    // igual y no tiene sentido devolverle un error por eso.
+    try {
+      await brevo.enviarConPlantilla({
+        email, nombre,
+        templateId: process.env.BREVO_BIENVENIDA_TEMPLATE_ID,
+      });
+    } catch (error) {
+      functions.logger.error('No se pudo mandar la bienvenida:', error.message);
+    }
+
+    await anotarPedido('suscrito');
+    functions.logger.info('Suscripción nueva', { origen });
+    return res.status(200).json({ ok: true, estado: 'suscrito' });
 
   } catch (error) {
     // Brevo no contesto. En vez de perder a quien se quiso suscribir, el
-    // pedido queda en la cola con doi:true y el trigger lo reintenta: el
-    // mail de confirmacion sale igual, un rato mas tarde. Nunca se lo mete
-    // en la lista sin confirmar.
-    functions.logger.error('Brevo no respondió al pedir el doble opt-in:', error.message);
-    await encolarContactoBrevo({
-      email, nombre, listas: ['suscriptores'], atributos,
-      doi: true, redirectUrl, motivo: 'suscripcion',
-    });
+    // alta queda en la cola y el trigger la reintenta.
+    functions.logger.error('Brevo no respondió al dar el alta:', error.message);
+    await encolarContactoBrevo({ email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion' });
     await anotarPedido('reintentando');
-    return res.status(200).json({ ok: true, estado: 'doi_demorado' });
+    return res.status(200).json({ ok: true, estado: 'demorado' });
   }
 });
 
