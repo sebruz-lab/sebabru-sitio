@@ -17,9 +17,13 @@
 var URL_SUSCRIBIR = 'https://us-central1-sebabru-e5563.cloudfunctions.net/suscribir';
 var SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
 
-var TITULO = 'El cielo del mes, por mail';
-var TEXTO = 'Cada luna nueva y cada luna llena te escribo lo que se abre y lo que se cierra, '
-    + 'con lo que conviene mirar de tu carta. Sin ruido: dos mails por mes.';
+// A proposito no se promete un numero de mails por mes: la lista manda
+// lo que el cielo vaya pidiendo, y un numero escrito es una promesa que
+// despues hay que cumplir.
+var TITULO = 'Cerca del cielo, por mail';
+var TEXTO = 'Contenidos astrológicos gratuitos para mantenerte cerca del cielo y sus '
+    + 'movimientos: los informes de cada luna, los textos de cada signo, el podcast de '
+    + 'los tránsitos y lo que vaya apareciendo.';
 
 var ESTILOS = `
 .suscribirse {
@@ -181,7 +185,7 @@ function armar(caja, n) {
         + '</div>'
         + '<label class="sus-consentimiento" for="' + id('ok') + '">'
         + '<input type="checkbox" id="' + id('ok') + '">'
-        + '<span>Quiero recibir los informes de las lunaciones y las novedades por mail. '
+        + '<span>Quiero recibir los contenidos astrológicos por mail. '
         + 'Puedo darme de baja cuando quiera. '
         + '<a href="/privacidad/">Cómo cuidamos tus datos</a>.</span>'
         + '</label>'
@@ -221,7 +225,7 @@ function armar(caja, n) {
                 + '<span class="sus-nota">Si no lo ves, mirá en spam o en promociones.</span>',
             demorado: 'Te anotamos. El mail de bienvenida puede demorar un rato en llegar.'
                 + '<span class="sus-nota">Si no llega, escribinos a info@sebabru.com.</span>',
-            ya_suscrito: 'Ya estabas en la lista. Nos vemos en la próxima luna.',
+            ya_suscrito: 'Ya estabas en la lista. Nos vemos en el próximo mail.',
         };
         caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
             + '<p class="sus-listo">' + (textos[estadoAlta] || textos.suscrito) + '</p>';
