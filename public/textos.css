@@ -1,0 +1,297 @@
+/* =========================================================
+   Paginas de texto de la calculadora: /sol/, /lunas/, /ascendente/.
+   Hoja propia y chica a proposito. Estas 39 paginas son la puerta de
+   entrada desde Google: llegan en frio, sin nada cacheado, muchas veces
+   desde un telefono. style.css pesa 84 KB y trae el recorrido, los blobs
+   y medio sitio; aca no hace falta nada de eso.
+   Las genera paginas-textos.js (C:\dev\herramientas-sebabru).
+   ========================================================= */
+
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 300 600;
+    font-display: swap;
+    src: url('/fonts/outfit-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Outfit';
+    font-style: normal;
+    font-weight: 300 600;
+    font-display: swap;
+    src: url('/fonts/outfit-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+    --bg-base: #07070a;
+    --bg-surface: #12141d;
+    --primary-color: #3bc2bc;
+    --secondary-color: #f7d239;
+    --text: #e0e0e0;
+    --text-tenue: #9aa0ad;
+    --borde: rgba(255, 255, 255, .09);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    letter-spacing: .2px;
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--primary-color); text-decoration: none; }
+a:hover, a:focus-visible { text-decoration: underline; }
+
+/* ---------- cabecera ---------- */
+
+.cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 28px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 26px 20px 0;
+}
+
+.cabecera .marca {
+    color: var(--text);
+    font-weight: 500;
+    font-size: .8125rem;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+}
+
+.cabecera nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-left: auto;
+}
+
+.cabecera nav a {
+    color: var(--text-tenue);
+    font-size: .75rem;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+}
+
+.cabecera nav a:hover { color: var(--primary-color); }
+
+/* ---------- cuerpo ---------- */
+
+main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+}
+
+.miga {
+    margin: 56px 0 0;
+    color: var(--text-tenue);
+    font-size: .75rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.miga a { color: var(--text-tenue); }
+.miga a:hover { color: var(--primary-color); }
+.miga span { opacity: .55; }
+
+article { max-width: 42rem; }
+
+.punto {
+    margin: 48px 0 0;
+    color: var(--primary-color);
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+h1 {
+    margin: 6px 0 0;
+    font-size: clamp(2.25rem, 7vw, 3.75rem);
+    font-weight: 300;
+    line-height: 1.08;
+    letter-spacing: -1px;
+}
+
+.cuerpo { margin-top: 36px; }
+
+.cuerpo p { margin: 0 0 1.5em; }
+
+.cuerpo p:first-child::first-letter {
+    float: left;
+    margin: .08em .08em 0 0;
+    color: var(--primary-color);
+    font-size: 3.1em;
+    font-weight: 300;
+    line-height: .82;
+}
+
+/* ---------- llamada a la calculadora ---------- */
+
+.llamada {
+    max-width: 42rem;
+    margin: 72px 0 0;
+    padding: 36px 34px;
+    border: 1px solid var(--borde);
+    border-left: 2px solid var(--primary-color);
+    background: var(--bg-surface);
+}
+
+.llamada h2 {
+    margin: 0 0 10px;
+    font-size: 1.375rem;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -.3px;
+}
+
+.llamada p { margin: 0 0 24px; color: var(--text-tenue); }
+.llamada p:last-of-type { margin-bottom: 0; }
+
+.boton {
+    display: inline-block;
+    padding: 13px 30px;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: background .2s, color .2s;
+}
+
+.boton:hover, .boton:focus-visible {
+    background: var(--primary-color);
+    color: var(--bg-base);
+    text-decoration: none;
+}
+
+/* ---------- enlaces entre paginas ---------- */
+
+.cruces { margin-top: 84px; }
+
+.cruces h2 {
+    margin: 0 0 20px;
+    color: var(--text-tenue);
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+}
+
+.cruces + .cruces { margin-top: 56px; }
+
+.fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+}
+
+.fila a {
+    padding: 9px 17px;
+    border: 1px solid var(--borde);
+    color: var(--text);
+    font-size: .875rem;
+}
+
+.fila a:hover, .fila a:focus-visible {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.fila a.aqui {
+    border-color: transparent;
+    color: var(--text-tenue);
+    pointer-events: none;
+}
+
+/* ---------- indices (/sol/, /lunas/, /ascendente/) ---------- */
+
+.bajada {
+    max-width: 42rem;
+    margin: 28px 0 0;
+    font-size: 1.1875rem;
+    color: var(--text-tenue);
+}
+
+.listado {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1px;
+    margin-top: 64px;
+    background: var(--borde);
+    border: 1px solid var(--borde);
+}
+
+.listado article {
+    max-width: none;
+    padding: 28px 26px;
+    background: var(--bg-base);
+}
+
+.listado h2 {
+    margin: 0 0 10px;
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: -.2px;
+}
+
+.listado h2 a { color: var(--text); }
+.listado h2 a:hover { color: var(--primary-color); text-decoration: none; }
+
+.listado p {
+    margin: 0;
+    color: var(--text-tenue);
+    font-size: .9375rem;
+    line-height: 1.65;
+}
+
+/* ---------- pie ---------- */
+
+.pie {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 44px 20px 56px;
+    border-top: 1px solid var(--borde);
+    color: var(--text-tenue);
+    font-size: .8125rem;
+}
+
+.pie nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin-bottom: 18px;
+}
+
+.pie a { color: var(--text-tenue); }
+.pie a:hover { color: var(--primary-color); }
+.pie p { margin: 0; opacity: .7; }
+
+@media (max-width: 600px) {
+    body { font-size: 1rem; }
+    main { padding-bottom: 56px; }
+    .miga { margin-top: 36px; }
+    .punto { margin-top: 36px; }
+    .llamada { padding: 28px 22px; }
+}

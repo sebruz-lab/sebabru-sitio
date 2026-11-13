@@ -454,6 +454,15 @@ a:hover {
 .social-links { margin: 15px 0; }
 .social-links a { margin: 0 10px; font-size: 1.5em; }
 
+/* Enlaces del pie hacia las paginas de texto de la carta (/sol, /lunas,
+   /ascendente). Van en el pie porque es lo que Google rastrea en cada
+   visita, y esas 39 paginas no tienen otra puerta de entrada desde la home. */
+.footer-links {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px 20px; max-width: 760px;
+    font-size: 0.9em; opacity: 0.85;
+}
+
 /* =========================================
    6. BOTONES DEL MENÚ DE INICIO (GRILLA)
    ========================================= */
