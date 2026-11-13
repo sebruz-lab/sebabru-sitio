@@ -6,4 +6,11 @@ Allow: /
 # impide rastrearlas, y entonces Google nunca lee el noindex: si alguna ya
 # estaba indexada, se queda indexada para siempre.
 
+# /textos/ son los 36 textos de la calculadora en JSON, para que los lea
+# /cartas (ver interpretaciones.js en el repo tucarta). El mismo texto, para
+# leer, esta en /sol/, /lunas/ y /ascendente/: esas son las paginas que tienen
+# que estar en Google, no el JSON. Aca el Disallow no tiene el problema del
+# noindex, porque no son paginas que puedan quedar indexadas.
+Disallow: /textos/
+
 Sitemap: https://sebabru.com/sitemap.xml
