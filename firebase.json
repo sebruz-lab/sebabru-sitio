@@ -122,6 +122,56 @@
         "source": "/identidad-astral/**",
         "destination": "/tu-identidad-en-el-cielo",
         "type": 301
+      },
+      {
+        "source": "/linaje-clan-y-genealogia-a-traves-de-las-casas-astrologicas",
+        "destination": "/escuela/abierta/linaje",
+        "type": 301
+      },
+      {
+        "source": "/linaje-clan-y-genealogia-a-traves-de-las-casas-astrologicas/**",
+        "destination": "/escuela/abierta/linaje",
+        "type": 301
+      },
+      {
+        "source": "/formacion-en-astrologia",
+        "destination": "/programa",
+        "type": 301
+      },
+      {
+        "source": "/formacion-en-astrologia/**",
+        "destination": "/programa",
+        "type": 301
+      },
+      {
+        "source": "/neptuno-urano-y-quiron",
+        "destination": "/#seminario-singularidad",
+        "type": 301
+      },
+      {
+        "source": "/neptuno-urano-y-quiron/**",
+        "destination": "/#seminario-singularidad",
+        "type": 301
+      },
+      {
+        "source": "/capricornio",
+        "destination": "/sol/capricornio",
+        "type": 301
+      },
+      {
+        "source": "/capricornio/**",
+        "destination": "/sol/capricornio",
+        "type": 301
+      },
+      {
+        "source": "/contenidos",
+        "destination": "/links",
+        "type": 301
+      },
+      {
+        "source": "/contenidos/**",
+        "destination": "/links",
+        "type": 301
       }
     ]
   }
