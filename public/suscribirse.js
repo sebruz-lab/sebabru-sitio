@@ -12,6 +12,14 @@
 // suscribirse, formulario). data-titulo, data-texto y data-exito (lo que
 // dice una vez que la persona ya se anoto) son opcionales.
 //
+// data-canje convierte el formulario en un intercambio: en vez de una
+// casilla aparte, el trato va escrito arriba del boton y apretarlo ES el
+// consentimiento. Se usa donde la suscripcion es la condicion para recibir
+// algo (el ebook). Sigue siendo consentimiento explicito e informado
+// — un acto deliberado, con los terminos a la vista — que es lo que pide
+// la ley; lo que NO vale es una casilla premarcada, porque ahi la persona
+// no eligio nada. data-boton cambia el texto del boton.
+//
 // El alta es con doble opt-in: esto no suscribe a nadie, pide el mail de
 // confirmacion. Quien no hace clic no entra en la lista.
 
@@ -57,6 +65,10 @@ var ESTILOS = `
 }
 .suscribirse .sus-consentimiento input { margin: 2px 0 0; flex-shrink: 0; accent-color: #fff; }
 .suscribirse .sus-consentimiento a { color: inherit; text-decoration: underline; }
+.suscribirse .sus-canje {
+    margin: 0 0 24px; color: #cccac3; font-size: 0.82rem; line-height: 1.6;
+}
+.suscribirse .sus-canje a { color: inherit; text-decoration: underline; }
 .suscribirse .sus-trampa {
     position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;
 }
@@ -165,6 +177,9 @@ function armar(caja, n) {
     // Lo que dice al terminar. La pagina del ebook lo cambia, porque ahi
     // lo que llega no es una bienvenida: es el libro.
     var exito = caja.getAttribute('data-exito') || '';
+    // El trato, cuando la suscripcion es la condicion para recibir algo.
+    var canje = caja.getAttribute('data-canje') || '';
+    var textoBoton = caja.getAttribute('data-boton') || 'Suscribirme';
 
     caja.classList.add('suscribirse');
     caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
@@ -187,14 +202,17 @@ function armar(caja, n) {
         + '<label for="' + id('hp') + '">No completar</label>'
         + '<input type="text" id="' + id('hp') + '" name="website" tabindex="-1" autocomplete="off">'
         + '</div>'
-        + '<label class="sus-consentimiento" for="' + id('ok') + '">'
-        + '<input type="checkbox" id="' + id('ok') + '">'
-        + '<span>Quiero recibir los contenidos astrológicos por mail. '
-        + 'Puedo darme de baja cuando quiera. '
-        + '<a href="/privacidad/">Cómo cuidamos tus datos</a>.</span>'
-        + '</label>'
+        + (canje
+            ? '<p class="sus-canje">' + canje + ' '
+                + '<a href="/privacidad/">Cómo cuidamos tus datos</a>.</p>'
+            : '<label class="sus-consentimiento" for="' + id('ok') + '">'
+                + '<input type="checkbox" id="' + id('ok') + '">'
+                + '<span>Quiero recibir los contenidos astrológicos por mail. '
+                + 'Puedo darme de baja cuando quiera. '
+                + '<a href="/privacidad/">Cómo cuidamos tus datos</a>.</span>'
+                + '</label>')
         + '<div class="sus-captcha" id="' + id('captcha') + '"></div>'
-        + '<button type="submit">Suscribirme</button>'
+        + '<button type="submit">' + textoBoton + '</button>'
         + '</form>';
 
     var form = caja.querySelector('form');
@@ -244,7 +262,9 @@ function armar(caja, n) {
             email.focus();
             return avisar('Revisá el mail: parece que falta algo.');
         }
-        if (!consiente.checked) {
+        // En modo canje no hay casilla: el consentimiento es apretar el
+        // boton, con el trato escrito justo arriba.
+        if (consiente && !consiente.checked) {
             return avisar('Para suscribirte necesitamos que marques la casilla.');
         }
 
@@ -252,7 +272,7 @@ function armar(caja, n) {
         boton.textContent = 'Enviando...';
         var terminar = function () {
             boton.disabled = false;
-            boton.textContent = 'Suscribirme';
+            boton.textContent = textoBoton;
         };
 
         pedirToken(estado).then(function (token) {

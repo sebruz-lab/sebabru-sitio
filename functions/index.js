@@ -2529,11 +2529,19 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
   const origenCrudo = sanitizeTexto(req.body?.origen, 40);
   const origen = ORIGENES_SUSCRIPCION.has(origenCrudo) ? origenCrudo : 'otro';
 
+  // Como se dio el consentimiento, para poder distinguirlos despues. Decia
+  // 'doi-sitio' por el doble opt-in, que se saco el 2026-11-12: ya no hay
+  // paso de confirmacion, asi que el valor mentia.
+  //
+  // En el regalo del ebook el consentimiento es el intercambio: la persona
+  // sabe que deja su mail para recibir el libro y queda en la lista, y lo
+  // apreta a proposito. Queda anotado distinto porque es un trato distinto,
+  // y si alguna vez hay que revisar de donde salio una direccion, importa.
   const atributos = {
     ORIGEN: origen,
     UTM: utmComoTexto(sanitizeOrigen(req.body?.utm)),
     FECHA_ALTA: brevo.fechaBrevo(new Date()),
-    CONSENTIMIENTO: 'doi-sitio',
+    CONSENTIMIENTO: origen === 'ebook' ? 'canje-ebook' : 'casilla-sitio',
   };
 
   // La constancia del consentimiento queda tambien de este lado, no solo en
