@@ -44,14 +44,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Júpiter, péndulos de Mercurio/Sol), le pasa un progreso local que
     // sube de 0 a 1 a medida que la cámara "llega" a ese bloque y se queda
     // en 1 al pasarlo de largo.
+    // Devuelve true cuando la camara ya llego a donde la manda el scroll y
+    // no queda nada por animar, para que el loop se pueda dormir.
     function frameRecorrido() {
-        if (!escenaTrack || NB === 0) return;
+        if (!escenaTrack || NB === 0) return true;
         const scrollable = escenaTrack.offsetHeight - window.innerHeight;
         const p = scrollable > 0 ? clamp01(-escenaTrack.getBoundingClientRect().top / scrollable) : 0;
         const segCrudo = p * (NB - 1);
 
         if (segActual === null) segActual = segCrudo;
-        segActual += (segCrudo - segActual) * RESISTENCIA;
+        // Si falta menos de medio milesimo de bloque, plantamos el valor
+        // exacto: con RESISTENCIA = 0.035 el lerp nunca llega solo, y ese
+        // resto es invisible pero mantendria el rAF corriendo para siempre.
+        const llego = Math.abs(segCrudo - segActual) < 0.0005;
+        segActual = llego ? segCrudo : segActual + (segCrudo - segActual) * RESISTENCIA;
         const seg = segActual;
 
         const i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
@@ -122,6 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+
+        return llego;
     }
 
     function updateScrollEffects() {
@@ -146,11 +154,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // El recorrido corre en su propio loop continuo (no solo al scrollear):
     // la "resistencia" necesita seguir animando unos frames más después de
     // que el scroll se detiene, para terminar de alcanzar la posición.
-    if (escenaTrack && !reduce) {
+    //
+    // Pero DUERME cuando la camara ya llego: antes el rAF seguia corriendo
+    // aunque la pagina estuviera quieta, o sea que el telefono repintaba 60
+    // veces por segundo sin que cambiara nada (bateria y calor en gama
+    // media). Ahora el loop se corta al llegar y lo despierta el scroll.
+    let recorridoDespierto = false;
+    function despertarRecorrido() {
+        if (!escenaTrack || reduce || recorridoDespierto) return;
+        recorridoDespierto = true;
         (function loopRecorrido() {
-            frameRecorrido();
+            if (frameRecorrido()) { recorridoDespierto = false; return; }
             requestAnimationFrame(loopRecorrido);
         })();
+    }
+
+    if (escenaTrack && !reduce) {
+        window.addEventListener('scroll', despertarRecorrido, { passive: true });
+        window.addEventListener('resize', despertarRecorrido);
+        window.addEventListener('orientationchange', despertarRecorrido);
+        // Las imagenes que terminan de cargar despues del DOM pueden cambiar
+        // el alto del track: recalculamos una vez mas con todo cargado.
+        window.addEventListener('load', despertarRecorrido);
+        despertarRecorrido(); // primer paint
     }
 
     // Con el movimiento reducido activado, la cámara no corre — en vez de
@@ -204,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             frameRecorrido();
         } else {
             window.scrollTo({ top: destino, behavior: 'smooth' });
+            despertarRecorrido();
         }
         return true;
     }
