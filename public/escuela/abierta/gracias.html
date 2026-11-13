@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>¡Pago exitoso! | Seba Bru</title>
-    <link rel="stylesheet" href="../../style.css?v=28">
+    <link rel="stylesheet" href="../../style.css?v=29">
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
@@ -22,12 +22,12 @@
             padding: 20px;
         }
         .gracias-box { max-width: 520px; }
-        .icono { font-size: 4rem; color: #249b95; margin-bottom: 20px; }
+        .icono { font-size: 3.5rem; color: #249b95; margin-bottom: 20px; }
         .icono.error { color: #e05555; }
         .icono.spinner { color: #249b95; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        h1 { font-size: 1.8rem; margin-bottom: 10px; }
-        p { font-size: 0.95rem; opacity: 0.75; line-height: 1.7; margin-bottom: 20px; }
+        h1 { font-size: 1.57rem; margin-bottom: 10px; }
+        p { font-size: 0.83rem; opacity: 0.75; line-height: 1.7; margin-bottom: 20px; }
         .btn {
             display: inline-block;
             background: #249b95;
@@ -36,7 +36,7 @@
             border-radius: 6px;
             text-decoration: none;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             transition: opacity 0.2s;
             margin-top: 10px;
         }
@@ -48,7 +48,7 @@
             padding: 10px 20px;
             border-radius: 6px;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             border: 1px solid rgba(255,255,255,0.15);
             margin-top: 10px;
             transition: opacity 0.2s;
@@ -58,7 +58,7 @@
         .codigo-regalo {
             background: rgba(255,255,255,0.06); border: 1px dashed #249b95; border-radius: 8px;
             padding: 14px 20px; margin: 0 auto 20px; max-width: 320px;
-            font-family: 'Courier New', monospace; font-size: 1.3rem; letter-spacing: 0.1em; color: #6dd5cf;
+            font-family: 'Courier New', monospace; font-size: 1.14rem; letter-spacing: 0.1em; color: #6dd5cf;
         }
         .btn-plain { background: #249b95; border: none; }
     </style>
@@ -109,7 +109,7 @@
             <button id="btn-login-google" class="btn btn-plain" type="button" style="cursor:pointer;">
                 <i class="fa-brands fa-google"></i> Iniciar sesión con Google
             </button>
-            <p id="msg-reclamar-error" style="color:#e05555; font-size:0.85rem; display:none;"></p>
+            <p id="msg-reclamar-error" style="color:#e05555; font-size: 0.875rem; display:none;"></p>
             <br>
             <a href="index.html" class="btn-secondary">Volver a Cursos Abiertos</a>
         </div>
@@ -119,7 +119,7 @@
             <div class="icono error"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <h1>Hubo un problema</h1>
             <p id="msg-error">No pudimos verificar tu pago en este momento.</p>
-            <p style="font-size:0.85rem; opacity:0.55;">
+            <p style="font-size: 0.875rem; opacity:0.55;">
                 Si tu pago fue aprobado, el acceso se va a activar en unos minutos automáticamente.<br>
                 Si el problema persiste, escribinos al
                 <a href="https://wa.me/5493544584122" style="color:#249b95;">+54 9 3544 584122</a>.
@@ -133,7 +133,7 @@
             <h1>¡Muchas gracias!</h1>
             <p>Tu pago fue procesado exitosamente.<br>
                En unos minutos vas a recibir un email con el link para acceder a tu curso.</p>
-            <p style="font-size:0.8rem; opacity:0.5;">Si no lo recibís, revisá tu carpeta de spam.</p>
+            <p style="font-size: 0.875rem; opacity:0.5;">Si no lo recibís, revisá tu carpeta de spam.</p>
             <a href="index.html" class="btn">
                 <i class="fa-solid fa-arrow-left"></i> Volver a Cursos Abiertos
             </a>
@@ -144,7 +144,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-      import { entrarConGoogle } from '/escuela/google.js?v=1';
+      import { entrarConGoogle } from '/escuela/google.js?v=2';
       import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
       const firebaseConfig = {

@@ -15,8 +15,8 @@
     <meta property="og:image" content="https://sebabru.com/escuela/img/lunaabierta.webp">
     <meta property="og:site_name" content="Seba Bru Astrología">
 
-    <link rel="stylesheet" href="../../style.css?v=28">
-    <link rel="stylesheet" href="../escuela.css?v=5">
+    <link rel="stylesheet" href="../../style.css?v=29">
+    <link rel="stylesheet" href="../escuela.css?v=6">
     <link rel="stylesheet" href="../../recorrido.css?v=1">
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -69,7 +69,7 @@
             position: fixed; top: 0; left: 0; right: 0; z-index: 30;
             display: flex; justify-content: space-between; align-items: center; gap: 12px;
             padding: 16px max(20px, 5vw) 0 max(20px, 5vw);
-            font-size: 0.78rem; letter-spacing: 0.03em;
+            font-size: 0.75rem; letter-spacing: 0.03em;
             background: linear-gradient(to bottom, rgba(8,8,11,0.85), rgba(8,8,11,0));
             pointer-events: none;
         }
@@ -79,7 +79,7 @@
         .tope .marca { font-family: 'Outfit', sans-serif; color: var(--ink-dim); text-decoration: none; }
         .tope .sesion {
             background: none; border: 1px solid var(--rule); color: var(--ink-dim);
-            padding: 6px 12px; border-radius: 999px; font-size: 0.72rem; cursor: pointer;
+            padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; cursor: pointer;
             font-family: 'Outfit', sans-serif; letter-spacing: 0.04em;
         }
         .tope .sesion:hover { color: var(--ink); border-color: rgba(255,255,255,0.25); }
@@ -93,12 +93,12 @@
             border-left: 1px solid rgba(255,255,255,0.06); box-shadow: -10px 0 30px rgba(0,0,0,0.5);
         }
         .panel-mis.open { right: 0; }
-        .panel-mis-cerrar { position: absolute; top: 14px; right: 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 1.8rem; cursor: pointer; line-height: 1; }
-        .panel-mis-kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; margin: 0 0 14px; }
-        .panel-mis a { display: block; padding: 11px 14px; text-align: center; color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.35; opacity: 0.4; transition: color 0.3s ease, opacity 0.3s ease; }
+        .panel-mis-cerrar { position: absolute; top: 14px; right: 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 1.57rem; cursor: pointer; line-height: 1; }
+        .panel-mis-kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.75rem; color: var(--ink-faint); text-transform: uppercase; margin: 0 0 14px; }
+        .panel-mis a { display: block; padding: 11px 14px; text-align: center; color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.83rem; text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.35; opacity: 0.4; transition: color 0.3s ease, opacity 0.3s ease; }
         .panel-mis a:hover { opacity: 0.85; }
         .panel-mis a.mio { opacity: 1; color: var(--star); }
-        .panel-mis-logout { margin-top: 26px; background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); border-radius: 999px; padding: 9px 20px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.06em; }
+        .panel-mis-logout { margin-top: 26px; background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); border-radius: 999px; padding: 9px 20px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.75rem; letter-spacing: 0.06em; }
         .panel-mis-logout:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
         @media (max-width: 768px) { .panel-mis { width: 100%; } }
 
@@ -110,13 +110,13 @@
         }
         .intro h1 {
             font-family: 'Outfit', sans-serif; font-weight: 300;
-            font-size: clamp(2.6rem, 10vw, 5.4rem); line-height: 1.04;
+            font-size: clamp(2.27rem, 10vw, 4.73rem); line-height: 1.04;
             letter-spacing: 0.015em; margin: 0;
         }
-        .intro p { color: var(--ink-dim); max-width: 32ch; font-size: 1.02rem; line-height: 1.7; margin: 0; }
+        .intro p { color: var(--ink-dim); max-width: 32ch; font-size: 0.89rem; line-height: 1.7; margin: 0; }
         .intro .hint {
             margin-top: 44px; color: var(--ink-faint);
-            font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase;
+            font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase;
             display: flex; align-items: center; gap: 10px;
         }
 
@@ -147,9 +147,9 @@
             opacity: 0; pointer-events: none;
             transition: opacity 0.12s linear;
         }
-        .bloque .kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.7rem; color: var(--ink-faint); margin: 0 0 0.9em; }
-        .bloque h3 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.55rem, 6vw, 2.4rem); line-height: 1.14; margin: 0 0 0.5em; }
-        .bloque > p { color: var(--ink-dim); font-size: 0.98rem; line-height: 1.72; margin: 0; }
+        .bloque .kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.75rem; color: var(--ink-faint); margin: 0 0 0.9em; }
+        .bloque h3 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.36rem, 6vw, 2.1rem); line-height: 1.14; margin: 0 0 0.5em; }
+        .bloque > p { color: var(--ink-dim); font-size: 0.86rem; line-height: 1.72; margin: 0; }
 
         .bloque--estacion { padding: 0 4px; }
         .bloque--estacion h3 { color: var(--ink); }
@@ -159,12 +159,12 @@
         .nube { list-style: none; padding: 0; margin: 1.5em 0 0; display: flex; flex-wrap: wrap; gap: 10px 12px; }
         .nube a {
             font-family: 'Outfit', sans-serif; text-decoration: none; color: var(--ink-dim);
-            border: 1px solid var(--rule); border-radius: 999px; padding: 8px 15px; font-size: 0.9rem;
+            border: 1px solid var(--rule); border-radius: 999px; padding: 8px 15px; font-size: 0.79rem;
             transition: color 0.25s, border-color 0.25s;
         }
         .nube a:hover { color: var(--star); border-color: rgba(240,228,196,0.45); }
-        .nube li:nth-child(3n) a { font-size: 0.82rem; opacity: 0.85; }
-        .nube li:nth-child(4n) a { font-size: 1rem; }
+        .nube li:nth-child(3n) a { font-size: 0.75rem; opacity: 0.85; }
+        .nube li:nth-child(4n) a { font-size: 0.88rem; }
 
         /* Testimonio */
         .bloque--testimonio {
@@ -173,41 +173,41 @@
         }
         .bloque--testimonio blockquote {
             margin: 0; font-family: 'Outfit', sans-serif; font-weight: 300; font-style: italic;
-            font-size: clamp(1rem, 3.6vw, 1.3rem); line-height: 1.5; color: var(--ink);
+            font-size: clamp(0.88rem, 3.6vw, 1.14rem); line-height: 1.5; color: var(--ink);
         }
-        .bloque--testimonio cite { display: block; margin-top: 1.1em; font-style: normal; font-size: 0.78rem; letter-spacing: 0.1em; color: var(--ink-faint); }
+        .bloque--testimonio cite { display: block; margin-top: 1.1em; font-style: normal; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--ink-faint); }
 
         /* ---------- Tarjeta de curso: imagen que se corre + texto que se
            desliza (mismo mecanismo que la home/lilith/linaje, via
            efecto-shrink-container/efecto-imagen/efecto-texto de style.css
            y recorrido.js). Acá solo el contenido propio de adentro del
            panel de texto. ---------- */
-        .bloque--curso .efecto-texto h2 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.4rem, 5vw, 1.9rem); margin: 0 0 0.3em; color: var(--ink); text-transform: none; }
-        .bsub { font-family: 'Outfit', sans-serif; color: var(--ink-dim); font-size: 0.85rem; line-height: 1.55; margin: 0 0 1em; }
-        .bhook { color: var(--ink); font-size: 1rem; line-height: 1.7; margin: 0 0 1em; }
+        .bloque--curso .efecto-texto h2 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.22rem, 5vw, 1.66rem); margin: 0 0 0.3em; color: var(--ink); text-transform: none; }
+        .bsub { font-family: 'Outfit', sans-serif; color: var(--ink-dim); font-size: 0.75rem; line-height: 1.55; margin: 0 0 1em; }
+        .bhook { color: var(--ink); font-size: 0.88rem; line-height: 1.7; margin: 0 0 1em; }
 
         /* Boton "ver la primera clase gratis", debajo del titulo */
         .btn-clase-gratis {
             display: inline-flex; align-items: center; gap: 8px; margin: 0 0 1.3em;
-            font-family: 'Outfit', sans-serif; font-size: 0.82rem; letter-spacing: 0.03em;
+            font-family: 'Outfit', sans-serif; font-size: 0.875rem; letter-spacing: 0.03em;
             color: var(--star); text-decoration: none; cursor: pointer;
             border: 1px solid rgba(240,228,196,0.4); background: none; border-radius: 999px; padding: 9px 16px;
         }
         .btn-clase-gratis:hover { background: rgba(240,228,196,0.1); }
 
         .bscroll { margin-top: 0.2em; }
-        .bscroll p { color: #c6c6d0; font-size: 0.95rem; line-height: 1.78; margin: 0 0 0.9em; }
+        .bscroll p { color: #c6c6d0; font-size: 0.83rem; line-height: 1.78; margin: 0 0 0.9em; }
         .bdatos { list-style: none; padding: 0; margin: 0.4em 0 1.2em; }
-        .bdatos li { padding: 0.75em 0; border-bottom: 1px solid var(--rule); color: var(--ink-dim); font-size: 0.88rem; line-height: 1.5; }
-        .bperm { border-left: 2px solid var(--star); padding-left: 0.9em; margin: 1.2em 0; font-family: 'Outfit', sans-serif; font-weight: 300; color: var(--ink); font-size: 0.98rem; line-height: 1.5; }
-        .bperm span { display: block; font-family: 'Google Sans', sans-serif; font-size: 0.84rem; color: var(--ink-dim); margin-top: 0.4em; }
+        .bdatos li { padding: 0.75em 0; border-bottom: 1px solid var(--rule); color: var(--ink-dim); font-size: 0.77rem; line-height: 1.5; }
+        .bperm { border-left: 2px solid var(--star); padding-left: 0.9em; margin: 1.2em 0; font-family: 'Outfit', sans-serif; font-weight: 300; color: var(--ink); font-size: 0.86rem; line-height: 1.5; }
+        .bperm span { display: block; font-family: 'Google Sans', sans-serif; font-size: 0.75rem; color: var(--ink-dim); margin-top: 0.4em; }
         .bpromo {
-            margin: 1.2em 0; padding: 12px 14px; font-size: 0.88rem; line-height: 1.5; color: var(--ink);
+            margin: 1.2em 0; padding: 12px 14px; font-size: 0.77rem; line-height: 1.5; color: var(--ink);
             background: rgba(240,228,196,0.08); border: 1px solid rgba(240,228,196,0.3); border-radius: 8px;
         }
         .bpromo strong { color: var(--star); font-weight: 400; }
-        .bprecio { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.2rem; color: var(--ink); margin: 1.2em 0; }
-        .bprecio small { color: var(--ink-dim); font-size: 0.78rem; }
+        .bprecio { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.05rem; color: var(--ink); margin: 1.2em 0; }
+        .bprecio small { color: var(--ink-dim); font-size: 0.75rem; }
 
         /* Miniatura de la primera clase gratis, antes del boton de pago
            (como en /lilith): la imagen del curso con un icono de play
@@ -221,18 +221,18 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 52px; height: 52px; border-radius: 50%;
             background: rgba(8,8,11,0.72); border: 1px solid rgba(240,228,196,0.5);
-            color: var(--star); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            color: var(--star); display: flex; align-items: center; justify-content: center; font-size: 0.96rem;
         }
         .miniatura-gratis .etiqueta {
             position: absolute; left: 10px; bottom: 10px; font-family: 'Outfit', sans-serif;
-            font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+            font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
             background: rgba(8,8,11,0.75); border-radius: 999px; padding: 4px 10px;
         }
 
         /* Toggle "lo quiero regalar": secundario, discreto, no compite con el boton de compra */
         .regalo-toggle {
             display: flex; align-items: center; gap: 9px; margin: 2px 0 14px;
-            font-family: 'Google Sans', sans-serif; font-size: 0.8rem; color: var(--ink-dim);
+            font-family: 'Google Sans', sans-serif; font-size: 0.75rem; color: var(--ink-dim);
             cursor: pointer; user-select: none;
         }
         .regalo-toggle input { width: 15px; height: 15px; accent-color: var(--star); flex-shrink: 0; cursor: pointer; }
@@ -240,7 +240,7 @@
 
         .escena-hint {
             position: absolute; left: 0; right: 0; bottom: 5vh; text-align: center; z-index: 3; pointer-events: none;
-            color: var(--ink-faint); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--ink-faint); font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase;
             display: flex; align-items: center; justify-content: center; gap: 9px;
         }
 
@@ -255,7 +255,7 @@
         .indice .ipt { fill: var(--star); opacity: 0.32; cursor: pointer; transition: opacity 0.3s, r 0.3s; }
         .indice .ipt:hover, .indice .ipt.here { opacity: 1; }
         .indice polyline { fill: none; stroke: var(--line); stroke-width: 1; }
-        .indice .ilbl { font-family: 'Outfit', sans-serif; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin: 3px 0 0; min-height: 1em; }
+        .indice .ilbl { font-family: 'Outfit', sans-serif; font-size: 0.53rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin: 3px 0 0; min-height: 1em; }
         @media (max-width: 480px) {
             .tope { padding-right: max(54px, 15vw); gap: 8px; }
             .tope-izq { gap: 8px; }
@@ -266,20 +266,20 @@
 
         /* ---------- Cierre + FAQ + footer ---------- */
         .confianza { padding: 12vh 0; border-top: 1px solid var(--rule); }
-        .cf-line { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.3rem, 4.6vw, 2rem); line-height: 1.4; margin: 0; max-width: 24ch; }
+        .cf-line { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.14rem, 4.6vw, 1.75rem); line-height: 1.4; margin: 0; max-width: 24ch; }
         .cf-line strong { font-weight: 400; color: #fff; }
 
         .faq { padding: 12vh 0; border-top: 1px solid var(--rule); }
-        .faq h2 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.6rem, 5vw, 2.2rem); margin: 0 0 1.6em; }
+        .faq h2 { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: clamp(1.4rem, 5vw, 1.93rem); margin: 0 0 1.6em; }
         .faq details { border-bottom: 1px solid var(--rule); padding: 1.2em 0; max-width: 640px; }
-        .faq summary { cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--ink); list-style: none; display: flex; justify-content: space-between; gap: 14px; }
+        .faq summary { cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 0.88rem; color: var(--ink); list-style: none; display: flex; justify-content: space-between; gap: 14px; }
         .faq summary::-webkit-details-marker { display: none; }
         .faq summary::after { content: '+'; color: var(--ink-faint); }
         .faq details[open] summary::after { content: '\2013'; }
-        .faq p { color: var(--ink-dim); font-size: 0.95rem; line-height: 1.75; margin: 1em 0 0; max-width: 60ch; }
+        .faq p { color: var(--ink-dim); font-size: 0.83rem; line-height: 1.75; margin: 1em 0 0; max-width: 60ch; }
         .faq p a { color: var(--star); text-decoration: underline; text-underline-offset: 2px; }
 
-        .pie { padding: 10vh max(24px,7vw) 14vh; border-top: 1px solid var(--rule); color: var(--ink-faint); font-size: 0.85rem; }
+        .pie { padding: 10vh max(24px,7vw) 14vh; border-top: 1px solid var(--rule); color: var(--ink-faint); font-size: 0.75rem; }
         .pie a { color: var(--ink-dim); text-decoration: none; }
         .pie a:hover { color: var(--star); }
 
@@ -294,14 +294,14 @@
             display: flex; flex-direction: column;
         }
         .drawer.open .drawer-panel { transform: translateX(0); }
-        .drawer-close { align-self: flex-end; background: none; border: none; color: var(--ink-dim); font-size: 1.6rem; cursor: pointer; line-height: 1; }
-        .drawer-kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.68rem; color: var(--ink-faint); margin: 4px 0 22px; }
+        .drawer-close { align-self: flex-end; background: none; border: none; color: var(--ink-dim); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+        .drawer-kicker { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.75rem; color: var(--ink-faint); margin: 4px 0 22px; }
         .drawer ol { list-style: none; padding: 0; margin: 0; counter-reset: c; }
         .drawer ol li { counter-increment: c; border-top: 1px solid var(--rule); }
         .drawer ol li:last-child { border-bottom: 1px solid var(--rule); }
-        .drawer ol a { display: flex; gap: 12px; padding: 0.95em 0; text-decoration: none; font-family: 'Outfit', sans-serif; font-size: 0.95rem; color: var(--ink); }
-        .drawer ol a::before { content: counter(c, decimal-leading-zero); color: var(--ink-faint); font-size: 0.78rem; }
-        .drawer-reset { margin-top: auto; padding-top: 24px; font-family: 'Outfit', sans-serif; font-size: 0.78rem; letter-spacing: 0.06em; color: var(--ink-faint); text-decoration: none; }
+        .drawer ol a { display: flex; gap: 12px; padding: 0.95em 0; text-decoration: none; font-family: 'Outfit', sans-serif; font-size: 0.83rem; color: var(--ink); }
+        .drawer ol a::before { content: counter(c, decimal-leading-zero); color: var(--ink-faint); font-size: 0.68rem; }
+        .drawer-reset { margin-top: auto; padding-top: 24px; font-family: 'Outfit', sans-serif; font-size: 0.75rem; letter-spacing: 0.06em; color: var(--ink-faint); text-decoration: none; }
 
         /* ---------- Version plana (sin "recorrido": reducir movimiento, o si
            el motor no arranco) — recorrido.css pone la base, acá solo lo
@@ -316,7 +316,7 @@
 
         /* ---------- Checkout (bloque de compra dentro de la tarjeta) ---------- */
         .comprar-section { margin-top: 4px; }
-        .regalo-nota { margin: -6px 0 12px; font-size: 0.78rem; line-height: 1.5; color: var(--ink-dim); }
+        .regalo-nota { margin: -6px 0 12px; font-size: 0.75rem; line-height: 1.5; color: var(--ink-dim); }
         .regalo-nota strong { color: var(--star); font-weight: 400; }
 
         details.comprar-main {
@@ -324,7 +324,7 @@
         }
         details.comprar-main > summary {
             padding: 13px 16px; cursor: pointer; font-family: 'Outfit', sans-serif;
-            font-size: 0.85rem; letter-spacing: 0.03em;
+            font-size: 0.75rem; letter-spacing: 0.03em;
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
             list-style: none; user-select: none; background: rgba(255,255,255,0.05); transition: background 0.2s;
         }
@@ -332,27 +332,27 @@
         details.comprar-main > summary:hover { background: rgba(255,255,255,0.09); }
         details.comprar-main[open] > summary { background: rgba(255,255,255,0.08); }
         .summary-left { display: flex; align-items: center; gap: 10px; }
-        .summary-chevron { font-size: 0.7rem; opacity: 0.5; transition: transform 0.25s; }
+        .summary-chevron { font-size: 0.61rem; opacity: 0.5; transition: transform 0.25s; }
         details.comprar-main[open] .summary-chevron { transform: rotate(180deg); }
         .comprar-body { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
 
-        .precio-mp { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.4rem; color: var(--ink); margin-bottom: 14px; }
-        .precio-mp span { font-size: 0.8rem; color: var(--ink-dim); }
+        .precio-mp { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.22rem; color: var(--ink); margin-bottom: 14px; }
+        .precio-mp span { font-size: 0.75rem; color: var(--ink-dim); }
 
         .btn-mp {
             display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
             background: #009ee3; color: #fff; border: none; padding: 13px; border-radius: 8px;
-            font-family: 'Outfit', sans-serif; font-size: 0.86rem; letter-spacing: 0.02em;
+            font-family: 'Outfit', sans-serif; font-size: 0.875rem; letter-spacing: 0.02em;
             cursor: pointer; transition: opacity 0.2s;
         }
         .btn-mp:hover { opacity: 0.9; }
 
-        .login-aviso { font-size: 0.8rem; color: var(--ink-dim); text-align: center; margin-top: 10px; }
+        .login-aviso { font-size: 0.75rem; color: var(--ink-dim); text-align: center; margin-top: 10px; }
         .login-aviso a { color: var(--star); cursor: pointer; text-decoration: underline; }
 
         .precio-transferencia { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
-        .precio-final { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.4rem; color: var(--star); }
-        .precio-original { font-size: 0.9rem; color: var(--ink-faint); text-decoration: line-through; }
+        .precio-final { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 1.22rem; color: var(--star); }
+        .precio-original { font-size: 0.79rem; color: var(--ink-faint); text-decoration: line-through; }
         .descuento-tag {
             font-size: 0.75rem; background: rgba(240,228,196,0.14); color: var(--star);
             border: 1px solid rgba(240,228,196,0.35); border-radius: 20px; padding: 2px 9px;
@@ -360,7 +360,7 @@
 
         .datos-bancarios {
             background: rgba(255,255,255,0.04); border: 1px solid var(--rule); border-radius: 8px;
-            padding: 14px 16px; font-size: 0.83rem; line-height: 2; color: #c6c6d0;
+            padding: 14px 16px; font-size: 0.75rem; line-height: 2; color: #c6c6d0;
         }
         .datos-bancarios strong { color: var(--ink); }
 
@@ -369,10 +369,10 @@
             background: rgba(240,228,196,0.08); border: 1px solid rgba(240,228,196,0.28);
             border-radius: 8px; padding: 10px 14px;
         }
-        .alias-valor { flex: 1; font-family: monospace; font-size: 1rem; color: var(--star); letter-spacing: 0.05em; }
+        .alias-valor { flex: 1; font-family: monospace; font-size: 0.88rem; color: var(--star); letter-spacing: 0.05em; }
         .btn-copiar-alias {
             background: rgba(240,228,196,0.16); border: 1px solid rgba(240,228,196,0.35); color: var(--star);
-            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.875rem;
             display: flex; align-items: center; gap: 6px; transition: background 0.2s;
         }
         .btn-copiar-alias:hover { background: rgba(240,228,196,0.28); }
@@ -385,18 +385,18 @@
         .codigo-descuento-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
         .codigo-descuento-row input {
             flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--ink);
-            padding: 8px 12px; border-radius: 7px; font-size: 0.82rem; font-family: monospace;
+            padding: 8px 12px; border-radius: 7px; font-size: 0.75rem; font-family: monospace;
             letter-spacing: 0.05em; text-transform: uppercase;
         }
         .codigo-descuento-row input::placeholder { text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
         .codigo-descuento-row input:focus { outline: none; border-color: var(--star); }
         .btn-codigo {
             background: rgba(240,228,196,0.14); border: 1px solid rgba(240,228,196,0.35); color: var(--star);
-            padding: 8px 13px; border-radius: 7px; cursor: pointer; font-size: 0.8rem; white-space: nowrap;
+            padding: 8px 13px; border-radius: 7px; cursor: pointer; font-size: 0.875rem; white-space: nowrap;
             transition: background 0.2s;
         }
         .btn-codigo:hover { background: rgba(240,228,196,0.28); }
-        .codigo-msg { font-size: 0.78rem; padding: 6px 10px; border-radius: 6px; display: none; flex-basis: 100%; }
+        .codigo-msg { font-size: 0.75rem; padding: 6px 10px; border-radius: 6px; display: none; flex-basis: 100%; }
         .codigo-msg.ok    { display: block; background: rgba(240,228,196,0.1); border: 1px solid rgba(240,228,196,0.3); color: var(--star); }
         .codigo-msg.error { display: block; background: rgba(220,80,80,0.1);  border: 1px solid rgba(220,80,80,0.3);  color: #f08080; }
 
@@ -533,7 +533,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
-                            <a href="luna/" class="btn-acceder" id="btn-acceder-luna" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="luna/" class="btn-acceder" id="btn-acceder-luna" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -569,7 +569,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$30.000 ARS <small>&middot; USD 20 &middot; Transferencia $27.000</small></p>
-                            <a href="identidad/" class="btn-acceder" id="btn-acceder-identidad" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="identidad/" class="btn-acceder" id="btn-acceder-identidad" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -612,7 +612,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 60 &middot; Transferencia $72.000</small></p>
-                            <a href="tarot/" class="btn-acceder" id="btn-acceder-tarot" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="tarot/" class="btn-acceder" id="btn-acceder-tarot" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -647,7 +647,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
-                            <a href="signos/" class="btn-acceder" id="btn-acceder-signos" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="signos/" class="btn-acceder" id="btn-acceder-signos" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -696,7 +696,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
-                            <a href="casas/" class="btn-acceder" id="btn-acceder-casas" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="casas/" class="btn-acceder" id="btn-acceder-casas" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -732,7 +732,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 70 &middot; Transferencia $72.000</small></p>
-                            <a href="pluton26/" class="btn-acceder" id="btn-acceder-pluton26" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="pluton26/" class="btn-acceder" id="btn-acceder-pluton26" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -769,7 +769,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$80.000 ARS <small>&middot; USD 50 &middot; Transferencia $72.000</small></p>
-                            <a href="lilith/" class="btn-acceder" id="btn-acceder-lilith" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="lilith/" class="btn-acceder" id="btn-acceder-lilith" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -805,7 +805,7 @@
                                 <span class="etiqueta">Clase 1 gratis</span>
                             </a>
                             <p class="bprecio">$60.000 ARS <small>&middot; USD 50 &middot; Transferencia $54.000</small></p>
-                            <a href="linaje/" class="btn-acceder" id="btn-acceder-linaje" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.9rem; text-decoration:none; margin-bottom:12px;">
+                            <a href="linaje/" class="btn-acceder" id="btn-acceder-linaje" style="display:none; background:#249b95; color:#fff; text-align:center; padding:13px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.79rem; text-decoration:none; margin-bottom:12px;">
                                 <i class="fa-solid fa-circle-play"></i> IR AL AULA
                             </a>
                             <div class="compra-slot"></div>
@@ -828,7 +828,7 @@
             <p class="regalo-nota" id="regalo-nota-__ID__" hidden>Al pagar te damos un <strong>código para regalar</strong>. El curso no se activa en tu cuenta &mdash; lo activa quien reciba el código en sebabru.com/canjear.</p>
             <details class="comprar-main" open>
                 <summary>
-                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+                    <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:0.96rem;"></i> Mercado Pago</span>
                     <i class="fa-solid fa-chevron-down summary-chevron"></i>
                 </summary>
                 <div class="comprar-body">
@@ -842,8 +842,8 @@
             <details class="comprar-main">
                 <summary>
                     <span class="summary-left">
-                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:1rem;"></i>
-                        Transferencia <span id="tag-trans-__ID__" style="font-size:0.72rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
+                        <i class="fa-solid fa-building-columns" style="color:#6dd5cf; font-size:0.88rem;"></i>
+                        Transferencia <span id="tag-trans-__ID__" style="font-size: 0.75rem; background:rgba(36,155,149,0.2); color:#6dd5cf; border:1px solid rgba(36,155,149,0.4); border-radius:20px; padding:2px 8px;">10% off</span>
                     </span>
                     <i class="fa-solid fa-chevron-down summary-chevron"></i>
                 </summary>
@@ -867,13 +867,13 @@
                         </button>
                     </div>
                     <div id="info-comprobante-__ID__" style="display:none; margin-top:14px; background:rgba(36,155,149,0.08); border:1px solid rgba(36,155,149,0.3); border-radius:10px; padding:14px 16px;">
-                        <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+                        <p style="font-size: 0.75rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
                             <i class="fa-solid fa-circle-check" style="color:#6dd5cf; margin-right:6px;"></i>
                             Alias copiado. Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
                         </p>
                         <a class="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer"
-                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
-                            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué &mdash; enviar comprobante
+                           style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size: 0.75rem; font-family:'Outfit',sans-serif;">
+                            <i class="fa-brands fa-whatsapp" style="font-size:0.88rem;"></i> Ya pagué &mdash; enviar comprobante
                         </a>
                     </div>
                 </div>
@@ -881,8 +881,8 @@
             <details class="comprar-main">
                 <summary>
                     <span class="summary-left">
-                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.15rem;"></i>
-                        PayPal <span style="font-size:0.72rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
+                        <i class="fa-brands fa-paypal" style="color:#003087; font-size:1.01rem;"></i>
+                        PayPal <span style="font-size: 0.75rem; background:rgba(0,48,135,0.2); color:#7eb4f7; border:1px solid rgba(0,112,243,0.3); border-radius:20px; padding:2px 8px;">Internacional</span>
                     </span>
                     <i class="fa-solid fa-chevron-down summary-chevron"></i>
                 </summary>
@@ -980,7 +980,7 @@
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
                     CONTINUAR CON GOOGLE
                 </button>
-                <h3 style="margin:15px 0; color:#888; font-size:0.8rem;">- O BIEN -</h3>
+                <h3 style="margin:15px 0; color:#888; font-size: 0.75rem;">- O BIEN -</h3>
             </div>
             <div id="seccion-login">
                 <h2>Ingresar</h2>
@@ -1076,7 +1076,7 @@
     <script type="module">
         import { app, auth, db } from '../firebase.js';
         import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { entrarConGoogle } from '/escuela/google.js?v=1';
+        import { entrarConGoogle } from '/escuela/google.js?v=2';
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 

@@ -55,13 +55,13 @@ var ESTILOS = `
     border-radius: 14px; font-family: 'Outfit', sans-serif;
 }
 .suscribirse .sus-titulo {
-    margin: 0 0 14px; font-size: 0.82rem; font-weight: 300; color: #fff;
+    margin: 0 0 14px; font-size: 0.75rem; font-weight: 300; color: #fff;
     text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.5;
 }
-.suscribirse .sus-intro { margin: 0 0 24px; color: #cccac3; font-size: 0.92rem; line-height: 1.7; }
+.suscribirse .sus-intro { margin: 0 0 24px; color: #cccac3; font-size: 0.81rem; line-height: 1.7; }
 .suscribirse .sus-campo { margin-bottom: 20px; }
 .suscribirse label {
-    display: block; margin-bottom: 6px; font-size: 0.7rem; letter-spacing: 1px;
+    display: block; margin-bottom: 6px; font-size: 0.75rem; letter-spacing: 1px;
     text-transform: uppercase; color: #cccac3;
 }
 .suscribirse label .sus-opcional { text-transform: none; letter-spacing: 0; opacity: 0.7; }
@@ -74,7 +74,7 @@ var ESTILOS = `
     outline: none; border-bottom-color: #fff;
 }
 .suscribirse .sus-canje {
-    margin: 0 0 24px; color: #cccac3; font-size: 0.82rem; line-height: 1.6;
+    margin: 0 0 24px; color: #cccac3; font-size: 0.75rem; line-height: 1.6;
 }
 .suscribirse .sus-canje a { color: inherit; text-decoration: underline; }
 .suscribirse .sus-trampa {
@@ -82,7 +82,7 @@ var ESTILOS = `
 }
 .suscribirse button {
     width: 100%; padding: 13px 20px; background: #fff; color: #000; border: 1px solid #fff;
-    border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 0.86rem;
+    border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 0.875rem;
     letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
     transition: background 0.25s ease, color 0.25s ease;
 }
@@ -91,21 +91,21 @@ var ESTILOS = `
 .suscribirse .sus-error {
     display: none; margin: 0 0 18px; padding: 11px 13px; border-radius: 9px;
     background: rgba(255,120,120,0.09); border: 1px solid rgba(255,120,120,0.3);
-    color: #ffc9c9; font-size: 0.85rem; line-height: 1.6;
+    color: #ffc9c9; font-size: 0.75rem; line-height: 1.6;
 }
 .suscribirse .sus-error button {
-    width: auto; margin-top: 9px; padding: 7px 14px; font-size: 0.75rem;
+    width: auto; margin-top: 9px; padding: 7px 14px; font-size: 0.875rem;
     background: transparent; color: #ffc9c9; border-color: rgba(255,120,120,0.45);
 }
 .suscribirse .sus-captcha { margin-bottom: 18px; }
-.suscribirse .sus-listo { margin: 0; color: #fff; font-size: 0.95rem; line-height: 1.75; }
+.suscribirse .sus-listo { margin: 0; color: #fff; font-size: 0.83rem; line-height: 1.75; }
 .suscribirse .sus-listo strong { font-weight: 400; }
 .suscribirse .sus-listo .sus-nota {
-    display: block; margin-top: 12px; color: #cccac3; font-size: 0.82rem;
+    display: block; margin-top: 12px; color: #cccac3; font-size: 0.75rem;
 }
 @media (min-width: 769px) {
     .suscribirse { padding: 38px 34px; }
-    .suscribirse input[type="email"], .suscribirse input[type="text"] { font-size: 0.95rem; }
+    .suscribirse input[type="email"], .suscribirse input[type="text"] { font-size: 0.83rem; }
 }
 `;
 

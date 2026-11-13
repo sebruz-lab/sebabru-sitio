@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
-<link rel="stylesheet" href="../style.css?v=28">
+<link rel="stylesheet" href="../style.css?v=29">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <!-- Google tag (gtag.js) -->
@@ -50,15 +50,15 @@ html, body { margin: 0; padding: 0; background: #000; }
     text-align: center; padding: 14vh 20px 6vh;
 }
 .curso-cabecera h1 {
-    color: #fff; font-size: clamp(2rem, 5.5vw, 3.2rem);
+    color: #fff; font-size: clamp(1.75rem, 5.5vw, 2.8rem);
     margin: 0 0 6px; letter-spacing: 0.1em; font-weight: 300; text-transform: uppercase;
 }
 .curso-cabecera h2 {
-    color: var(--curso-theme); font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+    color: var(--curso-theme); font-size: clamp(0.79rem, 2.2vw, 1.05rem);
     margin: 0; font-weight: 300; letter-spacing: 0.06em; text-transform: none;
 }
 .curso-cabecera-bajada {
-    color: var(--curso-text); font-size: 0.98rem; font-weight: 300; line-height: 1.7;
+    color: var(--curso-text); font-size: 0.86rem; font-weight: 300; line-height: 1.7;
     max-width: 520px; margin: 22px 0 0;
 }
 
@@ -67,21 +67,21 @@ html, body { margin: 0; padding: 0; background: #000; }
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     background: #fff; color: #000; border: 1px solid #fff; border-radius: 10px;
     padding: 13px 26px; margin: 6px 0 22px;
-    font-size: 0.97rem; font-weight: 600; text-decoration: none; text-align: center;
+    font-size: 0.875rem; font-weight: 600; text-decoration: none; text-align: center;
     transition: background 0.25s ease, color 0.25s ease;
 }
 .btn-clase-gratis:hover { background: transparent; color: #fff; text-decoration: none; }
 
 .form-group { margin-bottom: 14px; }
 .form-group label {
-    font-size: 0.78rem; color: var(--curso-theme); display: block; margin-bottom: 7px;
+    font-size: 0.75rem; color: var(--curso-theme); display: block; margin-bottom: 7px;
     text-transform: uppercase; letter-spacing: 0.06em;
 }
-.form-group .opcional { color: var(--curso-text); opacity: 0.8; text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
+.form-group .opcional { color: var(--curso-text); opacity: 0.8; text-transform: none; letter-spacing: 0; font-size: 0.75rem; }
 input[type="text"], input[type="tel"], input[type="time"], input[type="email"] {
     width: 100%; background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.18); color: #fff;
-    padding: 12px 15px; border-radius: 10px; font-size: 0.95rem;
+    padding: 12px 15px; border-radius: 10px; font-size: 0.83rem;
     font-family: 'Outfit', sans-serif; box-sizing: border-box;
 }
 input:focus { outline: none; border-color: var(--curso-accent); }
@@ -105,8 +105,8 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 }
 .sugerencias li { padding: 9px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: #fff; }
 .sugerencias li[aria-selected="true"], .sugerencias li:hover { background: rgba(59,194,188,0.15); }
-.sugerencias .lugar-region { font-size: 0.8rem; opacity: 0.7; }
-.sugerencias .sin-resultados { cursor: default; font-size: 0.85rem; opacity: 0.8; }
+.sugerencias .lugar-region { font-size: 0.75rem; opacity: 0.7; }
+.sugerencias .sin-resultados { cursor: default; font-size: 0.75rem; opacity: 0.8; }
 .sugerencias .sin-resultados:hover { background: none; }
 
 /* Mientras le preguntamos a GeoNames por un lugar que el indice local no
@@ -115,7 +115,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 
 .error-msg {
     background: rgba(245,109,150,0.1); border: 1px solid #f56d96; color: #f56d96;
-    padding: 11px 15px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 16px; display: none;
+    padding: 11px 15px; border-radius: 10px; font-size: 0.75rem; margin-bottom: 16px; display: none;
 }
 
 
@@ -139,20 +139,20 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 }
 .tapa-glifos { display: flex; align-items: center; gap: 12px; color: #9c7a4a; }
 .tapa-glifos .glifo { width: 20px; height: 20px; }
-.tapa-glifos .glifo-ac { font: 400 0.82rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.05em; }
-.tapa-titulo { font: 300 1.5rem/1.15 'Fraunces', Georgia, serif; }
+.tapa-glifos .glifo-ac { font: 400 0.72rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.05em; }
+.tapa-titulo { font: 300 1.31rem/1.15 'Fraunces', Georgia, serif; }
 .tapa-filete { width: 30px; height: 1px; background: #9c7a4a; opacity: 0.6; }
-.tapa-autor { font: 400 0.7rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.22em; text-transform: uppercase; color: #8b8174; }
+.tapa-autor { font: 400 0.61rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.22em; text-transform: uppercase; color: #8b8174; }
 .ebook-texto h3 {
-    color: var(--curso-theme); font-size: 0.82rem; letter-spacing: 0.2em;
+    color: var(--curso-theme); font-size: 0.75rem; letter-spacing: 0.2em;
     text-transform: uppercase; margin: 0 0 8px; font-weight: 400;
 }
 .ebook-texto h2 {
-    color: #fff; font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 300;
+    color: #fff; font-size: clamp(1.22rem, 3vw, 1.57rem); font-weight: 300;
     margin: 0 0 16px; line-height: 1.3; text-transform: none; letter-spacing: 0.02em;
 }
-.ebook-texto p { color: var(--curso-text); font-size: 1.05rem; line-height: 1.7; margin: 0 0 12px; }
-.ebook-texto .ebook-nota { font-size: 0.9rem; opacity: 0.8; margin-bottom: 20px; }
+.ebook-texto p { color: var(--curso-text); font-size: 0.92rem; line-height: 1.7; margin: 0 0 12px; }
+.ebook-texto .ebook-nota { font-size: 0.79rem; opacity: 0.8; margin-bottom: 20px; }
 .ebook-texto .btn-clase-gratis { border: 1px solid #fff; cursor: pointer; font-family: inherit; }
 @media (max-width: 640px) {
     .ebook-invitacion { flex-direction: column; gap: 34px; text-align: center; }
@@ -163,10 +163,10 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     .ebook-invitacion { max-width: 980px; margin: 40px auto 140px; gap: 72px; }
     .ebook-tapa { width: 270px; gap: 24px; padding: 32px 24px; }
     .tapa-glifos .glifo { width: 26px; height: 26px; }
-    .tapa-titulo { font-size: 2.1rem; }
-    .tapa-autor { font-size: 0.8rem; }
-    .ebook-texto h2 { font-size: 2.2rem; }
-    .ebook-texto p { font-size: 1.15rem; }
+    .tapa-titulo { font-size: 1.84rem; }
+    .tapa-autor { font-size: 0.75rem; }
+    .ebook-texto h2 { font-size: 1.93rem; }
+    .ebook-texto p { font-size: 1.01rem; }
 }
 
 /* ─── Calculadora: los datos aca y la carta en una pestaña nueva ─── */
@@ -176,19 +176,19 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
 }
 .calc-invitacion h2 {
-    color: #fff; font-size: 1.2rem; font-weight: 300; text-align: center; margin: 0 0 18px;
+    color: #fff; font-size: 1.05rem; font-weight: 300; text-align: center; margin: 0 0 18px;
     text-transform: none; line-height: 1.4; text-wrap: balance;
 }
 .calc-invitacion .form-group { margin-bottom: 11px; }
-.calc-invitacion .form-group label { font-size: 0.7rem; margin-bottom: 5px; }
+.calc-invitacion .form-group label { font-size: 0.75rem; margin-bottom: 5px; }
 .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { padding: 10px 13px; }
 .calc-fila { display: flex; gap: 10px; }
 .calc-fila .form-group { flex: 1; min-width: 0; }
 .calc-invitacion .btn-clase-gratis { width: 100%; margin: 8px 0 10px; border: 1px solid #fff; cursor: pointer; font-family: inherit; }
-.calc-nota { color: var(--curso-text); font-size: 0.82rem; text-align: center; margin: 0; line-height: 1.6; }
+.calc-nota { color: var(--curso-text); font-size: 0.75rem; text-align: center; margin: 0; line-height: 1.6; }
 .calc-nota a { color: var(--curso-text); text-decoration: underline; }
 @media (min-width: 769px) {
-    .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { font-size: 0.85rem; }
+    .calc-invitacion input[type="text"], .calc-invitacion input[type="time"] { font-size: 0.75rem; }
 }
 /* Bloque del curso grabado, al final de la pagina: desde noviembre de 2026
    es la unica forma de hacer el curso, asi que el kicker y el titulo dicen
@@ -202,15 +202,15 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
     width: 230px; flex-shrink: 0; border-radius: 10px; display: block;
 }
 .abierta-kicker {
-    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase;
     opacity: 0.6; margin: 0 0 10px;
 }
-.abierta-invitacion h2 { margin: 0 0 14px; font-size: 1.6rem; }
+.abierta-invitacion h2 { margin: 0 0 14px; font-size: 1.4rem; }
 .abierta-invitacion p { margin: 0 0 14px; line-height: 1.6; }
 .abierta-datos { list-style: none; padding: 0; margin: 0 0 18px; }
-.abierta-datos li { margin-bottom: 7px; font-size: 0.92rem; opacity: 0.88; }
-.abierta-precio { font-size: 1.1rem; margin-bottom: 18px; }
-.abierta-precio small { opacity: 0.6; font-size: 0.82rem; }
+.abierta-datos li { margin-bottom: 7px; font-size: 0.81rem; opacity: 0.88; }
+.abierta-precio { font-size: 0.96rem; margin-bottom: 18px; }
+.abierta-precio small { opacity: 0.6; font-size: 0.75rem; }
 @media (max-width: 760px) {
     .abierta-invitacion { flex-direction: column; gap: 30px; text-align: center; }
     .abierta-invitacion img { width: 180px; }
@@ -321,7 +321,7 @@ input[type="time"] { -webkit-appearance: none; appearance: none; display: block;
 
 <script src="../medicion.js?v=3"></script>
 <script src="ebook/glifos.js?v=2" defer></script>
-<script src="ebook/lector.js?v=4" defer></script>
+<script src="ebook/lector.js?v=5" defer></script>
 
 
 <script>

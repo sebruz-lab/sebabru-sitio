@@ -47,8 +47,16 @@ html, body {
     padding: 0;
     width: 100%;
     background-color: var(--bg-base);
-    font-size: 14px;
 }
+
+/* La raiz respeta el tamano de letra que la persona configuro en su
+   navegador (16px por defecto): antes eran 14px fijos, asi que quien
+   necesita letra grande no la recibia nunca. El cuerpo sigue en los 14px
+   de siempre (0.875rem) para que el cambio de raiz no mueva nada: los
+   tamanos se suben despues, uno por uno y a la vista. Por eso todos los
+   rem del sitio estan escalados por 0.875. */
+html { font-size: 100%; }
+body { font-size: 0.875rem; }
 
 body {
     font-family: 'Outfit', sans-serif;
@@ -77,7 +85,7 @@ main {
 }
 
 @media (max-width: 768px) {
-    main { padding: 20px 15px; font-size: 14px; }
+    main { padding: 20px 15px; font-size: 0.875rem; }
 
 }
 
@@ -85,7 +93,7 @@ main {
    2. TIPOGRAFÍAS Y TEXTOS
    ========================================= */
 .main-header {
-    padding: 2rem 1rem;
+    padding: 1.75rem 0.88rem;
     text-align: center;
     text-wrap: balance;
 }
@@ -118,7 +126,7 @@ h2 {
     font-weight: 300;
     text-align: left;
     margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.31rem;
     font-size: 2em;
     text-transform: uppercase;
     text-wrap: balance;
@@ -268,7 +276,7 @@ a:hover {
 .menu-list li a {
     color: #ffffff !important;
     font-family: 'Outfit', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.22rem;
     font-weight: 400;
     text-decoration: none;
     text-transform: uppercase;
@@ -393,7 +401,7 @@ a:hover {
     display: inline-block; padding: 12px 28px;
     background-color: transparent; color: var(--text-dark);
     border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px;
-    font-family: 'Outfit', sans-serif; font-size: 0.85rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.875rem;
     font-weight: 500; text-transform: uppercase; letter-spacing: 1px;
     backdrop-filter: blur(5px); transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -534,7 +542,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
     margin: 24px auto 0;
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(224,230,237,0.45);
@@ -604,7 +612,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
 }
 
 .efecto-texto::-webkit-scrollbar { display: none; }
-.efecto-texto p { font-size: 1.1rem; margin-bottom: 15px; }
+.efecto-texto p { font-size: 0.96rem; margin-bottom: 15px; }
 
 /* =========================================
    CATEGORÍA ESPECIAL: LAYOUT WIDE VISUAL
@@ -694,7 +702,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
 }
 #seccion-lunas .contenido-tarjeta p {
     margin: 0 0 12px;
-    font-size: 1.05rem;
+    font-size: 0.92rem;
 }
 
 /* =========================================
@@ -733,7 +741,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
     display: inline-block; margin-top: 15px; padding: 10px 20px;
     background-color: transparent; color: var(--primary-color);
     border: 1px solid var(--primary-color); border-radius: 30px;
-    text-transform: uppercase; font-size: 0.85rem; text-align: center;
+    text-transform: uppercase; font-size: 0.875rem; text-align: center;
     transition: all 0.3s ease;
 }
 .btn-luna:hover { background-color: var(--primary-color); color: #000; text-decoration: none; }
@@ -741,7 +749,7 @@ a.block-bios        { --section-c: var(--secondary-color); }
 /* Etiquetas IFRAME (Spotify / Youtube) */
 .etiqueta-plataforma {
     padding: 16px 20px; font-weight: 600; text-transform: uppercase;
-    font-size: 0.8rem; color: white; display: flex;
+    font-size: 0.75rem; color: white; display: flex;
     justify-content: space-between; align-items: center; cursor: grab;
 }
 .etiqueta-plataforma:active { cursor: grabbing; }
@@ -760,7 +768,7 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
     width: 44px; height: 44px;
     background: rgba(16, 16, 26, 0.85); border: 1px solid rgba(255, 255, 255, 0.15);
     color: var(--text-light); border-radius: 50%; cursor: pointer; z-index: 10;
-    display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
     transition: all 0.3s ease; backdrop-filter: blur(5px);
 }
 .flecha-carrusel:hover { background: var(--primary-color); color: #000; border-color: var(--primary-color); box-shadow: 0 4px 15px rgba(59, 194, 188, 0.4); }
@@ -781,7 +789,7 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
 .formaciones-texto::-webkit-scrollbar { display: none; }
 
 .indicador-scroll {
-    text-align: right; font-size: 0.8rem; color: var(--primary-color);
+    text-align: right; font-size: 0.75rem; color: var(--primary-color);
     text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: 500;
 }
 .flecha-animada { display: inline-block; animation: empujar-flecha 1.5s infinite; }
@@ -828,13 +836,13 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
     border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 50px 30px;
     text-align: center; max-width: 600px; width: 100%; z-index: 1; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
-.comunidad-card h2 { font-size: 2.2rem; margin-bottom: 15px; color: var(--text-light); }
-.comunidad-card p { color: var(--text-dark); margin-bottom: 35px; font-size: 1.05rem; }
+.comunidad-card h2 { font-size: 1.93rem; margin-bottom: 15px; color: var(--text-light); }
+.comunidad-card p { color: var(--text-dark); margin-bottom: 35px; font-size: 0.92rem; }
 .comunidad-botones { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
 .btn-comunidad {
     display: flex; align-items: center; justify-content: center; padding: 14px 30px;
     border-radius: 50px; font-family: 'Outfit', sans-serif; font-weight: 500;
-    font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; text-decoration: none;
+    font-size: 0.875rem; text-transform: uppercase; letter-spacing: 1px; text-decoration: none;
     transition: all 0.3s ease; flex: 1; min-width: 200px;
 }
 .btn-whatsapp { color: #25D366; border: 1px solid rgba(37, 211, 102, 0.3); background: rgba(37, 211, 102, 0.05); }
@@ -849,13 +857,13 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
    ========================================= */
 .encabezado-simple { padding: 0px 20px 40px; text-align: center; background-color: transparent; }
 .encabezado-simple h3 {
-    color: var(--text-light); font-size: 1.8rem; font-weight: 400;
+    color: var(--text-light); font-size: 1.57rem; font-weight: 400;
     letter-spacing: 1px; margin: 200px; text-wrap: balance; text-align: center;
 }
 @media (max-width: 768px) {
     .encabezado-simple { padding: 40px 15px;}
     
-    .encabezado-simple h3 { font-size: 1.4rem; margin: 60px auto}
+    .encabezado-simple h3 { font-size: 1.22rem; margin: 60px auto}
 }
 
 /* =========================================
@@ -866,7 +874,7 @@ iframe { max-width: 100%; border-radius: 8px; border: 1px solid #eee; }
 .interactive-card.portrait-card { position: relative; width: 100%; max-width: 450px; aspect-ratio: 4 / 5; margin: 60px auto; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6); cursor: pointer; }
 .interactive-card .card-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); z-index: 1; }
 .interactive-card .card-front { position: absolute; bottom: 0; left: 0; width: 100%; padding: 60px 30px 25px 30px; background: linear-gradient(to top, rgba(7, 7, 10, 0.95) 0%, transparent 100%); z-index: 2; transition: opacity 0.4s ease; }
-.interactive-card .card-front h2 { color: var(--secondary-color); margin: 0; text-align: left; font-size: 1.8rem; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); line-height: 1.2; }
+.interactive-card .card-front h2 { color: var(--secondary-color); margin: 0; text-align: left; font-size: 1.57rem; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); line-height: 1.2; }
 .interactive-card .card-back { position: absolute; bottom: -100%; left: 0; width: 100%; height: 100%; background: rgba(18, 20, 29, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 3; padding: 30px 25px; transition: bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .card-text-scroll { height: 100%; overflow-y: auto; padding-right: 15px; display: flex; flex-direction: column; }
 .interactive-card:hover .card-back { bottom: 0; }
@@ -1025,7 +1033,7 @@ a.section-block:hover h3 {
     content: '\2193';
     position: absolute;
     left: 50%; bottom: 20px; transform: translateX(-50%);
-    font-size: 1.1rem; color: rgba(224,230,237,0.6);
+    font-size: 0.96rem; color: rgba(224,230,237,0.6);
     opacity: 0; visibility: hidden;
     transition: opacity 0.4s ease;
     pointer-events: none;
@@ -1123,7 +1131,7 @@ a.section-block:hover h3 {
 
 .glass-propuestas-content p {
     color: var(--text-dark) !important;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     line-height: 1.8;
 }
 
@@ -1210,7 +1218,7 @@ a.section-block:hover h3 {
     font-family: 'Outfit', sans-serif;
     font-style: italic;
     font-weight: 100;
-    font-size: 1rem;
+    font-size: 0.88rem;
     line-height: 1.4;
     
     /* ACÁ VA LA VERSIÓN LUMINOSA/CLARA DE TU COLOR DE CONSULTAS */
@@ -1236,7 +1244,7 @@ a.section-block:hover h3 {
 /* Ajuste móvil */
 @media (max-width: 768px) {
     .texto-neptuno-abajo {
-        font-size: 1rem;
+        font-size: 0.88rem;
         max-width: 200px; 
         padding: 0 15px;
         left: 20px; /* Empujoncito más sutil en celu */
@@ -1312,7 +1320,7 @@ a.section-block:hover h3 {
     font-family: 'Outfit', sans-serif;
     font-style: italic;
     font-weight: 100;
-    font-size: 1rem;
+    font-size: 0.88rem;
     line-height: 1.4;
     color: #96bfbd; /* Color LUMINOSO (Rosa pálido casi blanco) */
     text-transform: lowercase;
@@ -1334,7 +1342,7 @@ a.section-block:hover h3 {
 /* Ajuste móvil para el texto */
 @media (max-width: 768px) {
     .texto-jupiter-abajo {
-        font-size: 1rem;
+        font-size: 0.88rem;
         /* Cambiamos el 50% por 280px para que mantenga la misma caja prolija que en PC */
         max-width: 200px; 
         padding: 0 15px;
@@ -1365,7 +1373,7 @@ a.section-block:hover h3 {
     font-family: 'Outfit', sans-serif;
     font-style: italic; /* Cursiva (itálica) de Google */
     font-weight: 100; /* Sutil */
-    font-size: 1rem; /* Pequeño pero legible */
+    font-size: 0.88rem; /* Pequeño pero legible */
     line-height: 1.4;
     color: #d89d9d; /* Color #f56d96 */
     text-transform: lowercase; /* Todo en minúsculas */
@@ -1554,7 +1562,7 @@ a.section-block:hover h3 {
 .podcast-header h2 {
     font-family: 'Lemon Milk', sans-serif;
     color: var(--primary-color, #249b95);
-    font-size: 2rem;
+    font-size: 1.75rem;
     margin: 0;
     text-align: center;
 }
@@ -1586,7 +1594,7 @@ a.section-block:hover h3 {
     padding: 12px 15px;
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.83rem;
     text-align: center;
     border-radius: 12px 12px 0 0;
     color: white;
@@ -1609,7 +1617,7 @@ a.section-block:hover h3 {
 .podcast-info h3 {
     font-family: 'Lemon Milk', sans-serif;
     color: var(--secondary-color, #f0c516); /* El amarillo original */
-    font-size: 1.4rem;
+    font-size: 1.22rem;
     margin-bottom: 15px;
     text-align: center;
 }
@@ -1644,7 +1652,7 @@ a.section-block:hover h3 {
     text-decoration: none;
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     transition: 0.3s ease;
     background: rgba(0,0,0,0.3);
     display: flex;
@@ -1666,7 +1674,7 @@ a.section-block:hover h3 {
     }
 
     .podcast-header h2 {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
 }
 
@@ -1704,7 +1712,7 @@ a.section-block:hover h3 {
     z-index: 2;
 }
 .bloque--intro { width: min(92vw, 920px); text-align: center; }
-.bloque--intro .main-header { padding: 0 0 1rem; }
+.bloque--intro .main-header { padding: 0 0 0.88rem; }
 .bloque--intro main { padding: 10px 0 0; }
 
 .bloque--estacion {

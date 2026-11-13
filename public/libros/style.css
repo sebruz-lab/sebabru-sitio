@@ -132,7 +132,7 @@ main {
 }
 
 .main-header {
-    padding: 2rem 1rem;
+    padding: 1.75rem 0.88rem;
     text-align: center;
 }
 .main-header h1 {
@@ -147,7 +147,7 @@ h2 {
     font-weight: 400;
     text-align: center;
     margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.31rem;
     font-size: 2em;
 }
 h3, h4, h5, h6 {

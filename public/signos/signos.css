@@ -34,7 +34,7 @@
 }
 
 .signo-icon-big {
-    font-size: 4rem;
+    font-size: 3.5rem;
     margin-bottom: 15px;
     color: var(--aries-accent);
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.4); /* Resplandor dorado */
@@ -43,19 +43,19 @@
 .signo-header h1 {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 400;
-    font-size: 3.5rem;
+    font-size: 3.06rem;
     margin: 0;
     text-transform: uppercase;
 }
 .signo-header h4 {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 300;
-    font-size: 1rem;
+    font-size: 0.88rem;
     margin: 0;
     text-align: center;
 }
 .signo-header .subtitle {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     opacity: 0.9;
     margin-top: 5px;
 }
@@ -185,7 +185,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
+    font-size: 1.31rem;
     transition: all 0.3s ease;
     background-color: rgba(255,255,255,0.05); /* Circulito tenue */
     color: var(--text-dark);
@@ -193,21 +193,21 @@
 
 .icon-house {
     font-family: 'Lemon Milk', sans-serif;
-    font-size: 1rem;
+    font-size: 0.88rem;
     font-weight: 300;
 }
 
 /* Títulos en summary */
 .desplegable-item summary h3 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--text-light); /* Blanco */
     transition: color 0.3s ease;
 }
 
 /* Caret (flechita) */
 .caret {
-    font-size: 1rem;
+    font-size: 0.88rem;
     color: var(--text-dark);
     transition: transform 0.3s ease, color 0.3s ease;
 }
@@ -283,7 +283,7 @@
 /* Separador de sección */
 .separa-seccion {
     text-align: center;
-    font-size: 2rem;
+    font-size: 1.75rem;
     margin: 60px 0;
     position: relative;
     color: var(--text-dark);
@@ -308,13 +308,13 @@
    ========================================= */
 @media (max-width: 768px) {
     .signo-header { padding: 40px 15px; }
-    .signo-header h1 { font-size: 2.5rem; }
-    .signo-icon-big { font-size: 3rem; }
+    .signo-header h1 { font-size: 2.19rem; }
+    .signo-icon-big { font-size: 2.62rem; }
 
     .summary-content { gap: 10px; }
-    .icon-planet, .icon-house { width: 40px; height: 40px; font-size: 1.2rem; }
-    .icon-house { font-size: 1.5rem; }
-    .desplegable-item summary h3 { font-size: 1.1rem; }
+    .icon-planet, .icon-house { width: 40px; height: 40px; font-size: 1.05rem; }
+    .icon-house { font-size: 1.31rem; }
+    .desplegable-item summary h3 { font-size: 0.96rem; }
     .desplegable-content { padding: 0 15px 15px 15px; }
 }
 
@@ -336,7 +336,7 @@
 .tauro-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--tauro-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -402,7 +402,7 @@
 .geminis-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--geminis-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -462,7 +462,7 @@
 .cancer-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--cancer-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -508,7 +508,7 @@
 .leo-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--leo-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -568,7 +568,7 @@
 .virgo-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--virgo-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -622,7 +622,7 @@
 .signos-index-header h1 {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 400;
-    font-size: 3rem;
+    font-size: 2.62rem;
     margin: 0;
     text-transform: uppercase;
 }
@@ -659,14 +659,14 @@
 }
 
 .signo-card .signo-card-symbol {
-    font-size: 2.8rem;
+    font-size: 2.45rem;
     line-height: 1;
     transition: all 0.3s ease;
 }
 
 .signo-card h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 0.96rem;
     font-family: 'Outfit', sans-serif;
     font-weight: 400;
     color: var(--text-light);
@@ -723,7 +723,7 @@
 .libra-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--libra-primary);
     margin-top: 28px;
     margin-bottom: 10px;
@@ -782,7 +782,7 @@
 .escorpio-titulo {
     font-family: 'Outfit', sans-serif;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: var(--escorpio-primary);
     margin-top: 28px;
     margin-bottom: 10px;

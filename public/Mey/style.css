@@ -152,7 +152,7 @@ img {
 .book-strip-text {
   display: inline-block;
   white-space: nowrap;
-  font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+  font-size: clamp(0.53rem, 1.8vw, 0.66rem);
   letter-spacing: 0.14em;
   color: rgba(240, 237, 230, 0.5);
   font-style: italic;
@@ -204,7 +204,7 @@ del {
 }
 
 .artist-name {
-  font-size: clamp(2rem, 9vw, 3.5rem);
+  font-size: clamp(1.75rem, 9vw, 3.06rem);
   font-weight: 400;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -322,7 +322,7 @@ del {
 #menu-nav > li > button {
   display: block;
   font-family: Georgia, serif;
-  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-size: clamp(1.75rem, 7vw, 3.06rem);
   font-weight: 400;
   color: #f5ede6;
   text-decoration: none;
@@ -370,7 +370,7 @@ del {
 #works-list li a {
   display: block;
   font-family: Georgia, serif;
-  font-size: clamp(1rem, 3.5vw, 1.4rem);
+  font-size: clamp(0.88rem, 3.5vw, 1.22rem);
   color: rgba(245, 237, 230, 0.75);
   text-decoration: none;
   padding: 4px 0;

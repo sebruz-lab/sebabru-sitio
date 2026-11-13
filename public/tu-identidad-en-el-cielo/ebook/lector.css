@@ -49,13 +49,13 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
     padding-left: max(22px, env(safe-area-inset-left));
     padding-right: max(22px, env(safe-area-inset-right));
     justify-content: space-between;
-    font: 400 0.78rem/1 var(--serif-texto); letter-spacing: 0.04em;
+    font: 400 0.68rem/1 var(--serif-texto); letter-spacing: 0.04em;
     pointer-events: none;
 }
 .lector.barras-ocultas .lector-arriba { opacity: 0; pointer-events: none; }
 .lector-titulo {
     flex: 1; text-align: center; min-width: 0;
-    font: italic 400 0.95rem/1 var(--serif-titulo);
+    font: italic 400 0.83rem/1 var(--serif-titulo);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .lector-acciones { display: flex; gap: 2px; }
@@ -63,7 +63,7 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
     width: 40px; height: 40px; border: 0; border-radius: 50%;
     background: transparent; color: var(--tenue); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    font: 400 0.9rem/1 var(--serif-titulo);
+    font: 400 0.79rem/1 var(--serif-titulo);
     transition: background 0.2s ease, color 0.2s ease;
 }
 .lb:hover, .lb:focus-visible { background: var(--linea); color: var(--tinta); outline: none; }
@@ -232,33 +232,33 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
 .lector.con-indice .lector-indice { transform: none; }
 @media (prefers-reduced-motion: reduce) { .lector-indice, .lector-velo { transition: none; } }
 .indice-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.indice-cabeza h2 { margin: 0; font: 300 1.6rem/1 var(--serif-titulo); font-variation-settings: 'SOFT' 100; }
+.indice-cabeza h2 { margin: 0; font: 300 1.4rem/1 var(--serif-titulo); font-variation-settings: 'SOFT' 100; }
 .lector-indice ol { list-style: none; margin: 0; padding: 0; }
 .ix-capitulo { border-top: 1px solid var(--linea); padding: 6px 0; }
 .ix-capitulo:first-child { border-top: 0; }
 .ix-link {
     display: flex; align-items: center; gap: 12px; width: 100%;
     padding: 9px 6px; border: 0; border-radius: 8px; background: none; cursor: pointer;
-    color: inherit; text-align: left; font: 400 1.05rem/1.3 var(--serif-titulo);
+    color: inherit; text-align: left; font: 400 0.92rem/1.3 var(--serif-titulo);
 }
 .ix-link:hover, .ix-link:focus-visible { background: var(--linea); outline: none; }
 .ix-link.actual { color: var(--acento); }
 .ix-link .glifo { width: 20px; height: 20px; color: var(--acento); flex: none; }
-.ix-link .ix-ac { width: 20px; flex: none; text-align: center; color: var(--acento); font-size: 0.8rem; letter-spacing: 0.04em; }
+.ix-link .ix-ac { width: 20px; flex: none; text-align: center; color: var(--acento); font-size: 0.7rem; letter-spacing: 0.04em; }
 .ix-link .ix-sin-glifo { width: 20px; flex: none; }
 .ix-capitulo.pendiente .ix-link { cursor: default; color: var(--tenue); }
 .ix-capitulo.pendiente .ix-link:hover { background: none; }
 .ix-pronto {
-    margin-left: auto; font: italic 400 0.78rem/1 var(--serif-texto); color: var(--tenue);
+    margin-left: auto; font: italic 400 0.68rem/1 var(--serif-texto); color: var(--tenue);
 }
 .ix-sub { padding: 0 0 4px 38px; }
-.ix-sub .ix-link { font: 400 0.95rem/1.3 var(--serif-texto); padding: 6px 6px; color: var(--tinta); }
+.ix-sub .ix-link { font: 400 0.83rem/1.3 var(--serif-texto); padding: 6px 6px; color: var(--tinta); }
 .ix-sub .ix-link.actual { color: var(--acento); }
 .ix-signos {
     display: grid; grid-template-columns: 1fr 1fr; gap: 0 4px;
     padding: 2px 0 6px 6px;
 }
-.ix-signos .ix-link { font-size: 0.9rem; gap: 9px; padding: 6px; }
+.ix-signos .ix-link { font-size: 0.79rem; gap: 9px; padding: 6px; }
 .ix-signos .ix-link .glifo { width: 15px; height: 15px; }
 
 /* Aviso al retomar */
@@ -266,7 +266,7 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
     position: absolute; left: 50%; bottom: 62px; z-index: 3;
     transform: translateX(-50%); padding: 9px 16px; border-radius: 20px;
     background: var(--tinta); color: var(--papel);
-    font: 400 0.85rem/1.2 var(--serif-texto);
+    font: 400 0.74rem/1.2 var(--serif-texto);
     opacity: 0; transition: opacity 0.4s ease; pointer-events: none; white-space: nowrap;
 }
 .lector-aviso.visible { opacity: 0.92; }

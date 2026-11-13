@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '3';
+    var VERSION = '4';
     var BASE = document.currentScript && document.currentScript.src
         ? new URL('.', document.currentScript.src).href
         : '/tu-identidad-en-el-cielo/ebook/';

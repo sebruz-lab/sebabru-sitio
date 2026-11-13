@@ -18,7 +18,7 @@ const ESTILOS = `
 .calc-lunacion .cl-intro { margin: 0 0 18px; }
 .calc-lunacion .cl-campo { margin-bottom: 12px; }
 .calc-lunacion label {
-    display: block; margin-bottom: 5px; font-size: 0.72rem; letter-spacing: 1px;
+    display: block; margin-bottom: 5px; font-size: 0.75rem; letter-spacing: 1px;
     text-transform: uppercase; color: #cccac3; font-family: 'Outfit', sans-serif;
 }
 .calc-lunacion label .cl-opcional { text-transform: none; letter-spacing: 0; opacity: 0.7; }
@@ -37,7 +37,7 @@ const ESTILOS = `
     background: #12141d; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
 }
 .calc-lunacion .sugerencias li {
-    padding: 9px 11px; border-radius: 7px; cursor: pointer; color: #cccac3; font-size: 0.9rem;
+    padding: 9px 11px; border-radius: 7px; cursor: pointer; color: #cccac3; font-size: 0.79rem;
 }
 .calc-lunacion .sugerencias li[aria-selected="true"], .calc-lunacion .sugerencias li:hover {
     background: rgba(255,255,255,0.09); color: #fff;
@@ -45,18 +45,18 @@ const ESTILOS = `
 .calc-lunacion button {
     width: 100%; margin: 14px 0 10px; padding: 13px 22px; cursor: pointer;
     background: transparent; color: #fff; border: 1px solid #fff; border-radius: 30px;
-    font-family: 'Outfit', sans-serif; font-size: 0.95rem; letter-spacing: 1px;
+    font-family: 'Outfit', sans-serif; font-size: 0.875rem; letter-spacing: 1px;
     text-transform: uppercase; transition: background 0.2s ease;
 }
 .calc-lunacion button:hover { background: rgba(255,255,255,0.14); }
 .calc-lunacion .cl-error {
     display: none; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px;
     background: rgba(245,109,150,0.1); border: 1px solid #f56d96; color: #f56d96;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
 }
-.calc-lunacion .cl-nota { margin: 0; font-size: 0.8rem; text-align: center; line-height: 1.6; }
+.calc-lunacion .cl-nota { margin: 0; font-size: 0.75rem; text-align: center; line-height: 1.6; }
 .calc-lunacion .cl-nota a { color: inherit; text-decoration: underline; }
-@media (min-width: 769px) { .calc-lunacion input { font-size: 0.95rem; } }
+@media (min-width: 769px) { .calc-lunacion input { font-size: 0.83rem; } }
 `;
 
 function ponerEstilos() {

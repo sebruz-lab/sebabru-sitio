@@ -11,11 +11,11 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword, createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { entrarConGoogle } from './google.js?v=1';
+import { entrarConGoogle } from './google.js?v=2';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 import { app, auth, db } from './firebase.js';
-import { videoEntryToSrc } from './escuela.js?v=6';
+import { videoEntryToSrc } from './escuela.js?v=7';
 
 const OBTENER_MUESTRA_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/obtenerMuestra';
 const CREAR_PAGO_PAYPAL_URL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/crearPagoPaypal';
@@ -37,13 +37,13 @@ const MODAL_HTML = `
 <div id="aula-login-modal" class="modal-overlay">
   <div class="modal-box">
     <button type="button" id="aula-close-modal" class="close-btn">&times;</button>
-    <p style="font-size:0.85rem; opacity:0.8; margin-bottom:14px;">Iniciá sesión para ver la clase gratis &mdash; es gratis, solo pedimos tu mail.</p>
+    <p style="font-size: 0.75rem; opacity:0.8; margin-bottom:14px;">Iniciá sesión para ver la clase gratis &mdash; es gratis, solo pedimos tu mail.</p>
     <div class="google-auth-container" style="margin-bottom:20px; text-align:center;">
       <button type="button" id="aula-btn-google" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:white; color:#444; border:1px solid #ddd; padding:10px; border-radius:5px; cursor:pointer; font-family:sans-serif; font-weight:bold;">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
         CONTINUAR CON GOOGLE
       </button>
-      <h3 style="margin:15px 0; color:#888; font-size:0.8rem;">&mdash; O BIEN &mdash;</h3>
+      <h3 style="margin:15px 0; color:#888; font-size: 0.75rem;">&mdash; O BIEN &mdash;</h3>
     </div>
     <div id="aula-seccion-login">
       <h2>Ingresar</h2>
@@ -222,7 +222,7 @@ function construirCheckoutHTML(info) {
   <div class="comprar-section" id="seccion-compra">
     <details class="comprar-main" open>
       <summary>
-        <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:1.1rem;"></i> Mercado Pago</span>
+        <span class="summary-left"><i class="fa-brands fa-cc-mastercard" style="color:#009ee3; font-size:0.96rem;"></i> Mercado Pago</span>
         <i class="fa-solid fa-chevron-down summary-chevron"></i>
       </summary>
       <div class="comprar-body">
@@ -236,8 +236,8 @@ function construirCheckoutHTML(info) {
     <details class="comprar-main">
       <summary>
         <span class="summary-left">
-          <i class="fa-solid fa-building-columns" style="color:#cfcfd6; font-size:1rem;"></i>
-          Transferencia <span id="tag-trans" style="font-size:0.72rem; background:rgba(255,255,255,0.1); color:#f0f0f4; border:1px solid rgba(255,255,255,0.25); border-radius:20px; padding:2px 8px;">10% off</span>
+          <i class="fa-solid fa-building-columns" style="color:#cfcfd6; font-size:0.88rem;"></i>
+          Transferencia <span id="tag-trans" style="font-size: 0.75rem; background:rgba(255,255,255,0.1); color:#f0f0f4; border:1px solid rgba(255,255,255,0.25); border-radius:20px; padding:2px 8px;">10% off</span>
         </span>
         <i class="fa-solid fa-chevron-down summary-chevron"></i>
       </summary>
@@ -261,13 +261,13 @@ function construirCheckoutHTML(info) {
           </button>
         </div>
         <div id="info-comprobante" style="display:none; margin-top:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:10px; padding:14px 16px;">
-          <p style="font-size:0.82rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
+          <p style="font-size: 0.75rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
             <i class="fa-solid fa-circle-check" style="color:#f0f0f4; margin-right:6px;"></i>
             Alias copiado. Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
           </p>
           <a class="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer"
-             style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size:0.82rem; font-family:'Outfit',sans-serif;">
-            <i class="fa-brands fa-whatsapp" style="font-size:1rem;"></i> Ya pagué &mdash; enviar comprobante
+             style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size: 0.75rem; font-family:'Outfit',sans-serif;">
+            <i class="fa-brands fa-whatsapp" style="font-size:0.88rem;"></i> Ya pagué &mdash; enviar comprobante
           </a>
         </div>
       </div>
@@ -275,8 +275,8 @@ function construirCheckoutHTML(info) {
     <details class="comprar-main">
       <summary>
         <span class="summary-left">
-          <i class="fa-brands fa-paypal" style="color:#7ea8e0; font-size:1.15rem;"></i>
-          PayPal <span style="font-size:0.72rem; background:rgba(255,255,255,0.1); color:#f0f0f4; border:1px solid rgba(255,255,255,0.25); border-radius:20px; padding:2px 8px;">Internacional</span>
+          <i class="fa-brands fa-paypal" style="color:#7ea8e0; font-size:1.01rem;"></i>
+          PayPal <span style="font-size: 0.75rem; background:rgba(255,255,255,0.1); color:#f0f0f4; border:1px solid rgba(255,255,255,0.25); border-radius:20px; padding:2px 8px;">Internacional</span>
         </span>
         <i class="fa-solid fa-chevron-down summary-chevron"></i>
       </summary>

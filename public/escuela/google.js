@@ -39,7 +39,7 @@ export function avisarCuenta(texto, { importante = false } = {}) {
         + ' z-index:999999; background:rgba(18,18,26,0.97); color:#fff; padding:14px 22px;'
         + ' border-radius:10px; border:1px solid '
         + (importante ? 'rgba(245,109,150,0.55)' : 'rgba(255,255,255,0.12)') + ';'
-        + " box-shadow:0 10px 30px rgba(0,0,0,0.5); font-family:'Outfit',sans-serif; font-size:0.92rem;"
+        + " box-shadow:0 10px 30px rgba(0,0,0,0.5); font-family:'Outfit',sans-serif; font-size:13px;"
         + ' max-width:min(90vw,420px); text-align:center; line-height:1.4; opacity:0;'
         + ' transition:opacity .3s ease, transform .3s ease;';
     document.body.appendChild(caja);
