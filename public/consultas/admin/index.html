@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agenda | Panel</title>
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/consultas/admin">
+<meta property="og:title" content="Panel de la agenda | Seba Bru Astrología">
+<meta property="og:description" content="Panel interno para administrar los turnos de las consultas.">
+<meta property="og:image" content="https://sebabru.com/img/consultas.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+<link rel="stylesheet" href="../../style.css?v=29">
+
+<style>
+    .pa { --pa-accent: #bfaee0; max-width: 880px; margin: 0 auto; padding: 0 20px; }
+    .pa-paso { display: none; }
+    .pa-paso.visible { display: block; }
+
+    .pa-tabs { display: flex; gap: 8px; margin-bottom: 26px; flex-wrap: wrap; }
+    .pa-tab {
+        padding: 10px 20px; border-radius: 30px; cursor: pointer; min-height: 44px;
+        background: transparent; color: #cccac3; border: 1px solid rgba(255,255,255,0.2);
+        font-family: 'Outfit', sans-serif; font-size: 0.8rem;
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .pa-tab.activa { background: var(--pa-accent); color: #16131d; border-color: var(--pa-accent); }
+
+    .pa-panel { display: none; }
+    .pa-panel.visible { display: block; }
+
+    .pa-turno {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+        padding: 16px; margin-bottom: 10px; border-radius: 12px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .pa-turno.cancelado { opacity: 0.45; }
+    .pa-turno .pa-cuando { flex: 1 1 220px; color: #fff; text-transform: capitalize; }
+    .pa-turno .pa-quien { flex: 2 1 260px; color: #a9a7a1; font-size: 0.82rem; line-height: 1.6; }
+    .pa-turno .pa-acciones { display: flex; gap: 8px; }
+    .pa-mini {
+        padding: 8px 14px; border-radius: 20px; cursor: pointer; min-height: 36px;
+        background: transparent; color: #cccac3; border: 1px solid rgba(255,255,255,0.2);
+        font-family: 'Outfit', sans-serif; font-size: 0.75rem;
+    }
+    .pa-mini:hover { border-color: var(--pa-accent); color: #fff; }
+    .pa-aviso-cal { color: #f56d96; font-size: 0.75rem; }
+
+    .pa-dia {
+        padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    }
+    .pa-dia > strong { flex: 0 0 110px; font-weight: 400; color: #e0e0e0; }
+    .pa-franjas { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; }
+    .pa-franja { display: flex; align-items: center; gap: 6px; }
+    .pa-franja input {
+        width: 92px; background: rgba(255,255,255,0.05); color: #fff;
+        border: 1px solid rgba(255,255,255,0.18); border-radius: 8px;
+        padding: 8px 10px; font-family: 'Outfit', sans-serif; font-size: 16px;
+    }
+
+    .pa-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+    .pa-numeros label { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #a9a7a1; margin-bottom: 6px; }
+    .pa-numeros input {
+        width: 100%; background: rgba(255,255,255,0.05); color: #fff; box-sizing: border-box;
+        border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+        padding: 11px 14px; font-family: 'Outfit', sans-serif; font-size: 16px;
+    }
+
+    .pa-boton {
+        padding: 13px 28px; border-radius: 30px; cursor: pointer; min-height: 44px;
+        background: var(--pa-accent); color: #16131d; border: none;
+        font-family: 'Outfit', sans-serif; font-size: 0.82rem;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .pa-boton:disabled { opacity: 0.5; cursor: default; }
+
+    .pa-error, .pa-ok {
+        display: none; margin: 14px 0; padding: 12px 15px; border-radius: 10px;
+        font-size: 0.85rem; line-height: 1.6;
+    }
+    .pa-error { background: rgba(245,109,150,0.1); border: 1px solid #f56d96; color: #ffd9e4; }
+    .pa-ok { background: rgba(59,194,188,0.1); border: 1px solid #3bc2bc; color: #cdeeec; }
+    .pa-error.visible, .pa-ok.visible { display: block; }
+
+    .pa-pausa { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: #cccac3; }
+
+    .pa-nuevo-bloqueo { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 22px; }
+    .pa-nuevo-bloqueo input {
+        background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 10px; padding: 11px 14px; font-family: 'Outfit', sans-serif; font-size: 16px;
+    }
+    .pa-vacio { color: #8f8d88; line-height: 1.7; }
+    /* Spinner propio: evita traer toda la hoja de Font Awesome por un icono. */
+    .ag-spinner {
+        display: inline-block; width: 16px; height: 16px; vertical-align: -3px;
+        border: 2px solid rgba(255,255,255,0.18);
+        border-top-color: var(--ag-accent, #bfaee0);
+        border-radius: 50%; animation: ag-girar 0.8s linear infinite;
+    }
+    @keyframes ag-girar { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .ag-spinner { animation-duration: 2.4s; } }
+</style>
+</head>
+<body>
+
+    <div class="content-wrapper">
+
+        <header class="main-header" id="top">
+            <h1>Agenda | Panel de Seba Bru</h1>
+        </header>
+
+        <main>
+            <section class="section-container">
+                <div class="pa">
+
+                    <div id="pa-cargando" style="text-align:center; color:#8f8d88; padding:40px 0;">
+                        <span class="ag-spinner" aria-hidden="true"></span> Entrando...
+                    </div>
+
+                    <div id="pa-login" class="pa-paso">
+                        <p style="color:#cccac3; line-height:1.8; margin-bottom:20px;">Este panel es solo para Seba. Entrá con tu cuenta de Google.</p>
+                        <div id="pa-error-login" class="pa-error" role="alert"></div>
+                        <button type="button" class="pa-boton" id="pa-btn-entrar">Entrar con Google</button>
+                    </div>
+
+                    <div id="pa-panel" class="pa-paso">
+                        <div class="pa-tabs">
+                            <button type="button" class="pa-tab activa" data-panel="pa-turnos">Turnos</button>
+                            <button type="button" class="pa-tab" data-panel="pa-disponibilidad">Disponibilidad</button>
+                            <button type="button" class="pa-tab" data-panel="pa-bloqueos">Bloqueos</button>
+                            <button type="button" class="pa-mini" id="pa-btn-salir" style="margin-left:auto;">Salir</button>
+                        </div>
+
+                        <div id="pa-error" class="pa-error" role="alert"></div>
+                        <div id="pa-ok" class="pa-ok" role="status"></div>
+
+                        <div id="pa-turnos" class="pa-panel visible">
+                            <div id="pa-lista-turnos"></div>
+                        </div>
+
+                        <div id="pa-disponibilidad" class="pa-panel">
+                            <div id="pa-semana"></div>
+                            <div class="pa-numeros">
+                                <div><label for="pa-duracion">Duración (minutos)</label><input type="number" id="pa-duracion" min="15" max="480" step="5"></div>
+                                <div><label for="pa-buffer">Descanso entre sesiones</label><input type="number" id="pa-buffer" min="0" max="240" step="5"></div>
+                                <div><label for="pa-granularidad">Los turnos arrancan cada</label><input type="number" id="pa-granularidad" min="5" max="240" step="5"></div>
+                                <div><label for="pa-anticipacion">Anticipación mínima (horas)</label><input type="number" id="pa-anticipacion" min="0" max="720" step="1"></div>
+                                <div><label for="pa-ventana">Se puede reservar hasta (días)</label><input type="number" id="pa-ventana" min="1" max="365" step="1"></div>
+                            </div>
+                            <label class="pa-pausa"><input type="checkbox" id="pa-pausado"> Cerrar la agenda (nadie puede reservar)</label>
+                            <button type="button" class="pa-boton" id="pa-btn-guardar">Guardar</button>
+                        </div>
+
+                        <div id="pa-bloqueos" class="pa-panel">
+                            <div class="pa-nuevo-bloqueo">
+                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-desde">Desde</label><input type="date" id="pa-bl-desde"></div>
+                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-hasta">Hasta</label><input type="date" id="pa-bl-hasta"></div>
+                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
+                                <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
+                            </div>
+                            <div id="pa-lista-bloqueos"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script type="module" src="/consultas/admin/admin.js?v=1"></script>
+</body>
+</html>

@@ -1,14 +1,56 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
-const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
-const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const dnsPromesas = require('dns').promises;
-const { sheets: sheetsApi } = require('@googleapis/sheets');
-const { JWT } = require('google-auth-library');
+
+// nodemailer (35 archivos) y google-auth-library (97) se cargaban en el
+// arranque en frio de las 31 functions, incluidas las que no mandan un mail
+// ni hablan con Google: buscarLugar, que es el typeahead del lugar de
+// nacimiento, pagaba los dos para nada.
+//
+// Estos dos envoltorios los cargan recien cuando alguien los usa de verdad,
+// y a proposito mantienen la forma exacta de llamarlos
+// (nodemailer.createTransport(...) y new JWT(...)): asi ningun lugar que ya
+// los usa tiene que cambiar.
+const nodemailer = {
+  createTransport: (opciones) => require('nodemailer').createTransport(opciones),
+};
+
+// Un constructor que devuelve un objeto reemplaza al this, asi que
+// new JWT({...}) entrega un JWT de verdad. Es la unica forma de diferir el
+// require sin tocar los dos lugares que lo construyen.
+class JWT {
+  constructor(opciones) {
+    const { JWT: JWTReal } = require('google-auth-library');
+    return new JWTReal(opciones);
+  }
+}
 const brevo = require('./brevo');
+const mails = require('./mails');
+
+// mercadopago se carga recien cuando hace falta, no al cargar el archivo.
+// Los 40 endpoints viven todos aca, asi que buscarLugar pagaba el require de
+// mercadopago en cada arranque en frio para nada. Mismo criterio que
+// puppeteer en pdfDeCarta y que @googleapis/sheets en getSheetsClient.
+let _mp = null;
+function mp() {
+  if (!_mp) _mp = require('mercadopago');
+  return _mp;
+}
+
+// Un cliente de Mercado Pago por instancia. Antes se armaba un
+// MercadoPagoConfig nuevo en cada llamada (habia cinco repartidos).
+let _mpClient = null;
+function clienteMP() {
+  if (!_mpClient) {
+    _mpClient = new (mp().MercadoPagoConfig)({ accessToken: process.env.MP_ACCESS_TOKEN });
+  }
+  return _mpClient;
+}
+function preferenciaMP() { return new (mp().Preference)(clienteMP()); }
+function pagoMP() { return new (mp().Payment)(clienteMP()); }
 
 const CURSO_URLS = {
   luna:      '/escuela/abierta/luna/',
@@ -214,6 +256,11 @@ function setCors(req, res, methods) {
   }
   res.set('Access-Control-Allow-Methods', methods);
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Sin esto, el browser manda un OPTIONS antes de CADA POST, y ese
+  // preflight paga su propio viaje a us-central1 (y puede despertar la
+  // instancia en frio). Con una hora de cache, el primer envio lo paga y
+  // los reintentos y los envios siguientes no.
+  res.set('Access-Control-Max-Age', '3600');
 }
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -234,14 +281,24 @@ async function checkRateLimit(nombreFuncion, req, maxRequests) {
     const snap = await tx.get(ref);
     const ahora = Date.now();
 
+    // El contador queda en el req para quien lo necesite (registrarInscripcion
+    // decide con esto si pide captcha). Antes lo volvia a leer con un get()
+    // del mismo documento que acabamos de escribir: un viaje a Firestore de
+    // mas en el camino critico del formulario. No se cambia la firma de esta
+    // funcion a proposito: tiene ocho llamadores.
     if (!snap.exists || (ahora - snap.data().windowStart) > RATE_LIMIT_WINDOW_MS) {
       tx.set(ref, { windowStart: ahora, count: 1 });
+      req._intentos = 1;
       return true;
     }
 
-    if (snap.data().count >= maxRequests) return false;
+    if (snap.data().count >= maxRequests) {
+      req._intentos = snap.data().count;
+      return false;
+    }
 
     tx.update(ref, { count: admin.firestore.FieldValue.increment(1) });
+    req._intentos = snap.data().count + 1;
     return true;
   });
 }
@@ -783,8 +840,7 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
   functions.logger.info('Iniciando crearPago', { cursoId, userEmail, precio, descuento });
 
   try {
-    const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-    const preference = new Preference(mpClient);
+    const preference = preferenciaMP();
 
     const result = await preference.create({
       body: {
@@ -849,8 +905,7 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-    const paymentClient = new Payment(mpClient);
+    const paymentClient = pagoMP();
 
     const payment = await paymentClient.get({ id: data.id });
 
@@ -1091,8 +1146,7 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-    const paymentClient = new Payment(mpClient);
+    const paymentClient = pagoMP();
     const payment = await paymentClient.get({ id: paymentId });
 
     if (payment.status !== 'approved') {
@@ -1276,8 +1330,7 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-    const preference = new Preference(mpClient);
+    const preference = preferenciaMP();
 
     const result = await preference.create({
       body: {
@@ -1308,7 +1361,7 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
 // -------------------------------------------------------
 // guardarPedido: Guarda datos de envío del libro
 // -------------------------------------------------------
-exports.guardarPedido = functions.https.onRequest(async (req, res) => {
+exports.guardarPedido = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -1343,8 +1396,7 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
       return res.status(400).json({ error: 'Falta el identificador del pago.' });
     }
     try {
-      const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-      const paymentClient = new Payment(mpClient);
+      const paymentClient = pagoMP();
       const payment = await paymentClient.get({ id: pagoId });
 
       if (payment.status !== 'approved' || payment.metadata?.producto !== 'libro-lilith') {
@@ -1397,15 +1449,12 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
       ? `<tr><td style="padding:10px;border-top:1px solid #eee;color:#888;">Origen</td><td style="padding:10px;border-top:1px solid #eee;">${escapeHtml([origen.source, origen.medium, origen.campaign].filter(Boolean).join(' / ') || (origen.gclid ? 'Google Ads (gclid)' : ''))}</td></tr>`
       : '';
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-
-    await transporter.sendMail({
-      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-      to: 'sebruz@gmail.com',
-      subject: `📦 Nuevo pedido Luna Negra — ${nombre}`,
+    // A la cola, igual que el de las inscripciones: quien hace el pedido no
+    // tiene que esperar el handshake con Gmail. Ver mails.js.
+    await mails.encolarMail(_db, {
+      para: 'sebruz@gmail.com',
+      asunto: `📦 Nuevo pedido Luna Negra — ${nombre}`,
+      motivo: 'pedido-libro',
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
           <h2 style="color:#249b95;">Nuevo pedido: Luna Negra</h2>
@@ -1418,7 +1467,7 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
           </table>
           <p style="color:#aaa;font-size:0.82em;margin-top:20px;">ID: ${pedidoId}</p>
         </div>
-      `
+      `,
     });
 
     functions.logger.info('Pedido guardado', { pedidoId, email, metodo });
@@ -1814,13 +1863,21 @@ const FORMULARIOS_INSCRIPCION = {
       { key: 'comentario', label: 'Algo más que quiera que sepamos', maxLen: 2000 },
     ],
     carta: { para: 'sebruz@gmail.com', grupo: 'Consultas' },
+    // Despues de este formulario se elige el dia y la hora en
+    // /consultas/agenda/ (ver el bloque AGENDA DE CONSULTAS).
+    agenda: true,
     confirmacion: {
       asunto: 'Tu consulta astrológica',
-      parrafos: (nombre, conCarta, modalidad) => [
+      parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
         `Hola, ${nombre}:`,
         'Recibimos tu pedido de consulta. Ya tenemos tus datos.',
         conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
-        'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+        // Si por lo que sea no hay agenda (falta el secreto, falló el alta
+        // del pedido), el mail vuelve a decir lo de antes: nunca un enlace
+        // que no lleva a ningún lado.
+        urlAgenda
+          ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
+          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
         modalidad === 'Online'
           ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
           : modalidad === 'Presencial'
@@ -1858,13 +1915,16 @@ const FORMULARIOS_INSCRIPCION = {
       { key: 'comentario', label: 'Algo más que quiera que sepamos', maxLen: 2000 },
     ],
     carta: { para: 'sebruz@gmail.com', grupo: 'Consultas' },
+    agenda: true,
     confirmacion: {
       asunto: 'Tu consulta astrológica',
-      parrafos: (nombre, conCarta, modalidad) => [
+      parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
         `Hola, ${nombre}:`,
         'Recibimos tus datos para la consulta que te regalaron. Está todo listo de tu lado.',
         conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
-        'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+        urlAgenda
+          ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
+          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
         modalidad === 'Online'
           ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
           : modalidad === 'Presencial'
@@ -1957,6 +2017,9 @@ function getSheetsClient() {
     key: (process.env.SHEETS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
+  // @googleapis/sheets es grande y solo lo usan los formularios: se carga
+  // aca, no al cargar el archivo.
+  const { sheets: sheetsApi } = require('@googleapis/sheets');
   _sheetsClient = sheetsApi({ version: 'v4', auth });
   return _sheetsClient;
 }
@@ -1965,9 +2028,34 @@ function getSheetsClient() {
 // documento -- asi sumar un formulario nuevo no requiere crear la hoja a mano.
 // Devuelve los titulos que tiene la fila 1, que es lo que usa el modo
 // columnasPorEncabezado para saber en que columna va cada valor.
+// Lo que esta funcion ya averiguo en esta instancia, para no volver a
+// preguntarselo a Sheets en cada envio. Se cachean dos cosas, y solo dos,
+// porque son las que no pueden cambiar a nuestras espaldas:
+//
+//   - que la pestana existe: nadie borra una pestana con datos adentro;
+//   - que fila 1 ya tiene los encabezados que escribimos nosotros, en las
+//     hojas que NO son columnasPorEncabezado (ahi la fila 1 es toda nuestra).
+//
+// Los titulos de una hoja columnasPorEncabezado NO se cachean a proposito:
+// Seba le agrega columnas a mano a la de consultas, y si una columna nueva
+// entra en el medio, cachear las posiciones significaria escribir valores en
+// la columna equivocada. Ese values.get de la fila 1 se paga siempre.
+const _hojasVistas = new Set();
+const _encabezadosEscritos = new Map();
+
 async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados, porEncabezado) {
-  const meta = await sheets.spreadsheets.get({ spreadsheetId });
-  const existe = (meta.data.sheets || []).some(s => s.properties.title === nombreHoja);
+  const clave = spreadsheetId + '|' + nombreHoja;
+
+  // El spreadsheets.get trae la metadata del documento entero y es la
+  // llamada mas cara de las tres: solo se usa para saber si la pestana
+  // existe, asi que una vez por instancia alcanza.
+  let existe = _hojasVistas.has(clave);
+  if (!existe) {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    existe = (meta.data.sheets || []).some(s => s.properties.title === nombreHoja);
+    if (existe) _hojasVistas.add(clave);
+  }
+
   if (existe) {
     if (porEncabezado) {
       // Modo para hojas que alguien mas edita a mano: la fila 1 no se pisa.
@@ -1988,12 +2076,17 @@ async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabe
     }
     // Si el formulario sumo campos, los titulos de la fila 1 se ponen al dia
     // (los campos nuevos van al final, asi que las columnas viejas no se mueven).
+    // Si ya los escribimos en esta instancia y son los mismos, no hay nada
+    // que poner al dia: esta fila 1 es nuestra, no la toca nadie mas.
+    const firma = JSON.stringify(encabezados);
+    if (_encabezadosEscritos.get(clave) === firma) return encabezados;
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${nombreHoja}!A1`,
       valueInputOption: 'RAW',
       requestBody: { values: [encabezados] },
     });
+    _encabezadosEscritos.set(clave, firma);
     return encabezados;
   }
   await sheets.spreadsheets.batchUpdate({
@@ -2006,10 +2099,12 @@ async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabe
     valueInputOption: 'RAW',
     requestBody: { values: [encabezados] },
   });
+  _hojasVistas.add(clave);
+  if (!porEncabezado) _encabezadosEscritos.set(clave, JSON.stringify(encabezados));
   return encabezados;
 }
 
-exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
+exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -2024,8 +2119,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
   // checkRateLimit), pedimos un captcha de Cloudflare Turnstile resuelto.
   // Los primeros 2 pasan libres para no molestar a quien se equivoca en el
   // formulario o se anota con un amigx desde la misma conexion.
-  const intentosSnap = await _db.collection('rate_limits').doc(claveRateLimit('registrarInscripcion', req)).get();
-  const intentos = intentosSnap.exists ? intentosSnap.data().count : 1;
+  const intentos = req._intentos || 1;
   if (intentos > 2) {
     const captchaOk = await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
     if (!captchaOk) {
@@ -2051,6 +2145,11 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     }
     valores[campo.key] = valor;
   }
+
+  // El enlace al agendador, si el formulario lo usa. Se arma despues de
+  // escribir la fila y viaja en la respuesta para que el formulario muestre
+  // el boton "Elegi el dia y la hora".
+  let urlAgenda = null;
 
   try {
     const sheets = getSheetsClient();
@@ -2123,6 +2222,31 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
       columnas: titulos.length,
     });
 
+    // Paso 2 de una consulta: elegir el dia y la hora en /consultas/agenda/.
+    // Se guarda el pedido con la fila que acaba de quedar en la planilla,
+    // asi al reservar se escriben el dia y la hora en esa misma fila.
+    //
+    // Si esto falla, la inscripcion sigue valiendo: la persona queda en la
+    // planilla y recibe su mail, solo que coordina a mano como antes.
+    if (config.agenda) {
+      try {
+        const ref = await _db.collection('agenda_pedidos').add({
+          origen: 'formulario',
+          formId,
+          nombre: valores.nombre || '',
+          email: valores.email || '',
+          telefono: valores.telefono || '',
+          modalidad: valores.modalidad || '',
+          filaPlanilla: escrito.data?.updates?.updatedRange || null,
+          turnoId: null,
+          creado: new Date().toISOString(),
+        });
+        urlAgenda = urlDeAgenda(ref.id);
+      } catch (error) {
+        functions.logger.error('No se pudo abrir la agenda del pedido:', error.message);
+      }
+    }
+
     let cartaGuardada = false;
     if (carta) {
       try {
@@ -2137,7 +2261,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
     if (config.confirmacion && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
       try {
         await _db.collection('envios_carta').add({
-          formId, email: valores.email, nombre: valores.nombre || '', modalidad: valores.modalidad || null, carta, creado: new Date().toISOString(),
+          formId, email: valores.email, nombre: valores.nombre || '', modalidad: valores.modalidad || null, carta, urlAgenda, creado: new Date().toISOString(),
         });
       } catch (error) {
         functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
@@ -2172,15 +2296,15 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
         : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
       : '');
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-
-    await transporter.sendMail({
-      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-      to: AVISOS_INSCRIPCION,
-      subject: `📝 Nueva inscripción — ${config.nombreEvento}`,
+    // El aviso a Seba va a la cola. Era el ultimo await antes del res.send()
+    // y el mas caro de todos: una conexion SMTP nueva a Gmail, dos a seis
+    // segundos, para mandar un mail interno que quien se inscribe no va a
+    // leer nunca. Ahora son 150 ms de Firestore y lo manda
+    // enviarMailEncolado. Ver mails.js.
+    await mails.encolarMail(_db, {
+      para: AVISOS_INSCRIPCION,
+      asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
+      motivo: `inscripcion:${formId}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
           <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
@@ -2188,11 +2312,11 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
             ${filasHtml}
           </table>
         </div>
-      `
+      `,
     });
 
     functions.logger.info('Inscripción registrada', { formId, hoja: config.hoja });
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, agenda: urlAgenda });
 
   } catch (error) {
     functions.logger.error('Error en registrarInscripcion:', error.message);
@@ -2238,7 +2362,9 @@ exports.enviarCartaInscripcion = onDocumentCreated({
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
   });
   const nombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
-  const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf), envio.modalidad);
+  // El cuarto dato es el enlace al agendador: va en el mail para quien
+  // cerro la pestaña antes de elegir el dia.
+  const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf), envio.modalidad, envio.urlAgenda || null);
   await transporter.sendMail({
     from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
     to: envio.email,
@@ -2384,14 +2510,13 @@ async function avisarGeoNamesCaido(estado) {
     });
     if (!puedeAvisar) return;
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-    await transporter.sendMail({
-      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-      to: AVISOS_INSCRIPCION,
-      subject: 'El buscador de lugares se quedó sin respaldo',
+    // Esto corre adentro de buscarLugar, que es el typeahead del lugar de
+    // nacimiento: se dispara mientras la persona escribe. Mandar el mail en
+    // linea le cobraba el handshake con Gmail a una tecla. A la cola.
+    await mails.encolarMail(_db, {
+      para: AVISOS_INSCRIPCION,
+      asunto: 'El buscador de lugares se quedó sin respaldo',
+      motivo: 'geonames-caido',
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
         <p>GeoNames dejó de contestar, así que el buscador de los formularios
         volvió a funcionar solo con el índice propio: los parajes y los pueblos
@@ -2535,7 +2660,9 @@ async function dominioRecibeCorreo(dominio) {
   try {
     const mx = await Promise.race([
       dnsPromesas.resolveMx(dominio),
-      new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('timeout')), 3000)),
+      // 1,5 s: una consulta de MX que tarda mas que eso no va a contestar,
+      // y mientras tanto la persona espera con el boton en Enviando...
+      new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('timeout')), 1500)),
     ]);
     return Array.isArray(mx) && mx.length > 0;
   } catch (error) {
@@ -2562,7 +2689,7 @@ async function dominioRecibeCorreo(dominio) {
   }
 }
 
-exports.suscribir = functions.https.onRequest(async (req, res) => {
+exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -2689,18 +2816,24 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
 
     // El mail es un agregado: si falla, la persona ya quedo suscrita igual
     // y no tiene sentido devolverle un error por eso.
-    try {
-      await brevo.enviarConPlantilla({
-        email, nombre,
-        templateId: plantillaDeAlta(origen),
-        params: { baja: urlDeBaja(email) },
-        headers: cabecerasDeBaja(email),
-      });
-    } catch (error) {
-      functions.logger.error('No se pudo mandar el mail del alta:', error.message);
-    }
+    // El mail y la constancia son dos cosas independientes: encadenarlas
+    // sumaba el viaje a Brevo y el de Firestore uno detras del otro. Ninguna
+    // de las dos puede tirar (cada una se traga su error), asi que el
+    // Promise.all no necesita catch.
+    const mandarBienvenida = (async () => {
+      try {
+        await brevo.enviarConPlantilla({
+          email, nombre,
+          templateId: plantillaDeAlta(origen),
+          params: { baja: urlDeBaja(email) },
+          headers: cabecerasDeBaja(email),
+        });
+      } catch (error) {
+        functions.logger.error('No se pudo mandar el mail del alta:', error.message);
+      }
+    })();
 
-    await anotarPedido('suscrito');
+    await Promise.all([mandarBienvenida, anotarPedido('suscrito')]);
     functions.logger.info('Suscripción nueva', { origen });
     return res.status(200).json({ ok: true, estado: 'suscrito' });
 
@@ -2712,6 +2845,29 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     await anotarPedido('reintentando');
     return res.status(200).json({ ok: true, estado: 'demorado' });
   }
+});
+
+// -------------------------------------------------------
+// enviarMailEncolado: el que vacia la cola de mails_salientes. Los
+// formularios y los pagos encolan el mail en vez de mandarlo en el momento,
+// porque el handshake SMTP con Gmail son dos a seis segundos y en un
+// onRequest eso se le cobra a quien esta esperando del otro lado. Ver
+// mails.js, que es donde esta la logica.
+//
+// retry en true: un rato malo de Gmail no pierde el aviso. Que no mande dos
+// veces lo cuida mails.js con la marca enviado, porque los triggers de
+// Firestore son at-least-once.
+// -------------------------------------------------------
+exports.enviarMailEncolado = onDocumentCreated({
+  document: 'mails_salientes/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  retry: true,
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+  if (!event.data) return;
+  await mails.enviarMailEncolado(event.data.ref);
 });
 
 // -------------------------------------------------------
@@ -3159,6 +3315,1129 @@ exports.baja = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error al dar de baja:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// =======================================================================
+// AGENDA DE CONSULTAS
+//
+// El agendador propio: reemplaza al enlace de Google Appointment Schedules
+// y al ida y vuelta por WhatsApp para fijar el dia y la hora de una sesion.
+//
+// La disponibilidad sale de tres lugares que se cruzan:
+//   1. Las franjas por dia de la semana que Seba configura (agenda_config).
+//   2. Lo que ya esta ocupado en su Google Calendar (freebusy).
+//   3. Los turnos ya reservados por el sitio (agenda_turnos).
+//
+// Se entra de dos maneras: desde el formulario de consultas (el pedido ya
+// existe y trae los datos) o derecho a /consultas/agenda/, para una segunda
+// sesion de alguien de quien ya tenemos la carta.
+// =======================================================================
+
+const { calendar: calendarApi } = require('@googleapis/calendar');
+
+// Argentina no tiene horario de verano desde 2009, asi que toda la agenda se
+// calcula con un offset fijo. Es lo que permite generar los horarios con
+// aritmetica de milisegundos y sin una libreria de zonas horarias. Si alguna
+// vez vuelve el huso de verano, esto es lo primero que hay que tocar.
+const AGENDA_OFFSET = '-03:00';
+const AGENDA_ZONA = 'America/Argentina/Cordoba';
+
+// El Zoom fijo de las consultas, el mismo que ya va en el mail de
+// confirmacion del formulario.
+const AGENDA_ZOOM = 'https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1';
+const AGENDA_ZOOM_ID = '802 086 1967';
+const AGENDA_ZOOM_PASS = 'paso';
+const AGENDA_WHATSAPP_CLARI = '+5493544559877';
+
+const AGENDA_CONFIG_POR_DEFECTO = {
+  zona: AGENDA_ZONA,
+  duracionMin: 120,
+  // Aire entre una sesion y la siguiente (y entre una sesion y cualquier
+  // otra cosa que haya en el calendario).
+  bufferMin: 15,
+  // Cada cuanto puede arrancar un turno dentro de una franja.
+  granularidadMin: 30,
+  // Nadie puede reservar para dentro de menos de esto.
+  anticipacionHoras: 48,
+  ventanaDias: 60,
+  // 0 = domingo. Arranca con lunes a viernes de 10 a 18; Seba lo cambia
+  // desde /consultas/admin/ sin tocar codigo.
+  semana: {
+    '1': [{ desde: '10:00', hasta: '18:00' }],
+    '2': [{ desde: '10:00', hasta: '18:00' }],
+    '3': [{ desde: '10:00', hasta: '18:00' }],
+    '4': [{ desde: '10:00', hasta: '18:00' }],
+    '5': [{ desde: '10:00', hasta: '18:00' }],
+  },
+  pausado: false,
+};
+
+let _calendarClient;
+// Mismo service account que escribe las planillas, con otro scope. Se arma
+// un JWT propio porque el de Sheets ya quedo cacheado con el suyo: un JWT
+// pide su token una vez y no vuelve a mirar la lista de scopes.
+//
+// Para que esto funcione hay dos pasos a mano, una sola vez: habilitar la
+// Google Calendar API en el proyecto y autorizar la delegacion de dominio.
+//
+// Por que delegacion y no compartir el calendario: info@sebabru.com es una
+// cuenta de Google Workspace, y la politica del dominio solo deja compartir
+// calendarios con direcciones externas como "libre/ocupado". La cuenta de
+// servicio vive en gserviceaccount.com, asi que para Workspace es externa y
+// nunca podria escribir (comprobado el 2026-11-13: el desplegable de
+// permisos aparece con todo gris menos libre/ocupado).
+//
+// Con AGENDA_IMPERSONAR la cuenta de servicio actua *como* esa persona, que
+// es la forma prevista para Workspace, y de paso habilita dos cosas que una
+// cuenta de servicio suelta no puede: crear el Meet de cada sesion y mandar
+// la invitacion de Google a quien reserva.
+//
+// Sin AGENDA_IMPERSONAR sigue funcionando como cuenta de servicio comun,
+// con un calendario compartido: asi esto no se rompe si alguna vez se
+// vuelve atras.
+function getCalendarClient() {
+  if (_calendarClient) return _calendarClient;
+  const auth = new JWT({
+    email: process.env.SHEETS_CLIENT_EMAIL,
+    key: (process.env.SHEETS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/calendar'],
+    subject: process.env.AGENDA_IMPERSONAR || undefined,
+  });
+  _calendarClient = calendarApi({ version: 'v3', auth });
+  return _calendarClient;
+}
+
+// Actuando como Seba se puede invitar y crear Meet; como cuenta de servicio
+// suelta, no (Google contesta "Service accounts cannot invite attendees").
+function agendaActuaComoSeba() {
+  return Boolean(process.env.AGENDA_IMPERSONAR);
+}
+
+function calendarioDeTurnos() {
+  return process.env.AGENDA_CALENDAR_ID || 'primary';
+}
+
+// De donde se lee la ocupacion. Por defecto, el mismo calendario donde se
+// escriben los turnos; con AGENDA_CALENDARIOS_OCUPACION se pueden sumar
+// otros (por ejemplo el personal de Seba, si los turnos van a uno aparte).
+function calendariosDeOcupacion() {
+  const extra = (process.env.AGENDA_CALENDARIOS_OCUPACION || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  return [...new Set([calendarioDeTurnos(), ...extra])];
+}
+
+// -------------------------------------------------------
+// Token del pedido. Mismo patron que tokenDeBaja: sin el, cualquiera podria
+// abrir la agenda de otra persona cambiando el id en la URL (y verle el
+// nombre, el mail y el telefono).
+// -------------------------------------------------------
+function tokenDeAgenda(pedidoId) {
+  const secreto = process.env.AGENDA_SECRET;
+  if (!secreto) return null;
+  return crypto.createHmac('sha256', secreto).update(String(pedidoId)).digest('hex').slice(0, 24);
+}
+
+function tokenDeAgendaValido(pedidoId, token) {
+  const esperado = tokenDeAgenda(pedidoId);
+  if (!esperado || !token) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(String(token)));
+  } catch (_) {
+    return false; // longitudes distintas: timingSafeEqual tira
+  }
+}
+
+function urlDeAgenda(pedidoId) {
+  const t = tokenDeAgenda(pedidoId);
+  const base = process.env.SITE_URL || 'https://sebabru.com';
+  if (!t) return `${base}/consultas/agenda/`;
+  return `${base}/consultas/agenda/?p=${encodeURIComponent(pedidoId)}&t=${t}`;
+}
+
+// -------------------------------------------------------
+// Fechas, todas en hora de Argentina con el offset fijo.
+// -------------------------------------------------------
+function msDeHoraLocal(fechaISO, hhmm) {
+  return Date.parse(`${fechaISO}T${hhmm}:00${AGENDA_OFFSET}`);
+}
+
+// 'YYYY-MM-DD' del dia argentino al que pertenece ese instante.
+function diaLocal(ms) {
+  return new Date(ms - 3 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// 'HH:MM' en hora argentina.
+function horaLocal(ms) {
+  return new Date(ms - 3 * 3600 * 1000).toISOString().slice(11, 16);
+}
+
+function isoLocal(ms) {
+  return `${diaLocal(ms)}T${horaLocal(ms)}:00${AGENDA_OFFSET}`;
+}
+
+// Domingo = 0. Se mira al mediodia para que ningun redondeo lo corra de dia.
+function diaDeSemana(fechaISO) {
+  return new Date(msDeHoraLocal(fechaISO, '12:00')).getUTCDay();
+}
+
+function sumarDias(fechaISO, n) {
+  return new Date(Date.parse(`${fechaISO}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+}
+
+function minutosDeHora(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  if (!m) return null;
+  const h = +m[1], mi = +m[2];
+  if (h > 23 || mi > 59) return null;
+  return h * 60 + mi;
+}
+
+// El id del turno sale del horario, no de un random: dos personas que
+// aprietan el mismo horario a la vez chocan en el mismo documento y una de
+// las dos pierde el create(). Es el mismo truco que pagos_procesados.
+function idDeTurno(ms) {
+  return `${diaLocal(ms)}T${horaLocal(ms).replace(':', '-')}`;
+}
+
+// -------------------------------------------------------
+// Configuracion y bloqueos
+// -------------------------------------------------------
+async function leerConfigAgenda() {
+  const snap = await _db.collection('agenda_config').doc('general').get();
+  const guardada = snap.exists ? snap.data() : {};
+  const config = { ...AGENDA_CONFIG_POR_DEFECTO, ...guardada };
+  // La semana se reemplaza entera, no se mezcla: si Seba deja un dia sin
+  // franjas, ese dia tiene que quedar cerrado, no volver al valor de fabrica.
+  config.semana = (guardada && guardada.semana) ? guardada.semana : AGENDA_CONFIG_POR_DEFECTO.semana;
+  return config;
+}
+
+async function leerBloqueos() {
+  const snap = await _db.collection('agenda_bloqueos').get();
+  return snap.docs.map(d => d.data()).filter(b => b && b.desde && b.hasta);
+}
+
+function diaBloqueado(fechaISO, bloqueos) {
+  return bloqueos.some(b => fechaISO >= b.desde && fechaISO <= b.hasta);
+}
+
+// -------------------------------------------------------
+// Ocupacion: lo que dice Google Calendar mas los turnos que ya dio el sitio.
+// Devuelve intervalos [desde, hasta] en milisegundos.
+// -------------------------------------------------------
+async function ocupacionEntre(desdeMs, hastaMs) {
+  // Las dos consultas son independientes y la de Google es la lenta (medio
+  // segundo largo contra la API de Calendar). En fila, la persona esperaba
+  // una despues de la otra para ver el calendario; en paralelo paga solo la
+  // mas lenta de las dos.
+  const [respCalendar, turnos] = await Promise.all([
+    getCalendarClient().freebusy.query({
+      requestBody: {
+        timeMin: new Date(desdeMs).toISOString(),
+        timeMax: new Date(hastaMs).toISOString(),
+        timeZone: 'UTC',
+        items: calendariosDeOcupacion().map(id => ({ id })),
+      },
+    }).catch(e => {
+      // Sin Calendar no se inventa disponibilidad: es preferible no ofrecer
+      // nada a ofrecer un horario encima de algo que Seba ya tenia.
+      functions.logger.error('No se pudo leer la ocupacion de Calendar', e.message);
+      throw new Error('calendar_no_disponible');
+    }),
+    // Los turnos del sitio tambien crean un evento en Calendar, asi que esto
+    // es redundante casi siempre. Casi: si la creacion del evento fallo, el
+    // turno existe igual y el horario no se puede volver a ofrecer.
+    _db.collection('agenda_turnos')
+      .where('inicio', '>=', new Date(desdeMs))
+      .where('inicio', '<=', new Date(hastaMs))
+      .get(),
+  ]);
+
+  const ocupados = [];
+  for (const info of Object.values(respCalendar.data.calendars || {})) {
+    for (const hueco of (info.busy || [])) {
+      ocupados.push([Date.parse(hueco.start), Date.parse(hueco.end)]);
+    }
+  }
+  for (const doc of turnos.docs) {
+    const t = doc.data();
+    if (t.estado !== 'reservado') continue;
+    ocupados.push([t.inicio.toMillis(), t.fin.toMillis()]);
+  }
+
+  return ocupados;
+}
+
+function chocaCon(inicioMs, finMs, ocupados, bufferMs) {
+  return ocupados.some(([a, b]) => inicioMs < (b + bufferMs) && (finMs + bufferMs) > a);
+}
+
+// -------------------------------------------------------
+// Los horarios libres entre dos fechas, en hora de Argentina.
+// -------------------------------------------------------
+function generarSlots(config, desdeISO, hastaISO, bloqueos, ocupados) {
+  const duracionMs = config.duracionMin * 60000;
+  const bufferMs = (config.bufferMin || 0) * 60000;
+  const paso = (config.granularidadMin || 30) * 60000;
+  const minimoMs = Date.now() + (config.anticipacionHoras || 0) * 3600000;
+  const topeMs = Date.now() + (config.ventanaDias || 60) * 86400000;
+
+  const slots = [];
+  for (let dia = desdeISO; dia <= hastaISO; dia = sumarDias(dia, 1)) {
+    if (diaBloqueado(dia, bloqueos)) continue;
+    const franjas = config.semana[String(diaDeSemana(dia))] || [];
+    for (const franja of franjas) {
+      const desdeMin = minutosDeHora(franja.desde);
+      const hastaMin = minutosDeHora(franja.hasta);
+      if (desdeMin === null || hastaMin === null || hastaMin <= desdeMin) continue;
+      const base = msDeHoraLocal(dia, '00:00');
+      const finFranja = base + hastaMin * 60000;
+      for (let inicio = base + desdeMin * 60000; inicio + duracionMs <= finFranja; inicio += paso) {
+        if (inicio < minimoMs || inicio > topeMs) continue;
+        if (chocaCon(inicio, inicio + duracionMs, ocupados, bufferMs)) continue;
+        slots.push(isoLocal(inicio));
+      }
+    }
+  }
+  return slots;
+}
+
+// -------------------------------------------------------
+// La planilla. Para un pedido que vino del formulario se actualizan las dos
+// celdas de su fila; para uno directo se escribe una fila nueva.
+// -------------------------------------------------------
+const AGENDA_COL_DIA = 'Día de la sesión';
+const AGENDA_COL_HORA = 'Hora de la sesión';
+
+function letraDeColumna(indice) {
+  let n = indice + 1, letra = '';
+  while (n > 0) {
+    const resto = (n - 1) % 26;
+    letra = String.fromCharCode(65 + resto) + letra;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letra;
+}
+
+async function escribirSesionEnPlanilla(pedido, inicioMs) {
+  const spreadsheetId = process.env.SHEETS_SPREADSHEET_CONSULTAS;
+  if (!spreadsheetId) throw new Error('Falta SHEETS_SPREADSHEET_CONSULTAS');
+  const sheets = getSheetsClient();
+  const hoja = 'Consultas';
+  const config = FORMULARIOS_INSCRIPCION.consultas;
+
+  // Se asegura que las dos columnas existan sin pisar las que Seba agrego
+  // a mano (la hoja es columnasPorEncabezado por eso mismo).
+  const encabezados = [
+    config.etiquetaFecha,
+    ...config.campos.map(c => c.label),
+    config.columnaCarta,
+    ...Object.keys(config.columnasFijas || {}),
+    ...(config.camposFinales || []).map(c => c.label),
+    AGENDA_COL_DIA, AGENDA_COL_HORA,
+  ];
+  const titulos = await asegurarHojaInscripcion(sheets, spreadsheetId, hoja, encabezados, true);
+
+  const dia = new Date(inicioMs).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const hora = horaLocal(inicioMs);
+
+  const filaGuardada = /![A-Z]+(\d+)/.exec(pedido.filaPlanilla || '');
+  if (filaGuardada) {
+    const nro = filaGuardada[1];
+    const datos = [];
+    for (const [titulo, valor] of [[AGENDA_COL_DIA, dia], [AGENDA_COL_HORA, hora]]) {
+      const i = titulos.indexOf(titulo);
+      if (i < 0) continue;
+      datos.push({ range: `${hoja}!${letraDeColumna(i)}${nro}`, values: [[valor]] });
+    }
+    if (datos.length) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: { valueInputOption: 'RAW', data: datos },
+      });
+    }
+    return;
+  }
+
+  // Pedido directo: no hay fila que actualizar, se escribe una nueva con lo
+  // poco que sabemos. La carta ya la tenemos de la sesion anterior.
+  const porTitulo = {
+    [config.etiquetaFecha]: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+    Nombre: pedido.nombre || '',
+    'Teléfono': pedido.telefono || '',
+    Email: pedido.email || '',
+    Modalidad: pedido.modalidad || '',
+    [config.columnaCarta]: 'Ya la tiene',
+    Regalo: 'No',
+    [AGENDA_COL_DIA]: dia,
+    [AGENDA_COL_HORA]: hora,
+  };
+  const escrito = await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${hoja}!A:A`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [titulos.map(t => (t in porTitulo ? porTitulo[t] : ''))] },
+  });
+  // Se devuelve donde quedo para guardarlo en el pedido: si despues mueve
+  // la sesion, se actualiza esta fila en vez de escribir otra igual.
+  return escrito.data?.updates?.updatedRange || null;
+}
+
+// -------------------------------------------------------
+// Mails del turno. Van por nodemailer/Gmail como todos los transaccionales
+// (Brevo es para la newsletter), pero NO en linea: se encolan en
+// mails_salientes y los manda el trigger enviarMailEncolado.
+//
+// Importa mas aca que en otros lados: reservarTurno mandaba dos mails
+// seguidos por SMTP -- el de la persona con el .ics y el aviso interno --
+// antes de contestar. Son varios segundos mirando "Agendando..." para que
+// salga un aviso que quien reserva no va a leer. Ver mails.js.
+// -------------------------------------------------------
+function textoFechaLarga(ms) {
+  return new Date(ms).toLocaleDateString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
+}
+
+function marcaIcs(ms) {
+  return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+// El .ics es lo que reemplaza a la invitacion de Google: un service account
+// sin delegacion de dominio no puede sumar invitados a un evento, asi que la
+// persona agrega la sesion a su calendario desde el adjunto.
+function archivoIcs(turnoId, inicioMs, finMs, lugar, descripcion) {
+  const lineas = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Seba Bru Astrologia//Agenda//ES',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${turnoId}@sebabru.com`,
+    `DTSTAMP:${marcaIcs(Date.now())}`,
+    `DTSTART:${marcaIcs(inicioMs)}`,
+    `DTEND:${marcaIcs(finMs)}`,
+    'SUMMARY:Sesión de astrología con Seba Bru',
+    `DESCRIPTION:${String(descripcion).replace(/\n/g, '\\n')}`,
+    `LOCATION:${lugar}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+  return lineas.join('\r\n');
+}
+
+// Donde es el encuentro. Si el evento trajo un Meet propio, ese gana: es un
+// enlace por sesion. Si no, el Zoom fijo de siempre.
+function datosDelEncuentro(modalidad, meet) {
+  if (modalidad === 'Presencial') {
+    return {
+      lugar: 'Presencial',
+      htmlPersona: `El encuentro es presencial. Pedile la información sobre cómo llegar a Clari: ${escapeHtml(AGENDA_WHATSAPP_CLARI)}.`,
+      textoEvento: `Presencial. Contacto de Clari: ${AGENDA_WHATSAPP_CLARI}`,
+    };
+  }
+  if (meet) {
+    return {
+      lugar: meet,
+      htmlPersona: `El encuentro es por Google Meet, con este enlace:<br><a href="${meet}">${meet}</a>`,
+      textoEvento: `Google Meet: ${meet}`,
+    };
+  }
+  return {
+    lugar: AGENDA_ZOOM,
+    htmlPersona: `El encuentro es por Zoom, con este enlace:<br><a href="${AGENDA_ZOOM}">${AGENDA_ZOOM}</a><br>Meeting ID: ${AGENDA_ZOOM_ID}<br>Passcode: ${AGENDA_ZOOM_PASS}`,
+    textoEvento: `Zoom: ${AGENDA_ZOOM} (ID ${AGENDA_ZOOM_ID}, passcode ${AGENDA_ZOOM_PASS})`,
+  };
+}
+
+async function avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, meet) {
+  const encuentro = datosDelEncuentro(pedido.modalidad, meet);
+  const cuando = `${textoFechaLarga(inicioMs)} a las ${horaLocal(inicioMs)}`;
+  const enlace = urlDeAgenda(pedidoId);
+
+  const ics = archivoIcs(
+    turnoId, inicioMs, finMs, encuentro.lugar,
+    `Sesión de astrología con Seba Bru.\n${encuentro.textoEvento}`
+  );
+
+  await mails.encolarMail(_db, {
+    motivo: 'turno-reservado',
+    para: pedido.email,
+    asunto: `Tu sesión: ${cuando} (hora de Argentina)`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>Hola, ${escapeHtml(pedido.nombre || '')}:</p>
+        <p>Tu sesión quedó agendada para el <strong>${escapeHtml(cuando)}</strong>, hora de Argentina. Dura ${Math.round((finMs - inicioMs) / 60000)} minutos.</p>
+        <p>${encuentro.htmlPersona}</p>
+        <p>Te adjunto el archivo para que la agregues a tu calendario.</p>
+        <p>Si necesitás cambiarla o cancelarla, entrá acá:<br><a href="${enlace}">${enlace}</a></p>
+        <p>¡Nos vemos!<br>Seba</p>
+      </div>
+    `,
+    adjuntos: [{ filename: 'sesion-seba-bru.ics', content: ics, contentType: 'text/calendar; charset=utf-8; method=PUBLISH' }],
+  });
+
+  await mails.encolarMail(_db, {
+    motivo: 'turno-reservado-aviso',
+    para: AVISOS_INSCRIPCION,
+    asunto: `🗓️ Turno reservado — ${cuando}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+        <h2 style="color:#249b95;">Turno reservado</h2>
+        <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Cuándo</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(cuando)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Nombre</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(pedido.nombre || '—')}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Email</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(pedido.email || '—')}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Teléfono</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(pedido.telefono || '—')}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Modalidad</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(pedido.modalidad || '—')}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;">Entró por</td><td style="padding:10px;border-bottom:1px solid #eee;">${pedido.origen === 'directo' ? 'La agenda suelta (segunda sesión)' : 'El formulario de consultas'}</td></tr>
+        </table>
+      </div>
+    `,
+  });
+}
+
+async function avisarTurnoCancelado(pedido, pedidoId, inicioMs, porQuien) {
+  const cuando = `${textoFechaLarga(inicioMs)} a las ${horaLocal(inicioMs)}`;
+  const enlace = urlDeAgenda(pedidoId);
+
+  if (pedido.email) {
+    await mails.encolarMail(_db, {
+      motivo: 'turno-cancelado',
+      para: pedido.email,
+      asunto: `Se canceló tu sesión del ${cuando}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+          <p>Hola, ${escapeHtml(pedido.nombre || '')}:</p>
+          <p>Tu sesión del <strong>${escapeHtml(cuando)}</strong> quedó cancelada.</p>
+          <p>Cuando quieras, elegí otro día y otra hora acá:<br><a href="${enlace}">${enlace}</a></p>
+          <p>Seba</p>
+        </div>
+      `,
+    });
+  }
+
+  await mails.encolarMail(_db, {
+    motivo: 'turno-cancelado-aviso',
+    para: AVISOS_INSCRIPCION,
+    asunto: `❌ Turno cancelado — ${cuando}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+        <p>Se canceló el turno del <strong>${escapeHtml(cuando)}</strong> de ${escapeHtml(pedido.nombre || '—')} (${escapeHtml(pedido.email || '—')}).</p>
+        <p>Lo canceló: ${porQuien === 'admin' ? 'Seba, desde el panel' : 'la persona, desde la agenda'}.</p>
+      </div>
+    `,
+  });
+}
+
+// -------------------------------------------------------
+// Crear y borrar el evento en el calendario de Seba.
+// -------------------------------------------------------
+async function crearEventoDeTurno(pedido, pedidoId, inicioMs, finMs, turnoId) {
+  const cal = getCalendarClient();
+  const comoSeba = agendaActuaComoSeba();
+  const online = pedido.modalidad !== 'Presencial';
+
+  const cuerpo = {
+    summary: `Consulta — ${pedido.nombre || pedido.email || 'sin nombre'}`,
+    description: [
+      `${pedido.nombre || ''} · ${pedido.email || ''} · ${pedido.telefono || ''}`,
+      `Modalidad: ${pedido.modalidad || '—'}`,
+      '',
+      `Agenda de la persona: ${urlDeAgenda(pedidoId)}`,
+    ].join('\n'),
+    start: { dateTime: isoLocal(inicioMs), timeZone: AGENDA_ZONA },
+    end: { dateTime: isoLocal(finMs), timeZone: AGENDA_ZONA },
+  };
+
+  // Actuando como Seba, quien reserva entra como invitado y recibe la
+  // invitacion de Google, con su boton de confirmar y sus recordatorios.
+  if (comoSeba && pedido.email) {
+    cuerpo.attendees = [{ email: pedido.email, displayName: pedido.nombre || undefined }];
+  }
+  // Y cada sesion online tiene su propio Meet en vez del Zoom compartido.
+  if (comoSeba && online) {
+    cuerpo.conferenceData = {
+      createRequest: {
+        // Con el id del turno, un reintento no crea dos reuniones.
+        requestId: `turno-${turnoId}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    };
+  } else {
+    cuerpo.location = datosDelEncuentro(pedido.modalidad).lugar;
+  }
+
+  const r = await cal.events.insert({
+    calendarId: calendarioDeTurnos(),
+    requestBody: cuerpo,
+    // Sin esto Google ignora el pedido de conferencia, sin avisar.
+    conferenceDataVersion: cuerpo.conferenceData ? 1 : 0,
+    sendUpdates: cuerpo.attendees ? 'all' : 'none',
+  });
+
+  return { eventId: r.data.id, meet: r.data.hangoutLink || null };
+}
+
+async function borrarEventoDeTurno(eventId) {
+  if (!eventId) return;
+  try {
+    await getCalendarClient().events.delete({
+      calendarId: calendarioDeTurnos(),
+      eventId,
+      // Si la persona esta como invitada, que Google le avise que se
+      // cancelo: nuestro mail de cancelacion sale igual, pero asi tambien
+      // le desaparece de su propio calendario.
+      sendUpdates: agendaActuaComoSeba() ? 'all' : 'none',
+    });
+  } catch (e) {
+    // Si el evento ya no esta (lo borro Seba a mano), no es un error.
+    functions.logger.warn('No se pudo borrar el evento del turno', { eventId, error: e.message });
+  }
+}
+
+// -------------------------------------------------------
+// Leer el pedido a partir de ?p=&t=. Devuelve null si el token no cierra.
+// -------------------------------------------------------
+async function pedidoDeAgenda(pedidoId, token) {
+  if (!pedidoId || !tokenDeAgendaValido(pedidoId, token)) return null;
+  const snap = await _db.collection('agenda_pedidos').doc(String(pedidoId)).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+// El turno vigente de un pedido, tal como lo muestra la pagina.
+async function turnoDelPedido(pedido) {
+  if (!pedido.turnoId) return null;
+  const snap = await _db.collection('agenda_turnos').doc(pedido.turnoId).get();
+  if (!snap.exists || snap.data().estado !== 'reservado') return null;
+  const t = snap.data();
+  return {
+    id: snap.id,
+    inicio: isoLocal(t.inicio.toMillis()),
+    fin: isoLocal(t.fin.toMillis()),
+    modalidad: t.modalidad || pedido.modalidad || '',
+    meet: t.meet || null,
+  };
+}
+
+// =======================================================================
+// Endpoints de la agenda
+// =======================================================================
+
+// -------------------------------------------------------
+// iniciarAgenda: la puerta suelta de /consultas/agenda/, para una segunda
+// sesion o para alguien de quien ya tenemos la carta. Solo pide nombre,
+// mail y telefono.
+//
+// El captcha va desde el primer envio, al reves que en el formulario de
+// consultas: ahi hay una planilla y un mail de por medio, aca se puede
+// llenar la agenda de Seba de turnos falsos, que es mucho mas caro de
+// desarmar.
+// -------------------------------------------------------
+exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('iniciarAgenda', req, 8))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  if (!process.env.AGENDA_SECRET) {
+    functions.logger.error('Falta AGENDA_SECRET: la agenda no puede emitir tokens.');
+    return res.status(503).json({ error: 'no_configurado' });
+  }
+
+  if (!(await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req))) {
+    return res.status(400).json({ error: 'captcha_requerido' });
+  }
+
+  const nombre = sanitizeTexto(req.body?.nombre, 200);
+  const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  const telefono = sanitizeTexto(req.body?.telefono, 50);
+  const modalidad = sanitizeTexto(req.body?.modalidad, 20);
+
+  if (!nombre || !telefono) return res.status(400).json({ error: 'faltan_datos' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'email_invalido' });
+  if (!['Presencial', 'Online'].includes(modalidad)) return res.status(400).json({ error: 'modalidad_invalida' });
+
+  try {
+    const ref = await _db.collection('agenda_pedidos').add({
+      origen: 'directo',
+      nombre, email, telefono, modalidad,
+      formId: null,
+      filaPlanilla: null,
+      turnoId: null,
+      creado: new Date().toISOString(),
+    });
+    functions.logger.info('Pedido de agenda directo', { pedidoId: ref.id });
+    return res.status(200).json({ ok: true, p: ref.id, t: tokenDeAgenda(ref.id), nombre });
+  } catch (error) {
+    functions.logger.error('Error en iniciarAgenda:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// disponibilidad: los horarios libres de un tramo, en hora de Argentina.
+// La pagina los muestra en la zona horaria de quien mira.
+// -------------------------------------------------------
+exports.disponibilidad = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('disponibilidad', req, 120))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const pedido = await pedidoDeAgenda(sanitizeTexto(req.query.p, 64), sanitizeTexto(req.query.t, 64));
+  if (!pedido) return res.status(403).json({ error: 'token_invalido' });
+
+  try {
+    // Independientes entre si: dos lecturas de Firestore que no se esperan.
+    const [config, turno] = await Promise.all([
+      leerConfigAgenda(),
+      turnoDelPedido(pedido),
+    ]);
+
+    const respuesta = {
+      ok: true,
+      nombre: pedido.nombre || '',
+      modalidad: pedido.modalidad || '',
+      zona: AGENDA_ZONA,
+      duracionMin: config.duracionMin,
+      ventanaDias: config.ventanaDias,
+      anticipacionHoras: config.anticipacionHoras,
+      turno,
+      slots: [],
+    };
+
+    if (config.pausado) {
+      respuesta.pausado = true;
+      return res.status(200).json(respuesta);
+    }
+
+    const hoy = diaLocal(Date.now());
+    const pedidoDesde = sanitizeTexto(req.query.desde, 10);
+    const pedidoHasta = sanitizeTexto(req.query.hasta, 10);
+    const valida = f => /^\d{4}-\d{2}-\d{2}$/.test(f);
+    let desde = valida(pedidoDesde) && pedidoDesde > hoy ? pedidoDesde : hoy;
+    let hasta = valida(pedidoHasta) ? pedidoHasta : sumarDias(desde, 45);
+    const tope = diaLocal(Date.now() + (config.ventanaDias || 60) * 86400000);
+    if (hasta > tope) hasta = tope;
+    // Un tramo de a lo sumo 70 dias por pedido: es la unica cota contra una
+    // consulta que haga a Calendar recorrer anios.
+    if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
+    if (hasta < desde) {
+      return res.status(200).json(respuesta);
+    }
+
+    const [ocupados, bloqueos] = await Promise.all([
+      ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
+      leerBloqueos(),
+    ]);
+    respuesta.desde = desde;
+    respuesta.hasta = hasta;
+    respuesta.slots = generarSlots(config, desde, hasta, bloqueos, ocupados);
+    return res.status(200).json(respuesta);
+
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en disponibilidad:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// reservarTurno: fija el horario. Si el pedido ya tenia uno, lo libera
+// primero: ese es el camino de "cambiar la fecha".
+// -------------------------------------------------------
+exports.reservarTurno = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('reservarTurno', req, 15))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const pedidoId = sanitizeTexto(req.body?.p, 64);
+  const pedido = await pedidoDeAgenda(pedidoId, sanitizeTexto(req.body?.t, 64));
+  if (!pedido) return res.status(403).json({ error: 'token_invalido' });
+
+  const inicioTexto = sanitizeTexto(req.body?.inicio, 40);
+  const inicioMs = Date.parse(inicioTexto);
+  if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
+  try {
+    const r = await reservarParaPedido(pedido, pedidoId, inicioMs, 'persona');
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    return res.status(200).json({ ok: true, turno: r.turno });
+
+
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en reservarTurno:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// cancelarTurno: libera el horario y borra el evento.
+// -------------------------------------------------------
+exports.cancelarTurno = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('cancelarTurno', req, 15))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const pedidoId = sanitizeTexto(req.body?.p, 64);
+  const pedido = await pedidoDeAgenda(pedidoId, sanitizeTexto(req.body?.t, 64));
+  if (!pedido) return res.status(403).json({ error: 'token_invalido' });
+
+  try {
+    // Idempotente: cancelar algo que ya no esta contesta ok igual.
+    if (!pedido.turnoId) return res.status(200).json({ ok: true });
+
+    const ref = _db.collection('agenda_turnos').doc(pedido.turnoId);
+    const snap = await ref.get();
+    if (snap.exists && snap.data().estado === 'reservado') {
+      const inicioMs = snap.data().inicio.toMillis();
+      await borrarEventoDeTurno(snap.data().eventId);
+      await ref.set({ estado: 'cancelado', cancelado: new Date().toISOString(), canceladoPor: 'persona' }, { merge: true });
+      try {
+        await avisarTurnoCancelado(pedido, pedidoId, inicioMs, 'persona');
+      } catch (e) {
+        functions.logger.error('No se pudo avisar la cancelacion', e.message);
+      }
+    }
+    await _db.collection('agenda_pedidos').doc(pedidoId).set({ turnoId: null }, { merge: true });
+
+    functions.logger.info('Turno cancelado por la persona', { pedidoId });
+    return res.status(200).json({ ok: true });
+
+  } catch (error) {
+    functions.logger.error('Error en cancelarTurno:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// El corazon de la reserva, compartido por la pagina y por el panel.
+//
+// Devuelve { turno } si salio, o { error, status } con un motivo nominal.
+// Nunca tira por un fallo de la planilla o del mail: el turno ya existe y
+// la persona ya lo vio confirmado, asi que esos fallos se loguean.
+// -------------------------------------------------------
+async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
+  const config = await leerConfigAgenda();
+  // Seba, desde el panel, puede poner un turno aunque la agenda este en
+  // pausa o fuera de las franjas: la pausa es para el publico.
+  const esAdmin = quien === 'admin';
+  if (config.pausado && !esAdmin) return { error: 'agenda_pausada', status: 409 };
+
+  const dia = diaLocal(inicioMs);
+  const turnoAnterior = pedido.turnoId || null;
+  const [bloqueos, ocupadosCrudos] = await Promise.all([
+    leerBloqueos(),
+    ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59')),
+  ]);
+  const ocupados = ocupadosCrudos
+    // Al reprogramar, el turno que la persona ya tenia no se cuenta como
+    // ocupado: si no, no podria mover la sesion dos horas.
+    .filter(([a]) => !(turnoAnterior && idDeTurno(a) === turnoAnterior));
+
+  if (!esAdmin) {
+    // El horario tiene que ser uno de los que la pagina podia ofrecer: no
+    // alcanza con que este libre, tambien tiene que caer en una franja, en
+    // la grilla y despues de la anticipacion minima.
+    const legales = generarSlots(config, dia, dia, bloqueos, ocupados);
+    if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
+  } else if (chocaCon(inicioMs, inicioMs + config.duracionMin * 60000, ocupados, 0)) {
+    // Al admin solo se le controla que no se pise con algo: las franjas y
+    // la anticipacion son sugerencias para el publico, no para el.
+    return { error: 'slot_ocupado', status: 409 };
+  }
+
+  const finMs = inicioMs + config.duracionMin * 60000;
+  const turnoId = idDeTurno(inicioMs);
+
+  // Aca esta la carrera: dos personas con el mismo horario abierto. El id
+  // del documento sale del horario, asi que el segundo create() falla.
+  try {
+    await _db.collection('agenda_turnos').doc(turnoId).create({
+      estado: 'reservado',
+      inicio: new Date(inicioMs),
+      fin: new Date(finMs),
+      pedidoId,
+      nombre: pedido.nombre || '',
+      email: pedido.email || '',
+      telefono: pedido.telefono || '',
+      modalidad: pedido.modalidad || '',
+      eventId: null,
+      creado: new Date().toISOString(),
+    });
+  } catch (e) {
+    if (e.code === 6) return { error: 'slot_ocupado', status: 409 };
+    throw e;
+  }
+
+  // Recien ahora se suelta el turno viejo: si algo falla antes, la persona
+  // se queda con el que tenia en vez de quedarse sin ninguno.
+  if (turnoAnterior && turnoAnterior !== turnoId) {
+    const viejo = await _db.collection('agenda_turnos').doc(turnoAnterior).get();
+    if (viejo.exists) {
+      await borrarEventoDeTurno(viejo.data().eventId);
+      await viejo.ref.set({
+        estado: 'cancelado',
+        cancelado: new Date().toISOString(),
+        canceladoPor: 'reprogramacion',
+      }, { merge: true });
+    }
+  }
+
+  let eventId = null;
+  let meet = null;
+  try {
+    ({ eventId, meet } = await crearEventoDeTurno(pedido, pedidoId, inicioMs, finMs, turnoId));
+  } catch (e) {
+    // El turno vale igual (la persona ya tiene su confirmacion) pero Seba
+    // no lo ve en su calendario: hay que avisarle fuerte.
+    functions.logger.error('Turno sin evento en Calendar', { turnoId, error: e.message });
+    try {
+      await mails.encolarMail(_db, {
+        motivo: 'turno-sin-calendario',
+        para: AVISOS_INSCRIPCION,
+        asunto: '⚠️ Turno reservado que NO entró en el calendario',
+        html: `<p>Anotalo a mano: ${escapeHtml(textoFechaLarga(inicioMs))} a las ${horaLocal(inicioMs)}, ${escapeHtml(pedido.nombre || '')} (${escapeHtml(pedido.email || '')}).</p><p>Error: ${escapeHtml(e.message)}</p>`,
+      });
+    } catch (_) { /* encolarMail no tira, pero por las dudas */ }
+  }
+
+  await _db.collection('agenda_turnos').doc(turnoId).set({ eventId, meet }, { merge: true });
+  await _db.collection('agenda_pedidos').doc(pedidoId).set({ turnoId }, { merge: true });
+
+  try {
+    const filaNueva = await escribirSesionEnPlanilla(pedido, inicioMs);
+    if (filaNueva) {
+      pedido.filaPlanilla = filaNueva;
+      await _db.collection('agenda_pedidos').doc(pedidoId).set({ filaPlanilla: filaNueva }, { merge: true });
+    }
+  } catch (e) {
+    functions.logger.error('No se pudo escribir la sesion en la planilla', e.message);
+  }
+
+  try {
+    await avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, meet);
+  } catch (e) {
+    functions.logger.error('No se pudo mandar el mail del turno', e.message);
+  }
+
+  functions.logger.info('Turno reservado', { turnoId, pedidoId, quien, origen: pedido.origen });
+  return {
+    turno: {
+      id: turnoId, inicio: isoLocal(inicioMs), fin: isoLocal(finMs),
+      modalidad: pedido.modalidad || '', meet,
+    },
+  };
+}
+
+// -------------------------------------------------------
+// adminAgenda: todo lo que hace Seba desde /consultas/admin/.
+//
+// El panel no lee Firestore directo: pasa por aca. Asi las colecciones de
+// la agenda quedan cerradas al cliente en firestore.rules y hay un solo
+// lugar donde mirar quien toca que.
+// -------------------------------------------------------
+async function sesionDeAdmin(req) {
+  const cabecera = req.headers.authorization || '';
+  if (!cabecera.startsWith('Bearer ')) return null;
+  try {
+    const token = await admin.auth().verifyIdToken(cabecera.replace('Bearer ', ''));
+    return token.admin === true ? token : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function fechaValida(f) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(f || ''));
+}
+
+// La configuracion que llega del panel se reconstruye campo por campo: lo
+// que no este en esta lista no entra en Firestore.
+function configSaneada(cruda) {
+  const entero = (v, min, max, porDefecto) => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n >= min && n <= max ? n : porDefecto;
+  };
+  const semana = {};
+  for (let d = 0; d <= 6; d++) {
+    const franjas = Array.isArray(cruda?.semana?.[String(d)]) ? cruda.semana[String(d)] : [];
+    const limpias = [];
+    for (const f of franjas.slice(0, 6)) {
+      const desde = minutosDeHora(f?.desde);
+      const hasta = minutosDeHora(f?.hasta);
+      if (desde === null || hasta === null || hasta <= desde) continue;
+      limpias.push({ desde: f.desde, hasta: f.hasta });
+    }
+    if (limpias.length) semana[String(d)] = limpias;
+  }
+  return {
+    zona: AGENDA_ZONA,
+    duracionMin: entero(cruda?.duracionMin, 15, 480, 120),
+    bufferMin: entero(cruda?.bufferMin, 0, 240, 15),
+    granularidadMin: entero(cruda?.granularidadMin, 5, 240, 30),
+    anticipacionHoras: entero(cruda?.anticipacionHoras, 0, 720, 48),
+    ventanaDias: entero(cruda?.ventanaDias, 1, 365, 60),
+    semana,
+    pausado: cruda?.pausado === true,
+  };
+}
+
+exports.adminAgenda = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  const sesion = await sesionDeAdmin(req);
+  if (!sesion) return res.status(403).json({ error: 'no_autorizado' });
+
+  if (!(await checkRateLimit('adminAgenda', req, 200))) {
+    return res.status(429).json({ error: 'Demasiados pedidos. Probá de nuevo en unos minutos.' });
+  }
+
+  const accion = sanitizeTexto(req.body?.accion, 40);
+
+  try {
+    switch (accion) {
+
+      // Todo lo que el panel necesita para pintarse: configuracion,
+      // bloqueos y los turnos de la ventana que pide.
+      case 'listar': {
+        const desde = fechaValida(req.body?.desde) ? req.body.desde : diaLocal(Date.now() - 30 * 86400000);
+        const hasta = fechaValida(req.body?.hasta) ? req.body.hasta : diaLocal(Date.now() + 120 * 86400000);
+        const snap = await _db.collection('agenda_turnos')
+          .where('inicio', '>=', new Date(msDeHoraLocal(desde, '00:00')))
+          .where('inicio', '<=', new Date(msDeHoraLocal(hasta, '23:59')))
+          .orderBy('inicio')
+          .get();
+        const turnos = snap.docs.map(d => {
+          const t = d.data();
+          return {
+            id: d.id,
+            estado: t.estado,
+            inicio: isoLocal(t.inicio.toMillis()),
+            fin: isoLocal(t.fin.toMillis()),
+            nombre: t.nombre || '', email: t.email || '', telefono: t.telefono || '',
+            modalidad: t.modalidad || '',
+            pedidoId: t.pedidoId || null,
+            enCalendario: !!t.eventId,
+          };
+        });
+        const bloqueos = (await _db.collection('agenda_bloqueos').get())
+          .docs.map(d => ({ id: d.id, ...d.data() }));
+        return res.status(200).json({ ok: true, config: await leerConfigAgenda(), turnos, bloqueos });
+      }
+
+      case 'guardarConfig': {
+        const limpia = configSaneada(req.body?.config);
+        await _db.collection('agenda_config').doc('general').set(limpia);
+        functions.logger.info('Configuracion de agenda guardada', { por: sesion.email });
+        return res.status(200).json({ ok: true, config: limpia });
+      }
+
+      case 'bloquear': {
+        const desde = req.body?.desde, hasta = req.body?.hasta;
+        if (!fechaValida(desde) || !fechaValida(hasta) || hasta < desde) {
+          return res.status(400).json({ error: 'fechas_invalidas' });
+        }
+        const ref = await _db.collection('agenda_bloqueos').add({
+          desde, hasta,
+          motivo: sanitizeTexto(req.body?.motivo, 200),
+          creado: new Date().toISOString(),
+        });
+        return res.status(200).json({ ok: true, id: ref.id });
+      }
+
+      case 'desbloquear': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        await _db.collection('agenda_bloqueos').doc(id).delete();
+        return res.status(200).json({ ok: true });
+      }
+
+      case 'cancelar': {
+        const turnoId = sanitizeTexto(req.body?.turnoId, 64);
+        const ref = _db.collection('agenda_turnos').doc(turnoId);
+        const snap = await ref.get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const t = snap.data();
+        if (t.estado === 'reservado') {
+          await borrarEventoDeTurno(t.eventId);
+          await ref.set({ estado: 'cancelado', cancelado: new Date().toISOString(), canceladoPor: 'admin' }, { merge: true });
+          if (t.pedidoId) {
+            await _db.collection('agenda_pedidos').doc(t.pedidoId).set({ turnoId: null }, { merge: true });
+            const pedido = await _db.collection('agenda_pedidos').doc(t.pedidoId).get();
+            if (pedido.exists) {
+              try {
+                await avisarTurnoCancelado(pedido.data(), t.pedidoId, t.inicio.toMillis(), 'admin');
+              } catch (e) {
+                functions.logger.error('No se pudo avisar la cancelacion', e.message);
+              }
+            }
+          }
+        }
+        functions.logger.info('Turno cancelado desde el panel', { turnoId, por: sesion.email });
+        return res.status(200).json({ ok: true });
+      }
+
+      case 'mover': {
+        const turnoId = sanitizeTexto(req.body?.turnoId, 64);
+        const inicioMs = Date.parse(sanitizeTexto(req.body?.inicio, 40));
+        if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
+        const snap = await _db.collection('agenda_turnos').doc(turnoId).get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const pedidoId = snap.data().pedidoId;
+        const pedidoSnap = pedidoId ? await _db.collection('agenda_pedidos').doc(pedidoId).get() : null;
+        if (!pedidoSnap || !pedidoSnap.exists) return res.status(404).json({ error: 'sin_pedido' });
+        const r = await reservarParaPedido({ ...pedidoSnap.data(), turnoId }, pedidoId, inicioMs, 'admin');
+        if (r.error) return res.status(r.status).json({ error: r.error });
+        functions.logger.info('Turno movido desde el panel', { turnoId, nuevo: r.turno.id, por: sesion.email });
+        return res.status(200).json({ ok: true, turno: r.turno });
+      }
+
+      default:
+        return res.status(400).json({ error: 'accion_desconocida' });
+    }
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en adminAgenda:', error.message, { accion });
     return res.status(500).json({ error: 'fallo' });
   }
 });

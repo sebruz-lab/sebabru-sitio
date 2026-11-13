@@ -263,6 +263,19 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
         <p id="aviso-listo" style="color:#fff; text-align:center; text-align-last:center; font-size:0.92rem; line-height:1.6; margin-bottom:10px;">¡Excelente! Ya tenemos tus datos, revisá tu casilla que mandamos un mail con info para coordinar tu sesión.</p>
         <p style="color:var(--curso-text); text-align:center; text-align-last:center; font-size: 0.875rem; line-height:1.6; margin-bottom:30px;">Cualquier duda podés escribirle a Clari: <a id="wa-clari" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--curso-theme); white-space:nowrap;">3544 559877</a></p>
 
+        <!-- Paso 2: elegir el dia y la hora. El enlace lo devuelve
+             registrarInscripcion y viene firmado con el id del pedido, asi
+             que la agenda ya sabe quien es. Si por lo que sea no vino, este
+             bloque queda oculto y todo sigue como antes (se coordina a
+             mano, que es lo que dice el mail en ese caso). Va a _top porque
+             el formulario vive dentro de un iframe. -->
+        <div id="ir-a-agenda" style="display:none; margin-bottom:30px;">
+            <a id="btn-agenda" href="#" target="_top" class="btn-compra" style="background:var(--curso-accent); color:#16131d;">
+                <i class="fa-regular fa-calendar-check"></i> Elegí el día y la hora de tu sesión
+            </a>
+            <p style="color:var(--curso-text); text-align:center; text-align-last:center; font-size:0.8rem; line-height:1.6; margin-top:10px;">El mismo enlace te llega por mail, así podés elegirlo más tarde, cambiarlo o cancelarlo.</p>
+        </div>
+
         <details id="desplegable-pago">
             <summary>Si querés pagar ahora, podés hacerlo</summary>
 
@@ -603,6 +616,14 @@ if (esRegalo) {
                     return;
                 }
                 throw new Error(data.error || 'No pudimos registrar tu pedido de consulta.');
+            }
+
+            // El enlace a la agenda solo aparece si el servidor lo mandó.
+            if (data.agenda) {
+                document.getElementById('btn-agenda').href = data.agenda;
+                document.getElementById('ir-a-agenda').style.display = 'block';
+                document.getElementById('aviso-listo').textContent =
+                    '¡Excelente! Ya tenemos tus datos. Ahora elegí el día y la hora de tu sesión.';
             }
 
             document.getElementById('form-wrap').style.display = 'none';

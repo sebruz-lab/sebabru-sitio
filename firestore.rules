@@ -225,6 +225,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /mails_salientes/{id} {
+      // La cola de mails: la llenan las Cloud Functions y la vacia el
+      // trigger enviarMailEncolado. Cerrada de los dos lados, y no por
+      // formalidad: cada documento tiene el cuerpo del mail armado, o sea
+      // nombre, direccion y telefono de quien se inscribio o compro.
+      allow read, write: if false;
+    }
+
     match /certificados/{email} {
       // Quien tiene certificado de egreso y cual es su archivo. Lo lee la
       // Cloud Function descargarCertificado con el Admin SDK, que no pasa por
@@ -241,6 +249,27 @@ service cloud.firestore {
       allow write: if false;
       allow read: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    }
+
+    // La agenda de las consultas. Las cuatro colecciones estan cerradas al
+    // cliente, incluso para Seba: el panel de /consultas/admin/ no lee
+    // Firestore directo, pasa por la function adminAgenda, que verifica el
+    // ID token y el claim admin. Asi hay un solo camino y un solo lugar
+    // donde mirar quien toco que.
+    //
+    // Y agenda_pedidos ademas guarda nombre, mail y telefono de cada
+    // persona: abrirla al cliente seria publicar la lista de consultantes.
+    match /agenda_config/{id} {
+      allow read, write: if false;
+    }
+    match /agenda_bloqueos/{id} {
+      allow read, write: if false;
+    }
+    match /agenda_pedidos/{id} {
+      allow read, write: if false;
+    }
+    match /agenda_turnos/{id} {
+      allow read, write: if false;
     }
   }
 }
