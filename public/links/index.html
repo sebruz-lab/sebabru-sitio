@@ -158,6 +158,83 @@
     }
     .bio-social a:hover { color: #fff; }
 
+    /* ---- Ventana del formulario de suscripcion ----
+       El formulario lo arma /suscribirse.js dentro del div de abajo, el mismo
+       widget que usan la home y /suscribirse. Al terminar, el widget reemplaza
+       su propio contenido por el mensaje de listo: la persona nunca sale de
+       /links. */
+    .sus-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    /* El atributo hidden lo pisa el display:flex de arriba si no se dice. */
+    .sus-modal[hidden] { display: none; }
+
+    .sus-modal-fondo {
+        position: absolute;
+        inset: 0;
+        background: rgba(5, 5, 8, 0.78);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    .sus-modal-caja {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 30px 26px;
+        background: #0f0f16;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+    }
+
+    /* El widget trae su propio marco (margen de 80px, fondo y borde) para
+       cuando va suelto en una pagina. Adentro del modal el marco lo pone la
+       caja, asi que se lo sacamos. */
+    .sus-modal .suscribirse {
+        margin: 0;
+        max-width: none;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .sus-modal-x {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: 34px;
+        height: 34px;
+        background: none;
+        border: 0;
+        color: #9a958c;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 50%;
+        transition: color 0.25s, background-color 0.25s;
+    }
+    .sus-modal-x:hover,
+    .sus-modal-x:focus-visible { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+    @media (min-width: 769px) {
+        .sus-modal-caja { max-width: 460px; padding: 38px 34px; }
+    }
+
+    /* Mientras el modal esta abierto, la pagina de atras no scrollea. */
+    body.sus-abierto { overflow: hidden; }
+
     /* En compu hay lugar de sobra: la lista se ensancha y todo el texto
        sube otro escalon (~30% sobre los tamanos originales). */
     @media (min-width: 769px) {
@@ -189,7 +266,8 @@
                     </div>
 
                     <div class="bio-partido">
-                        <a href="https://sebabru.com/suscribirse/?utm_source=links&amp;utm_medium=bio">
+                        <a href="https://sebabru.com/suscribirse/?utm_source=links&amp;utm_medium=bio"
+                           id="abrir-suscribirse" aria-haspopup="dialog" aria-controls="sus-modal">
                             <i class="fa-regular fa-envelope" aria-hidden="true"></i>
                             Suscribite
                         </a>
@@ -250,6 +328,25 @@
         <p><a href="/privacidad/">Privacidad y datos</a></p>
         <p>© 2026 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
     </footer>
+
+    <!-- El div de adentro es el widget compartido: /suscribirse.js lo arma al
+         cargar (aunque el modal este oculto) y el captcha recien se pide al
+         enviar, ya con la ventana a la vista. data-origen="links" tiene que
+         estar en la lista cerrada que valida la function suscribir. -->
+    <div class="sus-modal" id="sus-modal" hidden>
+        <div class="sus-modal-fondo" data-cerrar-suscribirse></div>
+        <div class="sus-modal-caja" role="dialog" aria-modal="true"
+             aria-label="Suscribirse a los contenidos por mail">
+            <button type="button" class="sus-modal-x" data-cerrar-suscribirse
+                    aria-label="Cerrar">&times;</button>
+            <div data-suscribirse data-origen="links"
+                 data-titulo="Dejame tu mail"
+                 data-texto="Te anotás y listo. Te llega un mail de bienvenida."></div>
+        </div>
+    </div>
+
+    <script src="/suscribirse.js?v=7" defer></script>
+    <script src="/links.js?v=1" defer></script>
 
 </body>
 </html>
