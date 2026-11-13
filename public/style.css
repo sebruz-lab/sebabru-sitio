@@ -381,6 +381,14 @@ a:hover {
 .grupo-botones-sutiles {
     display: flex; flex-wrap: wrap; gap: 15px; margin-top: 25px;
 }
+/* OJO: .btn-sutil esta definido DOS VECES en este archivo, aca y mas abajo
+   (buscar el segundo ".btn-sutil {"). El de abajo gana en todo lo que se
+   repite: display, padding, border-radius, color, font-family, font-size.
+   De este bloque solo sobreviven text-transform, letter-spacing y
+   backdrop-filter, porque el otro no los declara. O sea que el boton que se
+   ve en el sitio es la mezcla de los dos.
+   No se unificaron todavia a proposito: hacerlo cambia el boton principal en
+   58 paginas y conviene mirarlo con los ojos antes. Anotado el 2026-11-13. */
 .btn-sutil {
     display: inline-block; padding: 12px 28px;
     background-color: transparent; color: var(--text-dark);
@@ -1791,4 +1799,74 @@ a.section-block:hover h3 {
         position: static; right: auto; top: auto;
         transform: rotate(calc(30deg - (60deg * var(--scroll-progress))));
     }
+}
+/* =========================================
+   FOCO VISIBLE (accesibilidad)
+
+   Varios formularios del sitio hacen "outline: none" en :focus y marcan el
+   foco cambiando el borde, que se ve. Pero links y botones quedaban con el
+   anillo que pone el navegador por defecto, que cambia de un navegador a
+   otro y sobre este fondo oscuro casi no se distingue.
+
+   Esto le da al sitio un foco propio y parejo. Se usa :focus-visible, no
+   :focus, asi que aparece cuando se navega con teclado y no cuando se hace
+   clic con el mouse. Agregado el 2026-11-13.
+   ========================================= */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+label.menu-button:focus-visible {
+    outline: 2px solid var(--primary-color, #3bc2bc);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* El checkbox del menu hamburguesa esta escondido y el que recibe el foco es
+   su label, que es lo que se ve. */
+.menu-toggle:focus-visible + .menu-button {
+    outline: 2px solid var(--primary-color, #3bc2bc);
+    outline-offset: 3px;
+}
+
+/* Botones y links con area de toque chica: en celular cuesta acertarles.
+   La recomendacion es 44px de alto; .btn-sutil quedaba en ~41.
+
+   Van con inline-flex y no solo con min-height porque eran inline-block: con
+   min-height a secas la caja crece pero el texto queda pegado arriba. Con
+   inline-flex siguen ocupando lo que ocupaban (los dos son de nivel inline y
+   se ajustan al contenido) y el texto queda centrado.
+
+   .btn-sutil no esta en esta lista: ya es flex por su propia regla. */
+.btn-whatsapp,
+.btn-telegram,
+.btn-comunidad,
+.btn-luna,
+.btn-calculadora {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.btn-sutil {
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+/* El embed oficial de Instagram trae min-width:326px en su style inline, asi
+   que en pantallas de 320px desborda a lo ancho. El body tiene
+   overflow-x:hidden, asi que no se veia una barra de scroll: se cortaba
+   contenido, que es peor.
+
+   Se arregla por CSS y no editando el HTML del embed porque el de la home lo
+   regenera sola la GitHub Action que sincroniza el ultimo posteo: cualquier
+   cambio a mano ahi se pierde en la proxima corrida. Necesita !important
+   porque el valor viene de un atributo style. */
+.instagram-media {
+    min-width: 0 !important;
 }

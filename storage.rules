@@ -1,13 +1,21 @@
 rules_version = '2';
 
+// OJO: este archivo NO esta referenciado en firebase.json todavia, porque
+// Firebase Storage nunca se activo en el proyecto sebabru-e5563 (la consola
+// pide hacer 'Get Started' primero) y un bloque "storage" apuntando a un
+// bucket inexistente hace fallar el deploy completo. Cuando se active
+// Storage: agregar { "storage": { "rules": "storage.rules" } } a
+// firebase.json y deployar con firebase deploy --only storage.
+//
 // Cloud Storage no se usa en el sitio: el bucket aparece declarado en la
 // configuracion del cliente (public/escuela/firebase.js) pero ningun codigo
 // sube ni baja nada por el SDK de Storage, ni en el frontend ni en las
 // Cloud Functions. Los videos estan en Bunny y las imagenes en Hosting.
 //
-// Hasta el 2026-11-13 estas reglas vivian solo en la consola de Firebase:
-// no se podian revisar en el repo ni volver atras si alguien las aflojaba.
-// Se versionan cerradas, que es lo que corresponde a un bucket sin uso.
+// La auditoria del 2026-11-13 anoto que no habia reglas de Storage en el
+// repo. Revisando se vio que tampoco habia reglas en ningun lado, porque el
+// producto nunca se activo: no hay bucket. Asi que no habia nada abierto.
+// Queda este archivo escrito y cerrado para el dia que se active.
 //
 // Si algun dia se empieza a usar Storage, abrir SOLO el prefijo que haga
 // falta y con las mismas garantias que firestore.rules: dueño del recurso,
