@@ -19,6 +19,8 @@ jobs:
           mkdir -p public/cartas
           curl -sSfL "https://github.com/sebruz-lab/tucarta/releases/download/$v/tucarta-dist.tar.gz" | tar -xz -C public/cartas
           test -f public/cartas/index.html
+      - name: Generar el sitemap (despues de bajar la calculadora, para que /cartas entre)
+        run: node .github/scripts/generar-sitemap.mjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

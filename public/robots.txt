@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Las paginas que no deben aparecer en Google llevan <meta name="robots"
+# content="noindex"> en su propio <head>, no un Disallow aca. Un Disallow
+# impide rastrearlas, y entonces Google nunca lee el noindex: si alguna ya
+# estaba indexada, se queda indexada para siempre.
+
+Sitemap: https://sebabru.com/sitemap.xml

@@ -85,3 +85,7 @@ public/cartas/
 
 # Permisos locales de Claude Code (cada maquina los suyos; pueden tener claves)
 .claude/settings.local.json
+
+# El sitemap se genera en el deploy (.github/scripts/generar-sitemap.mjs).
+# Uno generado en local sale mocho: /cartas/ no esta en el repo.
+public/sitemap.xml

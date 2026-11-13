@@ -15,7 +15,11 @@
       "**/.*",
       "**/node_modules/**",
       "test/**",
-      "test-3d/**"
+      "test-3d/**",
+      "preview-bloques.html",
+      "prueba-contenido.html",
+      "escuela/abierta/test-descripcion.html",
+      "lilith/prototipo-3d.html"
     ],
     "headers": [
       {
