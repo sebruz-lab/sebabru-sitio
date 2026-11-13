@@ -2693,6 +2693,8 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
       await brevo.enviarConPlantilla({
         email, nombre,
         templateId: plantillaDeAlta(origen),
+        params: { baja: urlDeBaja(email) },
+        headers: cabecerasDeBaja(email),
       });
     } catch (error) {
       functions.logger.error('No se pudo mandar el mail del alta:', error.message);
@@ -2780,6 +2782,55 @@ exports.sincronizarContactoBrevo = onDocumentCreated({
 });
 
 // -------------------------------------------------------
+// La baja de la lista de correo.
+//
+// POR QUE HAY QUE HACERLA NOSOTROS
+//
+// El tag {{ unsubscribe }} de Brevo es de CAMPANAS. Los mails de
+// bienvenida y del ebook no salen como campana: salen como transaccional
+// por /smtp/email con templateId, y en ese canal Brevo no sustituye el
+// tag — el href queda vacio y el enlace no existe. Lo comprobamos el
+// 2026-11-13 con el tag puesto dos veces en cada plantilla.
+//
+// Lo que SI funciona en un transaccional son los params, asi que la URL
+// se calcula aca y viaja como {{ params.baja }}.
+//
+// El token es un HMAC del mail: sin el, la URL seria adivinable y
+// cualquiera podria dar de baja a cualquiera cambiando la direccion.
+// -------------------------------------------------------
+function tokenDeBaja(email) {
+  const secreto = process.env.BAJA_SECRET;
+  // Sin secreto no se firma: un HMAC con clave vacia lo calcula cualquiera,
+  // asi que seria peor que no tener token.
+  if (!secreto) return null;
+  return crypto.createHmac('sha256', secreto)
+    .update(String(email).trim().toLowerCase())
+    .digest('hex')
+    .slice(0, 24);
+}
+
+function urlDeBaja(email) {
+  const token = tokenDeBaja(email);
+  // Sin secreto configurado, la salida es la pagina de privacidad, que
+  // explica como pedir la baja por mail. Nunca un enlace que no funciona.
+  if (!token) return `${process.env.SITE_URL || 'https://sebabru.com'}/privacidad/`;
+  const e = encodeURIComponent(String(email).trim().toLowerCase());
+  return `${process.env.SITE_URL || 'https://sebabru.com'}/baja/?e=${e}&t=${token}`;
+}
+
+// Las cabeceras estandar de baja (RFC 8058). Con esto Gmail muestra su
+// propio boton "Cancelar suscripcion" al lado del remitente, que es donde
+// mucha gente lo busca antes de leer el pie. Si no hay secreto, no se
+// mandan: una cabecera de un clic que apunta a /privacidad no cumple nada.
+function cabecerasDeBaja(email) {
+  if (!tokenDeBaja(email)) return undefined;
+  return {
+    'List-Unsubscribe': `<${urlDeBaja(email)}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}
+
+// -------------------------------------------------------
 // altaEnNovedades: el alta en la lista de correo cuando alguien marca un
 // casillero del sitio (el modal de la escuela o la calculadora).
 //
@@ -2810,6 +2861,8 @@ async function altaEnNovedades({ email, nombre, origen, consentimiento }) {
       email,
       nombre: nombre || '',
       templateId: process.env.BREVO_BIENVENIDA_TEMPLATE_ID,
+      params: { baja: urlDeBaja(email) },
+      headers: cabecerasDeBaja(email),
     });
   } catch (error) {
     functions.logger.error('No se pudo mandar la bienvenida:', error.message);
@@ -3022,5 +3075,90 @@ exports.descargarCertificado = functions.https.onRequest(async (req, res) => {
   } catch (error) {
     functions.logger.error('Error en descargarCertificado:', error.message);
     return res.status(500).json({ error: 'No pudimos preparar tu certificado. Probá de nuevo en unos minutos.' });
+  }
+});
+
+// -------------------------------------------------------
+// exports.baja: saca una direccion de la lista de correo.
+//
+// La llama /baja/ con JavaScript, no el enlace del mail directamente. Es a
+// proposito: Gmail y Outlook pre-cargan los enlaces para analizarlos, asi
+// que un GET que da de baja se dispararia con que un escaner mire el mail.
+// Los escaneres no ejecutan JavaScript.
+//
+// Idempotente: si la direccion no esta en ninguna lista, contesta ok igual.
+// Y no dice nunca si la direccion existia, para que el endpoint no sirva
+// para averiguar si un mail ajeno esta suscrito.
+// -------------------------------------------------------
+exports.baja = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('baja', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  const token = sanitizeTexto(req.body?.token, 100);
+  if (!EMAIL_VALIDO.test(email) || !token) {
+    return res.status(400).json({ error: 'token_invalido' });
+  }
+
+  const esperado = tokenDeBaja(email);
+  if (!esperado) {
+    functions.logger.error('Falta BAJA_SECRET: no se puede procesar una baja.');
+    return res.status(503).json({ error: 'no_configurado' });
+  }
+
+  let coincide = false;
+  try {
+    coincide = crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(token));
+  } catch (_) {
+    coincide = false; // longitudes distintas: timingSafeEqual tira
+  }
+  if (!coincide) {
+    functions.logger.warn('Baja con token invalido.', { dominio: email.split('@')[1] });
+    return res.status(400).json({ error: 'token_invalido' });
+  }
+
+  try {
+    // 1. Brevo. La marca de la blocklist es la que importa: vive en el
+    //    contacto y sobrevive a una reimportacion futura de la planilla, asi
+    //    que esta persona no vuelve a entrar sola. Quitarlo de la lista
+    //    ademas mantiene los informes honestos.
+    //    No frena los transaccionales de compra: esos salen por Gmail.
+    await brevo.marcarBaja(email);
+
+    // 2. Firestore, para que no diga lo contrario que Brevo. Si el documento
+    //    siguiera en novedades:true, cualquier edicion futura del documento
+    //    podria volver a suscribir a quien se dio de baja.
+    //    Los dos triggers reaccionan al cambio del flag y llaman a
+    //    quitarDeLista otra vez, que es idempotente.
+    const ahora = admin.firestore.FieldValue.serverTimestamp();
+
+    await _db.collection('suscripciones').doc(email).set({
+      email, estado: 'baja', baja: ahora,
+    }, { merge: true });
+
+    const usuario = _db.collection('usuarios').doc(email);
+    if ((await usuario.get()).exists) {
+      await usuario.set({ novedades: false }, { merge: true });
+    }
+
+    const enTucarta = await _db.collection('tucarta_usuarios')
+      .where('email', '==', email).limit(10).get();
+    for (const doc of enTucarta.docs) {
+      await doc.ref.set({ novedades: false }, { merge: true });
+    }
+
+    functions.logger.info('Baja procesada.', { dominio: email.split('@')[1] });
+    return res.status(200).json({ ok: true });
+
+  } catch (error) {
+    functions.logger.error('Error al dar de baja:', error.message);
+    return res.status(500).json({ error: 'fallo' });
   }
 });

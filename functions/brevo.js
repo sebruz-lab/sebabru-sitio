@@ -253,6 +253,37 @@ async function pedirDobleOptin({ email, nombre, atributos, listas, redirectUrl }
   }, { reintentos: 1, soloRateLimit: true });
 }
 
+// La baja de verdad: bloquea el contacto Y lo saca de la lista.
+//
+// Las dos cosas, porque hacen cosas distintas. La marca de la blocklist
+// (emailBlacklisted) vive en el contacto y es la que sobrevive a una
+// reimportacion futura de la planilla: sin ella, el dia que se vuelva a
+// subir un CSV con esa direccion, esa persona vuelve a recibir mails que ya
+// habia rechazado. Sacarlo de la lista es para que los conteos digan la
+// verdad.
+//
+// No frena los transaccionales de una compra: esos salen por Gmail, no por
+// Brevo. Y en Brevo la blocklist afecta a las campanas, no a /smtp/email.
+async function marcarBaja(email) {
+  const mail = String(email).trim().toLowerCase();
+  if (!brevoConfigurado()) return avisarSinLlave('/contacts (baja)');
+
+  try {
+    await pedirBrevo('PUT', `/contacts/${encodeURIComponent(mail)}`, {
+      emailBlacklisted: true,
+    });
+  } catch (error) {
+    // Si el contacto no existe en Brevo, la baja ya esta cumplida: no hay a
+    // quien escribirle. Cualquier otro error si importa.
+    if (!(error instanceof BrevoError && error.status === 404)) throw error;
+    logger.info('Baja de una direccion que no estaba en Brevo.');
+    return null;
+  }
+
+  await quitarDeLista(mail, ['suscriptores']);
+  return { ok: true };
+}
+
 async function quitarDeLista(email, listas) {
   const ids = idsDeListas(listas);
   if (!email || !ids.length) return null;
@@ -278,7 +309,14 @@ async function quitarDeLista(email, listas) {
 //
 // soloRateLimit: manda un mail, asi que no se reintenta ante un 500 ni ante
 // un timeout, para no mandarlo dos veces.
-async function enviarConPlantilla({ email, nombre, templateId, params } = {}) {
+// OJO con el enlace de baja: {{ unsubscribe }} es un tag de CAMPANAS y aca
+// no se sustituye, asi que una plantilla transaccional que lo use queda con
+// el href vacio. Lo que si funciona son los params: el llamador manda
+// { baja: <url> } y la plantilla pone {{ params.baja }}.
+//
+// headers sirve para las cabeceras estandar de baja (List-Unsubscribe), que
+// son las que hacen aparecer el boton propio de Gmail.
+async function enviarConPlantilla({ email, nombre, templateId, params, headers } = {}) {
   if (!email || !templateId) return null;
   if (!brevoConfigurado()) return avisarSinLlave('/smtp/email');
 
@@ -286,6 +324,7 @@ async function enviarConPlantilla({ email, nombre, templateId, params } = {}) {
     to: [{ email: String(email).trim().toLowerCase(), ...(nombre ? { name: nombre } : {}) }],
     templateId: Number(templateId),
     ...(params ? { params } : {}),
+    ...(headers ? { headers } : {}),
   }, { reintentos: 1, soloRateLimit: true });
 }
 
@@ -377,6 +416,7 @@ module.exports = {
   obtenerContacto,
   pedirDobleOptin,
   enviarConPlantilla,
+  marcarBaja,
   quitarDeLista,
   importarContactos,
   estadoProceso,

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Darte de baja | Seba Bru</title>
+<meta name="description" content="Sacar tu dirección de la lista de correo de Seba Bru Astrología.">
+<meta name="robots" content="noindex, nofollow">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/baja">
+<meta property="og:title" content="Darte de baja | Seba Bru Astrología">
+<meta property="og:description" content="Sacar tu dirección de la lista de correo.">
+<meta property="og:image" content="https://sebabru.com/img/nueva.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<link rel="stylesheet" href="../style.css?v=26">
+
+<!--
+  La baja de la lista de correo.
+
+  POR QUE LA BAJA LA HACE JAVASCRIPT Y NO EL ENLACE DEL MAIL
+
+  Gmail y Outlook pre-cargan los enlaces de un mail para analizarlos. Si la
+  baja fuera un GET, se dispararia sola con que un escaner mire el mail, y
+  la persona quedaria desuscrita sin haber tocado nada. Los escaneres no
+  ejecutan JavaScript: por eso el enlace trae solo la pagina, y la baja la
+  pide esta pagina con un POST en cuanto la abre una persona.
+
+  Tampoco se le pide confirmar: quien llego hasta aca ya decidio, y poner un
+  boton de mas es la clase de friccion que termina en una denuncia de spam
+  en vez de una baja.
+
+  Sin analytics a proposito: no hace falta medir a quien se va.
+
+  Sin comillas tipograficas: rompen los atributos (ver CLAUDE.md).
+-->
+<style>
+    .baja { max-width: 520px; margin: 0 auto; padding: 0 20px; text-align: center; }
+    .baja h2 {
+        font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase;
+        font-size: 1.05rem; margin-bottom: 22px;
+    }
+    .baja p { color: #cccac3; line-height: 1.8; margin-bottom: 16px; }
+    .baja .baja-mail {
+        color: #fff; font-weight: 400; overflow-wrap: anywhere;
+    }
+    .baja .baja-aparte {
+        margin: 34px auto 0; padding-top: 24px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.85rem; color: #9a958c; line-height: 1.7;
+    }
+    .baja button {
+        margin-top: 10px; padding: 12px 26px; background: #fff; color: #000;
+        border: 1px solid #fff; border-radius: 10px; font-family: 'Outfit', sans-serif;
+        font-size: 0.86rem; letter-spacing: 0.06em; text-transform: uppercase;
+        cursor: pointer; transition: background 0.25s ease, color 0.25s ease;
+    }
+    .baja button:hover:not(:disabled) { background: transparent; color: #fff; }
+    .baja button:disabled { opacity: 0.55; cursor: default; }
+</style>
+</head>
+<body>
+
+    <div class="content-wrapper">
+
+        <header class="main-header" id="top">
+            <h1>Darte de baja | Seba Bru astrología</h1>
+        </header>
+
+        <main>
+            <section class="section-container">
+                <div class="baja" id="baja" aria-live="polite">
+                    <h2 id="baja-titulo">Un momento</h2>
+                    <p id="baja-texto">Estamos sacando tu dirección de la lista.</p>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+        </div>
+        <p><a href="/privacidad/">Privacidad y datos</a></p>
+        <p>© 2024 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+    </footer>
+
+<script>
+(function () {
+    'use strict';
+
+    var URL_BAJA = 'https://us-central1-sebabru-e5563.cloudfunctions.net/baja';
+
+    var caja = document.getElementById('baja');
+    var titulo = document.getElementById('baja-titulo');
+    var texto = document.getElementById('baja-texto');
+
+    var params = new URLSearchParams(window.location.search);
+    var email = (params.get('e') || '').trim().toLowerCase();
+    var token = (params.get('t') || '').trim();
+
+    // La direccion sale de la barra de direcciones en cuanto se leyo, para
+    // que no quede en el historial del navegador ni viaje en el Referer si
+    // la persona despues hace clic en algun enlace de esta pagina.
+    if (window.history && window.history.replaceState && window.location.search) {
+        window.history.replaceState(null, '', window.location.pathname);
+    }
+
+    var escapar = function (s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    };
+
+    var mostrar = function (t, cuerpo) {
+        titulo.textContent = t;
+        texto.innerHTML = cuerpo;
+    };
+
+    var queDiga = {
+        listo: function () {
+            mostrar('Listo', 'Saqué <span class="baja-mail">' + escapar(email) + '</span> de la lista. '
+                + 'No te va a llegar nada más.'
+                + '<div class="baja-aparte">Si fue sin querer, escribime a '
+                + '<a href="mailto:info@sebabru.com">info@sebabru.com</a> y te vuelvo a anotar.<br><br>'
+                + '<a href="https://sebabru.com/">Volver al sitio</a></div>');
+        },
+        invalido: function () {
+            mostrar('Este enlace no sirve', 'Puede estar cortado: a veces los programas de correo '
+                + 'parten los enlaces largos en dos renglones.'
+                + '<div class="baja-aparte">Lo más seguro es escribirme a '
+                + '<a href="mailto:info@sebabru.com">info@sebabru.com</a> pidiendo la baja. '
+                + 'La hago a mano el mismo día.</div>');
+        },
+        fallo: function (reintentar) {
+            mostrar('No pudimos ahora', 'Algo falló de nuestro lado, no tuyo.'
+                + '<p><button type="button" id="baja-reintentar">Probar de nuevo</button></p>'
+                + '<div class="baja-aparte">Si sigue sin andar, escribime a '
+                + '<a href="mailto:info@sebabru.com">info@sebabru.com</a> y la hago a mano.</div>');
+            var b = document.getElementById('baja-reintentar');
+            if (b) {
+                b.addEventListener('click', function () {
+                    b.disabled = true;
+                    b.textContent = 'Dando de baja...';
+                    reintentar();
+                });
+            }
+        },
+    };
+
+    if (!email || !token || email.indexOf('@') === -1) {
+        return queDiga.invalido();
+    }
+
+    var pedir = function () {
+        fetch(URL_BAJA, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, token: token }),
+        }).then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (data) {
+                if (r.ok && data.ok) return queDiga.listo();
+                if (data.error === 'token_invalido') return queDiga.invalido();
+                return queDiga.fallo(pedir);
+            });
+        }).catch(function () {
+            queDiga.fallo(pedir);
+        });
+    };
+
+    pedir();
+})();
+</script>
+</body>
+</html>
