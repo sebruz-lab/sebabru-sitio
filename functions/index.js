@@ -179,6 +179,28 @@ async function avisarPagoSinAcceso(transporter, { nombreProducto, email, monto, 
   });
 }
 
+// Un pago entro, se genero el codigo de acceso y no hay a quien mandarselo
+// (compra anonima que no dejo mail). Antes esto era solo un logger.warn: el
+// pago quedaba cobrado, el acceso sin entregar y nadie se enteraba. El codigo
+// existe y es valido, asi que alcanza con que el aviso llegue para poder
+// mandarlo a mano cuando la persona reclame.
+async function avisarCodigoSinDestino(transporter, { nombreProducto, codigo, pagoId, metodo }) {
+  try {
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: AVISOS_INSCRIPCION,
+      subject: `Pago sin mail de destino — ${nombreProducto}`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>Entró un pago de <strong>${escapeHtml(nombreProducto)}</strong> por ${escapeHtml(metodo)} y <strong>no quedó ningún mail</strong> al que mandarle el acceso.</p>
+        <p>El código de acceso quedó generado: <strong>${escapeHtml(codigo)}</strong> — se canjea en ${process.env.SITE_URL}/canjear</p>
+        <p>Pago: ${escapeHtml(String(pagoId))}. Si alguien reclama esta compra, mandale ese código.</p>
+      </div>`,
+    });
+  } catch (e) {
+    functions.logger.error('No se pudo avisar del codigo sin destino', { pagoId, message: e.message });
+  }
+}
+
 const ALLOWED_ORIGINS = [
   'https://sebabru.com',
   'https://sebabru-e5563.web.app',
@@ -451,6 +473,34 @@ async function asegurarRegalo(pagoRef, { cursoId, cursoNombre, compradorEmail, o
   }
 
   return codigo;
+}
+
+// Consume un uso del codigo de descuento, una sola vez por pago. El contador
+// vive en "codigos_descuento", pero la marca de "este pago ya lo conto" va en
+// el mismo doc de "pagos_procesados" que hace de candado del pago: asi el
+// webhook y verificarPagoMP pueden llegar los dos, en cualquier orden, y el
+// uso se cuenta una sola vez. Antes el incremento colgaba solo del webhook y,
+// si ese nunca llegaba (firma mal configurada, MP caido), el cupon no gastaba
+// usos y se podia pasar de maxUsos.
+async function contarUsoDescuento(pagoRef, codigo) {
+  if (!codigo || !CODIGO_VALIDO.test(codigo)) return;
+  const codigoRef = _db.collection('codigos_descuento').doc(codigo);
+  try {
+    await _db.runTransaction(async tx => {
+      const pago = await tx.get(pagoRef);
+      if (pago.exists && pago.data().cuponContado) return;
+      const cupon = await tx.get(codigoRef);
+      if (!cupon.exists) {
+        functions.logger.warn('Codigo de descuento inexistente al contar el uso', { codigo });
+        return;
+      }
+      tx.update(codigoRef, { usos: admin.firestore.FieldValue.increment(1) });
+      tx.set(pagoRef, { cuponContado: true }, { merge: true });
+    });
+  } catch (e) {
+    // Es un agregado contable: si falla, el pago y el acceso siguen su curso.
+    functions.logger.error('No se pudo contar el uso del descuento', { codigo, message: e.message });
+  }
 }
 
 // -------------------------------------------------------
@@ -817,11 +867,7 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       throw e;
     }
 
-    if (codigo_descuento) {
-      await _db.collection('codigos_descuento').doc(codigo_descuento).update({
-        usos: admin.firestore.FieldValue.increment(1)
-      });
-    }
+    await contarUsoDescuento(pagoRef, codigo_descuento);
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -858,6 +904,9 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
         });
       } else {
         functions.logger.warn('Pago por codigo sin email de destino', { id: data.id, codigo });
+        await avisarCodigoSinDestino(transporter, {
+          nombreProducto: nombreCurso, codigo, pagoId: data.id, metodo: 'Mercado Pago',
+        });
       }
 
       functions.logger.info('Compra por codigo', { destino, curso_id, codigo, esRegalo });
@@ -1031,6 +1080,11 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
 
     await registrarCompra(`mp_${paymentId}`, datosCompraMP(payment));
 
+    // Mismo candado que usa el webhook: el uso del cupon se cuenta una vez
+    // por pago, sin importar cual de los dos caminos llego primero.
+    const pagoRef = _db.collection('pagos_procesados').doc(String(paymentId));
+    await contarUsoDescuento(pagoRef, payment.metadata?.codigo_descuento);
+
     const esRegalo = payment.metadata?.regalo === 'true';
     // Pago sin cuenta asociada (metaEmail vacío): no hay forma de confirmar
     // que quien llama a este endpoint con el payment_id (visible en la URL
@@ -1041,7 +1095,6 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
     const esAnonima = !metaEmail;
 
     if (esRegalo || esAnonima) {
-      const pagoRef = _db.collection('pagos_procesados').doc(String(paymentId));
       const cursoNombre = payment.metadata?.curso_nombre || curso_id;
       const codigo = await asegurarRegalo(pagoRef, {
         cursoId: curso_id, cursoNombre, compradorEmail: userEmail, origen: 'mp'
@@ -1490,6 +1543,9 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
         });
       } else {
         functions.logger.warn('Pago PayPal por codigo sin email de destino', { orderId, codigo });
+        await avisarCodigoSinDestino(transporter, {
+          nombreProducto: cursoNombre, codigo, pagoId: `paypal_${orderId}`, metodo: 'PayPal',
+        });
       }
 
       functions.logger.info('Codigo PayPal generado', { destino, cursoId, codigo, regalo, esAnonima });
@@ -2541,7 +2597,7 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     ORIGEN: origen,
     UTM: utmComoTexto(sanitizeOrigen(req.body?.utm)),
     FECHA_ALTA: brevo.fechaBrevo(new Date()),
-    CONSENTIMIENTO: origen === 'ebook' ? 'canje-ebook' : 'casilla-sitio',
+    CONSENTIMIENTO: origen === 'ebook' ? 'canje-ebook' : 'boton-sitio',
   };
 
   // La constancia del consentimiento queda tambien de este lado, no solo en
