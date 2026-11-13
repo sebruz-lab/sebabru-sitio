@@ -31,17 +31,47 @@
 
     // Resistencia del scroll: mismo mecanismo que la home (script.js) — el
     // recorrido persigue con peso el punto que marca el scroll en vez de
-    // saltar directo. RESISTENCIA mas chico = mas pesado/lento. Estas
-    // paginas tienen recorridos cortos, por eso una resistencia mas
-    // liviana que la de la home. Se puede ajustar por pagina con
-    // data-resistencia en #escena-track.
-    var RESISTENCIA = parseFloat(escenaTrack.dataset.resistencia) || 0.09;
+    // saltar directo, pero medida en TIEMPO (tau, en ms) y no por frame.
+    // Un factor fijo por frame ata la amortiguacion al framerate: lo que
+    // pesa 185ms a 60fps pesa 370ms a 30fps, y en gama media esa demora se
+    // lee como que el sitio va lento (la camara llega mucho despues del
+    // dedo). Con k = 1 - e^(-dt/tau) el peso en tiempo real es el mismo en
+    // todos los equipos, y encima el tau baja solo donde el equipo no da.
+    // tau mas grande = mas pesado. Estas paginas tienen recorridos cortos,
+    // por eso una resistencia mas liviana que la de la home. Se puede
+    // ajustar por pagina con data-resistencia-ms en #escena-track.
+    var TAU_GAMA_ALTA = parseFloat(escenaTrack.dataset.resistenciaMs) || 190;
+    var TAU_GAMA_BAJA = 90;
+    // Para probar otro valor en el propio celular sin un deploy por
+    // iteracion: /lilith/?tau=250
+    var tauUrl = /[?&]tau=(\d+(?:\.\d+)?)/.exec(window.location.search);
+    if (tauUrl && +tauUrl[1] >= 60 && +tauUrl[1] <= 1200) TAU_GAMA_ALTA = +tauUrl[1];
+    var DT_60FPS = 1000 / 60;
+    // Lo que le cuesta a ESTE equipo dibujar un frame, promediado mientras
+    // la camara se mueve. Arranca con una pista estatica (4 nucleos o menos
+    // es gama media para abajo) para que el primer gesto ya use un tau
+    // razonable, en vez de venir pesado mientras el promedio aprende.
+    var dtMedio = (navigator.hardwareConcurrency || 8) <= 4 ? 26 : DT_60FPS;
+    var TAU_APRENDIZAJE = 300;  // ms que tarda dtMedio en seguir al equipo
+    var tau = 0;           // sale de dtMedio en cada frame
+    var ultimoFrame = 0;   // 0 = el loop venia dormido
     var segActual = null;
+    var despierto = false; // si el loop de rAF esta corriendo
     var plano = !html.classList.contains('recorrido');
     var usuarioScrolleo = false;
 
     function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
     function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+    function ahoraMs() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+    // La resistencia que corresponde a un costo de frame: 18ms (~55fps) es
+    // gama alta y se lleva toda la amortiguacion; 34ms (~29fps) es gama baja
+    // y va casi directo al dedo, porque ahi cualquier peso extra se siente
+    // como atraso. En el medio, interpolado.
+    function tauPara(dt) {
+        var gama = clamp01((dt - 18) / (34 - 18));
+        return TAU_GAMA_ALTA + (TAU_GAMA_BAJA - TAU_GAMA_ALTA) * gama;
+    }
 
     function cargarIframes(el) {
         var pendientes = el.querySelectorAll('iframe[data-src]');
@@ -94,7 +124,27 @@
         var segCrudo = p * (NB - 1);
 
         if (segActual === null) segActual = segCrudo;
-        segActual += (segCrudo - segActual) * RESISTENCIA;
+
+        // dt real de este frame, clampeado: un frame perdido no tiene que
+        // producir un salto de camara.
+        var ahora = ahoraMs();
+        var dt = ultimoFrame ? Math.min(ahora - ultimoFrame, 64) : DT_60FPS;
+        // El primer frame despues de dormir no cuenta para el promedio: su
+        // dt es el rato que el loop estuvo quieto, no lo que cuesta dibujar.
+        // El promedio aprende en TIEMPO, igual que la camara: con un factor
+        // por frame, el equipo lento (justo el que menos frames da) tardaba
+        // medio segundo largo en reconocerse como lento, o sea despues del
+        // gesto. Asi conoce al equipo dentro del primer gesto, y como
+        // dtMedio ya viene suavizado, el tau sale directo de el.
+        if (ultimoFrame) dtMedio += (dt - dtMedio) * (1 - Math.exp(-dt / TAU_APRENDIZAJE));
+        ultimoFrame = ahora;
+        tau = tauPara(dtMedio);
+
+        // Si falta menos de medio milesimo de bloque, plantamos el valor
+        // exacto: la amortiguacion nunca llega sola, y ese resto es
+        // invisible pero mantendria el rAF corriendo para siempre.
+        var llego = Math.abs(segCrudo - segActual) < 0.0005;
+        segActual = llego ? segCrudo : segActual + (segCrudo - segActual) * (1 - Math.exp(-dt / tau));
         var seg = segActual;
 
         var i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
@@ -139,6 +189,8 @@
                 b.dispatchEvent(new CustomEvent('bloque-visible', { bubbles: true }));
             }
         }
+
+        return llego;
     }
 
     // ---------- Ir a un bloque (anclas y botones) ----------
@@ -173,6 +225,7 @@
             if (!suave) segActual = null;
         }
         window.scrollTo({ top: Math.max(0, top), behavior: suave ? 'smooth' : 'instant' });
+        despertar();
         return true;
     }
 
@@ -222,18 +275,42 @@
         return;
     }
 
-    // El recorrido corre en su propio loop continuo (no solo al
-    // scrollear): la resistencia necesita seguir animando unos frames
-    // mas despues de que el scroll se detiene, para terminar de
-    // alcanzar la posicion (igual que la home).
-    (function loop() {
-        if (plano) return;
+    // Arranca el loop si estaba dormido.
+    function despertar() {
+        if (plano || despierto) return;
+        despierto = true;
+        ultimoFrame = 0;  // el rato dormido no es el costo de un frame
+        window.requestAnimationFrame(loop);
+    }
+
+    function loop() {
+        if (plano) { despierto = false; return; }
+        var llego;
         try {
-            frameRecorrido();
+            llego = frameRecorrido();
         } catch (err) {
+            despierto = false;
             activarPlano();
             return;
         }
+        if (llego) { despierto = false; return; }
         window.requestAnimationFrame(loop);
-    })();
+    }
+
+    // El recorrido sigue animando unos frames mas despues de que el scroll
+    // se detiene, para terminar de alcanzar la posicion. Pero DUERME cuando
+    // la camara ya llego: antes el rAF corria para siempre, o sea que el
+    // telefono repintaba 60 veces por segundo con la pagina quieta
+    // (bateria y calor en gama media). Lo despiertan el scroll, el resize,
+    // el cambio de orientacion, el load y los saltos a un bloque.
+    window.addEventListener('scroll', despertar, { passive: true });
+    window.addEventListener('resize', despertar);
+    window.addEventListener('orientationchange', despertar);
+    // Las imagenes que terminan de cargar despues del DOM pueden cambiar el
+    // alto del track: un frame mas con todo cargado.
+    window.addEventListener('load', despertar);
+    // Al tabular a un link, el navegador puede scrollear .escena para
+    // mostrarlo: frameRecorrido lo devuelve a su lugar.
+    window.addEventListener('focusin', despertar);
+    despertar();
 })();

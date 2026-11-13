@@ -30,13 +30,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // quedan siempre sincronizados entre sí (si se amortiguaban por
     // separado, el deslizamiento terminaba antes de que el bloque
     // llegara a verse — la cámara todavía la estaba "alcanzando").
-    // RESISTENCIA más chico = más pesado/lento. Por eso el recorrido tiene
-    // su propio loop de rAF que sigue corriendo incluso con el scroll
-    // parado, para terminar de alcanzar el objetivo.
-    const RESISTENCIA = 0.035;
+    //
+    // La resistencia se mide en TIEMPO (tau, en ms), no en frames. Antes era
+    // un factor fijo por frame (0.035) y eso la ataba al framerate: los
+    // ~480ms de peso que se sienten a 60fps se volvian ~960ms a 30fps. O sea
+    // que el celular de gama media no sufria la misma amortiguacion que la
+    // compu, sufria el doble, justo donde menos se la puede pagar: la camara
+    // llegaba tan tarde que se lee como que el sitio va lento. Con
+    // k = 1 - e^(-dt/tau) el peso en tiempo real es el mismo en todos los
+    // equipos. tau mas grande = mas pesado. Por eso el recorrido tiene su
+    // propio loop de rAF, que sigue animando con el scroll parado hasta
+    // alcanzar el objetivo (y despues se duerme, mas abajo).
+    let TAU_GAMA_ALTA = 300;    // ms, equipo que sostiene ~60fps
+    const TAU_GAMA_BAJA = 110;  // ms, equipo que apenas llega a ~30fps
+    // Para probar otro valor en el propio celular sin un deploy por
+    // iteracion: sebabru.com/?tau=250
+    const TAU_URL = parseFloat(new URLSearchParams(location.search).get('tau'));
+    if (TAU_URL >= 60 && TAU_URL <= 1200) TAU_GAMA_ALTA = TAU_URL;
+    const DT_60FPS = 1000 / 60;
+    // Lo que le cuesta a ESTE equipo dibujar un frame, promediado mientras
+    // la camara se mueve. Arranca con una pista estatica (4 nucleos o menos
+    // es gama media para abajo) para que el primer gesto ya use un tau
+    // razonable, en vez de venir pesado mientras el promedio aprende.
+    let dtMedio = (navigator.hardwareConcurrency || 8) <= 4 ? 26 : DT_60FPS;
+    const TAU_APRENDIZAJE = 300;  // ms que tarda dtMedio en seguir al equipo
+    let tau = 0;           // sale de dtMedio en cada frame
+    let ultimoFrame = 0;   // 0 = el loop venia dormido
     let segActual = null;
 
     function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+    // La resistencia que corresponde a un costo de frame: 18ms (~55fps) es
+    // gama alta y se lleva toda la amortiguacion; 34ms (~29fps) es gama baja
+    // y va casi directo al dedo, porque ahi cualquier peso extra se siente
+    // como atraso. En el medio, interpolado.
+    function tauPara(dt) {
+        const gama = clamp01((dt - 18) / (34 - 18));
+        return TAU_GAMA_ALTA + (TAU_GAMA_BAJA - TAU_GAMA_ALTA) * gama;
+    }
 
     // Mueve la cámara del recorrido y le da a cada bloque su opacidad/escala
     // según qué tan cerca está — y, si el bloque es de los que ya traían
@@ -53,11 +84,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const segCrudo = p * (NB - 1);
 
         if (segActual === null) segActual = segCrudo;
+
+        // dt real de este frame, clampeado: un frame perdido no tiene que
+        // producir un salto de camara.
+        const ahora = performance.now();
+        const dt = ultimoFrame ? Math.min(ahora - ultimoFrame, 64) : DT_60FPS;
+        // El primer frame despues de dormir no cuenta para el promedio: su
+        // dt es el rato que el loop estuvo quieto, no lo que cuesta dibujar.
+        // El promedio aprende en TIEMPO, igual que la camara: con un factor
+        // por frame, el equipo lento (justo el que menos frames da) tardaba
+        // medio segundo largo en reconocerse como lento, o sea despues del
+        // gesto. Asi conoce al equipo dentro del primer gesto, y como
+        // dtMedio ya viene suavizado, el tau sale directo de el.
+        if (ultimoFrame) dtMedio += (dt - dtMedio) * (1 - Math.exp(-dt / TAU_APRENDIZAJE));
+        ultimoFrame = ahora;
+        tau = tauPara(dtMedio);
+
         // Si falta menos de medio milesimo de bloque, plantamos el valor
-        // exacto: con RESISTENCIA = 0.035 el lerp nunca llega solo, y ese
-        // resto es invisible pero mantendria el rAF corriendo para siempre.
+        // exacto: la amortiguacion nunca llega sola, y ese resto es
+        // invisible pero mantendria el rAF corriendo para siempre.
         const llego = Math.abs(segCrudo - segActual) < 0.0005;
-        segActual = llego ? segCrudo : segActual + (segCrudo - segActual) * RESISTENCIA;
+        segActual = llego ? segCrudo : segActual + (segCrudo - segActual) * (1 - Math.exp(-dt / tau));
         const seg = segActual;
 
         const i = Math.floor(seg), f = seg - i, j = Math.min(i + 1, NB - 1);
@@ -163,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function despertarRecorrido() {
         if (!escenaTrack || reduce || recorridoDespierto) return;
         recorridoDespierto = true;
+        ultimoFrame = 0;  // el rato dormido no es el costo de un frame
         (function loopRecorrido() {
             if (frameRecorrido()) { recorridoDespierto = false; return; }
             requestAnimationFrame(loopRecorrido);
