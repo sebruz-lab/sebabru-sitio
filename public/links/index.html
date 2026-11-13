@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="Seba Bru Astrología">
 
 <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
-<link rel="stylesheet" href="../style.css?v=28">
+<link rel="stylesheet" href="../style.css?v=29">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <!-- Google tag (gtag.js) -->
@@ -51,12 +51,21 @@
         text-align: center;
         margin-bottom: 14px;
     }
+    /* El text-align:center del div padre se HEREDA, y la herencia pierde
+       contra la regla global "p { text-align: left }" de style.css, que apunta
+       directo al <p>. Por eso hay que decirlo aca tambien. */
     .bio-intro p {
         color: #cccac3;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         line-height: 1.7;
         margin: 0;
+        text-align: center;
+        text-align-last: center;
     }
+
+    /* style.css pone text-transform:uppercase en todos los .main-header h1.
+       Aca queremos "Seba Bru Astrologia" tal cual se escribe. */
+    .main-header h1 { text-transform: none; }
 
     /* Un enlace de la lista. Fino, mucho aire, sin relleno de color: el
        color lo pone el borde al pasar el dedo o el mouse. */
@@ -71,7 +80,7 @@
         text-decoration: none;
         font-family: 'Outfit', sans-serif;
         font-weight: 300;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         letter-spacing: 0.04em;
         text-align: center;
         transition: background-color 0.25s, border-color 0.25s, transform 0.25s;
@@ -87,7 +96,7 @@
     .bio-link .bio-sub {
         display: block;
         margin-top: 5px;
-        font-size: 0.72rem;
+        font-size: 0.79rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: #9a958c;
@@ -119,7 +128,7 @@
         text-decoration: none;
         font-family: 'Outfit', sans-serif;
         font-weight: 300;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         text-align: center;
         line-height: 1.35;
         letter-spacing: 0.04em;
@@ -132,7 +141,7 @@
         color: #fff;
     }
     .bio-partido i {
-        font-size: 1.15rem;
+        font-size: 1.08rem;
         opacity: 0.85;
     }
 
@@ -144,10 +153,23 @@
     }
     .bio-social a {
         color: #9a958c;
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         transition: color 0.25s;
     }
     .bio-social a:hover { color: #fff; }
+
+    /* En compu hay lugar de sobra: la lista se ensancha y todo el texto
+       sube otro escalon (~30% sobre los tamanos originales). */
+    @media (min-width: 769px) {
+        .bio { max-width: 480px; gap: 14px; }
+        .bio-intro p { font-size: 1.05rem; }
+        .bio-link { font-size: 1.08rem; padding: 20px 24px; }
+        .bio-link .bio-sub { font-size: 0.88rem; }
+        .bio-partido > a { font-size: 0.95rem; padding: 19px 14px; }
+        .bio-partido i { font-size: 1.25rem; }
+        .bio-social { gap: 26px; }
+        .bio-social a { font-size: 1.4rem; }
+    }
 </style>
 </head>
 <body>
@@ -201,6 +223,10 @@
                     <a href="https://sebabru.com/cartas/" class="bio-link">
                         Calculá tu carta natal
                         <span class="bio-sub">Gratis, en el navegador</span>
+                    </a>
+
+                    <a href="https://sebabru.com/?utm_source=links&amp;utm_medium=bio" class="bio-link">
+                        Toda esta info y más en mi página
                     </a>
 
                     <div class="bio-social">
