@@ -255,7 +255,14 @@ async function checkRateLimit(nombreFuncion, req, maxRequests) {
 function verificarFirmaMP(req, dataId) {
   const secreto = process.env.MP_WEBHOOK_SECRET;
   if (!secreto) {
-    functions.logger.warn('MP_WEBHOOK_SECRET no configurado: firma del webhook sin verificar.');
+    // A proposito NO se bloquea: si este webhook rechazara todo, ninguna
+    // compra activaria el acceso. Pero se loguea como error, no como aviso,
+    // para que aparezca en las alertas: mientras el secreto no este cargado
+    // el unico control real es la reconsulta del pago contra la API de MP,
+    // mas abajo en mpWebhook. Cargar el secreto desde el panel de MP
+    // (Developers -> Tu integracion -> Webhooks) alcanza para que esta
+    // verificacion empiece a aplicarse sola.
+    functions.logger.error('MP_WEBHOOK_SECRET no configurado: el webhook de Mercado Pago esta aceptando pedidos sin verificar la firma.');
     return true;
   }
 
@@ -277,14 +284,20 @@ function verificarFirmaMP(req, dataId) {
   }
 }
 
-// Verifica un token de Cloudflare Turnstile contra siteverify. Si
-// TURNSTILE_SECRET_KEY no esta configurado, no bloquea nada (igual que
-// verificarFirmaMP) para no romper en desarrollo/emulador.
+// Verifica un token de Cloudflare Turnstile contra siteverify. Sin
+// TURNSTILE_SECRET_KEY no bloquea nada en el emulador, para no obligar a
+// configurar el captcha en desarrollo; pero en produccion rechaza, porque si
+// no una variable de entorno mal desplegada dejaba el endpoint sin captcha
+// y lo unico que avisaba era una linea en el log.
 async function verificarTurnstile(token, req) {
   const secreto = process.env.TURNSTILE_SECRET_KEY;
   if (!secreto) {
-    functions.logger.warn('TURNSTILE_SECRET_KEY no configurado: captcha sin verificar.');
-    return true;
+    if (process.env.FUNCTIONS_EMULATOR) {
+      functions.logger.warn('TURNSTILE_SECRET_KEY no configurado: captcha sin verificar (emulador).');
+      return true;
+    }
+    functions.logger.error('TURNSTILE_SECRET_KEY no configurado en produccion: se rechaza el pedido.');
+    return false;
   }
   if (!token) return false;
   try {
@@ -530,6 +543,25 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
     if (inv.usado || inv.usada) {
       throw new functions.https.HttpsError('already-exists', 'Esta invitación ya fue utilizada.');
     }
+
+    // Expiración y destinatario se validan ACA ADENTRO, antes de marcarla
+    // como usada. Cuando se chequeaban después del update, cualquiera con el
+    // token quemaba definitivamente la invitación de quien había pagado: la
+    // transacción ya la había consumido y el error llegaba tarde.
+    if (inv.expiraEn) {
+      const expira = inv.expiraEn.toDate ? inv.expiraEn.toDate() : new Date(inv.expiraEn);
+      if (expira < new Date()) {
+        throw new functions.https.HttpsError('deadline-exceeded', 'Esta invitación expiró.');
+      }
+    }
+
+    // El mensaje no nombra la dirección: si no, le confirmaba a cualquiera
+    // que tuviera el token a qué mail se le mandó la invitación.
+    const destino = (inv.emailDestino || inv.email || '').toLowerCase().trim();
+    if (destino && destino !== userEmail) {
+      throw new functions.https.HttpsError('permission-denied', 'Esta invitación es para otra persona. Entrá con la cuenta a la que te llegó.');
+    }
+
     tx.update(invRef, {
       usado: true,
       usada: true,
@@ -537,18 +569,6 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
       usadoEn: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
-
-  if (inv.expiraEn) {
-    const expira = inv.expiraEn.toDate ? inv.expiraEn.toDate() : new Date(inv.expiraEn);
-    if (expira < new Date()) {
-      throw new functions.https.HttpsError('deadline-exceeded', 'Esta invitación expiró.');
-    }
-  }
-
-  const emailDestino = (inv.emailDestino || inv.email || '').toLowerCase().trim();
-  if (emailDestino && emailDestino !== userEmail) {
-    throw new functions.https.HttpsError('permission-denied', `Esta invitación es exclusiva para ${emailDestino}.`);
-  }
 
   const cursoId = inv.cursoId || inv.curso;
   if (!cursoId) {
@@ -798,7 +818,10 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en crearPago:', { message: error.message, stack: error.stack });
-    return res.status(500).json({ error: { status: 'INTERNAL', message: error.message } });
+    // Mensaje generico: el detalle va al log. Los mensajes internos nombran
+    // variables de entorno, IDs de planilla y respuestas crudas del proveedor
+    // de pago, que no tienen por que viajar al navegador.
+    return res.status(500).json({ error: { status: 'INTERNAL', message: 'No se pudo generar el pago. Probá de nuevo en unos minutos.' } });
   }
 });
 
@@ -1059,6 +1082,14 @@ exports.verificarPagoMP = functions.https.onRequest(async (req, res) => {
     return res.status(400).json({ error: 'Falta el payment_id.' });
   }
 
+  // Sin este limite se podian probar payment_id de a miles: los pagos sin
+  // cuenta asociada entregan el codigo de regalo a quien llega primero, y el
+  // payment_id viaja en la URL de vuelta de MP, asi que no hay que adivinarlo
+  // de cero. Quien vuelve de pagar de verdad usa este endpoint una o dos veces.
+  if (!(await checkRateLimit('verificarPagoMP', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados intentos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
   try {
     const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
     const paymentClient = new Payment(mpClient);
@@ -1219,7 +1250,10 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en crearPagoPaypal:', { message: error.message });
-    return res.status(500).json({ error: { status: 'INTERNAL', message: error.message } });
+    // Mensaje generico: el detalle va al log. Los mensajes internos nombran
+    // variables de entorno, IDs de planilla y respuestas crudas del proveedor
+    // de pago, que no tienen por que viajar al navegador.
+    return res.status(500).json({ error: { status: 'INTERNAL', message: 'No se pudo generar el pago. Probá de nuevo en unos minutos.' } });
   }
 });
 
@@ -1267,7 +1301,7 @@ exports.crearPagoLibro = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en crearPagoLibro:', error.message);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'No se pudo generar el pago. Probá de nuevo en unos minutos.' });
   }
 });
 
@@ -1392,7 +1426,7 @@ exports.guardarPedido = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en guardarPedido:', error.message);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'No se pudo guardar el pedido. Escribinos a info@sebabru.com si el cobro ya salió.' });
   }
 });
 
@@ -2162,7 +2196,7 @@ exports.registrarInscripcion = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en registrarInscripcion:', error.message);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'No se pudo registrar la inscripción. Probá de nuevo en unos minutos.' });
   }
 });
 
@@ -2638,8 +2672,14 @@ exports.suscribir = functions.https.onRequest(async (req, res) => {
     const contacto = await brevo.obtenerContacto(email);
     const idSuscriptores = brevo.idsDeListas(['suscriptores'])[0];
     if (contacto && idSuscriptores && (contacto.listIds || []).includes(idSuscriptores)) {
+      // La respuesta es la MISMA que la de un alta nueva, a proposito. Antes
+      // contestaba estado 'ya_suscrito', y con eso cualquiera podia averiguar
+      // si una direccion ajena estaba en la lista. Queda anotado en el log y
+      // en "suscripciones", que es donde hace falta saberlo. El texto que ve
+      // la persona no promete un mail nuevo, asi que sirve en los dos casos.
       await anotarPedido('ya_suscrito');
-      return res.status(200).json({ ok: true, estado: 'ya_suscrito' });
+      functions.logger.info('Alta de alguien que ya estaba en la lista', { origen });
+      return res.status(200).json({ ok: true, estado: 'suscrito' });
     }
 
     // Alta directa, sin paso de confirmacion. Lo que cuida que la direccion
@@ -2895,5 +2935,92 @@ exports.sincronizarNovedadesTucarta = onDocumentWritten({
     });
   } else {
     await brevo.quitarDeLista(email, ['suscriptores']);
+  }
+});
+
+// -------------------------------------------------------
+// descargarCertificado: entrega el certificado de egreso
+//
+// Los PDF estaban en public/escuela/certificados/pdfs/ y se bajaban desde una
+// URL publica y adivinable (el archivo se llama como la persona). Cada
+// certificado lleva el DNI impreso, asi que eso era un dato personal al aire.
+// Ahora viven en functions/certificados/, que no se publica, y salen solo por
+// aca: con sesion iniciada y unicamente el propio.
+//
+// Quien tiene derecho a cual archivo se define en la coleccion "certificados"
+// de Firestore, un documento por egresadx con el mail como id:
+//   certificados/alguien@ejemplo.com -> { archivo, nombre, curso }
+// La coleccion esta cerrada a los clientes en firestore.rules: la escribe solo
+// el Admin SDK (las herramientas de admin), nunca el navegador.
+// -------------------------------------------------------
+const CERTIFICADOS_DIR = require('path').join(__dirname, 'certificados');
+const NOMBRE_PDF_VALIDO = /^[a-zA-Z0-9._-]+\.pdf$/;
+
+exports.descargarCertificado = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Debés iniciar sesión para descargar tu certificado.' });
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido.' });
+  }
+
+  if (!(await checkRateLimit('descargarCertificado', req, 20))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const userEmail = (decodedToken.email || '').toLowerCase().trim();
+  if (!userEmail) return res.status(403).json({ error: 'Tu cuenta no tiene un mail asociado.' });
+
+  try {
+    const snap = await _db.collection('certificados').doc(userEmail).get();
+    if (!snap.exists) {
+      // Mismo mensaje para "no sos egresadx" y "todavia no cargamos el tuyo":
+      // no hace falta que esta respuesta diga quien tiene certificado y quien no.
+      return res.status(404).json({ error: 'No encontramos un certificado a tu nombre. Si creés que es un error, escribinos a info@sebabru.com.' });
+    }
+
+    const archivo = String(snap.data().archivo || '');
+    // El nombre del archivo viene de Firestore, que escribe solo el Admin SDK,
+    // pero igual se valida: alcanza un "../" para salirse de la carpeta.
+    if (!NOMBRE_PDF_VALIDO.test(archivo)) {
+      functions.logger.error('Certificado con nombre de archivo invalido', { userEmail, archivo });
+      return res.status(500).json({ error: 'No pudimos preparar tu certificado. Escribinos a info@sebabru.com.' });
+    }
+
+    const ruta = require('path').join(CERTIFICADOS_DIR, archivo);
+    if (!ruta.startsWith(CERTIFICADOS_DIR)) {
+      functions.logger.error('Intento de salir de la carpeta de certificados', { userEmail, archivo });
+      return res.status(400).json({ error: 'Pedido inválido.' });
+    }
+
+    let pdf;
+    try {
+      pdf = await require('fs').promises.readFile(ruta);
+    } catch (e) {
+      functions.logger.error('Falta el PDF del certificado en el deploy', { userEmail, archivo });
+      return res.status(500).json({ error: 'No pudimos preparar tu certificado. Escribinos a info@sebabru.com.' });
+    }
+
+    functions.logger.info('Certificado descargado', { userEmail, archivo });
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', `attachment; filename="${archivo}"`);
+    // Es un dato personal: que no quede en cache de proxies ni del navegador.
+    res.set('Cache-Control', 'private, no-store');
+    return res.status(200).send(pdf);
+
+  } catch (error) {
+    functions.logger.error('Error en descargarCertificado:', error.message);
+    return res.status(500).json({ error: 'No pudimos preparar tu certificado. Probá de nuevo en unos minutos.' });
   }
 });

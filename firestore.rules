@@ -10,16 +10,19 @@ service cloud.firestore {
       allow get: if true;
       allow list: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
-      // Admins: acceso total. Usuarios: solo pueden marcar su propia invitación como usada.
-      allow create, delete: if request.auth != null &&
+      // Solo admins escriben desde un cliente. Quien canjea una invitación no
+      // escribe nada acá: lo hace la Cloud Function activarInvitacion con el
+      // Admin SDK, que no pasa por estas reglas.
+      //
+      // Antes había una rama que dejaba a cualquier persona autenticada
+      // actualizar una invitación no usada. No limitaba qué campos se
+      // escribían y además miraba el campo "email", mientras que quien manda
+      // la invitación guarda el destinatario en "emailDestino": como
+      // "email" no existía en el documento, la condición daba verdadero
+      // siempre. Con eso se podía reescribir emailDestino y cursoId de una
+      // invitación ajena y después canjearla. Se quitó el 2026-11-13.
+      allow create, update, delete: if request.auth != null &&
         request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
-      allow update: if request.auth != null && (
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'] ||
-        (
-          !resource.data.usado &&
-          (!('email' in resource.data) || resource.data.email == request.auth.token.email)
-        )
-      );
     }
 
     match /usuarios/{email} {
@@ -219,6 +222,15 @@ service cloud.firestore {
     match /brevo_contactos/{id} {
       // La cola de altas en el mailing: la llenan las Cloud Functions y la
       // vacia el trigger sincronizarContactoBrevo. Ningun cliente la toca.
+      allow read, write: if false;
+    }
+
+    match /certificados/{email} {
+      // Quien tiene certificado de egreso y cual es su archivo. Lo lee la
+      // Cloud Function descargarCertificado con el Admin SDK, que no pasa por
+      // estas reglas. Cerrado a los clientes a proposito: si un navegador
+      // pudiera leer la coleccion, se sabria quienes son todos los egresados
+      // y con que mail, y el nombre del archivo volveria a ser adivinable.
       allow read, write: if false;
     }
 

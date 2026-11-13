@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Cloud Storage no se usa en el sitio: el bucket aparece declarado en la
+// configuracion del cliente (public/escuela/firebase.js) pero ningun codigo
+// sube ni baja nada por el SDK de Storage, ni en el frontend ni en las
+// Cloud Functions. Los videos estan en Bunny y las imagenes en Hosting.
+//
+// Hasta el 2026-11-13 estas reglas vivian solo en la consola de Firebase:
+// no se podian revisar en el repo ni volver atras si alguien las aflojaba.
+// Se versionan cerradas, que es lo que corresponde a un bucket sin uso.
+//
+// Si algun dia se empieza a usar Storage, abrir SOLO el prefijo que haga
+// falta y con las mismas garantias que firestore.rules: dueño del recurso,
+// tipos de archivo permitidos y tope de tamaño.
+//
+// Nota: los enlaces de descarga de Firebase Storage que llevan token
+// (?alt=media&token=...) no pasan por estas reglas, asi que si hubiera algo
+// subido a mano desde la consola y linkeado con esa URL, sigue funcionando.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

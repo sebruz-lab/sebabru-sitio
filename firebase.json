@@ -44,6 +44,10 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=300"
+          },
+          {
+            "key": "Content-Security-Policy-Report-Only",
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://challenges.cloudflare.com https://www.instagram.com https://*.instagram.com https://connect.facebook.net https://embedsocial.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://us-central1-sebabru-e5563.cloudfunctions.net https://challenges.cloudflare.com https://*.google-analytics.com https://*.analytics.google.com https://*.instagram.com; worker-src 'self' blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://drive.google.com https://docs.google.com https://open.spotify.com https://forms.gle https://*.mediadelivery.net https://challenges.cloudflare.com https://www.instagram.com; object-src 'none'; base-uri 'self'; form-action 'self' https://docs.google.com; frame-ancestors 'self';"
           }
         ]
       },
@@ -58,6 +62,24 @@
       },
       {
         "source": "**/*.@(css|js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=2592000"
+          }
+        ]
+      },
+      {
+        "source": "/cartas/@(sw.js|registerSW.js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/cartas/@(lugares|husos)/**",
         "headers": [
           {
             "key": "Cache-Control",
@@ -98,5 +120,8 @@
         "type": 301
       }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

@@ -32,8 +32,10 @@
 // data-canje reemplaza esa linea de terminos cuando la suscripcion es la
 // condicion para recibir algo (el ebook). data-boton cambia el boton.
 //
-// El alta es con doble opt-in: esto no suscribe a nadie, pide el mail de
-// confirmacion. Quien no hace clic no entra en la lista.
+// El alta es de un solo paso desde el 2026-11-12: el servidor da de alta
+// directo y manda un mail de bienvenida. Lo que cuida que la direccion sea
+// de verdad es el captcha, la trampa para bots, el control de tipeos y la
+// revision de los MX del dominio, todo del lado del servidor.
 
 var URL_SUSCRIBIR = 'https://us-central1-sebabru-e5563.cloudfunctions.net/suscribir';
 var SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
@@ -240,13 +242,22 @@ function armar(caja, n) {
     };
     var limpiarAviso = function () { error.style.display = 'none'; error.innerHTML = ''; };
 
+    // Lo que tipeo la persona no puede entrar crudo a innerHTML: el regex
+    // de validacion del mail permite < y >, asi que sin esto se podia
+    // inyectar HTML en el propio navegador.
+    var limpiar = function (txt) { return String(txt == null ? '' : txt).replace(/[<>&"]/g, ''); };
+
     var mostrarListo = function (estadoAlta, direccion) {
         var textos = {
-            suscrito: (exito || 'Listo, ya estás en la lista. Te mandamos un mail de bienvenida a <strong>'
-                + direccion + '</strong>.')
+            suscrito: (exito || 'Listo, ya estás en la lista, con la dirección <strong>'
+                + limpiar(direccion) + '</strong>.<br>Si es tu primera vez acá, te llega un mail de bienvenida.')
                 + '<span class="sus-nota">Si no lo ves, mirá en spam o en promociones.</span>',
             demorado: 'Te anotamos. El mail de bienvenida puede demorar un rato en llegar.'
                 + '<span class="sus-nota">Si no llega, escribinos a info@sebabru.com.</span>',
+            // El servidor ya no devuelve este estado: contestaba distinto segun
+            // si la direccion estaba o no en la lista, y con eso se podia
+            // averiguar si un mail ajeno estaba suscrito. Queda como respaldo
+            // por si alguna vez se vuelve atras.
             ya_suscrito: 'Ya estabas en la lista. Nos vemos en el próximo mail.',
         };
         caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
@@ -311,7 +322,11 @@ function armar(caja, n) {
                 return avisar('No pudimos verificar que no sos un robot. Recargá la página y probá de nuevo.');
             }
             if (fallo === 'consentimiento_requerido') {
-                return avisar('Para suscribirte necesitamos que marques la casilla.');
+                // Este widget manda el consentimiento siempre (los terminos estan
+                // escritos arriba del boton, no hay casilla que marcar). Si el
+                // servidor igual lo rechaza es un problema nuestro, asi que el
+                // mensaje tiene que ser algo que la persona pueda hacer.
+                return avisar('No pudimos registrar tu consentimiento. Recargá la página y probá de nuevo.');
             }
             if (fallo === 'email_invalido') {
                 return avisar('Revisá el mail: parece que falta algo.');

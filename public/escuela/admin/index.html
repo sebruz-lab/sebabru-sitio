@@ -588,13 +588,13 @@
     const enlCursoSelect = document.getElementById('enl-curso');
     const vidCursoSelect = document.getElementById('vid-curso');
     CURSOS.forEach(c => {
-        filtroSelect.innerHTML      += `<option value="${c.id}">${c.nombre}</option>`;
-        invCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
-        descCursosSelect.innerHTML  += `<option value="${c.id}">${c.nombre}</option>`;
-        migrarOrigenSelect.innerHTML  += `<option value="${c.id}">${c.nombre}</option>`;
-        migrarDestinoSelect.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-        enlCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
-        vidCursoSelect.innerHTML    += `<option value="${c.id}">${c.nombre}</option>`;
+        filtroSelect.innerHTML      += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        invCursoSelect.innerHTML    += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        descCursosSelect.innerHTML  += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        migrarOrigenSelect.innerHTML  += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        migrarDestinoSelect.innerHTML += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        enlCursoSelect.innerHTML    += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
+        vidCursoSelect.innerHTML    += `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`;
     });
 
     // ── AUTH CHECK ────────────────────────────────────────────────
@@ -961,16 +961,16 @@
                 else if (expirado)  estadoTag = '<span class="tag tag-expirado">Expirada</span>';
                 else                estadoTag = '<span class="tag tag-activo">Activa</span>';
 
-                const url = `${window.location.origin}/escuela/invitacion/?token=${inv.id}`;
+                const url = `${window.location.origin}/escuela/invitacion/?token=${encodeURIComponent(inv.id)}`;
                 const copiarBtn = (!inv.usado && !expirado)
-                    ? `<button class="btn-table btn-copy-inv" data-url="${url}"><i class="fa-solid fa-copy"></i></button>`
+                    ? `<button class="btn-table btn-copy-inv" data-url="${escapeHtml(url)}"><i class="fa-solid fa-copy"></i></button>`
                     : '';
 
                 return `
                     <tr>
-                        <td style="font-family:monospace;font-size:0.75rem;color:var(--muted)">${inv.id.substring(0,8)}…</td>
-                        <td><span class="tag tag-curso">${inv.curso}</span></td>
-                        <td style="font-size:0.8rem">${inv.email || '<span style="color:#555">cualquiera</span>'}</td>
+                        <td style="font-family:monospace;font-size:0.75rem;color:var(--muted)">${escapeHtml(String(inv.id).substring(0,8))}…</td>
+                        <td><span class="tag tag-curso">${escapeHtml(inv.curso)}</span></td>
+                        <td style="font-size:0.8rem">${inv.email ? escapeHtml(inv.email) : '<span style="color:#555">cualquiera</span>'}</td>
                         <td style="font-size:0.78rem;color:var(--muted)">${creada.toLocaleDateString('es-AR')}</td>
                         <td style="font-size:0.78rem;color:var(--muted)">${expira.toLocaleDateString('es-AR')}</td>
                         <td>${estadoTag}</td>
