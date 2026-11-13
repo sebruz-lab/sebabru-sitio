@@ -2498,7 +2498,7 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // navegador.
 const ORIGENES_SUSCRIPCION = new Set([
   'home', 'lunanueva', 'lunallena', 'kit', 'links', 'suscribirse', 'formulario',
-  'ebook',
+  'ebook', 'cartas',
 ]);
 
 // Que mail sale al darse de alta. Casi siempre la bienvenida; desde la
