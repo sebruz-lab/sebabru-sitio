@@ -336,6 +336,11 @@ async function confirmar() {
   boton.disabled = true;
   boton.textContent = 'Agendando...';
   limpiarError('ag-error-reserva');
+  // El evento en Calendar se espera en linea, asi que esto puede tardar unos
+  // segundos. Si tarda, se dice; si contesta rapido, nunca aparece.
+  const relojTarda = setTimeout(() => {
+    $('ag-tarda').classList.add('visible');
+  }, 3000);
   try {
     const resp = await fetch(`${API}/reservarTurno`, {
       method: 'POST',
@@ -361,6 +366,8 @@ async function confirmar() {
   } catch (_) {
     mostrarError('ag-error-reserva', MENSAJES.fallo);
   } finally {
+    clearTimeout(relojTarda);
+    $('ag-tarda').classList.remove('visible');
     boton.disabled = false;
     boton.textContent = original;
   }

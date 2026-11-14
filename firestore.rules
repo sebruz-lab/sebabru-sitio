@@ -225,6 +225,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /filas_planilla/{id} {
+      // La cola de la planilla: la llenan las Cloud Functions y la vacia el
+      // trigger escribirFilaPlanilla. Cada documento tiene la fila entera de
+      // una inscripcion, o sea nombre, telefono, email y datos de
+      // nacimiento. Cerrada de los dos lados.
+      allow read, write: if false;
+    }
+
     match /mails_salientes/{id} {
       // La cola de mails: la llenan las Cloud Functions y la vacia el
       // trigger enviarMailEncolado. Cerrada de los dos lados, y no por

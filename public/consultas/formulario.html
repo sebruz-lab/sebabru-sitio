@@ -255,6 +255,13 @@ body.previa #consulta input, body.previa #consulta select, body.previa #consulta
             <button type="submit" class="btn-compra btn-mp" id="btn-enviar">
                 <i class="fa-solid fa-paper-plane"></i> Pedir la consulta
             </button>
+            <!-- Aparece solo si el envío pasa de tres segundos, que es el
+                 arranque en frío de la función y le toca a quien envía el
+                 primer formulario del día. Sin esto ve un botón quieto y
+                 recarga. No es un error: no va en la caja de errores. -->
+            <p id="aviso-tarda" style="display:none; margin:10px 0 0; font-size:0.88em; color:#777; text-align:center; line-height:1.5;">
+                Estamos guardando tus datos, no cierres esta ventana.
+            </p>
         </form>
     </div>
 
@@ -582,7 +589,9 @@ if (esRegalo) {
         }
 
         btn.disabled = true;
-        btn.textContent = 'Enviando...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+        const avisoTarda = document.getElementById('aviso-tarda');
+        const relojTarda = setTimeout(() => { avisoTarda.style.display = 'block'; }, 3000);
 
         try {
             const resp = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion', {
@@ -632,6 +641,8 @@ if (esRegalo) {
         } catch (err) {
             mostrarError(err.message || 'No pudimos registrar tu pedido. Probá de nuevo.', 'servidor');
         } finally {
+            clearTimeout(relojTarda);
+            avisoTarda.style.display = 'none';
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Pedir la consulta';
         }

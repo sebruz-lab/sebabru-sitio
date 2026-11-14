@@ -89,6 +89,13 @@
     }
     .ag-error.visible { display: block; }
 
+    /* El renglon de "esto esta tardando". No es un error: ni rojo ni alert. */
+    .ag-tarda {
+        display: none; margin: 12px 0 0; color: #b9b4ae;
+        font-size: 0.8rem; line-height: 1.6; text-align: center;
+    }
+    .ag-tarda.visible { display: block; }
+
     /* Calendario */
     .ag-mes {
         display: flex; align-items: center; justify-content: space-between;
@@ -283,6 +290,7 @@
                             <p id="ag-resumen-texto"></p>
                             <div id="ag-error-reserva" class="ag-error" role="alert"></div>
                             <button type="button" class="ag-boton" id="ag-btn-confirmar">Confirmar mi sesión</button>
+                            <p id="ag-tarda" class="ag-tarda">Estamos reservando tu horario, no cierres esta ventana.</p>
                         </div>
                     </div>
 
@@ -337,6 +345,6 @@
     </footer>
 
     <script src="../../script.js"></script>
-    <script type="module" src="/consultas/agenda/agenda.js?v=1"></script>
+    <script type="module" src="/consultas/agenda/agenda.js?v=2"></script>
 </body>
 </html>

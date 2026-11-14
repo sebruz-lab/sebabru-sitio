@@ -2043,6 +2043,68 @@ function getSheetsClient() {
 const _hojasVistas = new Set();
 const _encabezadosEscritos = new Map();
 
+// En que planilla escribe un formulario. Un formulario puede traer la suya
+// por variable de entorno (consultas), fija en la config, o caer en la de
+// las inscripciones.
+function planillaDeFormulario(config) {
+  return (config.spreadsheetEnv && process.env[config.spreadsheetEnv])
+    || config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
+}
+
+// Los titulos de la fila 1, en el orden en que se armaron siempre: la fecha,
+// los campos del formulario, la columna Carta, las columnas fijas y recien
+// al final los campos "finales". Ese orden importa: un campo nuevo del
+// formulario no tiene que correr ninguna columna que ya tenga datos.
+//
+// Esta funcion existe porque ahora la fila la escribe el trigger, no el
+// endpoint: los dos tienen que estar de acuerdo en los titulos.
+function encabezadosDeFormulario(config) {
+  const encabezados = [
+    config.etiquetaFecha || 'Fecha de inscripción',
+    ...config.campos.map(c => c.label),
+  ];
+  if (config.columnaCarta) encabezados.push(config.columnaCarta);
+  for (const titulo of Object.keys(config.columnasFijas || {})) encabezados.push(titulo);
+  for (const c of config.camposFinales || []) encabezados.push(c.label);
+  return encabezados;
+}
+
+function filaDeFormulario(config, titulos, valores, estadoCarta, ahora) {
+  const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
+  if (config.columnasPorEncabezado) {
+    // Cada valor va en la columna que lleva su titulo, sin importar en que
+    // posicion quedo: asi la hoja se puede reordenar o ampliar a mano.
+    const porTitulo = { [etiquetaFecha]: ahora };
+    for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
+    if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
+    Object.assign(porTitulo, config.columnasFijas || {});
+    for (const c of config.camposFinales || []) porTitulo[c.label] = valores[c.key] || '';
+    return titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
+  }
+  const fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
+  if (config.columnaCarta) fila.push(estadoCarta);
+  fila.push(...Object.values(config.columnasFijas || {}));
+  fila.push(...(config.camposFinales || []).map(c => valores[c.key] || ''));
+  return fila;
+}
+
+// La cola de la planilla. Dos trabajos distintos:
+//   tipo 'inscripcion' -> agrega la fila de un formulario
+//   tipo 'sesion'      -> escribe el dia y la hora de un turno
+// La vacia el trigger escribirFilaPlanilla. Como encolarMail y
+// encolarContactoBrevo, nunca tira: una inscripcion no se cae porque Sheets
+// este de mal humor.
+async function encolarFilaPlanilla(datos) {
+  try {
+    await _db.collection('filas_planilla').add({
+      ...datos,
+      creado: new Date().toISOString(),
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo encolar la fila de la planilla:', error.message);
+  }
+}
+
 async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados, porEncabezado) {
   const clave = spreadsheetId + '|' + nombreHoja;
 
@@ -2152,82 +2214,37 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   let urlAgenda = null;
 
   try {
-    const sheets = getSheetsClient();
-    // Si el formulario declara su propia planilla por variable de entorno y
-    // esa variable no llego al deploy, antes caia en silencio en la planilla
-    // de las inscripciones y escribia ahi: todo contestaba 200 y la fila
-    // aparecia en otro lado. Mejor fallar y que se vea.
+    // La planilla ya no se escribe aca. Era el segundo costo del envio (dos
+    // a cinco segundos contra la API de Sheets, a veces cuatro viajes) y es
+    // una fila que lee Seba, no quien se esta inscribiendo. Se encola en
+    // filas_planilla y la escribe el trigger escribirFilaPlanilla.
+    //
+    // Del entorno si se sigue desconfiando aca mismo, que no cuesta nada: si
+    // el formulario declara su propia planilla por variable de entorno y esa
+    // variable no llego al deploy, antes la fila caia en silencio en la
+    // planilla de las inscripciones y aparecia en otro lado con un 200 de
+    // respuesta. Eso tiene que fallar, y tiene que fallar a la vista.
     if (config.spreadsheetEnv && !process.env[config.spreadsheetEnv]) {
       throw new Error(`Falta ${config.spreadsheetEnv} en el entorno de la función (formulario ${formId})`);
     }
-    const spreadsheetId = (config.spreadsheetEnv && process.env[config.spreadsheetEnv])
-      || config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
-    if (!spreadsheetId) throw new Error(`Falta la planilla del formulario ${formId}`);
-    const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
-    const encabezados = [etiquetaFecha, ...config.campos.map(c => c.label)];
-    if (config.columnaCarta) encabezados.push(config.columnaCarta);
-    // Columnas que no vienen del formulario sino del formulario mismo (hoy,
-    // si la consulta es un regalo): el mismo valor en todas sus filas.
-    for (const titulo of Object.keys(config.columnasFijas || {})) encabezados.push(titulo);
-    // Los campos "finales" van despues de la columna Carta y de las fijas,
-    // asi un campo nuevo del formulario no corre ninguna columna que ya
-    // tenga datos en la planilla.
-    for (const c of config.camposFinales || []) encabezados.push(c.label);
-    const titulos = await asegurarHojaInscripcion(
-      sheets, spreadsheetId, config.hoja, encabezados, config.columnasPorEncabezado
-    );
+    if (!planillaDeFormulario(config)) throw new Error(`Falta la planilla del formulario ${formId}`);
 
-    // La carta se arma antes de escribir la fila, asi la planilla dice si
+    // La carta se arma antes de encolar la fila, asi la planilla dice si
     // salio sola o si hay que hacerla a mano (pasa cuando el lugar de
-    // nacimiento no esta en el buscador y la persona lo escribe igual).
+    // nacimiento no esta en el buscador y la persona lo escribe igual). Es
+    // calculo, no I/O: no suma espera.
     const carta = config.carta ? cartaDeInscripcion(valores, req.body?.lugar, config.carta.grupo) : null;
     const estadoCarta = carta ? 'Sí' : 'No: el lugar no se eligió de la lista';
-
     const ahora = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
-    let fila;
-    if (config.columnasPorEncabezado) {
-      // Cada valor va en la columna que lleva su titulo, sin importar en que
-      // posicion quedo: asi la hoja se puede reordenar o ampliar a mano.
-      const porTitulo = { [etiquetaFecha]: ahora };
-      for (const c of config.campos) porTitulo[c.label] = valores[c.key] || '';
-      if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
-      Object.assign(porTitulo, config.columnasFijas || {});
-      for (const c of config.camposFinales || []) porTitulo[c.label] = valores[c.key] || '';
-      fila = titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
-    } else {
-      fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
-      if (config.columnaCarta) fila.push(estadoCarta);
-      fila.push(...Object.values(config.columnasFijas || {}));
-      fila.push(...(config.camposFinales || []).map(c => valores[c.key] || ''));
-    }
-
-    // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a
-    // todas las columnas pegadas y, si alguna arrastra formato o una formula
-    // hasta el fondo de la hoja, la fila nueva termina mil filas mas abajo,
-    // lejos de los datos. Mirando solo la columna A (la fecha, que siempre
-    // escribimos nosotros) cae siempre despues del ultimo pedido.
-    const escrito = await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${config.hoja}!A:A`,
-      valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [fila] },
-    });
-    // En que planilla y en que celdas quedo, para no tener que adivinar
-    // cuando alguien no encuentra una fila.
-    functions.logger.info('Fila agregada', {
-      formId,
-      planilla: spreadsheetId,
-      rango: escrito.data?.updates?.updatedRange || '(no lo dijo)',
-      columnas: titulos.length,
-    });
 
     // Paso 2 de una consulta: elegir el dia y la hora en /consultas/agenda/.
-    // Se guarda el pedido con la fila que acaba de quedar en la planilla,
-    // asi al reservar se escriben el dia y la hora en esa misma fila.
+    // Este es el unico I/O que queda en fila, y tiene que estar: su id es el
+    // que viaja en la respuesta (el boton "Elegi el dia y la hora") y es el
+    // que necesita la fila encolada para despues decirle donde quedo.
     //
-    // Si esto falla, la inscripcion sigue valiendo: la persona queda en la
+    // Si falla, la inscripcion sigue valiendo: la persona queda en la
     // planilla y recibe su mail, solo que coordina a mano como antes.
+    let pedidoId = null;
     if (config.agenda) {
       try {
         const ref = await _db.collection('agenda_pedidos').add({
@@ -2237,28 +2254,67 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
           email: valores.email || '',
           telefono: valores.telefono || '',
           modalidad: valores.modalidad || '',
-          filaPlanilla: escrito.data?.updates?.updatedRange || null,
+          // La escribe el trigger cuando la fila quede en la planilla.
+          filaPlanilla: null,
           turnoId: null,
           creado: new Date().toISOString(),
         });
+        pedidoId = ref.id;
         urlAgenda = urlDeAgenda(ref.id);
       } catch (error) {
         functions.logger.error('No se pudo abrir la agenda del pedido:', error.message);
       }
     }
 
-    let cartaGuardada = false;
-    if (carta) {
-      try {
-        await guardarCartaInscripcion(config, carta);
-        cartaGuardada = true;
-      } catch (error) {
-        functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
+    // Y de aca al final, todo junto. Son cuatro escrituras independientes
+    // entre si: antes se esperaban en fila y la persona pagaba la suma;
+    // ahora paga la mas lenta. Ninguna de las cuatro puede tirar (cada una
+    // se traga su error y lo loguea), asi que el Promise.all no necesita
+    // catch.
+    const guardarCartaYAvisar = (async () => {
+      let cartaGuardada = false;
+      if (carta) {
+        try {
+          await guardarCartaInscripcion(config, carta);
+          cartaGuardada = true;
+        } catch (error) {
+          functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
+        }
       }
-    }
+
+      const filasHtml = [...config.campos, ...(config.camposFinales || [])].map(c =>
+        `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
+      ).join('') + (config.carta
+        ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
+          ? `Guardada en tus cartas de <a href="https://sebabru.com/cartas/">sebabru.com/cartas</a> (${escapeHtml(config.carta.grupo)})`
+          : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
+        : '');
+
+      // El aviso a Seba va a la cola. Era el ultimo await antes del
+      // res.send() y el mas caro de todos: una conexion SMTP nueva a Gmail,
+      // dos a seis segundos, para mandar un mail interno que quien se
+      // inscribe no va a leer nunca. Ahora son 150 ms de Firestore y lo
+      // manda enviarMailEncolado. Ver mails.js.
+      await mails.encolarMail(_db, {
+        para: AVISOS_INSCRIPCION,
+        asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
+        motivo: `inscripcion:${formId}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+            <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
+            <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+              ${filasHtml}
+            </table>
+          </div>
+        `,
+      });
+    })();
+
     // La confirmacion (con la carta en PDF) la manda enviarCartaInscripcion,
     // aparte: armar el PDF tarda y la persona no tiene que esperarlo.
-    if (config.confirmacion && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
+    const pedirConfirmacion = (async () => {
+      if (!config.confirmacion) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) return;
       try {
         await _db.collection('envios_carta').add({
           formId, email: valores.email, nombre: valores.nombre || '', modalidad: valores.modalidad || null, carta, urlAgenda, creado: new Date().toISOString(),
@@ -2266,11 +2322,12 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
       } catch (error) {
         functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
       }
-    }
+    })();
 
     // Y el alta en el mailing, por la misma cola. A la lista del formulario
     // entra siempre; a la de lunaciones, solo si marco el casillero.
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) {
+    const altaEnElMailing = (async () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) return;
       const quiereNovedades = valores.novedades === 'Sí';
       await encolarContactoBrevo({
         email: valores.email,
@@ -2286,36 +2343,16 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
         },
         motivo: `inscripcion:${formId}`,
       });
-    }
+    })();
 
-    const filasHtml = [...config.campos, ...(config.camposFinales || [])].map(c =>
-      `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
-    ).join('') + (config.carta
-      ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
-        ? `Guardada en tus cartas de <a href="https://sebabru.com/cartas/">sebabru.com/cartas</a> (${escapeHtml(config.carta.grupo)})`
-        : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
-      : '');
+    await Promise.all([
+      encolarFilaPlanilla({ tipo: 'inscripcion', formId, pedidoId, valores, estadoCarta, ahora }),
+      guardarCartaYAvisar,
+      pedirConfirmacion,
+      altaEnElMailing,
+    ]);
 
-    // El aviso a Seba va a la cola. Era el ultimo await antes del res.send()
-    // y el mas caro de todos: una conexion SMTP nueva a Gmail, dos a seis
-    // segundos, para mandar un mail interno que quien se inscribe no va a
-    // leer nunca. Ahora son 150 ms de Firestore y lo manda
-    // enviarMailEncolado. Ver mails.js.
-    await mails.encolarMail(_db, {
-      para: AVISOS_INSCRIPCION,
-      asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
-      motivo: `inscripcion:${formId}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
-          <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
-          <table style="width:100%;border-collapse:collapse;margin-top:16px;">
-            ${filasHtml}
-          </table>
-        </div>
-      `,
-    });
-
-    functions.logger.info('Inscripción registrada', { formId, hoja: config.hoja });
+    functions.logger.info('Inscripción registrada', { formId, hoja: config.hoja, pedidoId });
     return res.status(200).json({ ok: true, agenda: urlAgenda });
 
   } catch (error) {
@@ -2871,6 +2908,117 @@ exports.enviarMailEncolado = onDocumentCreated({
 });
 
 // -------------------------------------------------------
+// escribirFilaPlanilla: el que vacia la cola de filas_planilla. La API de
+// Sheets son dos a cinco segundos y nada de lo que escribe lo mira quien
+// esta esperando del otro lado: la fila la lee Seba.
+//
+// retry en true: un rato malo de Sheets no pierde la fila. Y hace falta por
+// otra razon, que esta explicada en escribirSesionDeLaCola: cuando el turno
+// llega antes que la fila del formulario, el reintento es el que espera.
+// -------------------------------------------------------
+exports.escribirFilaPlanilla = onDocumentCreated({
+  document: 'filas_planilla/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  retry: true,
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+  if (!event.data) return;
+  const ref = event.data.ref;
+
+  // event.data es la foto del momento en que se creo el documento. Con
+  // retry en true esto puede correr dos veces, asi que se vuelve a leer para
+  // ver la marca de "ya escrito": los triggers de Firestore son
+  // at-least-once y una fila duplicada en la planilla no se nota.
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const trabajo = snap.data();
+  if (trabajo.escrito) {
+    functions.logger.info('La fila ya estaba escrita, no se repite', { id: ref.id });
+    return;
+  }
+
+  if (trabajo.tipo === 'sesion') await escribirSesionDeLaCola(trabajo);
+  else await escribirInscripcionDeLaCola(trabajo);
+
+  await ref.update({ escrito: new Date().toISOString() });
+});
+
+// La fila de un formulario. Es lo que hacia registrarInscripcion antes de
+// contestar.
+async function escribirInscripcionDeLaCola(trabajo) {
+  const config = FORMULARIOS_INSCRIPCION[trabajo.formId];
+  if (!config) {
+    // Un formulario que ya no existe: no hay reintento que lo arregle.
+    functions.logger.error('Fila encolada de un formulario desconocido', { formId: trabajo.formId });
+    return;
+  }
+  const spreadsheetId = planillaDeFormulario(config);
+  if (!spreadsheetId) throw new Error(`Falta la planilla del formulario ${trabajo.formId}`);
+
+  const sheets = getSheetsClient();
+  const titulos = await asegurarHojaInscripcion(
+    sheets, spreadsheetId, config.hoja, encabezadosDeFormulario(config), config.columnasPorEncabezado
+  );
+  const fila = filaDeFormulario(config, titulos, trabajo.valores || {}, trabajo.estadoCarta || '', trabajo.ahora || '');
+
+  // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a
+  // todas las columnas pegadas y, si alguna arrastra formato o una formula
+  // hasta el fondo de la hoja, la fila nueva termina mil filas mas abajo,
+  // lejos de los datos. Mirando solo la columna A (la fecha, que siempre
+  // escribimos nosotros) cae siempre despues del ultimo pedido.
+  const escrito = await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${config.hoja}!A:A`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [fila] },
+  });
+  const rango = escrito.data?.updates?.updatedRange || null;
+
+  // En que planilla y en que celdas quedo, para no tener que adivinar cuando
+  // alguien no encuentra una fila.
+  functions.logger.info('Fila agregada', {
+    formId: trabajo.formId,
+    planilla: spreadsheetId,
+    rango: rango || '(no lo dijo)',
+    columnas: titulos.length,
+  });
+
+  // Y se le avisa al pedido donde quedo su fila, que es lo que despues
+  // permite escribir el dia y la hora del turno en esa misma fila en vez de
+  // en una nueva.
+  if (trabajo.pedidoId && rango) {
+    await _db.collection('agenda_pedidos').doc(trabajo.pedidoId).set({ filaPlanilla: rango }, { merge: true });
+  }
+}
+
+// El dia y la hora de un turno.
+async function escribirSesionDeLaCola(trabajo) {
+  const snap = await _db.collection('agenda_pedidos').doc(trabajo.pedidoId).get();
+  if (!snap.exists) {
+    functions.logger.error('Sesion encolada de un pedido que no existe', { pedidoId: trabajo.pedidoId });
+    return;
+  }
+  const pedido = snap.data();
+
+  // Aca esta la carrera que trajo encolar las dos cosas: si alguien llena el
+  // formulario y elige el horario enseguida, el turno puede llegar antes que
+  // la fila. Entonces no se agrega una fila nueva (seria la segunda de la
+  // misma persona, y nadie se enteraria): se tira, y el reintento del
+  // trigger vuelve en unos segundos, cuando la fila ya este.
+  if (pedido.origen !== 'directo' && !pedido.filaPlanilla) {
+    throw new Error('la fila del formulario todavia no esta en la planilla: se reintenta');
+  }
+
+  const filaNueva = await escribirSesionEnPlanilla(pedido, trabajo.inicioMs);
+  if (filaNueva) {
+    await snap.ref.set({ filaPlanilla: filaNueva }, { merge: true });
+  }
+}
+
+// -------------------------------------------------------
 // sincronizarContactoBrevo: el que vacia la cola de brevo_contactos. Cada
 // compra y cada inscripcion deja ahi un pedido en vez de llamar a Brevo en
 // el momento, asi un problema del mailing no puede demorar ni romper un
@@ -3335,7 +3483,9 @@ exports.baja = functions.https.onRequest(async (req, res) => {
 // sesion de alguien de quien ya tenemos la carta.
 // =======================================================================
 
-const { calendar: calendarApi } = require('@googleapis/calendar');
+// @googleapis/calendar son 180 archivos y hasta ahora los cargaban las 32
+// functions al arrancar en frio, incluidas las 28 que no tienen nada que ver
+// con la agenda. Se carga adentro de getCalendarClient.
 
 // Argentina no tiene horario de verano desde 2009, asi que toda la agenda se
 // calcula con un offset fijo. Es lo que permite generar los horarios con
@@ -3399,6 +3549,7 @@ let _calendarClient;
 // vuelve atras.
 function getCalendarClient() {
   if (_calendarClient) return _calendarClient;
+  const { calendar: calendarApi } = require('@googleapis/calendar');
   const auth = new JWT({
     email: process.env.SHEETS_CLIENT_EMAIL,
     key: (process.env.SHEETS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
@@ -3661,8 +3812,20 @@ async function escribirSesionEnPlanilla(pedido, inicioMs) {
     return;
   }
 
-  // Pedido directo: no hay fila que actualizar, se escribe una nueva con lo
-  // poco que sabemos. La carta ya la tenemos de la sesion anterior.
+  // Sin fila que actualizar. Una fila nueva se agrega solo si el pedido
+  // nacio en la agenda suelta: un pedido que vino del formulario YA tiene su
+  // fila, y si no la encontramos es porque algo fallo antes. Agregar otra
+  // deja dos filas de la misma persona en la planilla y nadie se entera.
+  //
+  // Antes esto se decidia por filaPlanilla vacio, que es justo lo que pasa
+  // cuando algo salio mal. Ahora lo decide el origen, que es un hecho del
+  // pedido y no el sintoma de una falla.
+  if (pedido.origen !== 'directo') {
+    throw new Error('pedido de formulario sin filaPlanilla: no se agrega una fila nueva');
+  }
+
+  // Pedido directo: se escribe una fila nueva con lo poco que sabemos. La
+  // carta ya la tenemos de la sesion anterior.
   const porTitulo = {
     [config.etiquetaFecha]: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
     Nombre: pedido.nombre || '',
@@ -3990,7 +4153,7 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
 // disponibilidad: los horarios libres de un tramo, en hora de Argentina.
 // La pagina los muestra en la zona horaria de quien mira.
 // -------------------------------------------------------
-exports.disponibilidad = functions.https.onRequest(async (req, res) => {
+exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -4065,7 +4228,7 @@ exports.disponibilidad = functions.https.onRequest(async (req, res) => {
 // reservarTurno: fija el horario. Si el pedido ya tenia uno, lo libera
 // primero: ese es el camino de "cambiar la fecha".
 // -------------------------------------------------------
-exports.reservarTurno = functions.https.onRequest(async (req, res) => {
+exports.reservarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -4101,7 +4264,7 @@ exports.reservarTurno = functions.https.onRequest(async (req, res) => {
 // -------------------------------------------------------
 // cancelarTurno: libera el horario y borra el evento.
 // -------------------------------------------------------
-exports.cancelarTurno = functions.https.onRequest(async (req, res) => {
+exports.cancelarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -4151,18 +4314,30 @@ exports.cancelarTurno = functions.https.onRequest(async (req, res) => {
 // la persona ya lo vio confirmado, asi que esos fallos se loguean.
 // -------------------------------------------------------
 async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
-  const config = await leerConfigAgenda();
+  const dia = diaLocal(inicioMs);
+
+  // Las tres son independientes: la config y los bloqueos son dos lecturas
+  // de Firestore y la ocupacion es Google Calendar, que es la lenta. Antes
+  // la config se esperaba sola y recien despues salian las otras dos, asi
+  // que se sumaban. Salen las tres juntas y se paga la mas lenta.
+  const promesaConfig = leerConfigAgenda();
+  const promesaBloqueos = leerBloqueos();
+  const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'));
+
+  const config = await promesaConfig;
   // Seba, desde el panel, puede poner un turno aunque la agenda este en
   // pausa o fuera de las franjas: la pausa es para el publico.
   const esAdmin = quien === 'admin';
-  if (config.pausado && !esAdmin) return { error: 'agenda_pausada', status: 409 };
+  if (config.pausado && !esAdmin) {
+    // Las otras dos ya salieron: si se vuelve sin esperarlas, un rechazo
+    // suyo queda sin atender y Node lo levanta como unhandledRejection.
+    promesaBloqueos.catch(() => {});
+    promesaOcupacion.catch(() => {});
+    return { error: 'agenda_pausada', status: 409 };
+  }
 
-  const dia = diaLocal(inicioMs);
   const turnoAnterior = pedido.turnoId || null;
-  const [bloqueos, ocupadosCrudos] = await Promise.all([
-    leerBloqueos(),
-    ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59')),
-  ]);
+  const [bloqueos, ocupadosCrudos] = await Promise.all([promesaBloqueos, promesaOcupacion]);
   const ocupados = ocupadosCrudos
     // Al reprogramar, el turno que la persona ya tenia no se cuenta como
     // ocupado: si no, no podria mover la sesion dos horas.
@@ -4235,23 +4410,30 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
     } catch (_) { /* encolarMail no tira, pero por las dudas */ }
   }
 
-  await _db.collection('agenda_turnos').doc(turnoId).set({ eventId, meet }, { merge: true });
-  await _db.collection('agenda_pedidos').doc(pedidoId).set({ turnoId }, { merge: true });
+  // Dos documentos distintos: no hay razon para esperar uno y despues el
+  // otro.
+  await Promise.all([
+    _db.collection('agenda_turnos').doc(turnoId).set({ eventId, meet }, { merge: true }),
+    _db.collection('agenda_pedidos').doc(pedidoId).set({ turnoId }, { merge: true }),
+  ]);
 
+  // La planilla tambien se encola. Era lo ultimo que quedaba en fila antes
+  // de contestar y es el gasto mas grande de reservarTurno despues del
+  // evento en Calendar: hasta cuatro viajes a la API de Sheets para escribir
+  // el dia y la hora en una fila que lee Seba. Lo hace el trigger
+  // escribirFilaPlanilla, que ademas sabe esperar si la fila del formulario
+  // todavia no llego.
+  //
+  // El evento en Calendar, en cambio, se queda en linea a proposito: si el
+  // turno no entra en el calendario, el turno no existe, y eso la persona lo
+  // tiene que saber antes de ver "listo".
   try {
-    const filaNueva = await escribirSesionEnPlanilla(pedido, inicioMs);
-    if (filaNueva) {
-      pedido.filaPlanilla = filaNueva;
-      await _db.collection('agenda_pedidos').doc(pedidoId).set({ filaPlanilla: filaNueva }, { merge: true });
-    }
+    await Promise.all([
+      encolarFilaPlanilla({ tipo: 'sesion', pedidoId, inicioMs }),
+      avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, meet),
+    ]);
   } catch (e) {
-    functions.logger.error('No se pudo escribir la sesion en la planilla', e.message);
-  }
-
-  try {
-    await avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, meet);
-  } catch (e) {
-    functions.logger.error('No se pudo mandar el mail del turno', e.message);
+    functions.logger.error('No se pudo avisar del turno', e.message);
   }
 
   functions.logger.info('Turno reservado', { turnoId, pedidoId, quien, origen: pedido.origen });

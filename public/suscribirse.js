@@ -88,6 +88,10 @@ var ESTILOS = `
 }
 .suscribirse button:hover:not(:disabled) { background: transparent; color: #fff; }
 .suscribirse button:disabled { opacity: 0.55; cursor: default; }
+.suscribirse .sus-tarda {
+    display: none; margin: 12px 0 0; color: #cccac3;
+    font-size: 0.72rem; line-height: 1.6; text-align: center;
+}
 .suscribirse .sus-error {
     display: none; margin: 0 0 18px; padding: 11px 13px; border-radius: 9px;
     background: rgba(255,120,120,0.09); border: 1px solid rgba(255,120,120,0.3);
@@ -195,6 +199,9 @@ function armar(caja, n) {
     caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
         + '<p class="sus-intro">' + texto + '</p>'
         + '<p class="sus-error" id="' + id('error') + '" role="alert"></p>'
+        // Lo de "esta tardando" va aparte de la caja de errores: es rojo y
+        // role="alert", y esto no es una falla sino el arranque en frio.
+        + '<p class="sus-tarda" id="' + id('tarda') + '">Estamos dándote de alta, no cierres esta ventana.</p>'
         + '<form novalidate>'
         + '<div class="sus-campo">'
         + '<label for="' + id('email') + '">Tu mail</label>'
@@ -220,6 +227,7 @@ function armar(caja, n) {
 
     var form = caja.querySelector('form');
     var error = caja.querySelector('#' + id('error'));
+    var tarda = caja.querySelector('#' + id('tarda'));
     var email = caja.querySelector('#' + id('email'));
     var nombre = caja.querySelector('#' + id('nombre'));
     var trampa = caja.querySelector('#' + id('hp'));
@@ -275,7 +283,10 @@ function armar(caja, n) {
         }
         boton.disabled = true;
         boton.textContent = 'Enviando...';
+        var relojTarda = setTimeout(function () { tarda.style.display = 'block'; }, 3000);
         var terminar = function () {
+            clearTimeout(relojTarda);
+            tarda.style.display = 'none';
             boton.disabled = false;
             boton.textContent = textoBoton;
         };
@@ -300,6 +311,10 @@ function armar(caja, n) {
             });
         }).then(function (resp) {
             if (resp.ok && resp.data.ok) {
+                // El camino bueno no pasa por terminar() (mostrarListo
+                // reemplaza el formulario entero), asi que el reloj se apaga
+                // a mano: si no, queda pendiente.
+                clearTimeout(relojTarda);
                 if (window.gtag) gtag('event', 'suscripcion', { origen: origen });
                 return mostrarListo(resp.data.estado, direccion);
             }
