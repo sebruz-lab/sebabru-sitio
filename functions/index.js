@@ -2078,6 +2078,11 @@ function planillaDeFormulario(config) {
     || config.spreadsheet || process.env.SHEETS_SPREADSHEET_ID;
 }
 
+// El id del pedido, escrito en su propia columna de la planilla. Es lo que
+// permite encontrar la fila de alguien sin depender de en que numero de fila
+// quedo: ver filaDelPedido, mas abajo.
+const AGENDA_COL_PEDIDO = 'ID del pedido';
+
 // Los titulos de la fila 1, en el orden en que se armaron siempre: la fecha,
 // los campos del formulario, la columna Carta, las columnas fijas y recien
 // al final los campos "finales". Ese orden importa: un campo nuevo del
@@ -2093,10 +2098,13 @@ function encabezadosDeFormulario(config) {
   if (config.columnaCarta) encabezados.push(config.columnaCarta);
   for (const titulo of Object.keys(config.columnasFijas || {})) encabezados.push(titulo);
   for (const c of config.camposFinales || []) encabezados.push(c.label);
+  // Solo los formularios que usan la agenda: son los unicos cuya fila hay
+  // que volver a encontrar despues, para escribirle el dia y la hora.
+  if (config.agenda) encabezados.push(AGENDA_COL_PEDIDO);
   return encabezados;
 }
 
-function filaDeFormulario(config, titulos, valores, estadoCarta, ahora) {
+function filaDeFormulario(config, titulos, valores, estadoCarta, ahora, pedidoId) {
   const etiquetaFecha = config.etiquetaFecha || 'Fecha de inscripción';
   if (config.columnasPorEncabezado) {
     // Cada valor va en la columna que lleva su titulo, sin importar en que
@@ -2106,12 +2114,14 @@ function filaDeFormulario(config, titulos, valores, estadoCarta, ahora) {
     if (config.columnaCarta) porTitulo[config.columnaCarta] = estadoCarta;
     Object.assign(porTitulo, config.columnasFijas || {});
     for (const c of config.camposFinales || []) porTitulo[c.label] = valores[c.key] || '';
+    if (config.agenda) porTitulo[AGENDA_COL_PEDIDO] = pedidoId || '';
     return titulos.map(t => (t in porTitulo ? porTitulo[t] : ''));
   }
   const fila = [ahora, ...config.campos.map(c => valores[c.key] || '')];
   if (config.columnaCarta) fila.push(estadoCarta);
   fila.push(...Object.values(config.columnasFijas || {}));
   fila.push(...(config.camposFinales || []).map(c => valores[c.key] || ''));
+  if (config.agenda) fila.push(pedidoId || '');
   return fila;
 }
 
@@ -3126,7 +3136,9 @@ async function escribirInscripcionDeLaCola(trabajo) {
   const titulos = await asegurarHojaInscripcion(
     sheets, spreadsheetId, config.hoja, encabezadosDeFormulario(config), config.columnasPorEncabezado
   );
-  const fila = filaDeFormulario(config, titulos, trabajo.valores || {}, trabajo.estadoCarta || '', trabajo.ahora || '');
+  const fila = filaDeFormulario(
+    config, titulos, trabajo.valores || {}, trabajo.estadoCarta || '', trabajo.ahora || '', trabajo.pedidoId
+  );
 
   // El rango es la columna A, no A1: con A1, Sheets estira la "tabla" a
   // todas las columnas pegadas y, si alguna arrastra formato o una formula
@@ -3177,7 +3189,7 @@ async function escribirSesionDeLaCola(trabajo) {
     throw new Error('la fila del formulario todavia no esta en la planilla: se reintenta');
   }
 
-  const filaNueva = await escribirSesionEnPlanilla(pedido, trabajo.inicioMs);
+  const filaNueva = await escribirSesionEnPlanilla(pedido, trabajo.inicioMs, trabajo.pedidoId);
   if (filaNueva) {
     await snap.ref.set({ filaPlanilla: filaNueva }, { merge: true });
   }
@@ -3937,31 +3949,67 @@ function letraDeColumna(indice) {
   return letra;
 }
 
-async function escribirSesionEnPlanilla(pedido, inicioMs) {
+// En que numero de fila esta el pedido, buscandolo por su id en la columna
+// que lo lleva. Devuelve null si no lo encuentra, que es lo que pasa con los
+// pedidos anteriores a esta columna.
+//
+// Esto existe porque el numero de fila guardado en agenda_pedidos es un
+// rango absoluto: si alguien borra o inserta una fila del medio de la hoja a
+// mano, las de abajo se mueven y el numero guardado empieza a apuntar a otra
+// persona. Un id no se mueve.
+async function filaDelPedido(sheets, spreadsheetId, hoja, titulos, pedidoId) {
+  if (!pedidoId) return null;
+  const col = titulos.indexOf(AGENDA_COL_PEDIDO);
+  if (col < 0) return null;
+
+  const letra = letraDeColumna(col);
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${hoja}!${letra}:${letra}`,
+  });
+  const valores = (resp.data.values || []).map(f => (f && f[0]) || '');
+  const i = valores.indexOf(pedidoId);
+  // +1 porque Sheets cuenta las filas desde 1 y el array desde 0.
+  return i < 0 ? null : i + 1;
+}
+
+async function escribirSesionEnPlanilla(pedido, inicioMs, pedidoId) {
   const spreadsheetId = process.env.SHEETS_SPREADSHEET_CONSULTAS;
   if (!spreadsheetId) throw new Error('Falta SHEETS_SPREADSHEET_CONSULTAS');
   const sheets = getSheetsClient();
   const hoja = 'Consultas';
   const config = FORMULARIOS_INSCRIPCION.consultas;
 
-  // Se asegura que las dos columnas existan sin pisar las que Seba agrego
-  // a mano (la hoja es columnasPorEncabezado por eso mismo).
+  // Se asegura que las tres columnas propias existan sin pisar las que Seba
+  // agrego a mano (la hoja es columnasPorEncabezado por eso mismo). La del
+  // id aparece sola en la primera escritura: asegurarHojaInscripcion agrega
+  // al final los titulos que falten.
   const encabezados = [
     config.etiquetaFecha,
     ...config.campos.map(c => c.label),
     config.columnaCarta,
     ...Object.keys(config.columnasFijas || {}),
     ...(config.camposFinales || []).map(c => c.label),
-    AGENDA_COL_DIA, AGENDA_COL_HORA,
+    AGENDA_COL_PEDIDO, AGENDA_COL_DIA, AGENDA_COL_HORA,
   ];
   const titulos = await asegurarHojaInscripcion(sheets, spreadsheetId, hoja, encabezados, true);
 
   const dia = new Date(inicioMs).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
   const hora = horaLocal(inicioMs);
 
-  const filaGuardada = /![A-Z]+(\d+)/.exec(pedido.filaPlanilla || '');
-  if (filaGuardada) {
-    const nro = filaGuardada[1];
+  // Primero por id, que es lo que no se mueve. Si no aparece (un pedido
+  // anterior a la columna), se cae al numero guardado, que es lo que se hacia
+  // antes.
+  const porId = await filaDelPedido(sheets, spreadsheetId, hoja, titulos, pedidoId);
+  const guardada = /![A-Z]+(\d+)/.exec(pedido.filaPlanilla || '');
+  const nro = porId || (guardada ? Number(guardada[1]) : null);
+
+  if (nro) {
+    if (!porId) {
+      // Vale saber cuando pasa: es el unico caso que todavia depende del
+      // numero de fila, y deberia desaparecer solo con el tiempo.
+      functions.logger.info('Fila encontrada por el numero guardado, no por id', { pedidoId, nro });
+    }
     const datos = [];
     for (const [titulo, valor] of [[AGENDA_COL_DIA, dia], [AGENDA_COL_HORA, hora]]) {
       const i = titulos.indexOf(titulo);
@@ -3999,6 +4047,7 @@ async function escribirSesionEnPlanilla(pedido, inicioMs) {
     Modalidad: pedido.modalidad || '',
     [config.columnaCarta]: 'Ya la tiene',
     Regalo: 'No',
+    [AGENDA_COL_PEDIDO]: pedidoId || '',
     [AGENDA_COL_DIA]: dia,
     [AGENDA_COL_HORA]: hora,
   };
