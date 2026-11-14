@@ -5009,27 +5009,41 @@ exports.mantenerDespierto = onSchedule({
 //            Esta separado del id de la formacion porque un titulo puede
 //            venir de mas de un aula, o de un aula con otro slug.
 const FORMACIONES_TITULO = {
-  // Un ano suelto. El aula de la escuela alcanza como prueba de que curso.
+  // La formacion entera, cuatro anos. Quien esta en las aulas del ultimo ano
+  // (escucha astrologica y linaje y genealogia) ya la termino: son las dos
+  // materias con las que se cierra, asi que tenerlas es la prueba.
+  //
+  // Ojo con 'linaje26' y no 'linaje': el segundo es el curso suelto de la
+  // formacion abierta, que cualquiera compra. Son dos cosas distintas con
+  // nombre parecido, como lunanegra/lilith y pluton/pluton26.
+  formacion: {
+    plantilla: 'formacion',
+    curso: 'Formación en Astrología (4 años)',
+    titulo: { f: 'Astróloga', m: 'Astrólogo', x: 'Astrólogx' },
+    anio: 2026,
+    cursosHabilitantes: ['escucha', 'linaje26'],
+    abierta: true,
+  },
+
+  // Un ano suelto. Cerrado por ahora: los cuatro egresadxs de 2026 ya tienen
+  // su certificado por el camino viejo (descargarCertificado), y darles un
+  // segundo documento distinto confunde mas de lo que suma. Se abre poniendo
+  // abierta: true y redeployando.
   lectura: {
     plantilla: 'curso',
     curso: 'Lectura e Interpretación de la Carta Natal',
     titulo: 'Intérprete de Cartas Natales',
     anio: 2026,
     cursosHabilitantes: ['lectura'],
-  },
-
-  // La formacion entera. No hay un aula que la represente (son cuatro anos
-  // repartidos en varias), asi que esta va por padron: Seba carga a mano
-  // quien egreso en titulos_habilitados. Hoy es un punado de personas.
-  formacion: {
-    plantilla: 'formacion',
-    curso: 'Formación en Astrología (4 años)',
-    titulo: { f: 'Astróloga', m: 'Astrólogo', x: 'Astrólogx' },
-    anio: 2026,
-    cursosHabilitantes: [],
-    porPadron: true,
+    abierta: false,
   },
 };
+
+// El interruptor para cerrar la emision cuando las ocho personas terminaron
+// de hacer su titulo. Cierra SOLO el camino del aula: el padron
+// (titulos_habilitados) sigue funcionando, para poder dejar pasar a quien
+// llegue tarde sin reabrirlo para todo el mundo.
+function emisionAbierta(formacion) { return formacion.abierta !== false; }
 
 // El rol que se acredita. Algunos titulos marcan genero y otros no:
 // "Astróloga / Astrólogo / Astrólogx" cambia con los pronombres de cada
@@ -5233,12 +5247,10 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
     //
     //  - El aula: para un ano suelto, tener el curso habilitado en la cuenta
     //    ya dice que lo curso. Es el caso facil y no necesita carga manual.
-    //  - El padron: la formacion de cuatro anos no se corresponde con
-    //    ninguna aula (son varias, de anos distintos), asi que ahi Seba
-    //    carga a mano quien egreso, en titulos_habilitados/{email}.
-    //
-    // Una formacion con porPadron ignora las aulas a proposito: tener un
-    // aula de tercero no prueba haber terminado cuarto.
+    //  - El padron: titulos_habilitados/{email}, que carga Seba a mano con
+    //    la herramienta titulos.js. Sirve para dos cosas: dejar pasar a
+    //    alguien que curso pero no figura en el aula, y seguir entregando
+    //    titulos despues de cerrar la emision, sin reabrirla para todos.
     const [usuario, habilitado] = await Promise.all([
       _db.collection('usuarios').doc(email).get(),
       _db.collection('titulos_habilitados').doc(email).get(),
@@ -5247,7 +5259,7 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
     const delPadron = Array.isArray(habilitado.data()?.formaciones) ? habilitado.data().formaciones : [];
 
     const porPadron = delPadron.includes(curso);
-    const porAula = !formacion.porPadron
+    const porAula = emisionAbierta(formacion)
       && (formacion.cursosHabilitantes || [curso]).some((c) => cursosDeLaCuenta.includes(c));
 
     if (!porPadron && !porAula) {
@@ -5623,7 +5635,7 @@ exports.misTitulos = functions.https.onRequest(async (req, res) => {
 
     const disponibles = Object.entries(FORMACIONES_TITULO)
       .filter(([id, f]) => delPadron.includes(id)
-        || (!f.porPadron && (f.cursosHabilitantes || [id]).some((c) => cursosDeLaCuenta.includes(c))))
+        || (emisionAbierta(f) && (f.cursosHabilitantes || [id]).some((c) => cursosDeLaCuenta.includes(c))))
       .map(([id, f]) => {
         const emitido = yaEmitidos.get(id);
         return {

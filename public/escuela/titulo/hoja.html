@@ -43,7 +43,11 @@ body { width: 297mm; height: 210mm; background: #F8F5EF; font-family: "DM Sans",
 .student .dni { color: #B0A898; }
 .student .numero { color: #B0A898; letter-spacing: 0.08em; }
 .signature { text-align: center; }
-.sig-img { height: 13mm; width: auto; display: block; margin: 0 auto; }
+/* La firma que paso Seba es vertical (495x600), no apaisada como suponia el
+   template original: dimensionada por alto a 13mm quedaba de 11mm de ancho,
+   una rayita. Se escala por alto mas grande y se apoya sobre la linea con un
+   margen negativo, como una firma de verdad. */
+.sig-img { height: 24mm; width: auto; display: block; margin: 0 auto -2mm; }
 .sig-img[hidden] { display: none; }
 .sig-line { width: 30mm; height: 0.3mm; background: #C4A96B; margin: 0 auto 2mm; }
 .sig-name { font-family: "Cormorant Garamond", serif; font-size: 10pt; color: #1C1410; }
