@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Titulo</title>
+<!--
+  La hoja imprimible del titulo de egreso.
+
+  No se visita a mano: la abre pdfDeTitulo() en el Chrome del servidor con los
+  datos en el fragmento de la URL (#hoja=<base64url de un JSON>), igual que
+  /cartas/ para la carta natal. El fragmento no viaja al servidor, asi que el
+  DNI no queda en ningun log de acceso.
+
+  Contrato con la function: esta pagina tiene que dejar window.hojaLista en
+  true cuando termino de pintarse (fuentes y firma incluidas), o
+  window.hojaError con el motivo. pdfDeTitulo espera una de las dos.
+
+  El diseno es el template que paso Seba. Lo unico que se le agrego es el
+  numero de certificado y que el QR venga como data URL en el payload (es
+  distinto para cada persona, no puede ser un archivo hermano).
+-->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Cinzel:wght@400;500&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+@page { size: A4 landscape; margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 297mm; height: 210mm; background: #F8F5EF; font-family: "DM Sans", sans-serif; }
+.cert { width: 297mm; height: 210mm; padding: 36mm 50mm; position: relative; overflow: hidden; }
+.wheel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.06; width: 150mm; height: 150mm; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10mm; }
+.school { font-family: "Cinzel", serif; font-size: 7pt; letter-spacing: 0.25em; color: #8B6914; text-transform: uppercase; line-height: 1.6; }
+.date { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 10pt; color: #B0A898; }
+.body { text-align: center; position: relative; z-index: 1; }
+.cert-title { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 11pt; color: #8B7355; letter-spacing: 0.05em; margin-bottom: 3mm; }
+.divider { width: 15mm; height: 0.3mm; background: #C4A96B; margin: 0 auto 7mm; }
+.acredita { font-size: 7pt; color: #9A8E82; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3mm; }
+.nombre { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 30pt; color: #1C1410; letter-spacing: 0.02em; line-height: 1.1; margin-bottom: 5mm; }
+.texto { font-size: 9pt; color: #6B6057; line-height: 1.8; margin-bottom: 6mm; }
+.texto em { font-family: "Cormorant Garamond", serif; font-size: 10pt; font-style: italic; }
+.titulo { font-family: "Cinzel", serif; font-size: 22pt; font-weight: 500; color: #8B6914; letter-spacing: 0.08em; margin-bottom: 9mm; }
+.footer { display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; }
+.student { font-size: 8pt; color: #9A8E82; line-height: 1.6; }
+.student .dni { color: #B0A898; }
+.student .numero { color: #B0A898; letter-spacing: 0.08em; }
+.signature { text-align: center; }
+.sig-img { height: 13mm; width: auto; display: block; margin: 0 auto; }
+.sig-img[hidden] { display: none; }
+.sig-line { width: 30mm; height: 0.3mm; background: #C4A96B; margin: 0 auto 2mm; }
+.sig-name { font-family: "Cormorant Garamond", serif; font-size: 10pt; color: #1C1410; }
+.sig-role { font-size: 6pt; color: #9A8E82; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1mm; }
+.qr { width: 22mm; height: 22mm; }
+.qr[hidden] { display: none; }
+
+/* La plantilla de la formacion completa lleva un parrafo mas largo, asi que
+   respira un poco distinto. Es el unico cambio entre las dos. */
+body[data-plantilla="formacion"] .cert { padding: 34mm 50mm; }
+body[data-plantilla="formacion"] .divider { margin-bottom: 6mm; }
+body[data-plantilla="formacion"] .texto { margin-bottom: 5mm; }
+body[data-plantilla="formacion"] .titulo { margin-bottom: 8mm; }
+.texto[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="cert">
+  <svg class="wheel" viewBox="0 0 380 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="190" cy="190" r="180" stroke="#3D2B0E" stroke-width="1"/>
+    <circle cx="190" cy="190" r="140" stroke="#3D2B0E" stroke-width="0.5"/>
+    <circle cx="190" cy="190" r="60" stroke="#3D2B0E" stroke-width="0.5"/>
+    <line x1="190" y1="10" x2="190" y2="370" stroke="#3D2B0E" stroke-width="0.5"/>
+    <line x1="10" y1="190" x2="370" y2="190" stroke="#3D2B0E" stroke-width="0.5"/>
+    <line x1="62" y1="62" x2="318" y2="318" stroke="#3D2B0E" stroke-width="0.3"/>
+    <line x1="318" y1="62" x2="62" y2="318" stroke="#3D2B0E" stroke-width="0.3"/>
+    <line x1="34" y1="127" x2="346" y2="253" stroke="#3D2B0E" stroke-width="0.3"/>
+    <line x1="34" y1="253" x2="346" y2="127" stroke="#3D2B0E" stroke-width="0.3"/>
+    <line x1="127" y1="10" x2="253" y2="370" stroke="#3D2B0E" stroke-width="0.3"/>
+    <line x1="253" y1="10" x2="127" y2="370" stroke="#3D2B0E" stroke-width="0.3"/>
+    <circle cx="190" cy="10" r="3" fill="#3D2B0E"/>
+    <circle cx="370" cy="190" r="3" fill="#3D2B0E"/>
+    <circle cx="190" cy="370" r="3" fill="#3D2B0E"/>
+    <circle cx="10" cy="190" r="3" fill="#3D2B0E"/>
+  </svg>
+
+  <div class="header">
+    <div class="school">Escuela de Astrolog&iacute;a<br>Seba Bru</div>
+    <div class="date" id="t-fecha"></div>
+  </div>
+
+  <div class="body">
+    <div class="cert-title">Certificado de Formaci&oacute;n</div>
+    <div class="divider"></div>
+    <div class="acredita">Este certificado acredita que</div>
+    <div class="nombre" id="t-nombre"></div>
+    <!-- Un ano suelto -->
+    <div class="texto" id="t-texto-curso">
+      Ha completado el curso <em id="t-curso"></em><br>
+      en la Escuela de Astrolog&iacute;a de Seba Bru, y tiene los conocimientos<br>
+      suficientes para desplegarse felizmente en su rol de
+    </div>
+
+    <!-- Los cuatro anos -->
+    <div class="texto" id="t-texto-formacion" hidden>
+      Ha completado su formaci&oacute;n en la Escuela de Astrolog&iacute;a de Seba Bru,<br>
+      cursando un total de 4 a&ntilde;os y adquiriendo conocimientos profundos<br>
+      sobre la carta fija y la carta en movimiento.<br>
+      Este saber le permite desplegarse felizmente en su rol de
+    </div>
+    <div class="titulo" id="t-titulo"></div>
+  </div>
+
+  <div class="footer">
+    <div class="student">
+      <span id="t-nombre-pie"></span><br>
+      <span class="dni">DNI: <span id="t-dni"></span></span><br>
+      <span class="numero">Certificado N&ordm; <span id="t-numero"></span></span>
+    </div>
+    <div class="signature">
+      <img class="sig-img" id="t-firma" src="firma.png" alt="">
+      <div class="sig-line"></div>
+      <div class="sig-name">Sebasti&aacute;n Bru</div>
+      <div class="sig-role">Director y docente</div>
+    </div>
+    <img class="qr" id="t-qr" alt="">
+  </div>
+</div>
+
+<script>
+(function () {
+  function poner(id, valor) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = valor || '';
+  }
+
+  // Espera a que una imagen cargue o falle, sin quedarse colgada. El PDF se
+  // imprime igual si la firma no esta todavia en el deploy.
+  function listaLaImagen(img) {
+    return new Promise(function (listo) {
+      if (!img) return listo();
+      if (img.complete) return listo();
+      img.addEventListener('load', function () { listo(); });
+      img.addEventListener('error', function () { img.hidden = true; listo(); });
+      setTimeout(listo, 8000);
+    });
+  }
+
+  try {
+    var crudo = (location.hash || '').replace(/^#hoja=/, '');
+    if (!crudo) throw new Error('falta el fragmento #hoja=');
+
+    // base64url -> base64 -> UTF-8. El atob da bytes, no caracteres: sin el
+    // decodeURIComponent los acentos del nombre salen partidos.
+    var b64 = crudo.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    var bytes = atob(b64);
+    var json = decodeURIComponent(Array.prototype.map.call(bytes, function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    var d = JSON.parse(json);
+
+    if (!d || !d.nombre) throw new Error('el payload no trae nombre');
+
+    // Dos plantillas: un curso suelto o la formacion de cuatro anos.
+    var plantilla = d.plantilla === 'formacion' ? 'formacion' : 'curso';
+    document.body.setAttribute('data-plantilla', plantilla);
+    document.getElementById('t-texto-curso').hidden = plantilla !== 'curso';
+    document.getElementById('t-texto-formacion').hidden = plantilla !== 'formacion';
+
+    poner('t-fecha', d.fecha);
+    poner('t-nombre', d.nombre);
+    poner('t-nombre-pie', d.nombre);
+    poner('t-curso', d.curso);
+    poner('t-titulo', d.titulo);
+    poner('t-dni', d.dni);
+    poner('t-numero', d.numero);
+
+    var qr = document.getElementById('t-qr');
+    if (d.qr) qr.src = d.qr; else qr.hidden = true;
+
+    // Recien cuando estan las fuentes y las imagenes: si se avisa antes, el
+    // PDF sale con las tipografias de fallback y el nombre corrido.
+    var fuentes = document.fonts && document.fonts.ready
+      ? document.fonts.ready
+      : Promise.resolve();
+
+    Promise.all([
+      fuentes,
+      listaLaImagen(document.getElementById('t-firma')),
+      d.qr ? listaLaImagen(qr) : Promise.resolve(),
+    ]).then(function () {
+      window.hojaLista = true;
+    }).catch(function (e) {
+      window.hojaError = e.message || 'no se pudo terminar de armar la hoja';
+    });
+
+  } catch (e) {
+    window.hojaError = e.message || 'payload invalido';
+  }
+})();
+</script>
+</body>
+</html>

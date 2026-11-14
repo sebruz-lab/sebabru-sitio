@@ -65,3 +65,164 @@
         padding: 10px 15px 60px;
     }
 }
+
+/* =========================================
+   TITULOS DE EGRESO
+   ========================================= */
+
+.cert-tarjeta {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 26px 24px;
+    margin-bottom: 24px;
+}
+
+.cert-tarjeta h2 {
+    margin: 0 0 14px;
+    font-size: 1.25em;
+    color: var(--text-light);
+}
+
+.cert-emitido {
+    opacity: .85;
+    margin: 0 0 16px;
+}
+
+.cert-nota {
+    opacity: .6;
+    font-size: .9em;
+    line-height: 1.6;
+    margin: 12px 0 0;
+}
+
+.cert-campo {
+    margin-bottom: 16px;
+}
+
+.cert-campo label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .9em;
+    opacity: .8;
+}
+
+.cert-campo small {
+    display: block;
+    margin-top: 6px;
+    opacity: .55;
+    font-size: .82em;
+}
+
+.cert-campo input,
+.cert-campo select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--text-light);
+    font-family: inherit;
+    font-size: 1em;
+}
+
+.cert-campo input:focus,
+.cert-campo select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* El desplegable se pinta con los colores del sistema, no con los de la
+   pagina: sobre el fondo oscuro, sin esto las opciones quedan ilegibles. */
+.cert-campo select option {
+    background: #1b1b1b;
+    color: #f2f2f2;
+}
+
+.cert-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0 0;
+}
+
+.cert-primario {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.cert-form[hidden] {
+    display: none;
+}
+
+/* ---- La vista previa ---- */
+
+.cert-previa {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.82);
+    overflow-y: auto;
+}
+
+.cert-previa-caja {
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+}
+
+/* La hoja mide 1123x794 px (A4 horizontal a 96 dpi) y se escala entera con
+   transform. El padding-top del contenedor guarda la proporcion, asi que la
+   caja se achica sola en un telefono sin recortar el diploma. */
+.cert-previa-hoja {
+    position: relative;
+    width: 100%;
+    padding-top: 70.7%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #F8F5EF;
+}
+
+.cert-previa-hoja iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1123px;
+    height: 794px;
+    border: 0;
+    transform-origin: top left;
+    /* La escala la calcula el JS con el ancho real de la caja: en CSS no hay
+       forma de leer el ancho del padre para dividirlo por 1123. */
+    transform: scale(var(--cert-escala, 0.6));
+}
+
+.cert-previa-nota {
+    color: #ddd;
+    opacity: .75;
+    font-size: .9em;
+    line-height: 1.6;
+    margin: 16px 0 0;
+    text-align: center;
+}
+
+.cert-previa-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+    .cert-tarjeta {
+        padding: 20px 16px;
+    }
+    .cert-acciones .btn-sutil,
+    .cert-previa-botones .btn-sutil {
+        width: 100%;
+        text-align: center;
+    }
+}

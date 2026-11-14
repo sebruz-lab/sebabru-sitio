@@ -258,6 +258,38 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Los titulos de egreso que emite la gente desde /escuela/certificados/.
+    // Cada documento lleva el nombre y el DNI impresos en el PDF, asi que la
+    // coleccion esta cerrada de los dos lados: la escribe emitirTitulo y la
+    // lee descargarTitulo, las dos con el Admin SDK, que no pasa por estas
+    // reglas. Si un navegador pudiera leerla tendria el padron de egresadxs
+    // con DNI incluido.
+    match /titulos/{id} {
+      allow read, write: if false;
+    }
+
+    // La cola del mail con el titulo adjunto. Misma razon que envios_carta:
+    // tiene los datos crudos mientras el trigger arma el PDF.
+    match /envios_titulo/{id} {
+      allow read, write: if false;
+    }
+
+    // El padron de la formacion de cuatro anos. No hay un aula que la
+    // represente, asi que quien egreso se carga a mano aca:
+    //   titulos_habilitados/{email} -> { formaciones: ['formacion'] }
+    // Cerrada al cliente: si el navegador pudiera escribirla, cualquiera se
+    // daria de alta un titulo.
+    match /titulos_habilitados/{email} {
+      allow read, write: if false;
+    }
+
+    // Los contadores que numeran los titulos (SB-2026-0001). Nada que un
+    // cliente tenga que leer, y menos escribir: de aca sale el numero que
+    // despues se verifica en /titulo/.
+    match /contadores/{id} {
+      allow read, write: if false;
+    }
+
     match /suscripciones/{email} {
       // La constancia de cada consentimiento (origen, fecha e IP de quien
       // se suscribio). La escribe solo la funcion suscribir; se lee desde

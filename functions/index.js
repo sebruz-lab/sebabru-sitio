@@ -4964,3 +4964,701 @@ exports.mantenerDespierto = onSchedule({
   // minInstances o no.
   functions.logger.info('Instancias despertadas', { resultados });
 });
+
+// =======================================================
+// Titulos de egreso
+//
+// Hasta noviembre de 2026 los certificados se hacian a mano en una
+// herramienta de diseno, se exportaban aplanados (imagenes, sin texto), se
+// commiteaban en functions/certificados/ y se repartian a mano: el archivo,
+// una linea en la herramienta de admin y un doc en Firestore, los tres
+// sincronizados a pulso. Con una cohorte entera egresando eso no cierra.
+//
+// Ahora el titulo lo emite la persona desde /escuela/certificados/ con su
+// sesion de la escuela: completa como va escrito su nombre y su DNI, lo ve
+// en una vista previa, confirma, y el PDF se genera solo, se le descarga en
+// el momento y le llega por mail.
+//
+// Tres decisiones que explican la forma del codigo:
+//
+//  1. El PDF NO se guarda en ninguna parte. Es deterministico a partir del
+//     registro de Firestore, asi que se regenera igual siempre. Eso evita
+//     Cloud Storage, evita meter un blob en un doc de Firestore (tope de
+//     1 MiB) y, sobre todo, evita que un PDF con el DNI impreso quede en
+//     reposo en una URL.
+//  2. emitirTitulo es liviano a proposito: valida, numera, registra y
+//     encola. Puppeteer necesita 2 GiB y diez segundos, y la instancia de un
+//     onRequest v1 se congela despues del res.send(); por eso el PDF del
+//     mail lo arma el trigger enviarTitulo, con su propia cola, igual que la
+//     carta natal de las inscripciones.
+//  3. El numero de certificado es lo que hace valido al titulo, no el PDF.
+//     La hoja imprimible es publica, asi que cualquiera puede armarse un
+//     fragmento y ver un titulo inventado en pantalla (pasa lo mismo con
+//     /cartas/). Lo que no puede falsificar es el numero: la pagina publica
+//     /titulo/ confirma contra Firestore quien es cada uno.
+// =======================================================
+
+// Las formaciones que entregan titulo. Sumar una el ano que viene es sumar
+// una entrada aca y nada mas.
+//
+//   curso  : el nombre que se imprime ("Ha completado el curso ...")
+//   titulo : el rol que se acredita. A proposito en una forma que no marca
+//            genero: el mismo PDF sirve para todo el mundo.
+//   anio   : la cohorte. Tambien numera: SB-2026-0001.
+//   cursosHabilitantes: que aulas de usuarios/{email}.cursos dan derecho.
+//            Esta separado del id de la formacion porque un titulo puede
+//            venir de mas de un aula, o de un aula con otro slug.
+const FORMACIONES_TITULO = {
+  // Un ano suelto. El aula de la escuela alcanza como prueba de que curso.
+  lectura: {
+    plantilla: 'curso',
+    curso: 'Lectura e Interpretación de la Carta Natal',
+    titulo: 'Intérprete de Cartas Natales',
+    anio: 2026,
+    cursosHabilitantes: ['lectura'],
+  },
+
+  // La formacion entera. No hay un aula que la represente (son cuatro anos
+  // repartidos en varias), asi que esta va por padron: Seba carga a mano
+  // quien egreso en titulos_habilitados. Hoy es un punado de personas.
+  formacion: {
+    plantilla: 'formacion',
+    curso: 'Formación en Astrología (4 años)',
+    titulo: { f: 'Astróloga', m: 'Astrólogo', x: 'Astrólogx' },
+    anio: 2026,
+    cursosHabilitantes: [],
+    porPadron: true,
+  },
+};
+
+// El rol que se acredita. Algunos titulos marcan genero y otros no:
+// "Astróloga / Astrólogo / Astrólogx" cambia con los pronombres de cada
+// persona, "Intérprete de Cartas Natales" es el mismo para todo el mundo. Si
+// la formacion define un solo texto, los pronombres no se usan.
+const PRONOMBRES_TITULO = { f: 'femenino', m: 'masculino', x: 'neutro' };
+
+function tituloPara(formacion, pronombre) {
+  if (typeof formacion.titulo === 'string') return formacion.titulo;
+  return formacion.titulo[pronombre] || formacion.titulo.x;
+}
+
+// Si el titulo no marca genero, el formulario no pregunta los pronombres:
+// no hay por que pedir un dato que no cambia nada.
+function pidePronombre(formacion) { return typeof formacion.titulo !== 'string'; }
+
+const MESES_TITULO = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+// 'YYYY-MM-DD' -> '14 de noviembre de 2026', que es como va en el diploma.
+function fechaLargaTitulo(fechaISO) {
+  const [a, m, d] = String(fechaISO || '').split('-');
+  const mes = MESES_TITULO[Number(m) - 1];
+  if (!a || !mes || !d) return String(fechaISO || '');
+  return `${Number(d)} de ${mes} de ${a}`;
+}
+
+// Un titulo por persona y por formacion, con id derivado: emitir dos veces
+// no genera dos titulos, corrige el que ya hay.
+function idDeTitulo(email, curso) {
+  return `${email}__${curso}`.replace(/[^a-zA-Z0-9_.@-]/g, '_').slice(0, 300);
+}
+
+// El codigo que acompana al numero en la URL de verificacion. Sin el, los
+// numeros son correlativos y cualquiera podria barrer el padron de
+// egresadxs probando SB-2026-0001, 0002, 0003. Mismo criterio que
+// tokenDeAgenda y tokenDeBaja.
+function codigoDeTitulo(numero) {
+  const secreto = process.env.TITULO_SECRET;
+  if (!secreto) {
+    functions.logger.error('TITULO_SECRET no configurado: los titulos se emiten sin codigo de verificacion.');
+    return null;
+  }
+  return crypto.createHmac('sha256', secreto).update(`titulo:${numero}`).digest('hex').slice(0, 8);
+}
+
+function urlDeVerificacion(numero, codigo) {
+  const base = process.env.TITULOS_URL || 'https://sebabru.com/titulo/';
+  return codigo
+    ? `${base}?n=${encodeURIComponent(numero)}&c=${codigo}`
+    : `${base}?n=${encodeURIComponent(numero)}`;
+}
+
+// El PDF del titulo: abre la hoja imprimible en un Chrome del servidor con
+// los datos en el fragmento de la URL y la imprime. Calcado de pdfDeCarta.
+// El fragmento no viaja al servidor, asi que el DNI no queda en los logs de
+// acceso de Hosting.
+async function pdfDeTitulo(registro) {
+  const formacion = FORMACIONES_TITULO[registro.curso];
+  if (!formacion) throw new Error(`formación desconocida: ${registro.curso}`);
+
+  const chromium = require('@sparticuz/chromium');
+  const puppeteer = require('puppeteer-core');
+
+  // El QR se arma aca y viaja como data URL dentro del payload: es distinto
+  // para cada persona, asi que no puede ser un archivo hermano de la hoja, y
+  // generarlo aca evita meter una libreria de QR (o un CDN) en el frontend.
+  let qr = '';
+  try {
+    const QR = require('qrcode');
+    qr = await QR.toDataURL(urlDeVerificacion(registro.numero, registro.codigo), {
+      margin: 0,
+      width: 440,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#3D2B0EFF', light: '#F8F5EFFF' },
+    });
+  } catch (error) {
+    // Un titulo sin QR sigue siendo valido: el numero esta impreso al lado.
+    functions.logger.error('No se pudo armar el QR del titulo', { numero: registro.numero, message: error.message });
+  }
+
+  const payload = {
+    plantilla: formacion.plantilla || 'curso',
+    nombre: registro.nombre,
+    dni: registro.dni,
+    curso: formacion.curso,
+    titulo: tituloPara(formacion, registro.pronombre),
+    fecha: fechaLargaTitulo(registro.fecha),
+    numero: registro.numero,
+    qr,
+  };
+  const hoja = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const url = `${process.env.TITULO_HOJA_URL || 'https://sebabru.com/escuela/titulo/hoja.html'}#hoja=${hoja}`;
+
+  const browser = await puppeteer.launch({
+    args: process.env.CHROME_LOCAL ? [] : chromium.args,
+    // A4 horizontal a 96 dpi. El tamano real del PDF lo fija el @page de la
+    // hoja; esto es para que el layout se calcule en la proporcion correcta.
+    defaultViewport: { width: 1123, height: 794 },
+    executablePath: process.env.CHROME_LOCAL || await chromium.executablePath(),
+    headless: true,
+  });
+  try {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.waitForFunction('window.hojaLista || window.hojaError', { timeout: 60000 });
+    const error = await page.evaluate('window.hojaError');
+    if (error) throw new Error(`La hoja no se pudo armar: ${error}`);
+    await page.emulateMediaType('print');
+    return Buffer.from(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+  } finally {
+    await browser.close();
+  }
+}
+
+function nombreDeArchivoTitulo(registro) {
+  const limpio = String(registro.nombre || 'Titulo').replace(/[^\p{L}\p{N} .-]/gu, '').trim();
+  return `Título - ${limpio || 'Titulo'} - ${registro.numero}.pdf`;
+}
+
+// Lo mismo que valida emitirTitulo, en un solo lugar, porque descargarTitulo
+// tambien tiene que decidir sobre el mismo registro.
+const NOMBRE_TITULO_VALIDO = /^[\p{L}\p{M} .'-]+$/u;
+
+function validarDatosDeTitulo(body) {
+  const curso = sanitizeTexto(body?.curso, 60);
+  const formacion = FORMACIONES_TITULO[curso];
+  if (!formacion) return { error: 'Esa formación no entrega título por acá.' };
+
+  const nombre = sanitizeTexto(body?.nombre, 80).replace(/\s+/g, ' ');
+  if (!nombre || !NOMBRE_TITULO_VALIDO.test(nombre) || nombre.split(' ').length < 2) {
+    return { error: 'Escribí tu nombre y tu apellido, como querés que salga impreso.' };
+  }
+
+  // Se acepta con puntos porque es como se escribe, y se guarda sin ellos.
+  const dni = String(body?.dni ?? '').replace(/[.\s]/g, '');
+  if (!/^\d{7,9}$/.test(dni)) {
+    return { error: 'El DNI tiene que ser de 7 a 9 números, sin letras.' };
+  }
+
+  // Solo se pide cuando el titulo marca genero. Si no lo marca, lo que venga
+  // se descarta: no se guarda un dato que no se usa.
+  let pronombre = 'x';
+  if (pidePronombre(formacion)) {
+    pronombre = sanitizeTexto(body?.pronombre, 1);
+    if (!PRONOMBRES_TITULO[pronombre]) {
+      return { error: 'Elegí con qué pronombres querés que figure tu título.' };
+    }
+  }
+
+  return { curso, formacion, nombre, dni, pronombre };
+}
+
+const TOPE_REEMISIONES_TITULO = 3;
+
+// -------------------------------------------------------
+// emitirTitulo: registra el titulo y encola el mail.
+//
+// Idempotente por diseno: el doc se llama email__curso, asi que volver a
+// emitir corrige el nombre sin cambiar el numero. Eso es a proposito y
+// resuelve el soporte mas probable (un nombre mal tipeado), con un tope para
+// que no sea un generador infinito de mails.
+// -------------------------------------------------------
+exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Entrá con tu cuenta de la escuela para emitir tu título.' });
+  }
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido.' });
+  }
+
+  if (!(await checkRateLimit('emitirTitulo', req, 5))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const email = (decodedToken.email || '').toLowerCase().trim();
+  if (!email) return res.status(403).json({ error: 'Tu cuenta no tiene un mail asociado.' });
+
+  const datos = validarDatosDeTitulo(req.body);
+  if (datos.error) return res.status(400).json({ error: datos.error });
+  const { curso, formacion, nombre, dni, pronombre } = datos;
+
+  // Mismo mensaje para "no cursaste esto" y "todavia no te habilitamos el
+  // aula": esta respuesta no tiene por que decir quien egreso y quien no.
+  const SIN_DERECHO = 'No encontramos un título a tu nombre para esa formación. Si creés que es un error, escribinos a info@sebabru.com.';
+
+  try {
+    // Dos caminos para tener derecho, y alcanza con uno:
+    //
+    //  - El aula: para un ano suelto, tener el curso habilitado en la cuenta
+    //    ya dice que lo curso. Es el caso facil y no necesita carga manual.
+    //  - El padron: la formacion de cuatro anos no se corresponde con
+    //    ninguna aula (son varias, de anos distintos), asi que ahi Seba
+    //    carga a mano quien egreso, en titulos_habilitados/{email}.
+    //
+    // Una formacion con porPadron ignora las aulas a proposito: tener un
+    // aula de tercero no prueba haber terminado cuarto.
+    const [usuario, habilitado] = await Promise.all([
+      _db.collection('usuarios').doc(email).get(),
+      _db.collection('titulos_habilitados').doc(email).get(),
+    ]);
+    const cursosDeLaCuenta = Array.isArray(usuario.data()?.cursos) ? usuario.data().cursos : [];
+    const delPadron = Array.isArray(habilitado.data()?.formaciones) ? habilitado.data().formaciones : [];
+
+    const porPadron = delPadron.includes(curso);
+    const porAula = !formacion.porPadron
+      && (formacion.cursosHabilitantes || [curso]).some((c) => cursosDeLaCuenta.includes(c));
+
+    if (!porPadron && !porAula) {
+      functions.logger.info('Pedido de titulo sin derecho', { email, curso });
+      return res.status(403).json({ error: SIN_DERECHO });
+    }
+
+    const ref = _db.collection('titulos').doc(idDeTitulo(email, curso));
+    const contador = _db.collection('contadores').doc('titulos');
+
+    let registro;
+    try {
+      registro = await _db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+
+        if (snap.exists) {
+          const previo = snap.data();
+          const reemisiones = Number(previo.reemisiones || 0) + 1;
+          if (reemisiones > TOPE_REEMISIONES_TITULO) {
+            const err = new Error('tope de reemisiones');
+            err.codigoTitulo = 'tope_reemisiones';
+            throw err;
+          }
+          const actualizado = new Date().toISOString();
+          tx.update(ref, { nombre, dni, pronombre, reemisiones, actualizado });
+          // El numero y la fecha de emision NO se tocan: el titulo es el
+          // mismo, solo se corrigio como esta escrito.
+          return { ...previo, nombre, dni, pronombre, reemisiones, actualizado };
+        }
+
+        const snapContador = await tx.get(contador);
+        const usados = Number((snapContador.exists ? snapContador.data()[String(formacion.anio)] : 0) || 0);
+        const siguiente = usados + 1;
+        const numero = `SB-${formacion.anio}-${String(siguiente).padStart(4, '0')}`;
+        const nuevo = {
+          email, curso, nombre, dni, pronombre, numero,
+          codigo: codigoDeTitulo(numero),
+          anio: formacion.anio,
+          fecha: diaLocal(Date.now()),
+          reemisiones: 0,
+          anulado: false,
+          emitidoEn: new Date().toISOString(),
+        };
+        tx.set(contador, { [String(formacion.anio)]: siguiente }, { merge: true });
+        tx.set(ref, nuevo);
+        return nuevo;
+      });
+    } catch (error) {
+      if (error.codigoTitulo === 'tope_reemisiones') {
+        return res.status(409).json({
+          error: 'Ya emitiste este título tres veces. Si todavía hay algo mal escrito, escribinos a info@sebabru.com y lo corregimos a mano.',
+          codigo: 'tope_reemisiones',
+        });
+      }
+      throw error;
+    }
+
+    if (registro.anulado) {
+      return res.status(403).json({ error: SIN_DERECHO });
+    }
+
+    // La cola del mail. Nunca tira: una falla de Brevo, de Gmail o de
+    // Firestore no puede dejar a la persona sin su titulo, que ya quedo
+    // registrado y se puede bajar igual desde la pagina.
+    try {
+      await _db.collection('envios_titulo')
+        .doc(`${idDeTitulo(email, curso)}__${registro.reemisiones}`)
+        .set({
+          ...registro,
+          reemision: registro.reemisiones > 0,
+          enviado: null,
+          creado: new Date().toISOString(),
+        });
+    } catch (error) {
+      functions.logger.error('No se pudo encolar el mail del titulo', { email, numero: registro.numero, message: error.message });
+    }
+
+    functions.logger.info('Titulo emitido', {
+      email, curso, numero: registro.numero, reemisiones: registro.reemisiones,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      numero: registro.numero,
+      fecha: registro.fecha,
+      fechaLarga: fechaLargaTitulo(registro.fecha),
+      nombre: registro.nombre,
+      curso: formacion.curso,
+      titulo: tituloPara(formacion, registro.pronombre),
+      reemisiones: registro.reemisiones,
+      verificacion: urlDeVerificacion(registro.numero, registro.codigo),
+    });
+
+  } catch (error) {
+    functions.logger.error('Error en emitirTitulo:', error.message);
+    return res.status(500).json({ error: 'No pudimos emitir tu título. Probá de nuevo en unos minutos.' });
+  }
+});
+
+// -------------------------------------------------------
+// enviarTitulo: arma el PDF y lo manda por mail.
+//
+// Cola propia, no mails_salientes: el adjunto pasa el tope de 700 KiB que
+// tiene la cola de mails, y Puppeteer necesita 2 GiB. Mismo arreglo que
+// enviarCartaInscripcion.
+// -------------------------------------------------------
+exports.enviarTitulo = onDocumentCreated({
+  document: 'envios_titulo/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  memory: '2GiB',
+  timeoutSeconds: 120,
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+
+  // event.data es la foto del momento de la creacion y los triggers son
+  // at-least-once: se relee para no mandar dos veces el mismo titulo.
+  const ref = event.data?.ref;
+  if (!ref) return;
+  const fresco = await ref.get();
+  const envio = fresco.data();
+  if (!envio || envio.enviado) return;
+
+  const formacion = FORMACIONES_TITULO[envio.curso];
+  if (!formacion) {
+    functions.logger.error('Envio de titulo con formacion desconocida', { curso: envio.curso });
+    return;
+  }
+
+  let pdf = null;
+  let motivo = '';
+  try {
+    pdf = await pdfDeTitulo(envio);
+  } catch (error) {
+    motivo = error.message;
+    functions.logger.error('No se pudo armar el PDF del titulo:', error.message);
+  }
+
+  const primerNombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
+  const parrafos = envio.reemision
+    ? [
+        `${primerNombre}, acá va tu título corregido.`,
+        `Es el mismo certificado de <strong>${escapeHtml(formacion.curso)}</strong>, con el mismo número (${escapeHtml(envio.numero)}), con el nombre como lo escribiste ahora. El anterior queda sin efecto.`,
+      ]
+    : [
+        `${primerNombre}, felicitaciones.`,
+        `Acá va tu título de <strong>${escapeHtml(formacion.curso)}</strong>, que te acredita como <strong>${escapeHtml(tituloPara(formacion, envio.pronombre))}</strong>.`,
+        `El número de certificado es <strong>${escapeHtml(envio.numero)}</strong>. Quien quiera comprobar que es auténtico puede escanear el código del título o entrar a <a href="${urlDeVerificacion(envio.numero, envio.codigo)}">esta página</a>.`,
+        'Gracias por haber cursado. Que lo uses mucho.',
+      ];
+  if (!pdf) {
+    parrafos.push('El PDF no se pudo armar en este momento, así que este mail va sin el archivo adjunto. Podés bajarlo cuando quieras desde la escuela, en <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>, y si sigue sin salir escribinos a info@sebabru.com.');
+  } else {
+    parrafos.push('Te lo adjuntamos acá y lo podés volver a bajar cuando quieras desde <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+  });
+  await transporter.sendMail({
+    from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+    to: envio.email,
+    subject: envio.reemision
+      ? `Tu título corregido — ${formacion.curso}`
+      : `Tu título — ${formacion.curso}`,
+    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+      ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+    </div>`,
+    text: parrafos.join('\n\n').replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''),
+    attachments: pdf ? [{
+      filename: nombreDeArchivoTitulo(envio),
+      content: pdf,
+      contentType: 'application/pdf',
+    }] : [],
+  });
+
+  await ref.update({
+    enviado: new Date().toISOString(),
+    conPdf: Boolean(pdf),
+    motivo: motivo || null,
+  });
+
+  // El aviso a Seba va por la cola de mails: es el unico de los dos que
+  // puede esperar, y asi no se pagan dos conexiones SMTP en serie.
+  await mails.encolarMail(_db, {
+    para: AVISOS_INSCRIPCION,
+    asunto: `${envio.reemision ? 'Título corregido' : 'Título emitido'} — ${envio.numero}`,
+    motivo: 'titulo-emitido',
+    id: `aviso-titulo-${fresco.id}`,
+    html: `<p><strong>${escapeHtml(envio.nombre)}</strong> (${escapeHtml(envio.email)}) emitió su título de ${escapeHtml(formacion.curso)}.</p>
+      <p>Número: ${escapeHtml(envio.numero)}<br>DNI: ${escapeHtml(envio.dni)}<br>Reemisiones: ${Number(envio.reemisiones || 0)}</p>
+      ${pdf ? '' : `<p><strong>El mail salió sin el PDF</strong>: ${escapeHtml(motivo)}. Conviene revisarlo.</p>`}`,
+  });
+
+  functions.logger.info('Titulo enviado', { numero: envio.numero, conPdf: Boolean(pdf) });
+});
+
+// -------------------------------------------------------
+// descargarTitulo: regenera el PDF y lo entrega.
+//
+// El PDF no se guarda en ningun lado, asi que esto lo vuelve a armar a
+// partir del registro. Es la descarga del momento y tambien la de dentro de
+// dos anos: con los mismos datos sale el mismo titulo.
+// -------------------------------------------------------
+exports.descargarTitulo = functions.runWith({ memory: '2GB', timeoutSeconds: 60 })
+  .https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Entrá con tu cuenta de la escuela para bajar tu título.' });
+  }
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido.' });
+  }
+
+  if (!(await checkRateLimit('descargarTitulo', req, 10))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const email = (decodedToken.email || '').toLowerCase().trim();
+  if (!email) return res.status(403).json({ error: 'Tu cuenta no tiene un mail asociado.' });
+
+  const curso = sanitizeTexto(req.query?.curso, 60);
+  if (!FORMACIONES_TITULO[curso]) return res.status(400).json({ error: 'Pedido inválido.' });
+
+  try {
+    // Solo el propio: el id del documento se arma con el email del token, no
+    // con nada que venga en el pedido.
+    const snap = await _db.collection('titulos').doc(idDeTitulo(email, curso)).get();
+    if (!snap.exists || snap.data().anulado) {
+      return res.status(404).json({ error: 'Todavía no emitiste este título.' });
+    }
+
+    const pdf = await pdfDeTitulo(snap.data());
+
+    functions.logger.info('Titulo descargado', { email, numero: snap.data().numero });
+    res.set('Content-Type', 'application/pdf');
+    // El nombre lleva acentos: filename* en UTF-8, y un filename sin
+    // acentos de respaldo para los clientes viejos.
+    const archivo = nombreDeArchivoTitulo(snap.data());
+    const ascii = archivo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '');
+    res.set('Content-Disposition', `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(archivo)}`);
+    // Lleva el DNI impreso: que no quede en cache de proxies ni del browser.
+    res.set('Cache-Control', 'private, no-store');
+    return res.status(200).send(pdf);
+
+  } catch (error) {
+    functions.logger.error('Error en descargarTitulo:', error.message);
+    return res.status(500).json({ error: 'No pudimos armar tu título ahora. Probá de nuevo en unos minutos.' });
+  }
+});
+
+// -------------------------------------------------------
+// verificarTitulo: la comprobacion publica de /titulo/.
+//
+// Contesta solo nombre, formacion y fecha. Nunca el DNI ni el mail: el PDF
+// es de la persona, esta pagina es para quien lo recibe.
+//
+// Pide el codigo ademas del numero. Los numeros son correlativos, asi que
+// sin el codigo este endpoint seria un listado de egresadxs recorrible de a
+// uno.
+// -------------------------------------------------------
+exports.verificarTitulo = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('verificarTitulo', req, 30))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  // Un solo mensaje para todo lo que no valida: numero inexistente, codigo
+  // equivocado y titulo anulado contestan lo mismo.
+  const NO_VALE = { ok: false, error: 'No encontramos ningún título con ese número.' };
+
+  const numero = sanitizeTexto(req.query?.n, 32);
+  const codigo = sanitizeTexto(req.query?.c, 32);
+  if (!/^SB-\d{4}-\d{4}$/.test(numero) || !/^[0-9a-f]{8}$/.test(codigo)) {
+    return res.status(404).json(NO_VALE);
+  }
+
+  const esperado = codigoDeTitulo(numero);
+  if (!esperado) return res.status(500).json({ ok: false, error: 'No podemos verificar títulos en este momento.' });
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(codigo))) {
+      return res.status(404).json(NO_VALE);
+    }
+  } catch (_) {
+    return res.status(404).json(NO_VALE);
+  }
+
+  try {
+    const snap = await _db.collection('titulos').where('numero', '==', numero).limit(1).get();
+    if (snap.empty) return res.status(404).json(NO_VALE);
+
+    const t = snap.docs[0].data();
+    if (t.anulado) return res.status(404).json(NO_VALE);
+
+    const formacion = FORMACIONES_TITULO[t.curso];
+    return res.status(200).json({
+      ok: true,
+      numero: t.numero,
+      nombre: t.nombre,
+      curso: formacion ? formacion.curso : t.curso,
+      titulo: formacion ? tituloPara(formacion, t.pronombre) : '',
+      anio: t.anio || null,
+      fecha: fechaLargaTitulo(t.fecha),
+    });
+  } catch (error) {
+    functions.logger.error('Error en verificarTitulo:', error.message);
+    return res.status(500).json({ ok: false, error: 'No pudimos verificar el título ahora.' });
+  }
+});
+
+// -------------------------------------------------------
+// misTitulos: que puede emitir esta persona y que ya emitio.
+//
+// Es lo que pinta /escuela/certificados/. Sin esto la pagina tendria que
+// adivinar: probar a emitir para enterarse de si tiene derecho, o traerse el
+// catalogo de formaciones al navegador. Devuelve solo lo propio.
+// -------------------------------------------------------
+exports.misTitulos = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Entrá con tu cuenta de la escuela.' });
+  }
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+  } catch (e) {
+    return res.status(401).json({ error: 'Token inválido.' });
+  }
+
+  if (!(await checkRateLimit('misTitulos', req, 30))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const email = (decodedToken.email || '').toLowerCase().trim();
+  if (!email) return res.status(403).json({ error: 'Tu cuenta no tiene un mail asociado.' });
+
+  try {
+    const [usuario, habilitado, emitidos, legado] = await Promise.all([
+      _db.collection('usuarios').doc(email).get(),
+      _db.collection('titulos_habilitados').doc(email).get(),
+      _db.collection('titulos').where('email', '==', email).get(),
+      // Los cuatro certificados viejos, los que se hicieron a mano antes de
+      // que existiera todo esto. Se mira aca para que la pagina sepa si
+      // ofrecer el boton de la descarga vieja sin tener que probar a bajarlo.
+      _db.collection('certificados').doc(email).get(),
+    ]);
+
+    const cursosDeLaCuenta = Array.isArray(usuario.data()?.cursos) ? usuario.data().cursos : [];
+    const delPadron = Array.isArray(habilitado.data()?.formaciones) ? habilitado.data().formaciones : [];
+    const yaEmitidos = new Map(emitidos.docs.map((d) => [d.data().curso, d.data()]));
+
+    const disponibles = Object.entries(FORMACIONES_TITULO)
+      .filter(([id, f]) => delPadron.includes(id)
+        || (!f.porPadron && (f.cursosHabilitantes || [id]).some((c) => cursosDeLaCuenta.includes(c))))
+      .map(([id, f]) => {
+        const emitido = yaEmitidos.get(id);
+        return {
+          id,
+          curso: f.curso,
+          anio: f.anio,
+          pidePronombre: pidePronombre(f),
+          // Para la vista previa, antes de que exista ningun registro.
+          titulos: typeof f.titulo === 'string' ? { x: f.titulo } : f.titulo,
+          plantilla: f.plantilla || 'curso',
+          emitido: emitido && !emitido.anulado ? {
+            numero: emitido.numero,
+            nombre: emitido.nombre,
+            dni: emitido.dni,
+            pronombre: emitido.pronombre || 'x',
+            fecha: emitido.fecha,
+            fechaLarga: fechaLargaTitulo(emitido.fecha),
+            reemisiones: Number(emitido.reemisiones || 0),
+            restantes: Math.max(0, TOPE_REEMISIONES_TITULO - Number(emitido.reemisiones || 0)),
+            verificacion: urlDeVerificacion(emitido.numero, emitido.codigo),
+          } : null,
+          // El nombre con el que viene prellenado el formulario la primera
+          // vez. Es editable: lo que vale es como lo quiere escrito.
+          sugerido: (usuario.data()?.nombre || decodedToken.name || '').trim(),
+        };
+      });
+
+    return res.status(200).json({
+      ok: true,
+      titulos: disponibles,
+      legado: legado.exists ? { curso: legado.data().curso || '' } : null,
+    });
+
+  } catch (error) {
+    functions.logger.error('Error en misTitulos:', error.message);
+    return res.status(500).json({ error: 'No pudimos cargar tus títulos. Probá de nuevo en unos minutos.' });
+  }
+});

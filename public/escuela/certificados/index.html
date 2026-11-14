@@ -4,7 +4,7 @@
 <script src="/origen.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificados 2026 | Escuela Online | Seba Bru</title>
+    <title>Tu t&iacute;tulo | Escuela Online | Seba Bru</title>
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sebabru.com/escuela/certificados/">
     <meta property="og:title" content="Certificados 2026 | Seba Bru Astrología">
@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
 
     <link rel="stylesheet" href="../../style.css?v=29">
-    <link rel="stylesheet" href="certificados.css">
+    <link rel="stylesheet" href="certificados.css?v=2">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
@@ -48,24 +48,48 @@
     </nav>
 
     <header class="main-header">
-        <h1>Certificados 2026</h1>
+        <h1>Tu t&iacute;tulo</h1>
     </header>
 
     <main class="certificados-main">
         <p id="cert-cargando" style="text-align:center; opacity:.7;">Un segundo...</p>
 
         <section id="cert-sin-sesion" style="display:none; text-align:center; max-width:520px; margin:0 auto;">
-            <h2>Entrá para bajar tu certificado</h2>
-            <p style="opacity:.8;">El certificado lleva tus datos, as&iacute; que lo entregamos solo a tu cuenta. Inici&aacute; sesi&oacute;n con el mismo mail con el que cursaste.</p>
+            <h2>Entr&aacute; para bajar tu t&iacute;tulo</h2>
+            <p style="opacity:.8;">El t&iacute;tulo lleva tus datos, as&iacute; que lo entregamos solo a tu cuenta. Inici&aacute; sesi&oacute;n con el mismo mail con el que cursaste.</p>
             <p><a href="../" class="btn-sutil">Ir al ingreso</a></p>
         </section>
 
-        <section id="cert-listo" style="display:none; text-align:center; max-width:520px; margin:0 auto;">
-            <h2>Tu certificado</h2>
-            <p style="opacity:.8;">Sesi&oacute;n iniciada como <strong id="cert-email"></strong>.</p>
-            <p><button type="button" id="cert-descargar" class="btn-sutil">Descargar mi certificado</button></p>
-            <p id="cert-aviso" role="alert" style="display:none; color:#ffb4b4; margin-top:16px;"></p>
+        <section id="cert-nada" style="display:none; text-align:center; max-width:520px; margin:0 auto;">
+            <h2>No encontramos un t&iacute;tulo a tu nombre</h2>
+            <p style="opacity:.8;">Entraste como <strong class="cert-email"></strong>. Si cursaste con otro mail, prob&aacute; con esa cuenta. Y si cre&eacute;s que es un error, escribinos a <a href="mailto:info@sebabru.com">info@sebabru.com</a>.</p>
         </section>
+
+        <section id="cert-listo" style="display:none;">
+            <p style="text-align:center; opacity:.7; margin-bottom:28px;">Sesi&oacute;n iniciada como <strong class="cert-email"></strong>.</p>
+            <div id="cert-titulos"></div>
+
+            <div id="cert-legado" style="display:none; text-align:center; margin-top:40px;">
+                <h2 style="font-size:1.1em;">Tu certificado anterior</h2>
+                <p style="opacity:.8;">El que te hicimos a mano, antes de que esto existiera.</p>
+                <p><button type="button" id="cert-descargar" class="btn-sutil">Descargar el certificado anterior</button></p>
+            </div>
+
+            <p id="cert-aviso" role="alert" style="display:none; color:#ffb4b4; text-align:center; margin-top:16px;"></p>
+        </section>
+
+        <!-- La vista previa del t&iacute;tulo: la hoja de verdad, a escala, para
+             que nadie emita con el nombre mal escrito. -->
+        <div id="cert-previa" class="cert-previa" style="display:none;" role="dialog" aria-modal="true" aria-label="Vista previa del t&iacute;tulo">
+            <div class="cert-previa-caja">
+                <div class="cert-previa-hoja"><iframe id="cert-previa-frame" title="Vista previa" loading="lazy"></iframe></div>
+                <p class="cert-previa-nota">As&iacute; va a quedar. Mir&aacute; que el nombre est&eacute; exactamente como lo quer&eacute;s impreso: una vez emitido lo pod&eacute;s corregir, pero no muchas veces.</p>
+                <div class="cert-previa-botones">
+                    <button type="button" id="cert-previa-volver" class="btn-sutil">Corregir algo</button>
+                    <button type="button" id="cert-previa-confirmar" class="btn-sutil cert-primario">Est&aacute; bien, emitir mi t&iacute;tulo</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <footer class="main-footer">
@@ -91,7 +115,7 @@
         gtag('js', new Date());
         gtag('config', 'G-GDLRMR5D57');
     </script>
-    <script type="module" src="certificados.js?v=2"></script>
+    <script type="module" src="certificados.js?v=3"></script>
     <script src="../../script.js"></script>
 </body>
 </html>

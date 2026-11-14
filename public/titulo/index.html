@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar un t&iacute;tulo | Seba Bru Astrolog&iacute;a</title>
+    <meta name="description" content="Comprob&aacute; que un t&iacute;tulo de la Escuela de Astrolog&iacute;a de Seba Bru es aut&eacute;ntico.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sebabru.com/titulo">
+    <meta property="og:title" content="Verificar un título | Seba Bru Astrología">
+    <meta property="og:description" content="Comprobá que un título de la Escuela de Astrología de Seba Bru es auténtico.">
+    <meta property="og:image" content="https://sebabru.com/img/portada.webp">
+    <meta property="og:site_name" content="Seba Bru Astrología">
+    <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+
+    <link rel="stylesheet" href="../style.css?v=29">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .verif-main { max-width: 600px; margin: 0 auto; padding: 20px 20px 80px; }
+        .verif-caja {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 30px 26px;
+            text-align: center;
+        }
+        .verif-estado { font-size: .8em; letter-spacing: .14em; text-transform: uppercase; opacity: .6; margin: 0 0 14px; }
+        .verif-nombre { font-size: 1.8em; line-height: 1.2; margin: 0 0 10px; color: var(--text-light); }
+        .verif-rol { font-size: 1.05em; color: var(--primary-color); margin: 0 0 18px; }
+        .verif-dato { opacity: .8; margin: 6px 0; }
+        .verif-numero { font-size: .9em; opacity: .55; letter-spacing: .08em; margin-top: 18px; }
+        .verif-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+        .verif-form input {
+            flex: 1 1 200px;
+            padding: 11px 13px;
+            border-radius: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(0, 0, 0, 0.25);
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 1em;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fixed-background">
+        <div class="blob color-1"></div>
+        <div class="blob color-2"></div>
+    </div>
+    <div class="luciernagas-container"></div>
+
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACI&Oacute;N ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+            <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+            <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
+        </ul>
+    </nav>
+
+    <header class="main-header">
+        <h1>Verificar un t&iacute;tulo</h1>
+    </header>
+
+    <main class="verif-main">
+        <div class="verif-caja" id="verif-caja">
+            <p id="verif-mensaje" style="opacity:.7;">Un segundo...</p>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+        </div>
+        <p>&copy; 2026 Seba Bru Astrolog&iacute;a. Todos los derechos y los izquierdos tambi&eacute;n.</p>
+    </footer>
+
+    <script>
+    (function () {
+        // La pagina a la que apunta el QR de cada titulo. Lleva el numero y un
+        // codigo firmado: sin el codigo, los numeros son correlativos y esto
+        // seria un padron de egresadxs recorrible de a uno.
+        var URL_VERIFICAR = 'https://us-central1-sebabru-e5563.cloudfunctions.net/verificarTitulo';
+        var caja = document.getElementById('verif-caja');
+
+        function escapar(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function noEncontrado(texto) {
+            caja.innerHTML =
+                '<p class="verif-estado">Sin resultados</p>' +
+                '<p style="opacity:.8;">' + escapar(texto) + '</p>' +
+                '<p style="opacity:.6; font-size:.9em; margin-top:18px;">El n&uacute;mero y el c&oacute;digo est&aacute;n en el t&iacute;tulo, abajo a la izquierda, y el c&oacute;digo QR lleva a esta p&aacute;gina directo.</p>';
+        }
+
+        var params = new URLSearchParams(location.search);
+        var n = params.get('n');
+        var c = params.get('c');
+
+        if (!n) {
+            caja.innerHTML =
+                '<p class="verif-estado">Verificaci&oacute;n</p>' +
+                '<p style="opacity:.8;">Escane&aacute; el c&oacute;digo QR del t&iacute;tulo, o abr&iacute; el enlace completo que figura en &eacute;l. El n&uacute;mero solo no alcanza.</p>';
+            return;
+        }
+
+        fetch(URL_VERIFICAR + '?n=' + encodeURIComponent(n) + '&c=' + encodeURIComponent(c || ''))
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+                if (!res.ok || !res.d.ok) {
+                    return noEncontrado(res.d.error || 'No encontramos ning&uacute;n t&iacute;tulo con ese n&uacute;mero.');
+                }
+                var t = res.d;
+                caja.innerHTML =
+                    '<p class="verif-estado">T&iacute;tulo verificado</p>' +
+                    '<p class="verif-nombre">' + escapar(t.nombre) + '</p>' +
+                    (t.titulo ? '<p class="verif-rol">' + escapar(t.titulo) + '</p>' : '') +
+                    '<p class="verif-dato">' + escapar(t.curso) + '</p>' +
+                    '<p class="verif-dato">Escuela de Astrolog&iacute;a de Seba Bru</p>' +
+                    '<p class="verif-dato">Emitido el ' + escapar(t.fecha) + '</p>' +
+                    '<p class="verif-numero">Certificado N&ordm; ' + escapar(t.numero) + '</p>';
+            })
+            .catch(function () {
+                noEncontrado('No pudimos verificar el t&iacute;tulo en este momento. Prob&aacute; de nuevo en un rato.');
+            });
+    })();
+    </script>
+    <script src="../script.js"></script>
+</body>
+</html>
