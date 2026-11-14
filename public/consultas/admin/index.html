@@ -17,7 +17,12 @@
 <link rel="stylesheet" href="../../style.css?v=29">
 
 <style>
-    .pa { --pa-accent: #bfaee0; max-width: 880px; margin: 0 auto; padding: 0 20px; }
+    .pa {
+        --pa-accent: #bfaee0; max-width: 880px; margin: 0 auto; padding: 0 20px;
+        /* Para que los calendarios de los input date y los desplegables que
+           dibuja el navegador vengan oscuros y no en blanco. */
+        color-scheme: dark;
+    }
     .pa-paso { display: none; }
     .pa-paso.visible { display: block; }
 
@@ -95,6 +100,31 @@
         border-radius: 10px; padding: 11px 14px; font-family: 'Outfit', sans-serif; font-size: 16px;
     }
     .pa-vacio { color: #8f8d88; line-height: 1.7; }
+
+    /* Vista previa */
+    .pa-previa-texto { color: #cccac3; line-height: 1.8; margin-bottom: 18px; }
+    .pa-previa-texto a { color: var(--pa-accent); }
+    .pa-previa-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 22px; }
+    .pa-previa-barra select {
+        background: rgba(255,255,255,0.05); color: #fff; border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.18); padding: 11px 14px;
+        font-family: 'Outfit', sans-serif; font-size: 16px;
+    }
+    .pa-previa-barra select option { background: #12141d; color: #fff; }
+    .pa-previa-marco {
+        width: 100%; height: 760px; border-radius: 14px; display: block;
+        border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.2);
+    }
+    .pa-previa-total {
+        margin: 30px 0 14px; font-size: 0.78rem; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #a9a7a1;
+    }
+    .pa-previa-dia {
+        padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    }
+    .pa-previa-dia .pa-previa-fecha { flex: 0 0 210px; color: #e0e0e0; text-transform: capitalize; }
+    .pa-previa-dia .pa-previa-horas { flex: 1 1 200px; color: #a9a7a1; font-size: 0.85rem; }
     /* Spinner propio: evita traer toda la hoja de Font Awesome por un icono. */
     .ag-spinner {
         display: inline-block; width: 16px; height: 16px; vertical-align: -3px;
@@ -133,6 +163,7 @@
                             <button type="button" class="pa-tab activa" data-panel="pa-turnos">Turnos</button>
                             <button type="button" class="pa-tab" data-panel="pa-disponibilidad">Disponibilidad</button>
                             <button type="button" class="pa-tab" data-panel="pa-bloqueos">Bloqueos</button>
+                            <button type="button" class="pa-tab" data-panel="pa-previa">Vista previa</button>
                             <button type="button" class="pa-mini" id="pa-btn-salir" style="margin-left:auto;">Salir</button>
                         </div>
 
@@ -165,6 +196,24 @@
                             </div>
                             <div id="pa-lista-bloqueos"></div>
                         </div>
+
+                        <div id="pa-previa" class="pa-panel">
+                            <p class="pa-previa-texto">
+                                Esta es la página de verdad, la misma que ve una persona cuando entra a
+                                <a href="/consultas/agenda/" target="_blank" rel="noopener">/consultas/agenda/</a>,
+                                con los horarios que estás ofreciendo hoy. Desde acá no se reserva nada:
+                                podés recorrerla tranquilo.
+                            </p>
+                            <div class="pa-previa-barra">
+                                <button type="button" class="pa-boton" id="pa-btn-previa">Cargar la vista previa</button>
+                                <select id="pa-previa-modalidad" aria-label="Modalidad de la vista previa">
+                                    <option value="Online">Como una sesión online</option>
+                                    <option value="Presencial">Como una sesión presencial</option>
+                                </select>
+                            </div>
+                            <iframe id="pa-previa-marco" class="pa-previa-marco" title="Vista previa de la agenda" hidden></iframe>
+                            <div id="pa-previa-horarios"></div>
+                        </div>
                     </div>
 
                 </div>
@@ -173,6 +222,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=1"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=2"></script>
 </body>
 </html>

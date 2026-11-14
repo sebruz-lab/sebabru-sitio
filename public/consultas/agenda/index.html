@@ -34,9 +34,18 @@
     .ag-pagina {
         --ag-accent: #bfaee0;
         max-width: 640px; margin: 0 auto; padding: 0 20px;
+        /* Para que los controles que dibuja el navegador (desplegables,
+           calendarios de los input date) vengan oscuros y no en blanco. */
+        color-scheme: dark;
     }
     .ag-paso { display: none; }
     .ag-paso.visible { display: block; }
+
+    .ag-previa {
+        margin-bottom: 26px; padding: 11px 15px; border-radius: 10px;
+        background: rgba(191,174,224,0.12); border: 1px solid rgba(191,174,224,0.4);
+        color: #e8e6e1; font-size: 0.8rem; line-height: 1.6; text-align: center;
+    }
 
     .ag-intro { text-align: center; margin-bottom: 30px; }
     .ag-intro h2 {
@@ -69,6 +78,11 @@
         background-repeat: no-repeat; background-position: right 14px center;
         background-size: 16px; padding-right: 40px;
     }
+    /* La lista desplegable la dibuja el sistema con el background del select.
+       Con un fondo casi transparente le queda blanco, y la letra blanca
+       desaparece. Mismo arreglo que #consulta select option en
+       formulario.html. */
+    .ag-campo select option, .ag-zona select option { background: #12141d; color: #fff; }
 
     .ag-boton {
         width: 100%; padding: 14px 20px; border-radius: 30px; cursor: pointer;
@@ -263,6 +277,11 @@
 
                     <!-- Calendario y horarios -->
                     <div id="ag-elegir" class="ag-paso">
+                        <!-- Solo aparece cuando la pagina se abre desde el
+                             panel, con el pedido de vista previa. -->
+                        <div id="ag-previa" class="ag-previa" hidden>
+                            Vista previa: así se ve tu agenda. Desde acá no se reserva nada.
+                        </div>
                         <div class="ag-intro">
                             <h2 id="ag-saludo">Elegí tu día y tu hora</h2>
                             <p id="ag-bajada">Estos son los horarios que tengo realmente libres.</p>
@@ -345,6 +364,6 @@
     </footer>
 
     <script src="../../script.js"></script>
-    <script type="module" src="/consultas/agenda/agenda.js?v=2"></script>
+    <script type="module" src="/consultas/agenda/agenda.js?v=3"></script>
 </body>
 </html>

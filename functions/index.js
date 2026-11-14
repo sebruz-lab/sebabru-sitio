@@ -274,33 +274,53 @@ function claveRateLimit(nombreFuncion, req) {
 // No es a prueba de balas (alguien con muchas IPs lo esquiva) pero frena
 // el caso real mas probable: un script en loop pegandole a un endpoint
 // sin login desde una sola conexion.
-async function checkRateLimit(nombreFuncion, req, maxRequests) {
+// Mira el contador y decide, SIN escribir todavia. Devuelve tambien la
+// escritura pendiente en .anotar(), para que quien este apurado la mande
+// junto con las otras en vez de esperarla sola.
+//
+// Antes esto era una transaccion, o sea dos viajes a Firestore en fila
+// (abrirla y confirmarla) y los dos antes que cualquier otra cosa. Se cambio
+// por una lectura y una escritura separadas, y hay una razon por la que no
+// afloja nada:
+//
+//   - La DECISION no cambia de lugar: se sigue leyendo el contador y
+//     rechazando antes de aceptar un envio. Eso es lo que importa.
+//   - El contador sigue siendo exacto, porque increment() es atomico del
+//     lado de Firestore.
+//   - Lo unico que se pierde es que dos envios simultaneos pueden decidir
+//     sobre el mismo numero. Con un limite de 10 envios cada 10 minutos por
+//     IP, errarle por uno no significa nada: no es un control de acceso, es
+//     un freno al abuso.
+async function mirarRitmo(nombreFuncion, req, maxRequests) {
   const ref = _db.collection('rate_limits').doc(claveRateLimit(nombreFuncion, req));
+  const snap = await ref.get();
+  const ahora = Date.now();
 
-  return _db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const ahora = Date.now();
+  // El contador queda tambien en el req para quien lo necesite:
+  // registrarInscripcion decide con esto si pide captcha.
+  if (!snap.exists || (ahora - snap.data().windowStart) > RATE_LIMIT_WINDOW_MS) {
+    req._intentos = 1;
+    return { ok: true, anotar: () => ref.set({ windowStart: ahora, count: 1 }) };
+  }
 
-    // El contador queda en el req para quien lo necesite (registrarInscripcion
-    // decide con esto si pide captcha). Antes lo volvia a leer con un get()
-    // del mismo documento que acabamos de escribir: un viaje a Firestore de
-    // mas en el camino critico del formulario. No se cambia la firma de esta
-    // funcion a proposito: tiene ocho llamadores.
-    if (!snap.exists || (ahora - snap.data().windowStart) > RATE_LIMIT_WINDOW_MS) {
-      tx.set(ref, { windowStart: ahora, count: 1 });
-      req._intentos = 1;
-      return true;
-    }
+  const cuantos = snap.data().count;
+  if (cuantos >= maxRequests) {
+    req._intentos = cuantos;
+    // No se anota nada: el envio se rechaza y no cuenta.
+    return { ok: false, anotar: () => Promise.resolve() };
+  }
 
-    if (snap.data().count >= maxRequests) {
-      req._intentos = snap.data().count;
-      return false;
-    }
+  req._intentos = cuantos + 1;
+  return { ok: true, anotar: () => ref.update({ count: admin.firestore.FieldValue.increment(1) }) };
+}
 
-    tx.update(ref, { count: admin.firestore.FieldValue.increment(1) });
-    req._intentos = snap.data().count + 1;
-    return true;
-  });
+// La forma de siempre, para los siete endpoints donde 150 ms no cambian nada.
+// A proposito no se toca su firma: la usan desde los webhooks de pago hasta
+// el buscador de lugares.
+async function checkRateLimit(nombreFuncion, req, maxRequests) {
+  const ritmo = await mirarRitmo(nombreFuncion, req, maxRequests);
+  await ritmo.anotar();
+  return ritmo.ok;
 }
 
 // Verifica la firma x-signature que Mercado Pago manda en cada webhook,
@@ -388,8 +408,15 @@ async function verificarTurnstile(token, req) {
 async function encolarContactoBrevo(datos) {
   if (!datos || !datos.email) return;
   try {
-    await _db.collection('brevo_contactos').add({
-      ...datos,
+    // El id, si viene, nombra el documento y no se guarda adentro. Sirve
+    // para que un trigger con retry no encole el alta dos veces: ver
+    // encolarMail en mails.js, que hace lo mismo y por lo mismo.
+    const { id, ...resto } = datos;
+    const destino = id
+      ? _db.collection('brevo_contactos').doc(String(id))
+      : _db.collection('brevo_contactos').doc();
+    await destino.set({
+      ...resto,
       email: String(datos.email).trim().toLowerCase(),
       creado: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -2096,8 +2123,15 @@ function filaDeFormulario(config, titulos, valores, estadoCarta, ahora) {
 // este de mal humor.
 async function encolarFilaPlanilla(datos) {
   try {
-    await _db.collection('filas_planilla').add({
-      ...datos,
+    // Igual que encolarMail y encolarContactoBrevo: con id, el documento se
+    // llama asi, y un trigger que se repite reescribe este en vez de pedir
+    // una segunda fila. Una fila duplicada en la planilla no se nota.
+    const { id, ...resto } = datos;
+    const destino = id
+      ? _db.collection('filas_planilla').doc(String(id))
+      : _db.collection('filas_planilla').doc();
+    await destino.set({
+      ...resto,
       creado: new Date().toISOString(),
     });
   } catch (error) {
@@ -2173,7 +2207,11 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
 
   ensureInit();
 
-  if (!(await checkRateLimit('registrarInscripcion', req, 10))) {
+  // La decision se toma aca, como siempre. Lo que se posterga es solo
+  // anotar el envio en el contador: eso viaja abajo, junto con la escritura
+  // del pedido, en vez de ser un viaje propio a Firestore. Ver mirarRitmo.
+  const ritmo = await mirarRitmo('registrarInscripcion', req, 10);
+  if (!ritmo.ok) {
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
@@ -2237,122 +2275,76 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
     const estadoCarta = carta ? 'Sí' : 'No: el lugar no se eligió de la lista';
     const ahora = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
 
-    // Paso 2 de una consulta: elegir el dia y la hora en /consultas/agenda/.
-    // Este es el unico I/O que queda en fila, y tiene que estar: su id es el
-    // que viaja en la respuesta (el boton "Elegi el dia y la hora") y es el
-    // que necesita la fila encolada para despues decirle donde quedo.
+    // Y aca esta todo lo que queda del camino critico: UNA escritura.
     //
-    // Si falla, la inscripcion sigue valiendo: la persona queda en la
-    // planilla y recibe su mail, solo que coordina a mano como antes.
-    let pedidoId = null;
+    // Antes eran dos viajes a Firestore en fila: primero el pedido de la
+    // agenda (habia que esperarlo porque su id va en la respuesta) y recien
+    // despues las otras cuatro escrituras. Ahora el id se saca con .doc(),
+    // que lo arma la libreria SIN ir a la red, asi que el enlace de la
+    // agenda se puede firmar antes de escribir y todo entra en una sola
+    // escritura. De ahi en adelante trabaja un trigger.
+    //
+    // El piso es este y no se puede bajar: en una function v1 la instancia
+    // se congela despues del res.send(), asi que contestar sin haber
+    // guardado nada no seria "procesarlo despues", seria perderlo.
+    const pendiente = {
+      formId,
+      valores,
+      carta,
+      estadoCarta,
+      ahora,
+      // La marca que el trigger mira para saber que esto es una inscripcion
+      // sin procesar.
+      pendiente: true,
+      creado: new Date().toISOString(),
+    };
+
+    let ref;
     if (config.agenda) {
-      try {
-        const ref = await _db.collection('agenda_pedidos').add({
-          origen: 'formulario',
-          formId,
-          nombre: valores.nombre || '',
-          email: valores.email || '',
-          telefono: valores.telefono || '',
-          modalidad: valores.modalidad || '',
-          // La escribe el trigger cuando la fila quede en la planilla.
-          filaPlanilla: null,
-          turnoId: null,
-          creado: new Date().toISOString(),
-        });
-        pedidoId = ref.id;
-        urlAgenda = urlDeAgenda(ref.id);
-      } catch (error) {
-        functions.logger.error('No se pudo abrir la agenda del pedido:', error.message);
-      }
+      // Paso 2 de una consulta: elegir el dia y la hora en
+      // /consultas/agenda/. Esto se escribe como el pedido mismo y no en una
+      // coleccion aparte a proposito: pedidoDeAgenda hace un get() de
+      // agenda_pedidos y contesta token_invalido si no existe, asi que si el
+      // pedido lo creara el trigger, quien aprieta "Elegi el dia y la hora"
+      // enseguida se encontraria la agenda cerrada.
+      ref = _db.collection('agenda_pedidos').doc();
+      urlAgenda = urlDeAgenda(ref.id);
+      Object.assign(pendiente, {
+        origen: 'formulario',
+        nombre: valores.nombre || '',
+        email: valores.email || '',
+        telefono: valores.telefono || '',
+        modalidad: valores.modalidad || '',
+        // La escribe escribirFilaPlanilla cuando la fila quede en la hoja.
+        filaPlanilla: null,
+        turnoId: null,
+        urlAgenda,
+      });
+    } else {
+      // Los formularios sin agenda (las inscripciones a cursos) no tienen
+      // pedido: su carga va a su propia coleccion, que atiende el mismo
+      // trigger.
+      ref = _db.collection('inscripciones_pendientes').doc();
     }
 
-    // Y de aca al final, todo junto. Son cuatro escrituras independientes
-    // entre si: antes se esperaban en fila y la persona pagaba la suma;
-    // ahora paga la mas lenta. Ninguna de las cuatro puede tirar (cada una
-    // se traga su error y lo loguea), asi que el Promise.all no necesita
-    // catch.
-    const guardarCartaYAvisar = (async () => {
-      let cartaGuardada = false;
-      if (carta) {
-        try {
-          await guardarCartaInscripcion(config, carta);
-          cartaGuardada = true;
-        } catch (error) {
-          functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
-        }
-      }
-
-      const filasHtml = [...config.campos, ...(config.camposFinales || [])].map(c =>
-        `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
-      ).join('') + (config.carta
-        ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
-          ? `Guardada en tus cartas de <a href="https://sebabru.com/cartas/">sebabru.com/cartas</a> (${escapeHtml(config.carta.grupo)})`
-          : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
-        : '');
-
-      // El aviso a Seba va a la cola. Era el ultimo await antes del
-      // res.send() y el mas caro de todos: una conexion SMTP nueva a Gmail,
-      // dos a seis segundos, para mandar un mail interno que quien se
-      // inscribe no va a leer nunca. Ahora son 150 ms de Firestore y lo
-      // manda enviarMailEncolado. Ver mails.js.
-      await mails.encolarMail(_db, {
-        para: AVISOS_INSCRIPCION,
-        asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
-        motivo: `inscripcion:${formId}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
-            <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
-            <table style="width:100%;border-collapse:collapse;margin-top:16px;">
-              ${filasHtml}
-            </table>
-          </div>
-        `,
-      });
-    })();
-
-    // La confirmacion (con la carta en PDF) la manda enviarCartaInscripcion,
-    // aparte: armar el PDF tarda y la persona no tiene que esperarlo.
-    const pedirConfirmacion = (async () => {
-      if (!config.confirmacion) return;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) return;
-      try {
-        await _db.collection('envios_carta').add({
-          formId, email: valores.email, nombre: valores.nombre || '', modalidad: valores.modalidad || null, carta, urlAgenda, creado: new Date().toISOString(),
-        });
-      } catch (error) {
-        functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
-      }
-    })();
-
-    // Y el alta en el mailing, por la misma cola. A la lista del formulario
-    // entra siempre; a la de lunaciones, solo si marco el casillero.
-    const altaEnElMailing = (async () => {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '')) return;
-      const quiereNovedades = valores.novedades === 'Sí';
-      await encolarContactoBrevo({
-        email: valores.email,
-        nombre: valores.nombre || '',
-        listas: [
-          ...(config.brevoLista ? [config.brevoLista] : []),
-          ...(quiereNovedades ? ['suscriptores'] : []),
-        ],
-        atributos: {
-          ORIGEN: `formulario-${formId}`,
-          CONSENTIMIENTO: quiereNovedades ? 'formulario-checkbox' : 'relacion-comercial',
-          TELEFONO_TXT: valores.telefono || '',
-        },
-        motivo: `inscripcion:${formId}`,
-      });
-    })();
-
+    // Las dos escrituras que quedan, juntas: el pedido y la anotacion del
+    // contador de ritmo, que se decidio arriba y se anota aca.
+    //
+    // La del contador se traga su error a proposito. Si tirara, el catch de
+    // abajo contestaria 500 con el pedido ya escrito y el trigger
+    // procesandolo igual: la persona veria un error, lo mandaria de nuevo y
+    // se inscribiria dos veces. Un contador de abuso no puede tirar abajo
+    // una inscripcion.
     await Promise.all([
-      encolarFilaPlanilla({ tipo: 'inscripcion', formId, pedidoId, valores, estadoCarta, ahora }),
-      guardarCartaYAvisar,
-      pedirConfirmacion,
-      altaEnElMailing,
+      ref.set(pendiente),
+      ritmo.anotar().catch(error => {
+        functions.logger.error('No se pudo anotar el envio en el contador:', error.message);
+      }),
     ]);
 
-    functions.logger.info('Inscripción registrada', { formId, hoja: config.hoja, pedidoId });
+    functions.logger.info('Inscripción recibida', {
+      formId, id: ref.id, coleccion: config.agenda ? 'agenda_pedidos' : 'inscripciones_pendientes',
+    });
     return res.status(200).json({ ok: true, agenda: urlAgenda });
 
   } catch (error) {
@@ -2906,6 +2898,179 @@ exports.enviarMailEncolado = onDocumentCreated({
   if (!event.data) return;
   await mails.enviarMailEncolado(event.data.ref);
 });
+
+// -------------------------------------------------------
+// procesarInscripcion: todo lo que el formulario ya no espera.
+//
+// registrarInscripcion contesta despues de una sola escritura y de ahi en
+// adelante trabaja esto: la fila en la planilla, la carta guardada, la
+// confirmacion con el PDF, el alta en el mailing y el aviso a Seba.
+//
+// Son dos triggers porque hay dos colecciones (un formulario con agenda
+// escribe su pedido, uno sin agenda escribe en la coleccion suelta), pero la
+// logica es una sola y esta en procesarPendiente.
+//
+// retry en true: un rato malo de Firestore no pierde una inscripcion. Que no
+// se procese dos veces lo cuida la marca "pendiente", que se apaga al final.
+// -------------------------------------------------------
+const OPCIONES_TRIGGER_INSCRIPCION = {
+  database: 'cursos',
+  region: 'us-central1',
+  retry: true,
+  maxInstances: 3,
+};
+
+exports.procesarInscripcion = onDocumentCreated({
+  ...OPCIONES_TRIGGER_INSCRIPCION,
+  document: 'inscripciones_pendientes/{id}',
+}, (event) => procesarPendiente(event));
+
+// Este tambien se dispara con los pedidos que crea iniciarAgenda (los de la
+// agenda suelta, origen 'directo'): procesarPendiente los deja pasar porque
+// no tienen la marca.
+exports.procesarPedidoDeAgenda = onDocumentCreated({
+  ...OPCIONES_TRIGGER_INSCRIPCION,
+  document: 'agenda_pedidos/{id}',
+}, (event) => procesarPendiente(event));
+
+async function procesarPendiente(event) {
+  ensureInit();
+  if (!event.data) return;
+  const ref = event.data.ref;
+
+  // event.data es la foto del momento de la creacion. Con retry en true esto
+  // puede correr dos veces, asi que se vuelve a leer: los triggers de
+  // Firestore son at-least-once y mandar la confirmacion dos veces se nota.
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const d = snap.data();
+
+  // Un pedido de la agenda suelta, o algo que ya se proceso.
+  if (!d.pendiente) return;
+
+  const config = FORMULARIOS_INSCRIPCION[d.formId];
+  if (!config) {
+    // Un formulario que ya no existe: no hay reintento que lo arregle.
+    functions.logger.error('Inscripcion pendiente de un formulario desconocido', { formId: d.formId });
+    await ref.update({ pendiente: false, error: 'formulario_desconocido' });
+    return;
+  }
+
+  const valores = d.valores || {};
+  const tieneMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.email || '');
+  // Solo los formularios con agenda guardan su pedido en agenda_pedidos: ese
+  // id es el que necesita la fila para despues decir donde quedo.
+  const pedidoId = config.agenda ? ref.id : null;
+
+  // Todo lo que se encola abajo lleva un nombre derivado del id de esta
+  // inscripcion, y no uno al azar. Es lo que hace que este trigger sea
+  // repetible: si el update del final falla, el reintento reescribe los
+  // mismos cuatro documentos en lugar de pedir una segunda fila en la
+  // planilla y un segundo aviso. Los cuatro los consume un
+  // onDocumentCreated, asi que reescribirlos no dispara nada.
+
+  // Las cuatro cosas son independientes entre si y cada una se traga su
+  // error: que falle una no puede dejar las otras sin hacer. Lo unico que no
+  // se traga nada es el update final, que es el que marca esto como hecho.
+  const guardarCartaYAvisar = (async () => {
+    let cartaGuardada = false;
+    if (d.carta) {
+      try {
+        await guardarCartaInscripcion(config, d.carta);
+        cartaGuardada = true;
+      } catch (error) {
+        functions.logger.error('No se pudo guardar la carta de la inscripción:', error.message);
+      }
+    }
+
+    const filasHtml = [...config.campos, ...(config.camposFinales || [])].map(c =>
+      `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">${escapeHtml(c.label)}</td><td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(valores[c.key] || '—')}</td></tr>`
+    ).join('') + (config.carta
+      ? `<tr><td style="padding:10px;border-bottom:1px solid #eee;color:#888;width:180px;">Carta</td><td style="padding:10px;border-bottom:1px solid #eee;">${cartaGuardada
+        ? `Guardada en tus cartas de <a href="https://sebabru.com/cartas/">sebabru.com/cartas</a> (${escapeHtml(config.carta.grupo)})`
+        : 'No se guardó: el lugar no se eligió de la lista. Cargala a mano.'}</td></tr>`
+      : '');
+
+    await mails.encolarMail(_db, {
+      id: `inscripcion-${ref.id}`,
+      para: AVISOS_INSCRIPCION,
+      asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
+      motivo: `inscripcion:${d.formId}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
+          <h2 style="color:#249b95;">Nueva inscripción: ${escapeHtml(config.nombreEvento)}</h2>
+          <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+            ${filasHtml}
+          </table>
+        </div>
+      `,
+    });
+  })();
+
+  // La confirmacion (con la carta en PDF) la manda enviarCartaInscripcion,
+  // aparte: armar el PDF tarda y pesa 2 GiB de memoria.
+  const pedirConfirmacion = (async () => {
+    if (!config.confirmacion || !tieneMail) return;
+    try {
+      await _db.collection('envios_carta').doc(ref.id).set({
+        formId: d.formId,
+        email: valores.email,
+        nombre: valores.nombre || '',
+        modalidad: valores.modalidad || null,
+        carta: d.carta || null,
+        urlAgenda: d.urlAgenda || null,
+        creado: new Date().toISOString(),
+      });
+    } catch (error) {
+      functions.logger.error('No se pudo pedir el mail de confirmación:', error.message);
+    }
+  })();
+
+  // El alta en el mailing. A la lista del formulario entra siempre; a la de
+  // lunaciones, solo si marco el casillero.
+  const altaEnElMailing = (async () => {
+    if (!tieneMail) return;
+    const quiereNovedades = valores.novedades === 'Sí';
+    await encolarContactoBrevo({
+      id: `inscripcion-${ref.id}`,
+      email: valores.email,
+      nombre: valores.nombre || '',
+      listas: [
+        ...(config.brevoLista ? [config.brevoLista] : []),
+        ...(quiereNovedades ? ['suscriptores'] : []),
+      ],
+      atributos: {
+        ORIGEN: `formulario-${d.formId}`,
+        CONSENTIMIENTO: quiereNovedades ? 'formulario-checkbox' : 'relacion-comercial',
+        TELEFONO_TXT: valores.telefono || '',
+      },
+      motivo: `inscripcion:${d.formId}`,
+    });
+  })();
+
+  await Promise.all([
+    encolarFilaPlanilla({
+      id: `inscripcion-${ref.id}`,
+      tipo: 'inscripcion', formId: d.formId, pedidoId,
+      valores, estadoCarta: d.estadoCarta || '', ahora: d.ahora || '',
+    }),
+    guardarCartaYAvisar,
+    pedirConfirmacion,
+    altaEnElMailing,
+  ]);
+
+  // Recien ahora se apaga la marca: si algo de arriba tira, el reintento
+  // vuelve a entrar en vez de dar la inscripcion por procesada. Y se borra la
+  // carga cruda, que ya no hace falta y son los datos de nacimiento de una
+  // persona guardados dos veces.
+  await ref.update({
+    pendiente: false,
+    procesado: new Date().toISOString(),
+    valores: admin.firestore.FieldValue.delete(),
+    carta: admin.firestore.FieldValue.delete(),
+  });
+  functions.logger.info('Inscripción procesada', { formId: d.formId, id: ref.id });
+}
 
 // -------------------------------------------------------
 // escribirFilaPlanilla: el que vacia la cola de filas_planilla. La API de
@@ -4150,6 +4315,32 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
 });
 
 // -------------------------------------------------------
+// Los horarios libres de un tramo, acotado y cruzado con el calendario.
+//
+// Esta aparte porque lo usan dos lugares: la pagina publica y la vista
+// previa del panel. Si cada uno calculara sus horarios con su propio
+// codigo, la vista previa dejaria de servir para lo unico que sirve, que es
+// ver lo que ve la gente.
+// -------------------------------------------------------
+async function slotsVisibles(config, desdePedido, hastaPedido) {
+  const hoy = diaLocal(Date.now());
+  let desde = fechaValida(desdePedido) && desdePedido > hoy ? desdePedido : hoy;
+  let hasta = fechaValida(hastaPedido) ? hastaPedido : sumarDias(desde, 45);
+  const tope = diaLocal(Date.now() + (config.ventanaDias || 60) * 86400000);
+  if (hasta > tope) hasta = tope;
+  // Un tramo de a lo sumo 70 dias por pedido: es la unica cota contra una
+  // consulta que haga a Calendar recorrer anios.
+  if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
+  if (hasta < desde) return { desde, hasta, slots: [] };
+
+  const [ocupados, bloqueos] = await Promise.all([
+    ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
+    leerBloqueos(),
+  ]);
+  return { desde, hasta, slots: generarSlots(config, desde, hasta, bloqueos, ocupados) };
+}
+
+// -------------------------------------------------------
 // disponibilidad: los horarios libres de un tramo, en hora de Argentina.
 // La pagina los muestra en la zona horaria de quien mira.
 // -------------------------------------------------------
@@ -4178,6 +4369,10 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
       ok: true,
       nombre: pedido.nombre || '',
       modalidad: pedido.modalidad || '',
+      // El pedido fijo que usa el panel para mirar la pagina por dentro. La
+      // pagina lo necesita saber para apagar el boton de confirmar y para no
+      // mandar eventos a Analytics cada vez que Seba abre el panel.
+      previsualizacion: pedido.origen === 'previsualizacion',
       zona: AGENDA_ZONA,
       duracionMin: config.duracionMin,
       ventanaDias: config.ventanaDias,
@@ -4191,28 +4386,14 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
       return res.status(200).json(respuesta);
     }
 
-    const hoy = diaLocal(Date.now());
-    const pedidoDesde = sanitizeTexto(req.query.desde, 10);
-    const pedidoHasta = sanitizeTexto(req.query.hasta, 10);
-    const valida = f => /^\d{4}-\d{2}-\d{2}$/.test(f);
-    let desde = valida(pedidoDesde) && pedidoDesde > hoy ? pedidoDesde : hoy;
-    let hasta = valida(pedidoHasta) ? pedidoHasta : sumarDias(desde, 45);
-    const tope = diaLocal(Date.now() + (config.ventanaDias || 60) * 86400000);
-    if (hasta > tope) hasta = tope;
-    // Un tramo de a lo sumo 70 dias por pedido: es la unica cota contra una
-    // consulta que haga a Calendar recorrer anios.
-    if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
-    if (hasta < desde) {
-      return res.status(200).json(respuesta);
-    }
-
-    const [ocupados, bloqueos] = await Promise.all([
-      ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
-      leerBloqueos(),
-    ]);
-    respuesta.desde = desde;
-    respuesta.hasta = hasta;
-    respuesta.slots = generarSlots(config, desde, hasta, bloqueos, ocupados);
+    const visibles = await slotsVisibles(
+      config,
+      sanitizeTexto(req.query.desde, 10),
+      sanitizeTexto(req.query.hasta, 10)
+    );
+    respuesta.desde = visibles.desde;
+    respuesta.hasta = visibles.hasta;
+    respuesta.slots = visibles.slots;
     return res.status(200).json(respuesta);
 
   } catch (error) {
@@ -4242,6 +4423,12 @@ exports.reservarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(a
   const pedidoId = sanitizeTexto(req.body?.p, 64);
   const pedido = await pedidoDeAgenda(pedidoId, sanitizeTexto(req.body?.t, 64));
   if (!pedido) return res.status(403).json({ error: 'token_invalido' });
+
+  // Desde la vista previa del panel no se reserva: es para mirar. Si no, un
+  // clic de Seba probando la pantalla le mete un turno en el calendario.
+  if (pedido.origen === 'previsualizacion') {
+    return res.status(403).json({ error: 'es_previsualizacion' });
+  }
 
   const inicioTexto = sanitizeTexto(req.body?.inicio, 40);
   const inicioMs = Date.parse(inicioTexto);
@@ -4278,6 +4465,10 @@ exports.cancelarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(a
   const pedidoId = sanitizeTexto(req.body?.p, 64);
   const pedido = await pedidoDeAgenda(pedidoId, sanitizeTexto(req.body?.t, 64));
   if (!pedido) return res.status(403).json({ error: 'token_invalido' });
+
+  if (pedido.origen === 'previsualizacion') {
+    return res.status(403).json({ error: 'es_previsualizacion' });
+  }
 
   try {
     // Idempotente: cancelar algo que ya no esta contesta ok igual.
@@ -4545,6 +4736,40 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         return res.status(200).json({ ok: true, config: await leerConfigAgenda(), turnos, bloqueos });
       }
 
+      // Lo que necesita la vista previa del panel: un pedido con el que
+      // abrir la pagina publica de verdad, y los horarios que esa pagina va
+      // a ofrecer. Es un pedido unico y fijo, asi no acumula basura, y
+      // reservarTurno lo rechaza por origen.
+      case 'previsualizar': {
+        const modalidad = req.body?.modalidad === 'Presencial' ? 'Presencial' : 'Online';
+        await _db.collection('agenda_pedidos').doc('previsualizacion').set({
+          origen: 'previsualizacion',
+          nombre: '', email: '', telefono: '',
+          modalidad,
+          turnoId: null,
+          visto: new Date().toISOString(),
+        }, { merge: true });
+
+        const config = await leerConfigAgenda();
+        // Sin desde ni hasta: los mismos valores por defecto que usa la
+        // pagina, para que los horarios sean exactamente los que se ofrecen.
+        const visibles = config.pausado
+          ? { desde: null, hasta: null, slots: [] }
+          : await slotsVisibles(config, null, null);
+
+        return res.status(200).json({
+          ok: true,
+          p: 'previsualizacion',
+          t: tokenDeAgenda('previsualizacion'),
+          zona: AGENDA_ZONA,
+          pausado: config.pausado === true,
+          duracionMin: config.duracionMin,
+          desde: visibles.desde,
+          hasta: visibles.hasta,
+          slots: visibles.slots,
+        });
+      }
+
       case 'guardarConfig': {
         const limpia = configSaneada(req.body?.config);
         await _db.collection('agenda_config').doc('general').set(limpia);
@@ -4622,4 +4847,71 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
     functions.logger.error('Error en adminAgenda:', error.message, { accion });
     return res.status(500).json({ error: 'fallo' });
   }
+});
+
+// =======================================================================
+// mantenerDespierto: el arranque en frio, sin pagarlo
+//
+// Las 33 functions viven en un solo index.js, asi que cada una carga 425
+// archivos al arrancar. Medido en produccion: 4,0 s en frio contra 0,35 s en
+// caliente. O sea que el arranque en frio es el 90% de lo que todavia espera
+// quien manda un formulario -- y no es trabajo nuestro, es Google levantando
+// el contenedor antes de que nuestro codigo exista.
+//
+// Esto le pega un OPTIONS a los tres endpoints donde alguien espera del otro
+// lado. El OPTIONS entra por setCors, contesta 204 y se va: levanta la
+// instancia sin hacer nada de trabajo, sin tocar Firestore y sin pagar nada
+// (cada ping es una decima de segundo, muy abajo del nivel gratuito).
+//
+// Un solo trabajo de Cloud Scheduler para los tres. Si en lugar de esto se
+// usara un trabajo por endpoint, se gastarian los 3 gratis que regala
+// Scheduler y no quedaria ninguno para otra cosa.
+//
+// Lo que esto NO es: una garantia. Google puede apagar la instancia igual, y
+// mantiene UNA: si dos personas envian el formulario al mismo tiempo, la
+// segunda arranca en frio. La alternativa que si lo garantiza es
+// minInstances, que son entre USD 1,50 y 4,20 por mes segun cuantos
+// endpoints y con cuanta memoria. Por eso esto loguea cuanto tardo cada
+// ping: son los numeros con los que decidir si vale la pena pagar.
+// =======================================================================
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+
+const DESPERTAR = ['registrarInscripcion', 'suscribir', 'reservarTurno'];
+
+exports.mantenerDespierto = onSchedule({
+  // De 8 de la manana a medianoche, hora de Argentina. De madrugada nadie se
+  // inscribe y quien lo haga paga los 4 segundos: no vale tenerlo prendido.
+  schedule: '*/5 8-23 * * *',
+  timeZone: 'America/Argentina/Cordoba',
+  region: 'us-central1',
+  memory: '256MiB',
+  timeoutSeconds: 60,
+  retryCount: 0,
+}, async () => {
+  const proyecto = process.env.GCLOUD_PROJECT || 'sebabru-e5563';
+  const base = `https://us-central1-${proyecto}.cloudfunctions.net`;
+
+  const resultados = await Promise.all(DESPERTAR.map(async (nombre) => {
+    const t0 = Date.now();
+    try {
+      const r = await fetch(`${base}/${nombre}`, {
+        method: 'OPTIONS',
+        headers: {
+          // Un preflight como el que manda el browser: sin un Origin de la
+          // lista, setCors no devuelve la cabecera y el OPTIONS no sirve de
+          // ensayo de lo que va a pasar de verdad.
+          Origin: 'https://sebabru.com',
+          'Access-Control-Request-Method': 'POST',
+        },
+      });
+      return { nombre, estado: r.status, ms: Date.now() - t0 };
+    } catch (error) {
+      return { nombre, error: error.message, ms: Date.now() - t0 };
+    }
+  }));
+
+  // Un ping de ~4000 ms es una instancia que se habia apagado; uno de ~300 ms
+  // es una que seguia prendida. Es la medicion que dice si hace falta pagar
+  // minInstances o no.
+  functions.logger.info('Instancias despertadas', { resultados });
 });

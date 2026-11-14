@@ -225,6 +225,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /inscripciones_pendientes/{id} {
+      // La carga cruda de un formulario sin agenda, desde que
+      // registrarInscripcion contesta hasta que procesarInscripcion termina
+      // de repartirla. Tiene todo lo que la persona escribio, datos de
+      // nacimiento incluidos. Cerrada de los dos lados.
+      allow read, write: if false;
+    }
+
     match /filas_planilla/{id} {
       // La cola de la planilla: la llenan las Cloud Functions y la vacia el
       // trigger escribirFilaPlanilla. Cada documento tiene la fila entera de

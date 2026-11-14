@@ -309,6 +309,102 @@ async function bloquear() {
 }
 
 // -------------------------------------------------------
+// Vista previa
+//
+// El iframe trae la pagina publica de verdad, no una copia: una copia se
+// veria parecida hoy y mentiria en tres meses. Y se carga recien al apretar
+// el boton, porque es una pagina entera: el panel tiene que seguir
+// abriendose rapido.
+// -------------------------------------------------------
+async function cargarPrevia() {
+  const boton = $('pa-btn-previa');
+  boton.disabled = true;
+  boton.textContent = 'Buscando horarios...';
+  try {
+    const data = await llamar({ accion: 'previsualizar', modalidad: $('pa-previa-modalidad').value });
+    const marco = $('pa-previa-marco');
+    marco.hidden = false;
+    // Con el cache-buster, volver a apretar el boton recarga de verdad.
+    marco.src = `/consultas/agenda/?p=${encodeURIComponent(data.p)}&t=${encodeURIComponent(data.t)}&r=${Date.now()}`;
+    pintarHorariosLibres(data);
+    boton.textContent = 'Actualizar la vista previa';
+  } catch (e) {
+    avisar(`No se pudo armar la vista previa: ${e.message}`, 'error');
+    boton.textContent = 'Cargar la vista previa';
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function pintarHorariosLibres(data) {
+  const caja = $('pa-previa-horarios');
+  caja.innerHTML = '';
+  const slots = data.slots || [];
+
+  const total = document.createElement('p');
+  total.className = 'pa-previa-total';
+  if (data.pausado) {
+    total.textContent = 'La agenda está cerrada: nadie puede reservar.';
+  } else if (!slots.length) {
+    total.textContent = `No hay ningún horario libre entre el ${data.desde} y el ${data.hasta}.`;
+  } else {
+    const dias = new Set(slots.map(s => s.slice(0, 10))).size;
+    total.textContent = `${slots.length} horarios libres en ${dias} día${dias > 1 ? 's' : ''}, entre el ${data.desde} y el ${data.hasta}`;
+  }
+  caja.appendChild(total);
+  if (!slots.length) return;
+
+  // Los slots vienen en hora de Argentina y ordenados, asi que el dia sale
+  // de los primeros diez caracteres: no hace falta mirar zonas horarias.
+  const porDia = new Map();
+  for (const iso of slots) {
+    const dia = iso.slice(0, 10);
+    if (!porDia.has(dia)) porDia.set(dia, []);
+    porDia.get(dia).push(iso);
+  }
+
+  for (const [dia, horas] of porDia) {
+    const fila = document.createElement('div');
+    fila.className = 'pa-previa-dia';
+
+    const fecha = document.createElement('div');
+    fecha.className = 'pa-previa-fecha';
+    fecha.textContent = new Intl.DateTimeFormat('es-AR', {
+      timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long',
+    }).format(new Date(horas[0]));
+    fila.appendChild(fecha);
+
+    const texto = document.createElement('div');
+    texto.className = 'pa-previa-horas';
+    texto.textContent = horas.map(h => h.slice(11, 16)).join(' · ');
+    fila.appendChild(texto);
+
+    const bloquear = document.createElement('button');
+    bloquear.type = 'button';
+    bloquear.className = 'pa-mini';
+    bloquear.textContent = 'Bloquear este día';
+    bloquear.addEventListener('click', () => bloquearDia(dia, bloquear));
+    fila.appendChild(bloquear);
+
+    caja.appendChild(fila);
+  }
+}
+
+async function bloquearDia(dia, boton) {
+  if (!window.confirm(`¿Bloquear el ${dia}? Deja de ofrecerse, y los turnos que ya estén reservados ese día siguen en pie.`)) return;
+  boton.disabled = true;
+  try {
+    await llamar({ accion: 'bloquear', desde: dia, hasta: dia, motivo: '' });
+    avisar('Día bloqueado.', 'ok');
+    await recargar();
+    await cargarPrevia();
+  } catch (e) {
+    avisar(`No se pudo bloquear: ${e.message}`, 'error');
+    boton.disabled = false;
+  }
+}
+
+// -------------------------------------------------------
 // Sesión
 // -------------------------------------------------------
 async function entrar() {
@@ -365,6 +461,7 @@ $('pa-btn-entrar').addEventListener('click', entrar);
 $('pa-btn-salir').addEventListener('click', () => signOut(auth));
 $('pa-btn-guardar').addEventListener('click', guardarConfig);
 $('pa-btn-bloquear').addEventListener('click', bloquear);
+$('pa-btn-previa').addEventListener('click', cargarPrevia);
 
 for (const tab of document.querySelectorAll('.pa-tab')) {
   tab.addEventListener('click', () => {

@@ -21,6 +21,7 @@ const estado = {
   diaElegido: null,
   horaElegida: null,
   turno: null,
+  previsualizacion: false,
   duracionMin: 120,
   modalidad: '',
   nombre: '',
@@ -51,6 +52,9 @@ function limpiarError(donde) {
 }
 
 function medir(evento, extra) {
+  // Desde la vista previa del panel no se mide nada: si no, cada vez que
+  // Seba abre esa pestana se le mete un turno_inicio en Analytics.
+  if (estado.previsualizacion) return;
   if (window.gtag) gtag('event', evento, extra || {});
 }
 
@@ -245,7 +249,14 @@ function pintarResumen() {
   $('ag-resumen-texto').innerHTML =
     `${cambia ? 'Vas a mover tu sesión al' : 'Tu sesión queda el'} <strong>${textoDiaLargo(iso)} a las ${textoHora(iso)}</strong>` +
     `, y dura ${estado.duracionMin} minutos.`;
-  $('ag-btn-confirmar').textContent = cambia ? 'Mover mi sesión' : 'Confirmar mi sesión';
+  const boton = $('ag-btn-confirmar');
+  // En la vista previa se puede recorrer todo —dias, horas, zona horaria—
+  // menos confirmar: el servidor tambien lo rechaza, pero no tiene sentido
+  // ofrecer un boton que va a dar error.
+  boton.disabled = estado.previsualizacion;
+  boton.textContent = estado.previsualizacion
+    ? 'No se reserva desde la vista previa'
+    : (cambia ? 'Mover mi sesión' : 'Confirmar mi sesión');
   $('ag-resumen').hidden = false;
   $('ag-resumen').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -287,6 +298,8 @@ async function traerDisponibilidad() {
 }
 
 function aplicar(data) {
+  estado.previsualizacion = data.previsualizacion === true;
+  $('ag-previa').hidden = !estado.previsualizacion;
   estado.slots = data.slots || [];
   estado.duracionMin = data.duracionMin || 120;
   estado.modalidad = data.modalidad || '';
@@ -505,6 +518,10 @@ function iniciar() {
   const q = new URLSearchParams(location.search);
   estado.p = q.get('p');
   estado.t = q.get('t');
+
+  // Se sabe por el id del pedido, antes de que conteste el servidor: el
+  // turno_inicio se mide al entrar, no despues.
+  estado.previsualizacion = estado.p === 'previsualizacion';
 
   if (estado.p && estado.t) {
     medir('turno_inicio', { entrada: 'pedido' });

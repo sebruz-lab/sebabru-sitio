@@ -112,7 +112,15 @@ async function encolarMail(db, datos) {
     return null;
   }
   try {
-    const ref = await db.collection(COLECCION).add({
+    // Con datos.id el documento tiene ese nombre en lugar de uno al azar.
+    // Lo usa quien encola desde un trigger con retry: si el trigger se
+    // repite, el segundo intento reescribe este mismo documento en vez de
+    // encolar un segundo mail, y como enviarMailEncolado es
+    // onDocumentCreated, reescribirlo no lo vuelve a disparar.
+    const destino = datos.id
+      ? db.collection(COLECCION).doc(String(datos.id))
+      : db.collection(COLECCION).doc();
+    await destino.set({
       para: Array.isArray(datos.para) ? datos.para.join(', ') : String(datos.para),
       asunto: String(datos.asunto),
       html: String(datos.html || ''),
@@ -123,7 +131,7 @@ async function encolarMail(db, datos) {
       enviado: null,
       creado: new Date().toISOString(),
     });
-    return ref.id;
+    return destino.id;
   } catch (error) {
     // No se re-lanza: ver la regla 1 arriba.
     logger.error('No se pudo encolar el mail:', error.message, { motivo: datos.motivo });
