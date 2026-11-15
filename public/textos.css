@@ -1,6 +1,6 @@
 /* =========================================================
-   Paginas de texto de la calculadora: /sol/, /lunas/, /ascendente/.
-   Hoja propia y chica a proposito. Estas 39 paginas son la puerta de
+   Paginas de /carta-natal/: los puntos en los doce signos y las doce casas.
+   Hoja propia y chica a proposito. Estas paginas son la puerta de
    entrada desde Google: llegan en frio, sin nada cacheado, muchas veces
    desde un telefono. style.css pesa 84 KB y trae el recorrido, los blobs
    y medio sitio; aca no hace falta nada de eso.
@@ -136,7 +136,7 @@ h1 {
 
 .cuerpo p { margin: 0 0 1.5em; }
 
-.cuerpo p:first-child::first-letter {
+.cuerpo p:first-child:not(.proceso)::first-letter {
     float: left;
     margin: .08em .08em 0 0;
     color: var(--primary-color);
@@ -225,7 +225,7 @@ h1 {
     pointer-events: none;
 }
 
-/* ---------- indices (/sol/, /lunas/, /ascendente/) ---------- */
+/* ---------- indices (/carta-natal/sol/, /lunas/, /mercurio/...) ---------- */
 
 .bajada {
     max-width: 42rem;
@@ -264,6 +264,64 @@ h1 {
     color: var(--text-tenue);
     font-size: .9375rem;
     line-height: 1.65;
+}
+
+/* ---------- la visualizacion que cierra varios textos ---------- */
+
+.visualizacion {
+    max-width: 42rem;
+    margin: 48px 0 0;
+    padding: 0 0 0 26px;
+    border-left: 1px solid var(--primary-color);
+}
+
+.visualizacion p {
+    margin: 0;
+    color: var(--text-tenue);
+    font-size: 1.0625rem;
+    font-style: italic;
+}
+
+.visualizacion strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--primary-color);
+    font-size: .75rem;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+}
+
+/* ---------- paginas de las casas: los doce signos en una ---------- */
+
+.tramos { margin-top: 72px; }
+
+.tramo {
+    max-width: 42rem;
+    padding-top: 56px;
+    border-top: 1px solid var(--borde);
+}
+
+.tramo + .tramo { margin-top: 56px; }
+
+.tramo h2 {
+    margin: 0 0 24px;
+    font-size: 1.625rem;
+    font-weight: 300;
+    letter-spacing: -.4px;
+    scroll-margin-top: 24px;
+}
+
+.tramo p { margin: 0 0 1.5em; }
+.tramo p:last-of-type { margin-bottom: 0; }
+.tramo .visualizacion { margin-top: 32px; }
+
+/* ---------- lo que todavia no esta escrito ---------- */
+
+.proceso {
+    color: var(--text-tenue);
+    font-style: italic;
 }
 
 /* ---------- pie ---------- */

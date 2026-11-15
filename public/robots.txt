@@ -6,11 +6,19 @@ Allow: /
 # impide rastrearlas, y entonces Google nunca lee el noindex: si alguna ya
 # estaba indexada, se queda indexada para siempre.
 
-# /textos/ son los 36 textos de la calculadora en JSON, para que los lea
-# /cartas (ver interpretaciones.js en el repo tucarta). El mismo texto, para
-# leer, esta en /sol/, /lunas/ y /ascendente/: esas son las paginas que tienen
-# que estar en Google, no el JSON. Aca el Disallow no tiene el problema del
-# noindex, porque no son paginas que puedan quedar indexadas.
+# /textos/ son textos en JSON, no paginas. Aca el Disallow no tiene el
+# problema del noindex, porque no son paginas que puedan quedar indexadas.
+#
+# /textos/*.json          los 36 de la calculadora, que lee /cartas
+#                         (ver interpretaciones.js en el repo tucarta).
+# /textos/signos/*.json   los 200 que cargan los acordeones de /signos/
+#                         (ver public/signos/textos.js).
+#
+# El mismo texto, para leer, esta en /carta-natal/: esas son las paginas que
+# tienen que estar en Google. Y para los 200 este Disallow hace algo mas:
+# como los acordeones de /signos/ los traen por JS desde aca, Googlebot no
+# los puede bajar y el texto no queda duplicado en dos URLs del sitio. La
+# persona si los lee, completos, sin salir de la pagina del signo.
 Disallow: /textos/
 
 Sitemap: https://sebabru.com/sitemap.xml

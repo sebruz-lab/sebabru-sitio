@@ -155,12 +155,12 @@
       },
       {
         "source": "/capricornio",
-        "destination": "/sol/capricornio",
+        "destination": "/carta-natal/sol/capricornio",
         "type": 301
       },
       {
         "source": "/capricornio/**",
-        "destination": "/sol/capricornio",
+        "destination": "/carta-natal/sol/capricornio",
         "type": 301
       },
       {

@@ -234,6 +234,25 @@
     margin-bottom: 15px;
 }
 
+/* ENLACE A LA PAGINA DEL TEXTO
+   Lo agrega /signos/textos.js al final de cada acordeon: el texto se lee
+   aca mismo, y este enlace lleva a la pagina de /carta-natal/ donde ese
+   texto vive de verdad (la que esta en Google). */
+.desplegable-content .seguir {
+    margin: 22px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 0.9rem;
+}
+
+.desplegable-content .seguir a {
+    color: var(--text-dark);
+    text-decoration: none;
+    letter-spacing: 0.4px;
+}
+
+.desplegable-content .seguir a:hover { text-decoration: underline; }
+
 /* Estilo Visualización (Caja destacada adentro del texto) */
 .visualizacion {
     background-color: var(--aries-bg-light); /* Fondo rojo muy translúcido */
