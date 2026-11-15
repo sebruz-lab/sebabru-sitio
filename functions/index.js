@@ -1929,7 +1929,7 @@ function parrafosDeConsulta(nombre, conCarta, modalidad, urlAgenda, segundoParra
       : '<strong>Confirmación y plataforma:</strong> una vez que reserves, avisanos por acá qué día elegiste y por qué medio preferís que nos conectemos (Zoom, Google Meet o videollamada de WhatsApp), así te pasamos las indicaciones.',
     '<strong>Disponibilidad:</strong> los espacios para sesiones son bastante acotados. Si no encontrás ningún horario que te quede cómodo, escribinos y buscamos otra alternativa.',
     '<strong>Cambios:</strong> si necesitás reprogramar o cancelar, podés hacerlo desde el mismo enlace de reserva, pero te pedimos que nos avises con tiempo.',
-    `Cualquier inconveniente para agendarte, avisale a mi asistente Clari al ${AGENDA_WHATSAPP_CLARI} o respondé este correo.`,
+    `Cualquier inconveniente para agendarte, avisale a mi asistente Clari al ${AGENDA_WHATSAPP_CLARI} o respondé este mail.`,
     '¡Nos vemos pronto!<br>Seba',
   ].filter(Boolean);
 }
