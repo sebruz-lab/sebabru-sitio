@@ -16,6 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// Sin esto, los mails que manda Firebase (el "olvide mi contrasena") salen en
+// ingles: el SDK no pide ningun idioma y Firebase cae en su plantilla por
+// defecto. Con languageCode pide la plantilla castellana, que es la que se
+// edita en la consola (Authentication -> Templates, con el idioma en Espanol).
+auth.languageCode = "es";
+
 // IMPORTANTE: Aquí forzamos la base de datos "cursos"
 const db = initializeFirestore(app, {
     localCache: memoryLocalCache(),
