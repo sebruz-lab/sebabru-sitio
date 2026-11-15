@@ -323,9 +323,10 @@ async function pintar() {
                     curso: t.curso,
                     titulo: t.titulos[datosForm.pronombre] || t.titulos.x || '',
                     fecha: fechaLarga(t.emitido ? t.emitido.fecha : null),
-                    // Hasta que no se emite no hay numero. El de muestra deja
-                    // claro que todavia no es el definitivo.
-                    numero: t.emitido ? t.emitido.numero : 'SB-' + t.anio + '-____',
+                    // Hasta que no se emite no hay numero. El de muestra lo
+                    // arma el servidor (misTitulos) y termina en XX, para que
+                    // quede claro que todavia no es el definitivo.
+                    numero: t.emitido ? t.emitido.numero : (t.numeroMuestra || ''),
                     qr: '',
                 }, async () => {
                     const confirmar = $('cert-previa-confirmar');

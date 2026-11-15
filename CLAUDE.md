@@ -10,6 +10,7 @@ Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerS
 
 ## Proyecto
 
+- **El trabajo pesado va en `C:\dev\scratch`, nunca adentro del proyecto.** `functions/` vive en Google Drive, y Drive corta las escrituras mientras sincroniza: un `npm install` ahí dejó 4152 archivos en cero, incluidos los `package.json` de `puppeteer-core` y `mercadopago`, y no avisa más que con un `TAR_ENTRY_ERROR` perdido en la salida. Instalar en `C:\dev\scratch` con una copia del `package.json`, verificar que los módulos carguen, y recién entonces traer el resultado con `robocopy /MIR`. Lo mismo para cualquier archivo temporal grande.
 - Sitio estático en Firebase Hosting (sebabru-e5563)
 - Deploy: `firebase deploy --only hosting` desde `g:\Mi unidad\Seba Bru\SITIO`
 - Archivos en `public/`
@@ -38,7 +39,8 @@ Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerS
 - Quién puede emitir sale de dos lugares, y alcanza con uno: el aula habilitada en `usuarios/{mail}.cursos`, o el padrón `titulos_habilitados/{mail}` que carga `node titulos.js --habilitar` en `C:\dev\herramientas-sebabru`.
 - El título de los 4 años lo habilitan las aulas **`escucha`** y **`linaje26`**, que son las dos con las que se cierra la formación. Ojo con `linaje26` y no `linaje`: el segundo es el curso suelto de la formación abierta, que cualquiera compra. Es otro de los pares de nombre parecido, como `lunanegra`/`lilith` y `pluton`/`pluton26`.
 - **`abierta: false` cierra la emisión de una formación** (así está hoy `lectura`, porque sus 4 egresadxs ya tienen el certificado viejo). Cierra solo el camino del aula: el padrón sigue funcionando, para dejar pasar a quien llegue tarde sin reabrirlo para todos. Cambiarlo es un redeploy de functions.
-- El número (`SB-2026-0001`) es lo que hace válido al título, no el PDF: la hoja es pública y cualquiera puede armarse un fragmento y ver un diploma inventado en pantalla. Lo que no puede falsificar es el número, que `/titulo/` verifica contra Firestore.
+- **El número es `4-1122-2601`**: el prefijo lo fija cada formación (`prefijoNumero`), después van los dos últimos dígitos del año y un correlativo de dos dígitos que arranca en 01. Cada formación numera por su cuenta: el contador se guarda en `contadores/titulos` con la clave `<prefijo>-<año>`. Una formación sin `prefijoNumero` no puede emitir, y está bien que sea así: inventar un número de certificado es peor que no emitirlo.
+- El número es lo que hace válido al título, no el PDF: la hoja es pública y cualquiera puede armarse un fragmento y ver un diploma inventado en pantalla. Lo que no puede falsificar es el número, que `/titulo/` verifica contra Firestore.
 - La URL de verificación lleva número **y** un código HMAC de `TITULO_SECRET`. Sin el código, los números son correlativos y `/titulo/` sería un padrón de egresadxs recorrible de a uno. **Si se cambia el secreto, los códigos ya impresos en los PDF dejan de validar.**
 - Emitir dos veces no genera dos títulos: corrige el que hay, con el mismo número, hasta tres veces. Es lo que resuelve el soporte más probable (un nombre mal tipeado).
 - El mail con el adjunto sale por el trigger `enviarTitulo`, con nodemailer directo y 2 GiB. **No va por `mails_salientes`**: el PDF pasa el tope de 700 KiB de esa cola. Mismo arreglo que la carta natal de las inscripciones.

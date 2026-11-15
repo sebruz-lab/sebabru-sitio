@@ -104,6 +104,32 @@ function escapeHtml(str) {
   }[c]));
 }
 
+// El pie de los mails institucionales. Estaba solo en los dos de la compra
+// (acceso y codigo) y faltaba en los otros cinco, asi que cada mail parecia
+// venir de un lugar distinto. Uno solo para todos.
+function pieDeMail() {
+  return '<p style="color:#aaa; font-size:0.8em; margin-top:20px;">Seba Bru Astrología · <a href="https://sebabru.com" style="color:#aaa;">sebabru.com</a></p>';
+}
+
+// La version en texto plano de un mail armado con parrafos. La tenian dos de
+// los siete transaccionales y los otros cinco iban en HTML puro, que entrega
+// peor y no se lee en un cliente de solo texto.
+//
+// Los enlaces se escriben "texto: direccion" a proposito: el replace que
+// habia se quedaba con el texto del enlace y tiraba el href, asi que "Elegi
+// el dia y la hora" llegaba sin ningun lugar a donde ir.
+function textoDeParrafos(parrafos) {
+  return parrafos
+    .join('\n\n')
+    .replace(/<a\s[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gis, (_, url, texto) => {
+      const limpio = texto.replace(/<[^>]+>/g, '').trim();
+      return limpio && limpio !== url ? `${limpio}: ${url}` : url;
+    })
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ');
+}
+
 // Limpia texto libre que viene del cliente antes de usarlo en el asunto de
 // un email (evita inyeccion de headers via \r\n) o de guardarlo en Firestore.
 function sanitizeTexto(str, maxLen) {
@@ -196,18 +222,27 @@ async function registrarCompra(id, datos) {
 // Pago de algo que no es un curso: no hay nada que entregar automaticamente,
 // asi que se le confirma a la persona que el pago llego y nos avisamos para
 // coordinar a mano. Es un agregado: si falla, el pago ya quedo en "compras".
+function parrafosPagoSinAcceso(nombreProducto) {
+  return [
+    `¡Gracias! Ya me llegó tu pago de <strong>${escapeHtml(nombreProducto)}</strong>.`,
+    'En los próximos días te escribo para coordinar el día y la hora del encuentro.',
+    'Si tenés alguna duda, respondé este mail.',
+    'Seba',
+  ];
+}
+
 async function avisarPagoSinAcceso(transporter, { nombreProducto, email, monto, moneda, metodo }) {
   const importe = monto ? `${moneda || 'ARS'} ${monto}` : 'el importe';
   if (email) {
     await transporter.sendMail({
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: `Recibimos tu pago — ${nombreProducto}`,
+      subject: `Recibí tu pago — ${nombreProducto}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
-        <p>¡Gracias! Ya nos llegó tu pago de <strong>${escapeHtml(nombreProducto)}</strong>.</p>
-        <p>En los próximos días te escribimos para coordinar el día y la hora del encuentro.</p>
-        <p>Seba</p>
+        ${parrafosPagoSinAcceso(nombreProducto).map((p) => `<p>${p}</p>`).join('')}
+        ${pieDeMail()}
       </div>`,
+      text: textoDeParrafos(parrafosPagoSinAcceso(nombreProducto)),
     });
   }
   await transporter.sendMail({
@@ -1004,8 +1039,9 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
           from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
           to: destino,
           bcc: 'espaciointeriorastrologia@gmail.com',
-          subject: esRegalo ? `Tu código de regalo: ${nombreCurso}` : `Tu código de acceso: ${nombreCurso}`,
-          html: emailRegaloHtml(nombreCurso, codigo, esRegalo)
+          subject: esRegalo ? `Tu código de regalo — ${nombreCurso}` : `Tu código de acceso — ${nombreCurso}`,
+          html: emailRegaloHtml(nombreCurso, codigo, esRegalo),
+          text: emailRegaloTexto(nombreCurso, codigo, esRegalo)
         });
       } else {
         functions.logger.warn('Pago por codigo sin email de destino', { id: data.id, codigo });
@@ -1029,8 +1065,9 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
       to: user_email,
       bcc: 'espaciointeriorastrologia@gmail.com',
-      subject: `Tu acceso al curso: ${nombreCurso}`,
-      html: emailAccesoHtml(nombreCurso, cursoUrl, user_email)
+      subject: `Tu acceso al curso — ${nombreCurso}`,
+      html: emailAccesoHtml(nombreCurso, cursoUrl, user_email),
+      text: emailAccesoTexto(nombreCurso, cursoUrl, user_email)
     });
 
     functions.logger.info('Email enviado', { user_email, curso_id });
@@ -1087,9 +1124,9 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
       </p>
       <hr style="border:none; border-top:1px solid #eee; margin:30px 0;">
       <p style="color:#555; font-size:0.9em; line-height:1.7;">
-        Felicitaciones y espero que lo disfrutes!<br>
-        Cualquier duda o pregunta acá estoy para asesorarte, podés responder a este mismo correo.<br><br>
-        Seba.
+        ¡Felicitaciones y espero que lo disfrutes!<br>
+        Cualquier duda o pregunta, acá estoy: respondé este mismo mail.<br><br>
+        Seba
       </p>
       <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
       <div style="font-family: 'Courier New', Courier, monospace; font-size:0.78em; color:#999; line-height:2;">
@@ -1100,8 +1137,22 @@ function emailAccesoHtml(nombreCurso, cursoUrl, userEmail) {
         Fecha &nbsp;&nbsp;: ${fecha}<br>
         ────────────────────────────
       </div>
-      <p style="color:#aaa; font-size:0.8em; margin-top:20px;">Seba Bru Astrología · sebabru.com</p>
+      ${pieDeMail()}
     </div>`;
+}
+
+// La version en texto plano del mail de acceso. No sale de textoDeParrafos:
+// ese mail no son parrafos sino un boton y un comprobante.
+function emailAccesoTexto(nombreCurso, cursoUrl, userEmail) {
+  return textoDeParrafos([
+    '¡Gracias por tu compra!',
+    `Tu pago fue acreditado. Ya tenés acceso a ${nombreCurso}.`,
+    `Entrá acá: ${cursoUrl}`,
+    '¡Felicitaciones y espero que lo disfrutes! Cualquier duda o pregunta, acá estoy: respondé este mismo mail.',
+    'Seba',
+    `Comprobante de acceso — curso: ${nombreCurso} · usuario: ${userEmail}`,
+    'Seba Bru Astrología · sebabru.com',
+  ]);
 }
 
 function emailRegaloHtml(cursoNombre, codigo, esRegalo) {
@@ -1118,7 +1169,7 @@ function emailRegaloHtml(cursoNombre, codigo, esRegalo) {
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #222;">
       <h2 style="color: #249b95;">¡Gracias por tu compra!</h2>
-      <p>${esRegalo ? 'Generamos tu código de regalo para' : 'Tu pago fue acreditado. Tu código de acceso a'} <strong>${nombreSeguro}</strong>:</p>
+      <p>${esRegalo ? 'Acá va tu código de regalo para' : 'Tu pago fue acreditado. Tu código de acceso a'} <strong>${nombreSeguro}</strong>:</p>
       <p style="text-align: center; margin: 24px 0;">
         <span style="display:inline-block; background:#f5f5f5; border:1px dashed #249b95; border-radius:8px;
                      padding:14px 28px; font-family:'Courier New',monospace; font-size:1.3rem; letter-spacing:0.1em; color:#249b95;">
@@ -1128,11 +1179,28 @@ function emailRegaloHtml(cursoNombre, codigo, esRegalo) {
       ${bajada}
       <hr style="border:none; border-top:1px solid #eee; margin:30px 0;">
       <p style="color:#555; font-size:0.9em; line-height:1.7;">
-        Cualquier duda podés responder a este mismo correo.<br><br>
-        Seba.
+        Cualquier duda, respondé este mismo mail.<br><br>
+        Seba
       </p>
-      <p style="color:#aaa; font-size:0.8em; margin-top:20px;">Seba Bru Astrología · sebabru.com</p>
+      ${pieDeMail()}
     </div>`;
+}
+
+// La version en texto plano del mail del codigo, por lo mismo que la del
+// mail de acceso: el codigo va en un recuadro, no en un parrafo.
+function emailRegaloTexto(cursoNombre, codigo, esRegalo) {
+  return textoDeParrafos([
+    '¡Gracias por tu compra!',
+    esRegalo
+      ? `Acá va tu código de regalo para ${cursoNombre}: ${codigo}`
+      : `Tu pago fue acreditado. Tu código de acceso a ${cursoNombre} es: ${codigo}`,
+    esRegalo
+      ? 'Compartilo con quien quieras regalárselo: lo puede canjear cuando quiera en https://sebabru.com/canjear. Es un código de un solo uso, guardalo hasta que se lo pases a esa persona.'
+      : 'Con este código habilitás el curso en tu cuenta. Entrá a https://sebabru.com/canjear, iniciá sesión (o creá tu cuenta, es gratis) y pegá el código. Es de un solo uso: guardá este mail.',
+    'Cualquier duda, respondé este mismo mail.',
+    'Seba',
+    'Seba Bru Astrología · sebabru.com',
+  ]);
 }
 
 // -------------------------------------------------------
@@ -1648,8 +1716,9 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
           from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
           to: destino,
           bcc: 'espaciointeriorastrologia@gmail.com',
-          subject: regalo ? `Tu código de regalo: ${cursoNombre}` : `Tu código de acceso: ${cursoNombre}`,
-          html: emailRegaloHtml(cursoNombre, codigo, regalo)
+          subject: regalo ? `Tu código de regalo — ${cursoNombre}` : `Tu código de acceso — ${cursoNombre}`,
+          html: emailRegaloHtml(cursoNombre, codigo, regalo),
+          text: emailRegaloTexto(cursoNombre, codigo, regalo)
         });
       } else {
         functions.logger.warn('Pago PayPal por codigo sin email de destino', { orderId, codigo });
@@ -1687,8 +1756,9 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
       to: userEmail,
       bcc: 'espaciointeriorastrologia@gmail.com',
-      subject: `Tu acceso al curso: ${cursoNombre}`,
-      html: emailAccesoHtml(cursoNombre, inviteUrl, userEmail)
+      subject: `Tu acceso al curso — ${cursoNombre}`,
+      html: emailAccesoHtml(cursoNombre, inviteUrl, userEmail),
+      text: emailAccesoTexto(cursoNombre, inviteUrl, userEmail)
     });
 
     functions.logger.info('Email PayPal enviado', { userEmail, cursoId, invToken });
@@ -1849,9 +1919,9 @@ const FORMULARIOS_INSCRIPCION = {
     confirmacion: {
       asunto: 'Tu inscripción a Tu identidad en el cielo',
       parrafos: (nombre, conCarta, modalidad) => [
-        `Hola, ${nombre}:`,
-        '¡Gracias por inscribirte a <em>Tu identidad en el cielo</em>! Ya tenemos tus datos.',
-        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        nombre ? `Hola, ${nombre}:` : 'Hola:',
+        '¡Gracias por inscribirte a <em>Tu identidad en el cielo</em>! Ya tengo tus datos.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.' : '',
         modalidad === 'Online'
           ? 'Unite a la reunión de Zoom con este enlace:<br><a href="https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1">https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1</a><br>Meeting ID: 871 1138 5793<br>Passcode: Astro2025'
           : modalidad === 'Presencial'
@@ -1896,15 +1966,15 @@ const FORMULARIOS_INSCRIPCION = {
     confirmacion: {
       asunto: 'Tu consulta astrológica',
       parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
-        `Hola, ${nombre}:`,
-        'Recibimos tu pedido de consulta. Ya tenemos tus datos.',
-        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        nombre ? `Hola, ${nombre}:` : 'Hola:',
+        'Recibí tu pedido de consulta. Ya tengo tus datos.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.' : '',
         // Si por lo que sea no hay agenda (falta el secreto, falló el alta
         // del pedido), el mail vuelve a decir lo de antes: nunca un enlace
         // que no lleva a ningún lado.
         urlAgenda
           ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
-          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribo para coordinar el día y la hora.',
         modalidad === 'Online'
           ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
           : modalidad === 'Presencial'
@@ -1946,12 +2016,12 @@ const FORMULARIOS_INSCRIPCION = {
     confirmacion: {
       asunto: 'Tu consulta astrológica',
       parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
-        `Hola, ${nombre}:`,
-        'Recibimos tus datos para la consulta que te regalaron. Está todo listo de tu lado.',
-        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que nos pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corregimos.' : '',
+        nombre ? `Hola, ${nombre}:` : 'Hola:',
+        'Recibí tus datos para la consulta que te regalaron. Está todo listo de tu lado.',
+        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.' : '',
         urlAgenda
           ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
-          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribo para coordinar el día y la hora.',
         modalidad === 'Online'
           ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
           : modalidad === 'Presencial'
@@ -2400,7 +2470,7 @@ exports.enviarCartaInscripcion = onDocumentCreated({
     service: 'gmail',
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
   });
-  const nombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
+  const nombre = escapeHtml((envio.nombre || '').split(' ')[0]);
   // El cuarto dato es el enlace al agendador: va en el mail para quien
   // cerro la pestaña antes de elegir el dia.
   const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf), envio.modalidad, envio.urlAgenda || null);
@@ -2410,8 +2480,9 @@ exports.enviarCartaInscripcion = onDocumentCreated({
     subject: config.confirmacion.asunto,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
       ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+      ${pieDeMail()}
     </div>`,
-    text: parrafos.join('\n\n').replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''),
+    text: textoDeParrafos(parrafos),
     attachments: pdf ? [{
       filename: `Carta natal - ${(envio.nombre || 'Tu carta').replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'Tu carta'}.pdf`,
       content: pdf,
@@ -4142,20 +4213,30 @@ async function avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, 
     `Sesión de astrología con Seba Bru.\n${encuentro.textoEvento}`
   );
 
+  // El saludo solo lleva el nombre si hay nombre: con un pedido sin nombre,
+  // "Hola, :" queda peor que "Hola:".
+  const saludo = pedido.nombre ? `Hola, ${escapeHtml(pedido.nombre)}:` : 'Hola:';
+  const parrafos = [
+    saludo,
+    `Tu sesión quedó agendada para el <strong>${escapeHtml(cuando)}</strong>, hora de Argentina. Dura ${Math.round((finMs - inicioMs) / 60000)} minutos.`,
+    encuentro.htmlPersona,
+    'Te adjunto el archivo para que la agregues a tu calendario.',
+    `Si necesitás cambiarla o cancelarla, entrá acá:<br><a href="${enlace}">${enlace}</a>`,
+    'Cualquier cosa que necesites antes de la sesión, respondé este mail.',
+    '¡Nos vemos!<br>Seba',
+  ];
+
   await mails.encolarMail(_db, {
     motivo: 'turno-reservado',
     para: pedido.email,
-    asunto: `Tu sesión: ${cuando} (hora de Argentina)`,
+    asunto: `Tu sesión — ${cuando}, hora de Argentina`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
-        <p>Hola, ${escapeHtml(pedido.nombre || '')}:</p>
-        <p>Tu sesión quedó agendada para el <strong>${escapeHtml(cuando)}</strong>, hora de Argentina. Dura ${Math.round((finMs - inicioMs) / 60000)} minutos.</p>
-        <p>${encuentro.htmlPersona}</p>
-        <p>Te adjunto el archivo para que la agregues a tu calendario.</p>
-        <p>Si necesitás cambiarla o cancelarla, entrá acá:<br><a href="${enlace}">${enlace}</a></p>
-        <p>¡Nos vemos!<br>Seba</p>
+        ${parrafos.map((t) => `<p>${t}</p>`).join('')}
+        ${pieDeMail()}
       </div>
     `,
+    texto: textoDeParrafos(parrafos),
     adjuntos: [{ filename: 'sesion-seba-bru.ics', content: ics, contentType: 'text/calendar; charset=utf-8; method=PUBLISH' }],
   });
 
@@ -4184,18 +4265,24 @@ async function avisarTurnoCancelado(pedido, pedidoId, inicioMs, porQuien) {
   const enlace = urlDeAgenda(pedidoId);
 
   if (pedido.email) {
+    const parrafos = [
+      pedido.nombre ? `Hola, ${escapeHtml(pedido.nombre)}:` : 'Hola:',
+      `Tu sesión del <strong>${escapeHtml(cuando)}</strong> quedó cancelada.`,
+      `Cuando quieras, elegí otro día y otra hora acá:<br><a href="${enlace}">${enlace}</a>`,
+      'Si fue un error o necesitás que la reprogramemos, respondé este mail.',
+      'Seba',
+    ];
     await mails.encolarMail(_db, {
       motivo: 'turno-cancelado',
       para: pedido.email,
-      asunto: `Se canceló tu sesión del ${cuando}`,
+      asunto: `Se canceló tu sesión — ${cuando}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
-          <p>Hola, ${escapeHtml(pedido.nombre || '')}:</p>
-          <p>Tu sesión del <strong>${escapeHtml(cuando)}</strong> quedó cancelada.</p>
-          <p>Cuando quieras, elegí otro día y otra hora acá:<br><a href="${enlace}">${enlace}</a></p>
-          <p>Seba</p>
+          ${parrafos.map((t) => `<p>${t}</p>`).join('')}
+          ${pieDeMail()}
         </div>
       `,
+      texto: textoDeParrafos(parrafos),
     });
   }
 
@@ -5023,6 +5110,7 @@ const FORMACIONES_TITULO = {
     anio: 2026,
     cursosHabilitantes: ['escucha', 'linaje26'],
     abierta: true,
+    prefijoNumero: '4-1122',
   },
 
   // Un ano suelto. Cerrado por ahora: los cuatro egresadxs de 2026 ya tienen
@@ -5036,8 +5124,32 @@ const FORMACIONES_TITULO = {
     anio: 2026,
     cursosHabilitantes: ['lectura'],
     abierta: false,
+    // Sin definir a proposito: el primer digito del numero parece ser la
+    // cantidad de anos de la formacion, y todavia no esta dicho cual le toca
+    // a un curso suelto. Mientras sea null no se puede emitir, lo que es
+    // correcto: inventar un numero de certificado es peor que no emitirlo.
+    prefijoNumero: null,
   },
 };
+
+// El numero de certificado: 4-1122-2601. El prefijo lo fija cada formacion,
+// despues van los dos ultimos digitos del ano y un correlativo de dos
+// digitos que arranca en 01.
+//
+// Son dos digitos, o sea hasta 99 por formacion y por ano. Si alguna vez se
+// pasa, el contador lo deja en 100 y el numero sale de cinco digitos en vez
+// de romperse; para esa escala habria que repensar el formato igual.
+function numeroDeTitulo(formacion, siguiente) {
+  const ano = String(formacion.anio).slice(-2);
+  return `${formacion.prefijoNumero}-${ano}${String(siguiente).padStart(2, '0')}`;
+}
+
+// La clave del contador. Lleva el prefijo ademas del ano porque cada
+// formacion numera por su cuenta: el 4-1122-2601 y el de un curso suelto no
+// comparten la serie.
+function claveContadorTitulo(formacion) {
+  return `${formacion.prefijoNumero}-${formacion.anio}`;
+}
 
 // El interruptor para cerrar la emision cuando las ocho personas terminaron
 // de hacer su titulo. Cierra SOLO el camino del aula: el padron
@@ -5238,6 +5350,12 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
   if (datos.error) return res.status(400).json({ error: datos.error });
   const { curso, formacion, nombre, dni, pronombre } = datos;
 
+  // Sin prefijo no hay numero, y sin numero el titulo no vale nada.
+  if (!formacion.prefijoNumero) {
+    functions.logger.error('Formacion sin prefijo de numero', { curso });
+    return res.status(503).json({ error: 'Todavía no podemos emitir este título. Escribinos a info@sebabru.com.' });
+  }
+
   // Mismo mensaje para "no cursaste esto" y "todavia no te habilitamos el
   // aula": esta respuesta no tiene por que decir quien egreso y quien no.
   const SIN_DERECHO = 'No encontramos un título a tu nombre para esa formación. Si creés que es un error, escribinos a info@sebabru.com.';
@@ -5291,9 +5409,10 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
         }
 
         const snapContador = await tx.get(contador);
-        const usados = Number((snapContador.exists ? snapContador.data()[String(formacion.anio)] : 0) || 0);
+        const clave = claveContadorTitulo(formacion);
+        const usados = Number((snapContador.exists ? snapContador.data()[clave] : 0) || 0);
         const siguiente = usados + 1;
-        const numero = `SB-${formacion.anio}-${String(siguiente).padStart(4, '0')}`;
+        const numero = numeroDeTitulo(formacion, siguiente);
         const nuevo = {
           email, curso, nombre, dni, pronombre, numero,
           codigo: codigoDeTitulo(numero),
@@ -5303,7 +5422,7 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
           anulado: false,
           emitidoEn: new Date().toISOString(),
         };
-        tx.set(contador, { [String(formacion.anio)]: siguiente }, { merge: true });
+        tx.set(contador, { [clave]: siguiente }, { merge: true });
         tx.set(ref, nuevo);
         return nuevo;
       });
@@ -5399,23 +5518,26 @@ exports.enviarTitulo = onDocumentCreated({
     functions.logger.error('No se pudo armar el PDF del titulo:', error.message);
   }
 
-  const primerNombre = escapeHtml((envio.nombre || '').split(' ')[0] || 'hola');
+  const primerNombre = escapeHtml((envio.nombre || '').split(' ')[0]);
   const parrafos = envio.reemision
     ? [
-        `${primerNombre}, acá va tu título corregido.`,
+        primerNombre ? `${primerNombre}, acá va tu título corregido.` : 'Acá va tu título corregido.',
         `Es el mismo certificado de <strong>${escapeHtml(formacion.curso)}</strong>, con el mismo número (${escapeHtml(envio.numero)}), con el nombre como lo escribiste ahora. El anterior queda sin efecto.`,
       ]
     : [
-        `${primerNombre}, felicitaciones.`,
+        primerNombre ? `${primerNombre}, felicitaciones.` : '¡Felicitaciones!',
         `Acá va tu título de <strong>${escapeHtml(formacion.curso)}</strong>, que te acredita como <strong>${escapeHtml(tituloPara(formacion, envio.pronombre))}</strong>.`,
         `El número de certificado es <strong>${escapeHtml(envio.numero)}</strong>. Quien quiera comprobar que es auténtico puede escanear el código del título o entrar a <a href="${urlDeVerificacion(envio.numero, envio.codigo)}">esta página</a>.`,
         'Gracias por haber cursado. Que lo uses mucho.',
       ];
   if (!pdf) {
-    parrafos.push('El PDF no se pudo armar en este momento, así que este mail va sin el archivo adjunto. Podés bajarlo cuando quieras desde la escuela, en <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>, y si sigue sin salir escribinos a info@sebabru.com.');
+    parrafos.push('El PDF no se pudo armar en este momento, así que este mail va sin el archivo adjunto. Podés bajarlo cuando quieras desde la escuela, en <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>, y si sigue sin salir respondé este mail.');
   } else {
-    parrafos.push('Te lo adjuntamos acá y lo podés volver a bajar cuando quieras desde <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>.');
+    parrafos.push('Te lo adjunto acá y lo podés volver a bajar cuando quieras desde <a href="https://sebabru.com/escuela/certificados/">sebabru.com/escuela/certificados</a>.');
   }
+  // La firma va al final, despues del parrafo del adjunto: antes este mail
+  // era el unico de los siete que terminaba sin firmar.
+  parrafos.push('Seba');
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -5429,8 +5551,9 @@ exports.enviarTitulo = onDocumentCreated({
       : `Tu título — ${formacion.curso}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
       ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+      ${pieDeMail()}
     </div>`,
-    text: parrafos.join('\n\n').replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''),
+    text: textoDeParrafos(parrafos),
     attachments: pdf ? [{
       filename: nombreDeArchivoTitulo(envio),
       content: pdf,
@@ -5549,7 +5672,9 @@ exports.verificarTitulo = functions.https.onRequest(async (req, res) => {
 
   const numero = sanitizeTexto(req.query?.n, 32);
   const codigo = sanitizeTexto(req.query?.c, 32);
-  if (!/^SB-\d{4}-\d{4}$/.test(numero) || !/^[0-9a-f]{8}$/.test(codigo)) {
+  // 4-1122-2601. El correlativo puede pasar de dos digitos si alguna vez se
+  // emiten mas de 99 en un ano, asi que se aceptan de 4 en adelante.
+  if (!/^\d-\d{4}-\d{4,6}$/.test(numero) || !/^[0-9a-f]{8}$/.test(codigo)) {
     return res.status(404).json(NO_VALE);
   }
 
@@ -5643,6 +5768,11 @@ exports.misTitulos = functions.https.onRequest(async (req, res) => {
           curso: f.curso,
           anio: f.anio,
           pidePronombre: pidePronombre(f),
+          // El numero que muestra la vista previa antes de emitir. Lo arma
+          // el servidor para que el front no tenga que saber el formato.
+          numeroMuestra: f.prefijoNumero
+            ? `${f.prefijoNumero}-${String(f.anio).slice(-2)}XX`
+            : '',
           // Para la vista previa, antes de que exista ningun registro.
           titulos: typeof f.titulo === 'string' ? { x: f.titulo } : f.titulo,
           plantilla: f.plantilla || 'curso',
