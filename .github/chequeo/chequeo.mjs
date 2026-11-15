@@ -28,6 +28,9 @@ const IGNORAR = [/^test\//, /^test-3d\//, /^Mey\//, /^preview-bloques\.html$/, /
     /^tu-identidad-en-el-cielo\/ebook\/contenido\.html$/];
 // Paginas donde un error de JavaScript cuenta como falla (en el resto, aviso).
 const CLAVE = ['', 'lilith/', 'linaje/', 'formaciones/', 'escuela/abierta/', 'escuela/abierta/gracias.html', 'lilith/pedido/'];
+// Paginas internas: no se miden a proposito (los paneles de admin y la
+// plantilla del PDF del titulo, que la abre el Chrome del servidor).
+const SIN_GA = ['escuela/admin/', 'consultas/admin/', 'escuela/titulo/hoja.html'];
 
 const resultados = [];
 const falla = (area, detalle) => resultados.push({ area, nivel: 'falla', detalle });
@@ -71,7 +74,7 @@ function chequearReferencias(paginasHtml) {
         ];
         for (const re of patrones) for (const m of texto.matchAll(re)) refs.add(m[1].trim());
         for (const ref of refs) {
-            if (!ref || /^(https?:|\/\/|mailto:|tel:|data:|javascript:|#|%23|\$\{|blob:)/i.test(ref) || ref.includes('${') || ref.includes('+')) continue;
+            if (!ref || /^(https?:|\/\/|mailto:|tel:|data:|javascript:|about:|#|%23|\$\{|blob:)/i.test(ref) || ref.includes('${') || ref.includes('+')) continue;
             const limpia = decodeURI(ref.split('#')[0].split('?')[0]);
             if (!limpia) continue;
             const destino = limpia.startsWith('/')
@@ -236,7 +239,7 @@ async function chequearPaginas(browser, paginasHtml) {
             reg.rotos.forEach(r => falla(area, `\`/${ruta}\` pide un archivo que no está: ${r}`));
             const errores = [...new Set(reg.errores)];
             if (errores.length) (CLAVE.includes(ruta) ? falla : aviso)(area, `\`/${ruta}\` tiene errores de JavaScript: ${errores.slice(0, 3).join(' · ')}`);
-            if (!ga && ruta !== 'escuela/admin/') aviso('Google Analytics', `\`/${ruta}\` no tiene GA4 (${GA_ID})`);
+            if (!ga && !SIN_GA.includes(ruta)) aviso('Google Analytics', `\`/${ruta}\` no tiene GA4 (${GA_ID})`);
             if (status < 400 && !reg.rotos.length && !errores.length) ok(area, `\`/${ruta}\``);
         } catch (e) {
             falla(area, `\`/${ruta}\` no cargó: ${e.message.split('\n')[0]}`);
