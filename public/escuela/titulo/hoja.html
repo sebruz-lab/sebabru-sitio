@@ -28,20 +28,26 @@ body { width: 297mm; height: 210mm; background: #F8F5EF; font-family: "DM Sans",
 .cert { width: 297mm; height: 210mm; padding: 36mm 50mm; position: relative; overflow: hidden; }
 .wheel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.06; width: 150mm; height: 150mm; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10mm; }
-.school { font-family: "Cinzel", serif; font-size: 7pt; letter-spacing: 0.25em; color: #8B6914; text-transform: uppercase; line-height: 1.6; }
-.date { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 10pt; color: #B0A898; }
+/* Los dorados y los grises del template original quedaban muy lavados sobre
+   el fondo crema: varios no llegaban a 3:1 de contraste, y en papel se
+   perdian del todo. Se bajaron todos de tono manteniendo el mismo matiz. */
+.school { font-family: "Cinzel", serif; font-size: 7pt; letter-spacing: 0.25em; color: #7A5A0E; text-transform: uppercase; line-height: 1.6; }
+.date { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 10.5pt; color: #7F7466; }
 .body { text-align: center; position: relative; z-index: 1; }
-.cert-title { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 11pt; color: #8B7355; letter-spacing: 0.05em; margin-bottom: 3mm; }
+.cert-title { font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 11.5pt; color: #6E5540; letter-spacing: 0.05em; margin-bottom: 3mm; }
 .divider { width: 15mm; height: 0.3mm; background: #C4A96B; margin: 0 auto 7mm; }
-.acredita { font-size: 7pt; color: #9A8E82; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3mm; }
+.acredita { font-size: 7.5pt; color: #6F6457; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3mm; }
 .nombre { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 30pt; color: #1C1410; letter-spacing: 0.02em; line-height: 1.1; margin-bottom: 5mm; }
-.texto { font-size: 9pt; color: #6B6057; line-height: 1.8; margin-bottom: 6mm; }
-.texto em { font-family: "Cormorant Garamond", serif; font-size: 10pt; font-style: italic; }
-.titulo { font-family: "Cinzel", serif; font-size: 22pt; font-weight: 500; color: #8B6914; letter-spacing: 0.08em; margin-bottom: 9mm; }
+/* El cuerpo pasa de DM Sans a Cormorant, que es la serif del resto del
+   diploma. Cormorant tiene un ojo chico, asi que 9pt se veian como 7: va a
+   12.5pt para ocupar lo mismo que antes. */
+.texto { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 12.5pt; color: #3F362D; line-height: 1.7; margin-bottom: 6mm; }
+.texto em { font-style: italic; color: #6E5540; }
+.titulo { font-family: "Cinzel", serif; font-size: 22pt; font-weight: 500; color: #7A5A0E; letter-spacing: 0.08em; margin-bottom: 9mm; }
 .footer { display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; }
-.student { font-size: 8pt; color: #9A8E82; line-height: 1.6; }
-.student .dni { color: #B0A898; }
-.student .numero { color: #B0A898; letter-spacing: 0.08em; }
+.student { font-size: 8.5pt; color: #5F5549; line-height: 1.6; }
+.student .dni { color: #776C5F; }
+.student .numero { color: #776C5F; letter-spacing: 0.08em; }
 .signature { text-align: center; }
 /* La firma que paso Seba es vertical (495x600), no apaisada como suponia el
    template original: dimensionada por alto a 13mm quedaba de 11mm de ancho,
@@ -51,7 +57,7 @@ body { width: 297mm; height: 210mm; background: #F8F5EF; font-family: "DM Sans",
 .sig-img[hidden] { display: none; }
 .sig-line { width: 30mm; height: 0.3mm; background: #C4A96B; margin: 0 auto 2mm; }
 .sig-name { font-family: "Cormorant Garamond", serif; font-size: 10pt; color: #1C1410; }
-.sig-role { font-size: 6pt; color: #9A8E82; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1mm; }
+.sig-role { font-size: 6.5pt; color: #6F6457; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1mm; }
 .qr { width: 22mm; height: 22mm; }
 .qr[hidden] { display: none; }
 
