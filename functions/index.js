@@ -1894,6 +1894,46 @@ const AVISOS_INSCRIPCION = 'info@sebabru.com';
 // donde salio su direccion.
 const CAMPO_NOVEDADES = { key: 'novedades', label: 'Quiere novedades', maxLen: 3, opciones: ['Sí', 'No'] };
 
+// El asunto del aviso que le llega a Seba cuando alguien llena un
+// formulario. Las consultas lo arman con la modalidad y el nombre, para
+// distinguirlas en la bandeja sin abrirlas; los formularios de la escuela
+// siguen con el asunto generico. Lo que falte se omite, para no dejar un
+// guion suelto colgando.
+function asuntoDeAviso(piezas) {
+  return piezas.map(p => String(p || '').trim()).filter(Boolean).join(' - ');
+}
+
+// El mail que recibe quien pide una consulta, apenas manda el formulario.
+// Presencial y online solo cambian en dos parrafos, asi que el cuerpo es
+// uno. Ojo: aca NO va el enlace de acceso al encuentro (Zoom, Meet) --
+// todavia no hay turno, y ese enlace aparece en el mail de la reserva, que
+// es cuando sirve. Redaccion de Seba, en plural (pedido del 2026-11-15).
+function parrafosDeConsulta(nombre, conCarta, modalidad, urlAgenda, segundoParrafo) {
+  const presencial = modalidad === 'Presencial';
+  return [
+    nombre ? `Hola, ${nombre}:` : 'Hola:',
+    segundoParrafo,
+    conCarta
+      ? 'Te enviamos adjunta tu carta natal, calculada con la información que nos pasaste (fecha, hora y lugar de nacimiento). Por favor, revisá que esté todo bien; si notás algún error, respondé este mail y lo corregimos.'
+      : '',
+    // Sin agenda (falta el secreto, fallo el alta del pedido) se vuelve a
+    // decir lo de antes: nunca un enlace que no lleva a ningun lado.
+    urlAgenda
+      ? (presencial
+        ? `Si todavía no pudiste elegir el turno para nuestro encuentro presencial en Villa de las Rosas, 👉 <a href="${urlAgenda}">elegí el día y la hora acá</a>.`
+        : `Si todavía no pudiste agendar el turno para nuestro encuentro, 👉 <a href="${urlAgenda}">elegí el día y la hora acá</a> (los horarios se muestran automáticamente según tu zona horaria: revisá que esté bien asignada).`)
+      : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribimos para coordinar el día y la hora.',
+    'Algunos detalles importantes:',
+    presencial
+      ? '<strong>Confirmación y ubicación:</strong> una vez que reserves, te enviamos las indicaciones exactas de cómo llegar.'
+      : '<strong>Confirmación y plataforma:</strong> una vez que reserves, avisanos por acá qué día elegiste y por qué medio preferís que nos conectemos (Zoom, Google Meet o videollamada de WhatsApp), así te pasamos las indicaciones.',
+    '<strong>Disponibilidad:</strong> los espacios para sesiones son bastante acotados. Si no encontrás ningún horario que te quede cómodo, escribinos y buscamos otra alternativa.',
+    '<strong>Cambios:</strong> si necesitás reprogramar o cancelar, podés hacerlo desde el mismo enlace de reserva, pero te pedimos que nos avises con tiempo.',
+    `Cualquier inconveniente para agendarte, avisale a mi asistente Clari al ${AGENDA_WHATSAPP_CLARI} o respondé este correo.`,
+    '¡Nos vemos pronto!<br>Seba',
+  ].filter(Boolean);
+}
+
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
@@ -1963,25 +2003,13 @@ const FORMULARIOS_INSCRIPCION = {
     // Despues de este formulario se elige el dia y la hora en
     // /consultas/agenda/ (ver el bloque AGENDA DE CONSULTAS).
     agenda: true,
+    asuntoAviso: v => asuntoDeAviso(['Nueva inscripción', v.modalidad, v.nombre]),
     confirmacion: {
       asunto: 'Tu consulta astrológica',
-      parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
-        nombre ? `Hola, ${nombre}:` : 'Hola:',
-        'Recibí tu pedido de consulta. Ya tengo tus datos.',
-        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.' : '',
-        // Si por lo que sea no hay agenda (falta el secreto, falló el alta
-        // del pedido), el mail vuelve a decir lo de antes: nunca un enlace
-        // que no lleva a ningún lado.
-        urlAgenda
-          ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
-          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribo para coordinar el día y la hora.',
-        modalidad === 'Online'
-          ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
-          : modalidad === 'Presencial'
-            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
-            : '',
-        '¡Nos vemos pronto!<br>Seba',
-      ].filter(Boolean),
+      parrafos: (nombre, conCarta, modalidad, urlAgenda) => parrafosDeConsulta(
+        nombre, conCarta, modalidad, urlAgenda,
+        'Recibimos tu pedido de consulta y ya tenemos tus datos.'
+      ),
     },
   },
 
@@ -2013,22 +2041,14 @@ const FORMULARIOS_INSCRIPCION = {
     ],
     carta: { para: 'sebruz@gmail.com', grupo: 'Consultas' },
     agenda: true,
+    // El "(regalo)" al final para no confundirla con una consulta paga.
+    asuntoAviso: v => `${asuntoDeAviso(['Nueva inscripción', v.modalidad, v.nombre])} (regalo)`,
     confirmacion: {
       asunto: 'Tu consulta astrológica',
-      parrafos: (nombre, conCarta, modalidad, urlAgenda) => [
-        nombre ? `Hola, ${nombre}:` : 'Hola:',
-        'Recibí tus datos para la consulta que te regalaron. Está todo listo de tu lado.',
-        conCarta ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.' : '',
-        urlAgenda
-          ? `Falta una sola cosa: elegir el día y la hora de tu sesión.<br><a href="${urlAgenda}">Elegí el día y la hora</a><br>Con ese mismo enlace podés cambiarla o cancelarla después.`
-          : 'El tiempo de espera para una sesión es de entre una y dos semanas: te escribo para coordinar el día y la hora.',
-        modalidad === 'Online'
-          ? 'El encuentro es por Zoom, con este enlace:<br><a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1</a><br>Meeting ID: 802 086 1967<br>Passcode: paso'
-          : modalidad === 'Presencial'
-            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
-            : '',
-        '¡Nos vemos pronto!<br>Seba',
-      ].filter(Boolean),
+      parrafos: (nombre, conCarta, modalidad, urlAgenda) => parrafosDeConsulta(
+        nombre, conCarta, modalidad, urlAgenda,
+        'Recibimos tus datos para la consulta que te regalaron: está todo listo de tu lado.'
+      ),
     },
   },
 };
@@ -3075,7 +3095,9 @@ async function procesarPendiente(event) {
     await mails.encolarMail(_db, {
       id: `inscripcion-${ref.id}`,
       para: AVISOS_INSCRIPCION,
-      asunto: `📝 Nueva inscripción — ${config.nombreEvento}`,
+      asunto: config.asuntoAviso
+        ? config.asuntoAviso(valores)
+        : `📝 Nueva inscripción — ${config.nombreEvento}`,
       motivo: `inscripcion:${d.formId}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
@@ -3748,6 +3770,10 @@ const AGENDA_ZOOM = 'https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPh
 const AGENDA_ZOOM_ID = '802 086 1967';
 const AGENDA_ZOOM_PASS = 'paso';
 const AGENDA_WHATSAPP_CLARI = '+5493544559877';
+// El celular con el que se hace la videollamada de WhatsApp, una de las tres
+// opciones del mail de la sesion online. Es el personal de Seba: va solo en
+// ese mail, cuando el turno ya esta reservado, nunca en el del formulario.
+const AGENDA_WHATSAPP_SEBA = '+5493544584122';
 
 const AGENDA_CONFIG_POR_DEFECTO = {
   zona: AGENDA_ZONA,
@@ -3850,7 +3876,10 @@ function tokenDeAgendaValido(pedidoId, token) {
 
 function urlDeAgenda(pedidoId) {
   const t = tokenDeAgenda(pedidoId);
-  const base = process.env.SITE_URL || 'https://sebabru.com';
+  // El dominio va escrito, no por SITE_URL: esa variable tiene el
+  // sebabru-e5563.web.app que usan las vueltas de los pagos, y este enlace
+  // va en un mail que lee una persona.
+  const base = 'https://sebabru.com';
   if (!t) return `${base}/consultas/agenda/`;
   return `${base}/consultas/agenda/?p=${encodeURIComponent(pedidoId)}&t=${t}`;
 }
@@ -4151,6 +4180,17 @@ function textoFechaLarga(ms) {
   });
 }
 
+// Para el asunto de los avisos internos: "vie 12/12 16:00". Corto a
+// proposito, que es lo que se ve en la lista del celular sin abrir el mail.
+function fechaCortaDeTurno(ms) {
+  // El dia y el mes se arman con diaLocal y no con Intl: es-AR los separa
+  // con guiones ("sab 12-12") y en el asunto se leen mejor con barra.
+  const [, mes, dia] = diaLocal(ms).split('-');
+  const semana = new Intl.DateTimeFormat('es-AR', { timeZone: AGENDA_ZONA, weekday: 'short' })
+    .format(new Date(ms)).replace('.', '');
+  return `${semana} ${dia}/${mes} ${horaLocal(ms)}`;
+}
+
 function marcaIcs(ms) {
   return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
@@ -4216,14 +4256,49 @@ async function avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, 
   // El saludo solo lleva el nombre si hay nombre: con un pedido sin nombre,
   // "Hola, :" queda peor que "Hola:".
   const saludo = pedido.nombre ? `Hola, ${escapeHtml(pedido.nombre)}:` : 'Hola:';
+  const presencial = pedido.modalidad === 'Presencial';
+  const duracion = Math.round((finMs - inicioMs) / 60000);
+
+  // Redaccion de Seba, en plural (pedido del 2026-11-15). Presencial y
+  // online comparten la mitad; lo que cambia son las recomendaciones de
+  // antes del encuentro y como se llega a el. La direccion de la chacra y
+  // el celular personal NO estan aca: esas indicaciones las manda Seba a
+  // mano cuando confirma el pago (decision del 2026-11-15).
+  const preparacion = '<strong>Preparación previa:</strong> durante estos días podés darte un espacio para observar qué cosas sentís trabadas o bloqueadas en tu vida y qué deseos quisieras encontrar o sostener con más facilidad. No es obligatorio trabajar sobre esto después, pero es una linda invitación para ir entrando en tema.';
+
+  const recomendaciones = presencial
+    ? [
+      'Te dejamos una recomendación para antes de nuestro encuentro:',
+      preparacion,
+    ]
+    : [
+      'Antes de nuestro encuentro, te compartimos algunas recomendaciones para que puedas aprovechar al máximo la sesión:',
+      '<strong>El espacio:</strong> procurá estar en un ambiente tranquilo donde no te interrumpan, idealmente un lugar cómodo en el que puedas sentarte y relajarte.',
+      '<strong>Elementos útiles:</strong> tené a mano un vaso de agua, pañuelos y un anotador por si querés tomar nota.',
+      preparacion,
+    ];
+
+  // Las tres opciones para conectarse: el Zoom fijo, la videollamada de
+  // WhatsApp y el Meet de esta sesion, que existe porque la agenda lo crea
+  // actuando como Seba (delegacion de dominio).
+  const acceso = presencial
+    ? '<strong>Cómo llegar:</strong> una vez confirmado el pago te enviamos las indicaciones exactas para llegar.'
+    : '<strong>Link de acceso:</strong> elegí el medio que te quede más cómodo y avisanos cuál preferís.<br>'
+      + `Por Zoom: <a href="${AGENDA_ZOOM}">${AGENDA_ZOOM}</a><br>Meeting ID: ${AGENDA_ZOOM_ID} / Passcode: ${AGENDA_ZOOM_PASS}<br>`
+      + `Por videollamada de WhatsApp, a este celular: ${AGENDA_WHATSAPP_SEBA}`
+      + (meet ? `<br>Por Google Meet: <a href="${meet}">${meet}</a>` : '');
+
   const parrafos = [
     saludo,
-    `Tu sesión quedó agendada para el <strong>${escapeHtml(cuando)}</strong>, hora de Argentina. Dura ${Math.round((finMs - inicioMs) / 60000)} minutos.`,
-    encuentro.htmlPersona,
-    'Te adjunto el archivo para que la agregues a tu calendario.',
-    `Si necesitás cambiarla o cancelarla, entrá acá:<br><a href="${enlace}">${enlace}</a>`,
-    'Cualquier cosa que necesites antes de la sesión, respondé este mail.',
-    '¡Nos vemos!<br>Seba',
+    `Te confirmamos que tu consulta ${presencial ? 'presencial en Villa de las Rosas' : 'online'} quedó agendada para el <strong>${escapeHtml(cuando)} h</strong> (hora de Argentina). Dura ${duracion} minutos.`,
+    ...recomendaciones,
+    'Algunos detalles importantes:',
+    '<strong>Grabación:</strong> si querés tener el registro del encuentro, se puede grabar la sesión. Solo tenés que pedirlo ese mismo día, cuando comience.',
+    acceso,
+    `<strong>Cancelaciones o cambios:</strong> si por algún motivo no podés asistir, avisanos lo antes posible para reagendar el turno sin costo. Tené en cuenta que si el aviso es con menos de 48 horas de anticipación, se deberá abonar igualmente el 50 % del valor de la sesión. Podés reprogramarla o cancelarla desde acá:<br><a href="${enlace}">${enlace}</a>`,
+    'Te adjuntamos el archivo para que agregues la sesión a tu calendario.',
+    `Cualquier duda previa que tengas, respondé este mail o escribinos al ${AGENDA_WHATSAPP_CLARI}.`,
+    '¡Nos vemos pronto!<br>Seba',
   ];
 
   await mails.encolarMail(_db, {
@@ -4243,7 +4318,7 @@ async function avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, 
   await mails.encolarMail(_db, {
     motivo: 'turno-reservado-aviso',
     para: AVISOS_INSCRIPCION,
-    asunto: `🗓️ Turno reservado — ${cuando}`,
+    asunto: asuntoDeAviso(['Consulta agendada', pedido.modalidad, pedido.nombre, fechaCortaDeTurno(inicioMs)]),
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
         <h2 style="color:#249b95;">Turno reservado</h2>
@@ -4289,7 +4364,7 @@ async function avisarTurnoCancelado(pedido, pedidoId, inicioMs, porQuien) {
   await mails.encolarMail(_db, {
     motivo: 'turno-cancelado-aviso',
     para: AVISOS_INSCRIPCION,
-    asunto: `❌ Turno cancelado — ${cuando}`,
+    asunto: asuntoDeAviso(['Consulta cancelada', pedido.modalidad, pedido.nombre, fechaCortaDeTurno(inicioMs)]),
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;">
         <p>Se canceló el turno del <strong>${escapeHtml(cuando)}</strong> de ${escapeHtml(pedido.nombre || '—')} (${escapeHtml(pedido.email || '—')}).</p>
@@ -4686,22 +4761,39 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
   const turnoId = idDeTurno(inicioMs);
 
   // Aca esta la carrera: dos personas con el mismo horario abierto. El id
-  // del documento sale del horario, asi que el segundo create() falla.
+  // del documento sale del horario, asi que los dos escriben el mismo.
+  //
+  // Antes esto era un create(), que falla si el documento existe. El
+  // problema es que un turno cancelado deja su documento: el horario volvia
+  // a ofrecerse (ocupacionEntre saltea los cancelados) pero nadie podia
+  // reservarlo nunca mas, porque el create() chocaba con el cadaver. Con la
+  // transaccion se puede pisar un cancelado y se sigue perdiendo la carrera
+  // contra uno reservado, que es lo que importa.
+  const ref = _db.collection('agenda_turnos').doc(turnoId);
   try {
-    await _db.collection('agenda_turnos').doc(turnoId).create({
-      estado: 'reservado',
-      inicio: new Date(inicioMs),
-      fin: new Date(finMs),
-      pedidoId,
-      nombre: pedido.nombre || '',
-      email: pedido.email || '',
-      telefono: pedido.telefono || '',
-      modalidad: pedido.modalidad || '',
-      eventId: null,
-      creado: new Date().toISOString(),
+    await _db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (snap.exists && snap.data().estado === 'reservado') {
+        throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
+      }
+      tx.set(ref, {
+        estado: 'reservado',
+        inicio: new Date(inicioMs),
+        fin: new Date(finMs),
+        pedidoId,
+        nombre: pedido.nombre || '',
+        email: pedido.email || '',
+        telefono: pedido.telefono || '',
+        modalidad: pedido.modalidad || '',
+        eventId: null,
+        creado: new Date().toISOString(),
+        // Si se esta pisando un cancelado, que quede el rastro.
+        cancelado: null,
+        canceladoPor: null,
+      });
     });
   } catch (e) {
-    if (e.code === 6) return { error: 'slot_ocupado', status: 409 };
+    if (e.slotOcupado || e.code === 6) return { error: 'slot_ocupado', status: 409 };
     throw e;
   }
 
