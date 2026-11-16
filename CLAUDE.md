@@ -44,6 +44,8 @@ Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerS
 - La URL de verificación lleva número **y** un código HMAC de `TITULO_SECRET`. Sin el código, los números son correlativos y `/titulo/` sería un padrón de egresadxs recorrible de a uno. **Si se cambia el secreto, los códigos ya impresos en los PDF dejan de validar.**
 - Emitir dos veces no genera dos títulos: corrige el que hay, con el mismo número, hasta tres veces. Es lo que resuelve el soporte más probable (un nombre mal tipeado).
 - El mail con el adjunto sale por el trigger `enviarTitulo`, con nodemailer directo y 2 GiB. **No va por `mails_salientes`**: el PDF pasa el tope de 700 KiB de esa cola. Mismo arreglo que la carta natal de las inscripciones.
+- **Los de años anteriores se emiten a mano** con `node titulos.js --manual <numero> "<Nombre>" <dni> <f|m|x> --confirmar` en `C:\dev\herramientas-sebabru`: esa gente no tiene cuenta ni las aulas de 2026, y su número lleva el año de su cohorte (`4-1122-2411`), así que no sale del contador. El comando registra el título, deja el PDF en `C:\dev\scratch` y **no manda ningún mail**. Registrarlo no es opcional: sin el documento en `titulos`, el QR del diploma contesta que no existe.
+- Un título emitido a mano va sin mail, con id `manual__<numero>`, así que no queda atado a ninguna cuenta y la persona no lo puede rebajar sola. Se regenera con el mismo comando: con los mismos datos sale el mismo PDF.
 - Los 4 certificados viejos (hechos a mano, PDF aplanados en `functions/certificados/`) siguen saliendo por `descargarCertificado`. Esa rama no se tocó.
 
 ## OG Tags
