@@ -352,7 +352,8 @@ async function estadoProceso(id) {
 // Crea la campana como BORRADOR, a proposito: sin scheduledAt Brevo la deja
 // sin enviar. No hay en todo este archivo una forma de disparar una campana
 // de verdad, y es la garantia de que siempre la revisa una persona antes.
-async function crearCampaniaBorrador({ nombre, asunto, html, listas, listaIds, previo } = {}) {
+async function crearCampaniaBorrador({ nombre, asunto, html, listas, listaIds, excluir, previo } = {}) {
+  const idsExcluidos = idsDeListas(excluir);
   return pedirBrevo('POST', '/emailCampaigns', {
     name: nombre,
     subject: asunto,
@@ -363,9 +364,16 @@ async function crearCampaniaBorrador({ nombre, asunto, html, listas, listaIds, p
     },
     type: 'classic',
     htmlContent: html,
-    // listaIds es para las listas que no estan en LISTAS_ENV (una tanda
-    // armada a mano, por ejemplo). Si no viene, se resuelven por nombre.
-    recipients: { listIds: (listaIds && listaIds.length) ? listaIds.map(Number) : idsDeListas(listas) },
+    recipients: {
+      // listaIds es para las listas que no estan en LISTAS_ENV (una tanda
+      // armada a mano, por ejemplo). Si no viene, se resuelven por nombre.
+      listIds: (listaIds && listaIds.length) ? listaIds.map(Number) : idsDeListas(listas),
+      // Excluir "suscriptores" de una campana de invitacion es lo que evita
+      // mandarle "te invito a la lista" a alguien que ya esta adentro: las
+      // listas de las tandas son una foto de un dia y la gente se sigue
+      // anotando por su cuenta mientras tanto.
+      ...(idsExcluidos.length ? { exclusionListIds: idsExcluidos } : {}),
+    },
     inlineImageActivation: false,
   });
 }
