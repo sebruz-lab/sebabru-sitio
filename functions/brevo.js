@@ -51,6 +51,10 @@ const ATRIBUTOS = {
   // a la hora de escribirle a alguien que hace rato no sabe de nosotros.
   ULTIMA_CONSULTA: 'date',
   CONSULTAS:       'float',
+  // Cuando recibio una campana de invitacion a la lista. Es el registro de
+  // "a este ya lo invitamos": una campana futura excluye por la lista
+  // "Ya invitados", y esta fecha dice de cuando fue.
+  INVITADO:        'date',
 };
 
 class BrevoError extends Error {
