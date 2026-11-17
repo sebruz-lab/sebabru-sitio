@@ -44,15 +44,33 @@ const AULAS_POR_ANIO = {
 // resuelven solas si la persona ya lo compro.
 const CURSOS_ABIERTA = [
     { url: 'abierta/',          nombre: 'Ver el recorrido completo' },
-    { url: 'abierta/luna/',     nombre: 'La Luna en la carta natal' },
-    { url: 'abierta/identidad/', nombre: 'Tu identidad en el cielo' },
-    { url: 'abierta/tarot/',    nombre: 'Tarot — Mazo Rider-Waite' },
-    { url: 'abierta/signos/',   nombre: 'Signos' },
-    { url: 'abierta/casas/',    nombre: 'Casas y ascendentes' },
-    { url: 'abierta/pluton26/', nombre: 'Plutón y los Nodos Lunares' },
-    { url: 'abierta/lilith/',   nombre: 'Luna Negra · Lilith en la carta natal' },
-    { url: 'abierta/linaje/',   nombre: 'Linaje, clan y genealogía' },
+    { slug: 'luna',      url: 'abierta/luna/',      nombre: 'La Luna en la carta natal' },
+    { slug: 'identidad', url: 'abierta/identidad/', nombre: 'Tu identidad en el cielo' },
+    { slug: 'tarot',     url: 'abierta/tarot/',     nombre: 'Tarot — Mazo Rider-Waite' },
+    { slug: 'signos',    url: 'abierta/signos/',    nombre: 'Signos' },
+    { slug: 'casas',     url: 'abierta/casas/',     nombre: 'Casas y ascendentes' },
+    { slug: 'pluton26',  url: 'abierta/pluton26/',  nombre: 'Plutón y los Nodos Lunares' },
+    { slug: 'lilith',    url: 'abierta/lilith/',    nombre: 'Luna Negra · Lilith en la carta natal' },
+    { slug: 'linaje',    url: 'abierta/linaje/',    nombre: 'Linaje, clan y genealogía' },
 ];
+
+// Todo lo que se puede cursar, por slug: lo que necesita "Mis cursos" para
+// traducir usuarios/{mail}.cursos en nombres y enlaces. Se arma de las dos
+// listas de arriba, asi no hay una tercera que mantener sincronizada.
+const CATALOGO_POR_SLUG = (() => {
+    const mapa = {};
+    Object.keys(AULAS_POR_ANIO).forEach(anio => {
+        (AULAS_POR_ANIO[anio] || []).forEach(a => {
+            mapa[a.slug] = { nombre: a.nombre, url: a.slug + '/index.html' };
+        });
+    });
+    // La abierta pisa a la regular solo si el slug no existia: los pares de
+    // nombre parecido (linaje26/linaje, pluton/pluton26) son slugs distintos.
+    CURSOS_ABIERTA.forEach(c => {
+        if (c.slug && !mapa[c.slug]) mapa[c.slug] = { nombre: c.nombre, url: c.url };
+    });
+    return mapa;
+})();
 
 const ENLACES_EGRESADXS = [
     { url: '/escuela/egresadxs/',    nombre: 'Lista de egresadxs' },
@@ -188,10 +206,20 @@ window.addEventListener('pageshow', (e) => {
     if (overlay && e.persisted) overlay.style.display = 'none';
 });
 
-// Arma el panel del menu. Se llama al principio del DOMContentLoaded, antes
-// de que se enganchen los candados: los enlaces de las aulas llevan
-// .curso-lock y data-url, asi que pasan por verificarYEntrar() igual que las
-// tarjetas y dan el mismo aviso cuando no hay acceso.
+// --- El menu de las tres lineas --------------------------------------
+//
+// Vive en /escuela/ y tambien dentro de cada aula, asi que las rutas son
+// absolutas: una relativa como "lunanegra/index.html" funciona en la portada
+// pero desde un aula apunta a /escuela/lunanegra/lunanegra/index.html.
+//
+// Se pinta al principio del DOMContentLoaded, antes de que se enganchen los
+// candados: los enlaces de las aulas llevan .curso-lock y data-url, asi que
+// pasan por verificarYEntrar() igual que las tarjetas y dan el mismo aviso
+// cuando no hay acceso.
+function rutaEscuela(x) {
+    return x.charAt(0) === '/' ? x : '/escuela/' + x;
+}
+
 function grupoDelMenu(titulo, items, conCandado) {
     const grupo = document.createElement('details');
     grupo.className = 'grupo-menu';
@@ -203,14 +231,36 @@ function grupoDelMenu(titulo, items, conCandado) {
     const lista = document.createElement('ul');
     items.forEach(item => {
         const li = document.createElement('li');
+
+        // "Cerrar sesion" no es un enlace: hace algo, no lleva a ningun lado.
+        if (item.accion) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = item.nombre;
+            if (item.id) b.id = item.id;
+            li.appendChild(b);
+            lista.appendChild(li);
+            return;
+        }
+
         const a = document.createElement('a');
         a.textContent = item.nombre;
         if (conCandado) {
             a.href = '#';
             a.className = 'curso-lock';
-            a.dataset.url = item.slug + '/index.html';
+            a.dataset.url = rutaEscuela(item.slug + '/index.html');
         } else {
-            a.href = item.url;
+            a.href = rutaEscuela(item.url);
+        }
+        // El puntito de aviso (hoy, cuando no sabemos el nombre).
+        if (item.alerta) {
+            const punto = document.createElement('span');
+            punto.className = 'alerta-cuenta';
+            punto.id = item.alerta;
+            punto.hidden = true;
+            punto.title = 'Todavía no sabemos tu nombre';
+            punto.setAttribute('aria-label', 'Todavía no sabemos tu nombre');
+            a.appendChild(punto);
         }
         li.appendChild(a);
         lista.appendChild(li);
@@ -219,6 +269,9 @@ function grupoDelMenu(titulo, items, conCandado) {
     return grupo;
 }
 
+// Lo que siempre esta, con sesion o sin ella: todo el catalogo listado, tenga
+// acceso o no. Los dos grupos de arriba ("Mi cuenta" y "Mis cursos") se
+// agregan despues, cuando Firebase dice quien es.
 function pintarMenuEscuela() {
     const panel = document.getElementById('menu-escuela-panel');
     if (!panel) return;
@@ -237,6 +290,48 @@ function pintarMenuEscuela() {
         });
 
     panel.appendChild(grupoDelMenu('Egresadxs', ENLACES_EGRESADXS, false));
+}
+
+const OPCIONES_CUENTA = [
+    { url: '/escuela/cuenta/',       nombre: 'Mis datos', alerta: 'alerta-nombre' },
+    { url: '/cartas/',               nombre: 'Mi calculadora de cartas astrales' },
+    { url: '/escuela/certificados/', nombre: 'Mis diplomas' },
+    { accion: true, id: 'btn-logout', nombre: 'Cerrar sesión' },
+];
+
+// "Mi cuenta" y "Mis cursos", en ese orden, arriba de todo. Solo con sesion:
+// sin ella, afuera del menu aparece el boton Entrar.
+//
+// Los cursos van como enlaces directos y no con el candado: ya sabemos que
+// tiene acceso (de ahi salio la lista), asi que no hace falta volver a
+// preguntarle a Firestore para abrir el aula.
+function pintarMenuDeSesion(slugs) {
+    const panel = document.getElementById('menu-escuela-panel');
+    if (!panel) return;
+
+    ['grupo-mis-cursos', 'grupo-mi-cuenta'].forEach(id => {
+        const viejo = document.getElementById(id);
+        if (viejo) viejo.remove();
+    });
+    if (!slugs) return;
+
+    if (slugs.length) {
+        const items = slugs.map(slug => {
+            const ficha = CATALOGO_POR_SLUG[slug];
+            // Un aula que no este en las listas igual tiene que poder abrirse:
+            // perder el acceso por un nombre que falta seria peor que el
+            // titulo feo.
+            return ficha || { nombre: slug, url: slug + '/index.html' };
+        });
+        const cursos = grupoDelMenu('Mis cursos', items, false);
+        cursos.id = 'grupo-mis-cursos';
+        cursos.open = true;
+        panel.insertBefore(cursos, panel.firstChild);
+    }
+
+    const cuenta = grupoDelMenu('Mi cuenta', OPCIONES_CUENTA, false);
+    cuenta.id = 'grupo-mi-cuenta';
+    panel.insertBefore(cuenta, panel.firstChild);
 }
 
 // Un desplegable: abre, cierra, y se cierra solo al tocar afuera o con Escape.
@@ -287,15 +382,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const linkIrRegistro = document.getElementById('ir-a-registro');
     const linkIrLogin = document.getElementById('ir-a-login');
     const linkOlvideContrasena = document.getElementById('olvide-contrasena');
-    const btnLogout = document.getElementById('btn-logout');
     const botonCuenta = document.getElementById('boton-cuenta');
-    const opcionesCuenta = document.getElementById('opciones-cuenta');
-    const alertaNombre = document.getElementById('alerta-nombre');
     const btnGoogle = document.getElementById('btn-google'); // Botón de Google
 
+    // "Mi cuenta" y "Cerrar sesión" se pintan dentro del panel cuando hay
+    // sesión, asi que no se pueden buscar ahora: no existen todavia.
     conectarDesplegable(document.getElementById('menu-escuela-toggle'),
                         document.getElementById('menu-escuela-panel'));
-    const desplegableCuenta = conectarDesplegable(botonCuenta, opcionesCuenta);
 
     let urlDestino = ''; 
     let usuarioActual = null;
@@ -303,64 +396,67 @@ document.addEventListener('DOMContentLoaded', () => {
     // ======================================================
     // 2. MANEJO DE SESIÓN (Log In / Log Out)
     // ======================================================
-    // El boton de la derecha dice "Entrar" o "Mi cuenta", como en la
-    // calculadora. Sin sesion abre el modal de ingreso; con sesion despliega
-    // las opciones.
+    // Sin sesión: a la izquierda de las tres lineas aparece "Entrar", que
+    // abre el modal de ingreso. Con sesión ese boton desaparece y la cuenta
+    // pasa a vivir adentro del menu, arriba de todo, con "Mis cursos" debajo.
     onAuthStateChanged(auth, async (user) => {
         usuarioActual = user;
         if (!user) {
             console.log("Sin sesión activa.");
-            if (botonCuenta) {
-                botonCuenta.textContent = 'Entrar';
-                botonCuenta.setAttribute('aria-haspopup', 'false');
-            }
-            desplegableCuenta.cerrar();
-            if (alertaNombre) alertaNombre.hidden = true;
+            if (botonCuenta) botonCuenta.hidden = false;
+            pintarMenuDeSesion(null);
             return;
         }
 
         console.log("Usuario logueado:", user.email);
-        if (botonCuenta) {
-            botonCuenta.textContent = 'Mi cuenta';
-            botonCuenta.setAttribute('aria-haspopup', 'true');
+        if (botonCuenta) botonCuenta.hidden = true;
+
+        // Una sola lectura del usuario sirve para las dos cosas: los cursos
+        // que van en el menu y el nombre, que es lo que se imprime en el
+        // diploma y conviene avisar antes de que haga falta.
+        let cursos = [];
+        let nombre = (user.displayName || '').trim();
+        try {
+            const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
+            if (snap.exists()) {
+                const datos = snap.data();
+                cursos = Array.isArray(datos.cursos) ? datos.cursos : [];
+                if (!nombre) nombre = ((datos.nombre || '')).trim();
+            }
+        } catch (e) {
+            // Si no se puede leer, el menu sale sin "Mis cursos" y sin alerta:
+            // no se inventa ninguna de las dos.
+            console.error(e);
+            nombre = nombre || 'x';
         }
 
-        // El puntito al lado de "Mis datos". El nombre es lo que se imprime
-        // en el diploma, asi que conviene avisar antes de que haga falta.
-        if (alertaNombre) {
-            let nombre = (user.displayName || '').trim();
-            if (!nombre) {
-                try {
-                    const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
-                    nombre = ((snap.exists() && snap.data().nombre) || '').trim();
-                } catch (e) {
-                    // Si no se puede leer, no se inventa una alerta.
-                    console.error(e);
-                    nombre = 'x';
-                }
-            }
-            alertaNombre.hidden = Boolean(nombre);
+        pintarMenuDeSesion(cursos);
+
+        const alertaNombre = document.getElementById('alerta-nombre');
+        if (alertaNombre) alertaNombre.hidden = Boolean(nombre);
+
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.onclick = async () => {
+                await signOut(auth);
+                window.location.reload();
+            };
         }
     });
 
-    // Sin sesion el boton no despliega nada: abre el modal de ingreso.
+    // El boton "Entrar" abre el modal de ingreso. Dentro de un aula no hay
+    // modal (ahi siempre hay sesión), asi que lleva a la escuela.
     if (botonCuenta) {
         botonCuenta.addEventListener('click', () => {
             if (usuarioActual) return;
-            desplegableCuenta.cerrar();
             if (modal) {
                 modal.style.display = 'flex';
                 if (seccionLogin) seccionLogin.style.display = 'block';
                 if (seccionRegistro) seccionRegistro.style.display = 'none';
+            } else {
+                window.location.href = '/escuela/';
             }
         });
-    }
-
-    if (btnLogout) {
-        btnLogout.onclick = async () => {
-            await signOut(auth);
-            window.location.reload();
-        };
     }
 
     // Alternar entre Login y Registro
@@ -433,11 +529,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             urlDestino = curso.getAttribute('data-url');
             if (usuarioActual) {
-                verificarYEntrar(usuarioActual.email, urlDestino); 
-            } else {
+                verificarYEntrar(usuarioActual.email, urlDestino);
+            } else if (modal) {
                 modal.style.display = 'flex';
                 seccionLogin.style.display = 'block';
                 seccionRegistro.style.display = 'none';
+            } else {
+                // Dentro de un aula no hay modal de ingreso.
+                window.location.href = '/escuela/';
             }
         });
     });

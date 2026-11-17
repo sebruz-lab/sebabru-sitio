@@ -9,7 +9,7 @@
     <link rel="canonical" href="https://sebabru.com/escuela/saturnoluna/">
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="../../style.css?v=29">
-    <link rel="stylesheet" href="../escuela.css?v=7">
+    <link rel="stylesheet" href="../escuela.css?v=8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
@@ -30,10 +30,27 @@
         </div>
     </div>
 
+    <!-- El menu de la escuela, igual que en /escuela/: deja saltar de un aula
+         a otra sin volver atras. Lo pinta escuela.js, que esta pagina ya
+         carga para la verificacion de acceso. -->
+    <div class="barra-escuela barra-aula">
+        <button type="button" class="boton-cuenta" id="boton-cuenta" hidden>Entrar</button>
+
+        <nav class="menu-escuela">
+            <button type="button" class="menu-escuela-btn" id="menu-escuela-toggle"
+                    aria-expanded="false" aria-controls="menu-escuela-panel" aria-label="Menu de la escuela">
+                <span class="linea"></span>
+                <span class="linea"></span>
+                <span class="linea"></span>
+            </button>
+            <div class="menu-escuela-panel" id="menu-escuela-panel" hidden></div>
+        </nav>
+    </div>
+
     <div class="mobile-header">
         <span class="mobile-title">Saturno y la Luna</span>
         <button class="hamburger-btn" id="menu-toggle" aria-label="Temario">
-            <i class="fa-solid fa-bars"></i>
+            <i class="fa-solid fa-list-ul"></i>
         </button>
     </div>
 
@@ -111,12 +128,12 @@
         </main>
     </div>
 
-    <script type="module" src="../escuela.js?v=8"></script>
+    <script type="module" src="../escuela.js?v=9"></script>
     <script type="module">
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { auth, db } from '../firebase.js';
-        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=8';
+        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=9';
 
         let accesoConcedido = false;
 

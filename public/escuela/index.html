@@ -19,40 +19,29 @@
     <meta name="twitter:image" content="https://sebabru.com/img/planetas.webp">
     
     <link rel="stylesheet" href="../style.css?v=29">
-    <link rel="stylesheet" href="escuela.css?v=7">
+    <link rel="stylesheet" href="escuela.css?v=8">
     <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body class="bg-escuela">
 
-    <!-- La barra de arriba a la derecha: el menú de la escuela y la cuenta.
-         Antes estos botones colgaban debajo de FORMACIONES y no había forma
-         de saltar de un aula a otra. El contenido del menú lo pinta
-         escuela.js desde AULAS_POR_ANIO, antes de enganchar los candados. -->
+    <!-- La barra de arriba a la derecha. El contenido del menu lo pinta
+         escuela.js: lo fijo (Escuela Abierta, los anios, Egresadxs) al cargar
+         la pagina, y arriba de todo "Mi cuenta" y "Mis cursos" cuando Firebase
+         dice quien es. Sin sesion esos dos no estan y en su lugar aparece
+         "Entrar", a la izquierda de las tres lineas. -->
     <div class="barra-escuela">
+        <button type="button" class="boton-cuenta" id="boton-cuenta">Entrar</button>
+
         <nav class="menu-escuela">
             <button type="button" class="menu-escuela-btn" id="menu-escuela-toggle"
-                    aria-expanded="false" aria-controls="menu-escuela-panel" aria-label="Menú de la escuela">
+                    aria-expanded="false" aria-controls="menu-escuela-panel" aria-label="Menu de la escuela">
                 <span class="linea"></span>
                 <span class="linea"></span>
                 <span class="linea"></span>
             </button>
             <div class="menu-escuela-panel" id="menu-escuela-panel" hidden></div>
         </nav>
-
-        <div class="menu-cuenta">
-            <button type="button" class="boton-cuenta" id="boton-cuenta"
-                    aria-haspopup="false" aria-expanded="false" aria-controls="opciones-cuenta">Entrar</button>
-            <ul class="opciones-cuenta" id="opciones-cuenta" hidden>
-                <li>
-                    <a href="/escuela/cuenta/">Mis datos<span class="alerta-cuenta" id="alerta-nombre" hidden
-                       title="Todavía no sabemos tu nombre" aria-label="Todavía no sabemos tu nombre"></span></a>
-                </li>
-                <li><a href="/cartas/">Mi calculadora de cartas astrales</a></li>
-                <li><a href="/escuela/certificados/">Mis diplomas</a></li>
-                <li><button type="button" id="btn-logout">Cerrar sesión</button></li>
-            </ul>
-        </div>
     </div>
 
     <header class="school-header">
@@ -264,7 +253,7 @@
       console.log("Firebase cargado:", app);
     </script>
 
-    <script type="module" src="escuela.js?v=8"></script>
+    <script type="module" src="escuela.js?v=9"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
     <script>

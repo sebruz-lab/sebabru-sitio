@@ -24,7 +24,7 @@
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
 
     <link rel="stylesheet" href="../../style.css?v=29">
-    <link rel="stylesheet" href="egresadxs.css?v=1">
+    <link rel="stylesheet" href="egresadxs.css?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 
@@ -64,7 +64,7 @@
         <p class="egr-conteo" id="egresadxs-conteo"></p>
 
         <ul class="egr-lista" id="egresadxs-lista">
-            <li class="egr-item"><div class="egr-nombre egr-nombre-solo"><span>Un segundo...</span></div></li>
+            <li class="egr-item"><div class="egr-boton egr-boton-solo">Un segundo...</div></li>
         </ul>
 
         <p class="egr-pie">
@@ -74,6 +74,13 @@
         </p>
     </main>
 
+    <div class="egr-modal" id="egr-modal" role="dialog" aria-modal="true" aria-label="Perfil" hidden>
+        <div class="egr-modal-caja">
+            <button type="button" class="egr-cerrar" aria-label="Cerrar">&times;</button>
+            <div id="egr-modal-cuerpo"></div>
+        </div>
+    </div>
+
     <footer class="main-footer">
         <div class="contact-info">
             <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
@@ -82,7 +89,7 @@
     </footer>
 
     <script src="perfiles.js?v=1"></script>
-    <script src="egresadxs.js?v=1"></script>
+    <script src="egresadxs.js?v=2"></script>
     <script src="../../script.js"></script>
 </body>
 </html>

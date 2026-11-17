@@ -1,7 +1,7 @@
-/* Lista de egresadxs. Acordeon: cada nombre abre su perfil debajo. */
+/* Lista de egresadxs: grilla de botones chicos; el perfil sale en un emergente. */
 
 .egr-main {
-    max-width: 680px;
+    max-width: 760px;
     margin: 0 auto;
     padding: 0 20px 80px;
 }
@@ -22,71 +22,144 @@
     margin: 0 0 26px;
 }
 
+/* Tres por fila en compu. `auto-fit` con un minimo: si un dia son 30, se
+   acomodan solas sin tocar nada. */
 .egr-lista {
     list-style: none;
     margin: 0;
     padding: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 
 .egr-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
 }
 
-.egr-nombre {
+.egr-boton {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
-    padding: 18px 4px;
+    padding: 13px 15px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--text-light);
+    font-family: inherit;
+    font-size: .92em;
+    line-height: 1.25;
+    text-align: left;
+    cursor: pointer;
+    transition: background .25s, border-color .25s, color .25s, transform .25s;
+}
+
+.egr-boton:hover,
+.egr-boton:focus-visible {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+/* Quien todavia no mando su perfil: el nombre esta, pero no abre nada. */
+.egr-boton-solo {
+    cursor: default;
+    opacity: .55;
+    background: none;
+}
+
+.egr-boton-solo:hover {
+    background: none;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--text-light);
+    transform: none;
+}
+
+.egr-mas {
+    flex: 0 0 auto;
+    font-size: .62em;
+    opacity: .45;
+    transition: opacity .25s;
+}
+
+.egr-boton:hover .egr-mas {
+    opacity: 1;
+}
+
+/* --- El emergente --------------------------------------------------- */
+
+.egr-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.egr-modal[hidden] {
+    display: none;
+}
+
+.egr-sin-scroll {
+    overflow: hidden;
+}
+
+.egr-modal-caja {
+    position: relative;
+    width: 100%;
+    max-width: 470px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 30px 26px 26px;
+    background: #0e0e12;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    animation: egr-entra .22s ease-out;
+}
+
+@keyframes egr-entra {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.egr-cerrar {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    padding: 6px 10px;
     background: none;
     border: 0;
     color: var(--text-light);
-    font-family: inherit;
-    font-size: 1.08em;
-    line-height: 1.3;
-    text-align: left;
+    opacity: .5;
+    font-size: 1.1em;
+    line-height: 1;
     cursor: pointer;
-    transition: color .25s, padding-left .25s;
+    transition: opacity .2s;
 }
 
-.egr-nombre:hover,
-.egr-nombre:focus-visible {
-    color: var(--primary-color);
-    padding-left: 10px;
-}
-
-.egr-nombre-solo {
-    cursor: default;
-    opacity: .72;
-}
-
-.egr-nombre-solo:hover {
-    color: var(--text-light);
-    padding-left: 4px;
-}
-
-.egr-flecha {
-    flex: 0 0 auto;
-    font-size: .7em;
-    opacity: .45;
-    transition: transform .25s, opacity .25s;
-}
-
-.egr-nombre.egr-abierto .egr-flecha {
-    transform: rotate(180deg);
-    opacity: .9;
-}
-
-.egr-perfil {
-    padding: 2px 4px 26px;
+.egr-cerrar:hover {
+    opacity: 1;
 }
 
 .egr-perfil-cuerpo {
     display: flex;
     gap: 18px;
     align-items: flex-start;
+}
+
+.egr-perfil-nombre {
+    margin: 0 0 8px;
+    font-size: 1.2em;
+    line-height: 1.25;
+    letter-spacing: .02em;
 }
 
 .egr-foto {
@@ -194,7 +267,21 @@
     color: var(--primary-color);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 720px) {
+    .egr-lista {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 440px) {
+    .egr-lista {
+        grid-template-columns: 1fr;
+    }
+
+    .egr-modal-caja {
+        padding: 28px 20px 22px;
+    }
+
     .egr-perfil-cuerpo {
         flex-direction: column;
         gap: 14px;

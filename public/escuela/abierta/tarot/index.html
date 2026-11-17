@@ -54,7 +54,7 @@
 
     <link rel="icon" type="image/x-icon" href="../../../img/favicon.ico">
     <link rel="stylesheet" href="../../../style.css?v=29">
-    <link rel="stylesheet" href="../../escuela.css?v=7">
+    <link rel="stylesheet" href="../../escuela.css?v=8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
         .materiales-toggle {
@@ -127,10 +127,27 @@
         </div>
     </div>
 
+    <!-- El menu de la escuela, igual que en /escuela/: deja saltar de un aula
+         a otra sin volver atras. Lo pinta escuela.js, que esta pagina ya
+         carga para la verificacion de acceso. -->
+    <div class="barra-escuela barra-aula">
+        <button type="button" class="boton-cuenta" id="boton-cuenta" hidden>Entrar</button>
+
+        <nav class="menu-escuela">
+            <button type="button" class="menu-escuela-btn" id="menu-escuela-toggle"
+                    aria-expanded="false" aria-controls="menu-escuela-panel" aria-label="Menu de la escuela">
+                <span class="linea"></span>
+                <span class="linea"></span>
+                <span class="linea"></span>
+            </button>
+            <div class="menu-escuela-panel" id="menu-escuela-panel" hidden></div>
+        </nav>
+    </div>
+
     <div class="mobile-header">
         <span class="mobile-title">Tarot: Arcanos Mayores y Menores</span>
         <button class="hamburger-btn" id="menu-toggle" aria-label="Temario">
-            <i class="fa-solid fa-bars"></i>
+            <i class="fa-solid fa-list-ul"></i>
         </button>
     </div>
 
@@ -325,7 +342,7 @@
         </main>
     </div>
 
-    <script type="module" src="../../escuela.js?v=8"></script>
+    <script type="module" src="../../escuela.js?v=9"></script>
     <script>
         document.getElementById('btn-materiales').addEventListener('click', function() {
             this.classList.toggle('abierto');
