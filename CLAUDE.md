@@ -47,6 +47,8 @@ Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerS
 - **Los de años anteriores se emiten a mano** con `node titulos.js --manual <numero> "<Nombre>" <dni> <f|m|x> --confirmar` en `C:\dev\herramientas-sebabru`: esa gente no tiene cuenta ni las aulas de 2026, y su número lleva el año de su cohorte (`4-1122-2411`), así que no sale del contador. El comando registra el título, deja el PDF en `C:\dev\scratch` y **no manda ningún mail**. Registrarlo no es opcional: sin el documento en `titulos`, el QR del diploma contesta que no existe.
 - Un título emitido a mano va sin mail, con id `manual__<numero>`, así que no queda atado a ninguna cuenta y la persona no lo puede rebajar sola. Se regenera con el mismo comando: con los mismos datos sale el mismo PDF.
 - Los 4 certificados viejos (hechos a mano, PDF aplanados en `functions/certificados/`) siguen saliendo por `descargarCertificado`. Esa rama no se tocó.
+- **Los ocho seminarios usan la plantilla `seminario`** (desde 2026-11-16), que no trae el texto escrito en `hoja.html`: lo recibe en tres tramos (`antes`, `medio`, `cierre`) alrededor de la itálica, desde `cuerpo` en `FORMACIONES_TITULO`. Es así porque los ocho textos no son un molde con huecos: cambia la apertura y cuatro tienen cierre propio. Sumar un seminario es una entrada más, sin tocar la hoja.
+- **El progreso de clases todavía no llega al servidor.** "Clase reproducida" vive solo en `localStorage` (`visitadas_<pathname>`, en `escuela.js`): no cruza de dispositivo. Por eso los diplomas se habilitan por tener el aula y **no** por haber terminado la cursada. Cuando se abran las aulas de 2027 hay que escribirlo en `usuarios/{mail}.progreso.<slug>` y recién ahí el servidor puede exigir la última clase.
 
 ## OG Tags
 
