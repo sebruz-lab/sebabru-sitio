@@ -82,7 +82,7 @@
        Con un fondo casi transparente le queda blanco, y la letra blanca
        desaparece. Mismo arreglo que #consulta select option en
        formulario.html. */
-    .ag-campo select option, .ag-zona select option { background: #12141d; color: #fff; }
+    .ag-campo select option { background: #12141d; color: #fff; }
 
     .ag-boton {
         width: 100%; padding: 14px 20px; border-radius: 30px; cursor: pointer;
@@ -163,14 +163,45 @@
     .ag-hora:hover { border-color: var(--ag-accent); color: #fff; }
     .ag-hora.elegida { background: var(--ag-accent); color: #16131d; border-color: var(--ag-accent); }
 
-    .ag-zona {
-        margin-top: 26px; font-size: 0.78rem; color: #8f8d88; line-height: 1.7;
+    /* La zona horaria: una frase, no un listado. */
+    /* Con .ag-intro adelante para ganarle a la regla .ag-intro p, que si no
+       le pisa el color y el tamano. */
+    .ag-intro .ag-zona-frase { font-size: 0.8rem; color: #a9a7a1; line-height: 1.9; margin-bottom: 0; }
+    .ag-zona-nombre, .ag-zona-corregir {
+        background: none; border: none; padding: 0; cursor: pointer;
+        font-family: 'Outfit', sans-serif; font-size: inherit; line-height: inherit;
     }
-    .ag-zona select {
-        background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.2);
-        color: #cccac3; font-family: 'Outfit', sans-serif; font-size: 0.78rem;
-        padding: 3px 0; max-width: 100%;
+    .ag-zona-nombre { color: #fff; border-bottom: 1px dotted rgba(255,255,255,0.45); }
+    .ag-zona-nombre:hover, .ag-zona-nombre:focus-visible { border-bottom-color: var(--ag-accent); color: var(--ag-accent); }
+    .ag-zona-corregir { color: var(--ag-accent); text-decoration: underline; margin-left: 4px; }
+    /* El area tocable de los 44px se da con padding y se compensa con un
+       margen negativo, para no separar las lineas de la frase. */
+    .ag-zona-nombre, .ag-zona-corregir { padding: 11px 2px; margin-top: -11px; margin-bottom: -11px; }
+
+    .ag-zona-buscador { position: relative; max-width: 320px; margin: 6px auto 0; text-align: left; }
+    .ag-zona-buscador input {
+        width: 100%; background: rgba(255,255,255,0.05); color: #fff;
+        border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+        padding: 11px 14px; font-family: 'Outfit', sans-serif; box-sizing: border-box;
+        /* Con menos de 16px el iPhone hace zoom al tocar el campo. */
+        font-size: 16px;
     }
+    .ag-zona-buscador input:focus { outline: none; border-color: var(--ag-accent); }
+    .ag-zona-aviso { font-size: 0.75rem; color: #ffd9e4; margin: 8px 0 0; line-height: 1.6; }
+
+    /* La lista de sugerencias, igual que la del formulario de consultas. */
+    .sugerencias {
+        position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px);
+        list-style: none; margin: 0; padding: 4px 0; max-height: 260px; overflow-y: auto;
+        background: #12141d; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+        box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+    }
+    .sugerencias li { padding: 9px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: #fff; font-size: 0.85rem; }
+    .sugerencias li[aria-selected="true"], .sugerencias li:hover { background: rgba(191,174,224,0.18); }
+    .sugerencias .lugar-region { font-size: 0.75rem; opacity: 0.7; }
+    .sugerencias .sin-resultados { cursor: default; font-size: 0.75rem; opacity: 0.8; }
+    .sugerencias .sin-resultados:hover { background: none; }
+    .sugerencias .buscando { font-style: italic; }
 
     .ag-resumen {
         margin-top: 26px; padding: 20px; border-radius: 14px;
@@ -284,7 +315,21 @@
                         </div>
                         <div class="ag-intro">
                             <h2 id="ag-saludo">Elegí tu día y tu hora</h2>
-                            <p id="ag-bajada">Estos son los horarios que tengo realmente libres.</p>
+                            <!-- La zona se detecta sola; esta frase dice cual
+                                 salio y deja cambiarla. El nombre subrayado y
+                                 "corregir" abren los dos lo mismo. -->
+                            <p id="ag-bajada" class="ag-zona-frase">
+                                <span id="ag-zona-antes">Agendás tu sesión en el horario de</span>
+                                <button type="button" class="ag-zona-nombre" id="ag-zona-nombre"></button><span id="ag-zona-punto">.</span>
+                                <button type="button" class="ag-zona-corregir" id="ag-btn-corregir">corregir</button>
+                            </p>
+                            <div class="ag-zona-buscador" id="ag-zona-buscador" hidden>
+                                <input type="text" id="ag-zona-campo" autocomplete="off"
+                                    placeholder="Escribí tu ciudad" aria-label="Tu ciudad"
+                                    role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ag-zona-sugerencias">
+                                <ul id="ag-zona-sugerencias" class="sugerencias" role="listbox" hidden></ul>
+                                <p class="ag-zona-aviso" id="ag-zona-aviso" hidden></p>
+                            </div>
                         </div>
 
                         <div class="ag-mes">
@@ -298,11 +343,6 @@
                         <div class="ag-horarios" id="ag-horarios" hidden>
                             <h4 id="ag-horarios-titulo"></h4>
                             <div class="ag-lista-horas" id="ag-lista-horas"></div>
-                        </div>
-
-                        <div class="ag-zona">
-                            Los horarios se muestran en
-                            <select id="ag-select-zona" aria-label="Zona horaria"></select>
                         </div>
 
                         <div id="ag-resumen" class="ag-resumen" hidden>
@@ -364,6 +404,6 @@
     </footer>
 
     <script src="../../script.js"></script>
-    <script type="module" src="/consultas/agenda/agenda.js?v=3"></script>
+    <script type="module" src="/consultas/agenda/agenda.js?v=4"></script>
 </body>
 </html>

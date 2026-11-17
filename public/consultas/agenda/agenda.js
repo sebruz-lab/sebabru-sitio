@@ -11,11 +11,26 @@
 
 const API = 'https://us-central1-sebabru-e5563.cloudfunctions.net';
 const TURNSTILE_SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
+const ZONA_SEBA = 'America/Argentina/Cordoba';
+
+// La deteccion anda en todo navegador de los ultimos diez anios y no pide
+// permiso ni pregunta nada. El try es por los que no tengan Intl completo.
+const ZONA_DETECTADA = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch (_) {
+    return '';
+  }
+})();
 
 const estado = {
   p: null,
   t: null,
-  zona: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Argentina/Cordoba',
+  // Si la deteccion no viniera, se usa la de Seba y la frase lo dice en
+  // lugar de mentir.
+  zona: ZONA_DETECTADA || ZONA_SEBA,
+  zonaDetectada: Boolean(ZONA_DETECTADA),
+  zonaNombre: '',
   slots: [],
   porDia: new Map(),
   diaElegido: null,
@@ -108,35 +123,203 @@ function nombreDeMes(clave) {
 
 // -------------------------------------------------------
 // Zona horaria
+//
+// La zona se detecta sola y se dice en una frase. El desplegable de las 400
+// zonas IANA nunca fue la deteccion: era el arreglo por si la deteccion se
+// equivoca (alguien de viaje, la compu con la hora mal puesta). Asi que en
+// vez de una lista hay un buscador de ciudades, que es como la gente sabe
+// donde esta.
 // -------------------------------------------------------
-function llenarZonas() {
-  const select = $('ag-select-zona');
-  let zonas = [];
+
+// Las zonas del publico de Seba, escritas como las diria una persona. Lo
+// que no este aca cae en el respaldo de abajo: nunca se muestra un
+// "America/..." pelado.
+const NOMBRES_DE_ZONA = {
+  'America/Argentina/Buenos_Aires': 'Buenos Aires, Argentina',
+  'America/Argentina/Cordoba': 'Córdoba, Argentina',
+  'America/Argentina/Mendoza': 'Mendoza, Argentina',
+  'America/Argentina/Salta': 'Salta, Argentina',
+  'America/Argentina/Tucuman': 'Tucumán, Argentina',
+  'America/Argentina/Jujuy': 'Jujuy, Argentina',
+  'America/Argentina/La_Rioja': 'La Rioja, Argentina',
+  'America/Argentina/San_Juan': 'San Juan, Argentina',
+  'America/Argentina/San_Luis': 'San Luis, Argentina',
+  'America/Argentina/Catamarca': 'Catamarca, Argentina',
+  'America/Argentina/Rio_Gallegos': 'Río Gallegos, Argentina',
+  'America/Argentina/Ushuaia': 'Ushuaia, Argentina',
+  'America/Montevideo': 'Montevideo, Uruguay',
+  'America/Santiago': 'Santiago, Chile',
+  'America/Punta_Arenas': 'Punta Arenas, Chile',
+  'America/Asuncion': 'Asunción, Paraguay',
+  'America/La_Paz': 'La Paz, Bolivia',
+  'America/Lima': 'Lima, Perú',
+  'America/Bogota': 'Bogotá, Colombia',
+  'America/Guayaquil': 'Quito, Ecuador',
+  'America/Caracas': 'Caracas, Venezuela',
+  'America/Sao_Paulo': 'San Pablo, Brasil',
+  'America/Bahia': 'Salvador de Bahía, Brasil',
+  'America/Manaus': 'Manaos, Brasil',
+  'America/Fortaleza': 'Fortaleza, Brasil',
+  'America/Mexico_City': 'Ciudad de México, México',
+  'America/Monterrey': 'Monterrey, México',
+  'America/Tijuana': 'Tijuana, México',
+  'America/Cancun': 'Cancún, México',
+  'America/Guatemala': 'Guatemala',
+  'America/Costa_Rica': 'San José, Costa Rica',
+  'America/Panama': 'Panamá',
+  'America/Havana': 'La Habana, Cuba',
+  'America/Santo_Domingo': 'Santo Domingo, República Dominicana',
+  'America/Puerto_Rico': 'San Juan, Puerto Rico',
+  'America/New_York': 'Nueva York, Estados Unidos',
+  'America/Chicago': 'Chicago, Estados Unidos',
+  'America/Denver': 'Denver, Estados Unidos',
+  'America/Phoenix': 'Phoenix, Estados Unidos',
+  'America/Los_Angeles': 'Los Ángeles, Estados Unidos',
+  'America/Toronto': 'Toronto, Canadá',
+  'America/Vancouver': 'Vancouver, Canadá',
+  'Europe/Madrid': 'Madrid, España',
+  'Atlantic/Canary': 'Islas Canarias, España',
+  'Europe/Lisbon': 'Lisboa, Portugal',
+  'Europe/Rome': 'Roma, Italia',
+  'Europe/Paris': 'París, Francia',
+  'Europe/Berlin': 'Berlín, Alemania',
+  'Europe/Amsterdam': 'Ámsterdam, Países Bajos',
+  'Europe/Brussels': 'Bruselas, Bélgica',
+  'Europe/Zurich': 'Zúrich, Suiza',
+  'Europe/Vienna': 'Viena, Austria',
+  'Europe/London': 'Londres, Reino Unido',
+  'Europe/Dublin': 'Dublín, Irlanda',
+  'Europe/Stockholm': 'Estocolmo, Suecia',
+  'Europe/Oslo': 'Oslo, Noruega',
+  'Europe/Copenhagen': 'Copenhague, Dinamarca',
+  'Europe/Athens': 'Atenas, Grecia',
+  'Europe/Moscow': 'Moscú, Rusia',
+  'Asia/Jerusalem': 'Jerusalén, Israel',
+  'Australia/Sydney': 'Sídney, Australia',
+  'Australia/Melbourne': 'Melbourne, Australia',
+  'Pacific/Auckland': 'Auckland, Nueva Zelanda',
+};
+
+// Cuanto se adelanta o se atrasa una zona respecto de la de Seba, ahora
+// mismo. Se saca comparando como escribe las dos la misma fecha: no hace
+// falta saber nada de horarios de verano.
+function minutosDeDiferencia(zona) {
+  const ahora = new Date();
+  const enZona = f => {
+    const p = new Intl.DateTimeFormat('en-CA', {
+      timeZone: f, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(ahora).reduce((o, x) => (o[x.type] = x.value, o), {});
+    // La hora 24 existe en en-CA y es la medianoche del dia que arranca:
+    // vale 0, pero del dia siguiente. Sumarla como 24 lo resuelve sola,
+    // porque Date.UTC acepta que la hora se pase.
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute);
+  };
+  return Math.round((enZona(zona) - enZona(ZONA_SEBA)) / 60000);
+}
+
+function zonaLegible(iana) {
+  if (NOMBRES_DE_ZONA[iana]) return NOMBRES_DE_ZONA[iana];
+  // El respaldo: la ciudad del id, mas la diferencia con Argentina, que es
+  // el dato que de verdad le sirve a quien mira.
+  const ciudad = String(iana || '').split('/').pop().replace(/_/g, ' ');
+  let minutos = 0;
   try {
-    zonas = Intl.supportedValuesOf('timeZone');
+    minutos = minutosDeDiferencia(iana);
   } catch (_) {
-    zonas = ['America/Argentina/Cordoba', 'America/Montevideo', 'America/Santiago',
-      'America/Sao_Paulo', 'America/Bogota', 'America/Mexico_City', 'America/New_York',
-      'America/Los_Angeles', 'Europe/Madrid', 'Europe/London', 'Europe/Berlin'];
+    return ciudad;
   }
-  if (!zonas.includes(estado.zona)) zonas = [estado.zona, ...zonas];
-  select.innerHTML = '';
-  for (const z of zonas) {
-    const op = document.createElement('option');
-    op.value = z;
-    op.textContent = z.replace(/_/g, ' ');
-    if (z === estado.zona) op.selected = true;
-    select.appendChild(op);
+  if (!minutos) return `${ciudad} (igual que en Argentina)`;
+  const horas = Math.abs(minutos) / 60;
+  const cuanto = Number.isInteger(horas) ? horas : horas.toFixed(1).replace('.', ',');
+  const unidad = horas === 1 ? 'hora' : 'horas';
+  return `${ciudad} (${cuanto} ${unidad} ${minutos > 0 ? 'más' : 'menos'} que en Argentina)`;
+}
+
+// Cambiar de zona no cambia los horarios que hay: cambia como se leen. Se
+// sueltan el dia y la hora elegidos porque en la zona nueva son otros.
+function fijarZona(iana, nombre) {
+  estado.zona = iana;
+  estado.zonaNombre = nombre || zonaLegible(iana);
+  estado.diaElegido = null;
+  estado.horaElegida = null;
+  pintarFraseDeZona();
+  agruparSlots();
+  pintarCalendario();
+  pintarHorarios();
+  $('ag-resumen').hidden = true;
+}
+
+function pintarFraseDeZona() {
+  $('ag-zona-antes').textContent = estado.zonaDetectada
+    ? 'Agendás tu sesión en el horario de'
+    : 'No pudimos detectar tu zona: estás viendo los horarios de';
+  $('ag-zona-nombre').textContent = estado.zonaNombre;
+  $('ag-zona-nombre').setAttribute('aria-label', `Zona horaria: ${estado.zonaNombre}. Tocá para cambiarla`);
+}
+
+// El buscador se trae recien al tocar "corregir": es el mismo modulo (y la
+// misma URL con version) que usa el formulario de consultas, asi que quien
+// ya paso por ahi lo tiene en cache. Quien solo viene a elegir un horario no
+// lo descarga nunca.
+let buscadorListo = false;
+const cacheRespaldo = new Map();
+
+async function respaldoDeLugares(texto) {
+  const clave = texto.trim().toLowerCase();
+  if (!clave) return [];
+  if (cacheRespaldo.has(clave)) return cacheRespaldo.get(clave);
+  const lista = $('ag-zona-sugerencias');
+  lista.innerHTML = '<li class="sin-resultados buscando" role="presentation">Buscando...</li>';
+  lista.hidden = false;
+  // GeoNames da 1.000 consultas por hora para todo el sitio: se espera a que
+  // la persona frene de escribir antes de salir a la red.
+  await new Promise(listo => setTimeout(listo, 350));
+  if ($('ag-zona-campo').value.trim().toLowerCase() !== clave) return [];
+  try {
+    const r = await fetch(`${API}/buscarLugar?q=${encodeURIComponent(texto)}`);
+    if (!r.ok) return [];
+    const lugares = (await r.json()).lugares || [];
+    cacheRespaldo.set(clave, lugares);
+    return lugares;
+  } catch (_) {
+    return [];
   }
-  select.addEventListener('change', () => {
-    estado.zona = select.value;
-    estado.diaElegido = null;
-    estado.horaElegida = null;
-    agruparSlots();
-    pintarCalendario();
-    pintarHorarios();
-    $('ag-resumen').hidden = true;
-  });
+}
+
+async function abrirBuscadorDeZona() {
+  const caja = $('ag-zona-buscador');
+  const campo = $('ag-zona-campo');
+  caja.hidden = false;
+  campo.focus();
+  if (buscadorListo) return;
+  buscadorListo = true;
+  try {
+    const { conectarBuscador } = await import('/cartas/buscador-lugares.js?v=1.14.0');
+    conectarBuscador(campo, $('ag-zona-sugerencias'), lugar => {
+      if (!lugar) return;
+      const aviso = $('ag-zona-aviso');
+      if (!lugar.zona) {
+        // Cambiar la zona a ciegas seria peor que dejarla como esta.
+        aviso.textContent = 'De ese lugar no sabemos la zona horaria. Probá con una ciudad más grande cerca.';
+        aviso.hidden = false;
+        return;
+      }
+      aviso.hidden = true;
+      fijarZona(lugar.zona, [lugar.nombre, lugar.paisNombre].filter(Boolean).join(', '));
+      campo.value = '';
+      caja.hidden = true;
+      $('ag-zona-nombre').focus();
+    }, {
+      sinResultados: 'No encontramos esa ciudad. Probá con una más grande cerca.',
+      respaldo: respaldoDeLugares,
+    });
+  } catch (_) {
+    buscadorListo = false;
+    const aviso = $('ag-zona-aviso');
+    aviso.textContent = 'No pudimos abrir el buscador de ciudades. Probá de nuevo en un rato.';
+    aviso.hidden = false;
+  }
 }
 
 // -------------------------------------------------------
@@ -267,7 +450,7 @@ function pintarResumen() {
 function pintarFicha() {
   const t = estado.turno;
   $('ag-ficha-cuando').textContent = `${textoDiaLargo(t.inicio)}, ${textoHora(t.inicio)}`;
-  $('ag-ficha-zona').textContent = `Hora de ${estado.zona.replace(/_/g, ' ')}. Dura ${estado.duracionMin} minutos.`;
+  $('ag-ficha-zona').textContent = `Hora de ${estado.zonaNombre}. Dura ${estado.duracionMin} minutos.`;
   const donde = $('ag-ficha-donde');
   if ((t.modalidad || estado.modalidad) === 'Presencial') {
     donde.innerHTML = 'El encuentro es presencial. Pedile a Clari cómo llegar: <a href="https://wa.me/5493544559877">+54 9 3544 559877</a>.';
@@ -492,7 +675,10 @@ async function identificarse(evento) {
 // Arranque
 // -------------------------------------------------------
 function iniciar() {
-  llenarZonas();
+  estado.zonaNombre = zonaLegible(estado.zona);
+  pintarFraseDeZona();
+  $('ag-zona-nombre').addEventListener('click', abrirBuscadorDeZona);
+  $('ag-btn-corregir').addEventListener('click', abrirBuscadorDeZona);
 
   $('ag-mes-antes').addEventListener('click', () => {
     const i = estado.meses.indexOf(estado.mesVisible);
