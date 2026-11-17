@@ -13,13 +13,16 @@
 //   - Los prototipos y pruebas tampoco (ademas estan excluidos del deploy en
 //     firebase.json).
 //   - 404.html no va nunca.
-//   - Sin <lastmod>: en el runner todos los archivos tienen la fecha del
-//     checkout, asi que cualquier fecha que pusieramos seria mentira, y una
-//     fecha falsa es peor que ninguna. Se puede agregar mas adelante leyendo
-//     la fecha del ultimo commit de cada archivo (requiere fetch-depth: 0).
+//   - <lastmod> sale de la fecha del ultimo commit de cada archivo, NO de su
+//     mtime: en el runner todos los archivos tienen la fecha del checkout, y
+//     una fecha falsa es peor que ninguna. Requiere fetch-depth: 0 en el
+//     checkout del workflow (sin eso, el clon es shallow y el historial no
+//     alcanza). Si git no contesta, la URL va sin lastmod: es opcional.
+//     Las paginas de /cartas/ nunca tienen: no estan en el repo, se bajan.
 
 import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const RAIZ = 'public';
 const DOMINIO = 'https://sebabru.com';
@@ -50,6 +53,31 @@ function aUrl(rutaRelativa) {
     return archivo === 'index.html' ? carpeta : carpeta + archivo;
 }
 
+// Fecha del ultimo commit de cada archivo, en una sola pasada por el
+// historial (237 llamadas a `git log` por archivo tardarian de mas).
+// `git log --name-only` lista los commits del mas nuevo al mas viejo, asi
+// que la PRIMERA vez que aparece un archivo es su ultima modificacion.
+function fechasDeGit() {
+    const fechas = new Map();
+    let salida;
+    try {
+        salida = execFileSync('git', ['log', '--format=%cI', '--name-only', '--no-renames', '--', RAIZ],
+            { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    } catch (e) {
+        console.warn('Aviso: no pude leer las fechas de git (' + e.message.split('\n')[0] + '). El sitemap va sin <lastmod>.');
+        return fechas;
+    }
+    let fecha = null;
+    for (const linea of salida.split('\n')) {
+        const l = linea.trim();
+        if (!l) continue;
+        if (/^\d{4}-\d{2}-\d{2}T/.test(l)) { fecha = l.slice(0, 10); continue; }
+        if (fecha && !fechas.has(l)) fechas.set(l, fecha);
+    }
+    return fechas;
+}
+
+const fechas = fechasDeGit();
 const urls = [];
 const saltadas = [];
 
@@ -83,15 +111,16 @@ for await (const ruta of htmls(RAIZ)) {
         continue;
     }
 
-    urls.push(aUrl(rel));
+    // La clave del mapa es la ruta como la escribe git: siempre con /.
+    urls.push({ url: aUrl(rel), lastmod: fechas.get(ruta.split(sep).join('/')) });
 }
 
-urls.sort((a, b) => a.localeCompare(b, 'es'));
+urls.sort((a, b) => a.url.localeCompare(b.url, 'es'));
 
 const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...urls.map((u) => `  <url><loc>${DOMINIO}${u}</loc></url>`),
+    ...urls.map((u) => `  <url><loc>${DOMINIO}${u.url}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`),
     '</urlset>',
     '',
 ].join('\n');
@@ -99,7 +128,7 @@ const xml = [
 await writeFile(join(RAIZ, 'sitemap.xml'), xml, 'utf8');
 
 console.log(`sitemap.xml: ${urls.length} URLs`);
-for (const u of urls) console.log('  ' + u);
+for (const u of urls) console.log('  ' + u.url + (u.lastmod ? '  (' + u.lastmod + ')' : '  (sin fecha)'));
 if (saltadas.length) {
     console.log(`\nFuera del sitemap (${saltadas.length}):`);
     for (const [r, por] of saltadas) console.log(`  ${r} -- ${por}`);
@@ -109,7 +138,7 @@ if (saltadas.length) {
 // o cambio de lugar. Mejor que falle el deploy que publicar un sitemap mocho.
 try {
     await stat(join(RAIZ, 'cartas', 'index.html'));
-    if (!urls.includes('/cartas/')) {
+    if (!urls.some((u) => u.url === '/cartas/')) {
         console.error('\nERROR: existe public/cartas/index.html pero no entro al sitemap.');
         process.exit(1);
     }

@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historial completo: el sitemap saca el <lastmod> de cada pagina
+          # de la fecha de su ultimo commit. Con el clon shallow que hace
+          # el checkout por defecto, la mayoria saldria sin fecha.
+          fetch-depth: 0
       - name: Bajar la calculadora (sebruz-lab/tucarta, version en tucarta.version)
         run: |
           v=$(tr -d '[:space:]' < tucarta.version)

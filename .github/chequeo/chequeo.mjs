@@ -111,6 +111,55 @@ function chequearComillas(paginasHtml) {
     if (!hallazgos) ok('Comillas curvas en etiquetas', 'Ninguna');
 }
 
+// Metadata de buscadores y de redes: canonical, meta description y los 6 OG
+// que pide el CLAUDE.md. Si no esta, la pagina se comparte sin imagen ni
+// bajada, y Google le inventa el resumen. Las paginas noindex no se miran:
+// estan fuera de Google a proposito.
+//
+// Las que esperan texto de Seba salen como aviso y no como falla, para que
+// el chequeo de todos los dias no quede en rojo por algo que no es un error
+// sino una tarea pendiente. Lo que SI falla es una pagina nueva sin metadata:
+// es justamente lo que esta lista evita que se repita.
+const PENDIENTES = [
+    [/^carta-natal\//, 'espera la bajada en paginas-textos.js (C:/dev/herramientas-sebabru)'],
+    [/^escuela\/index\.html$/, 'el hub de las aulas: falta decidir si va a Google o va noindex'],
+    [/^Mey\//, 'microsite de otra persona colgado del dominio'],
+];
+const OG_OBLIGATORIOS = ['og:type', 'og:url', 'og:title', 'og:description', 'og:image', 'og:site_name'];
+
+function chequearMetadatos(paginasHtml) {
+    let incompletas = 0, pendientes = 0, revisadas = 0;
+    for (const rel of paginasHtml) {
+        const html = readFileSync(join(PUBLIC, rel), 'utf8');
+
+        // Un fragmento que otra pagina carga por JS no es una pagina.
+        if (!/<html[\s>]/i.test(html)) continue;
+        if (/<meta[^>]+name=["']robots["'][^>]+noindex/i.test(html)) continue;
+        revisadas++;
+
+        const falta = [];
+        if (!/<link[^>]+rel=["']canonical["']/i.test(html)) falta.push('canonical');
+        if (!/<meta[^>]+name=["']description["']/i.test(html)) falta.push('meta description');
+        for (const og of OG_OBLIGATORIOS) {
+            if (!new RegExp(`property=["']${og}["']`, 'i').test(html)) falta.push(og);
+        }
+        if (!falta.length) continue;
+
+        const pendiente = PENDIENTES.find(([re]) => re.test(rel));
+        if (pendiente) {
+            aviso('Metadata', `\`${rel}\` sin ${falta.join(', ')} — ${pendiente[1]}`);
+            pendientes++;
+        } else {
+            falla('Metadata', `\`${rel}\` sin ${falta.join(', ')} (ver "OG Tags" en CLAUDE.md)`);
+            incompletas++;
+        }
+    }
+    if (!incompletas) {
+        ok('Metadata', `${revisadas - pendientes} de ${revisadas} páginas indexables completas` +
+            (pendientes ? ` (${pendientes} esperan texto, arriba)` : ''));
+    }
+}
+
 function leerPrecios(archivo) {
     const txt = readFileSync(archivo, 'utf8');
     const bloque = (txt.match(/const PRECIOS\s*=\s*\{([\s\S]*?)\n\};/) || [])[1] || '';
@@ -408,6 +457,7 @@ function informe() {
 const paginas = archivos(PUBLIC, ['.html']);
 chequearComillas(paginas);
 chequearReferencias(paginas);
+chequearMetadatos(paginas);
 chequearPrecios();
 
 if (!process.env.SOLO_ESTATICO) {
