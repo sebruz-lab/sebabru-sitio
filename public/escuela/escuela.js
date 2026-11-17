@@ -10,6 +10,56 @@ import {
 import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { entrarConGoogle } from './google.js?v=2';
 
+// ======================================================
+// EL CATALOGO DEL MENU DE LA ESCUELA
+// ======================================================
+// Las aulas de cada ano. Un ano con la lista vacia no se dibuja: por eso
+// 2027 ya figura aca y no se ve hasta que tenga su primer curso. Abrir el ano
+// que viene es agregarle entradas a esa lista, nada mas.
+//
+// Ojo con los pares de nombre parecido: 'linaje26' es el aula de la cursada
+// regular y 'linaje' el curso suelto de la abierta; lo mismo con
+// 'lunanegra'/'lilith' y 'pluton'/'pluton26'.
+const AULAS_POR_ANIO = {
+    2027: [],
+    2026: [
+        { slug: 'linaje26',     nombre: 'Linaje, clan y genealogía 2026' },
+        { slug: 'lunas26',      nombre: 'La Luna en la carta natal 2026' },
+        { slug: 'planetas',     nombre: 'Planetas y Luminarias' },
+        { slug: 'quiron',       nombre: 'Neptuno, Urano y Quirón' },
+        { slug: 'escucha',      nombre: 'Escucha Astrológica' },
+        { slug: 'saturnoluna',  nombre: 'Saturno y la Luna' },
+        { slug: 'introduccion', nombre: 'Introducción al Lenguaje Astrológico' },
+        { slug: 'lectura',      nombre: 'Lectura e Interpretación' },
+        { slug: 'revo',         nombre: 'Revoluciones Solares' },
+        { slug: 'lunanegra',    nombre: 'Luna Negra' },
+        { slug: 'pluton',       nombre: 'Seminario Plutón' },
+        { slug: 'cosito',       nombre: '¿Qué es ese cosito?' },
+        { slug: 'transitos',    nombre: 'Tránsitos' },
+    ],
+};
+
+// Los cursos de la escuela abierta. Van como enlaces comunes y no con el
+// candado: esas paginas son publicas (primera clase gratis y checkout) y
+// resuelven solas si la persona ya lo compro.
+const CURSOS_ABIERTA = [
+    { url: 'abierta/',          nombre: 'Ver el recorrido completo' },
+    { url: 'abierta/luna/',     nombre: 'La Luna en la carta natal' },
+    { url: 'abierta/identidad/', nombre: 'Tu identidad en el cielo' },
+    { url: 'abierta/tarot/',    nombre: 'Tarot — Mazo Rider-Waite' },
+    { url: 'abierta/signos/',   nombre: 'Signos' },
+    { url: 'abierta/casas/',    nombre: 'Casas y ascendentes' },
+    { url: 'abierta/pluton26/', nombre: 'Plutón y los Nodos Lunares' },
+    { url: 'abierta/lilith/',   nombre: 'Luna Negra · Lilith en la carta natal' },
+    { url: 'abierta/linaje/',   nombre: 'Linaje, clan y genealogía' },
+];
+
+const ENLACES_EGRESADXS = [
+    { url: '/escuela/egresadxs/',    nombre: 'Lista de egresadxs' },
+    { url: '/escuela/certificados/', nombre: 'Gestionar mis diplomas' },
+    { url: '/titulo/',               nombre: 'Verificar un título' },
+];
+
 // Mensaje genérico a propósito para auth/email-already-in-use: no confirma
 // ni niega si ese email ya tiene cuenta (evita que alguien lo use para
 // enumerar qué emails están registrados en el sitio).
@@ -138,7 +188,88 @@ window.addEventListener('pageshow', (e) => {
     if (overlay && e.persisted) overlay.style.display = 'none';
 });
 
+// Arma el panel del menu. Se llama al principio del DOMContentLoaded, antes
+// de que se enganchen los candados: los enlaces de las aulas llevan
+// .curso-lock y data-url, asi que pasan por verificarYEntrar() igual que las
+// tarjetas y dan el mismo aviso cuando no hay acceso.
+function grupoDelMenu(titulo, items, conCandado) {
+    const grupo = document.createElement('details');
+    grupo.className = 'grupo-menu';
+
+    const cabeza = document.createElement('summary');
+    cabeza.textContent = titulo;
+    grupo.appendChild(cabeza);
+
+    const lista = document.createElement('ul');
+    items.forEach(item => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.textContent = item.nombre;
+        if (conCandado) {
+            a.href = '#';
+            a.className = 'curso-lock';
+            a.dataset.url = item.slug + '/index.html';
+        } else {
+            a.href = item.url;
+        }
+        li.appendChild(a);
+        lista.appendChild(li);
+    });
+    grupo.appendChild(lista);
+    return grupo;
+}
+
+function pintarMenuEscuela() {
+    const panel = document.getElementById('menu-escuela-panel');
+    if (!panel) return;
+
+    panel.appendChild(grupoDelMenu('Escuela Abierta', CURSOS_ABIERTA, false));
+
+    // Del ano mas nuevo al mas viejo, y saltando los que todavia no tienen
+    // cursos: asi 2027 aparece solo el dia que se cargue el primero.
+    Object.keys(AULAS_POR_ANIO)
+        .map(Number)
+        .sort((a, b) => b - a)
+        .forEach(anio => {
+            const aulas = AULAS_POR_ANIO[anio];
+            if (!aulas || !aulas.length) return;
+            panel.appendChild(grupoDelMenu(String(anio), aulas, true));
+        });
+
+    panel.appendChild(grupoDelMenu('Egresadxs', ENLACES_EGRESADXS, false));
+}
+
+// Un desplegable: abre, cierra, y se cierra solo al tocar afuera o con Escape.
+function conectarDesplegable(boton, panel) {
+    if (!boton || !panel) return { cerrar: () => {} };
+
+    const cerrar = () => {
+        panel.hidden = true;
+        boton.setAttribute('aria-expanded', 'false');
+    };
+    const alternar = () => {
+        const abierto = !panel.hidden;
+        if (abierto) return cerrar();
+        panel.hidden = false;
+        boton.setAttribute('aria-expanded', 'true');
+    };
+
+    boton.addEventListener('click', (e) => { e.stopPropagation(); alternar(); });
+    document.addEventListener('click', (e) => {
+        if (panel.hidden) return;
+        if (panel.contains(e.target) || boton.contains(e.target)) return;
+        cerrar();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrar(); });
+
+    return { cerrar };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+
+    // El menu se pinta primero: sus enlaces de aulas tienen que estar en el
+    // DOM antes de que se busquen los .curso-lock, unas lineas mas abajo.
+    pintarMenuEscuela();
 
     // --- ELEMENTOS DE LA INTERFAZ ---
     const modal = document.getElementById('login-modal');
@@ -157,9 +288,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const linkIrLogin = document.getElementById('ir-a-login');
     const linkOlvideContrasena = document.getElementById('olvide-contrasena');
     const btnLogout = document.getElementById('btn-logout');
-    const btnLogin = document.getElementById('btn-login');
-    const linkMiCuenta = document.getElementById('link-mi-cuenta');
+    const botonCuenta = document.getElementById('boton-cuenta');
+    const opcionesCuenta = document.getElementById('opciones-cuenta');
+    const alertaNombre = document.getElementById('alerta-nombre');
     const btnGoogle = document.getElementById('btn-google'); // Botón de Google
+
+    conectarDesplegable(document.getElementById('menu-escuela-toggle'),
+                        document.getElementById('menu-escuela-panel'));
+    const desplegableCuenta = conectarDesplegable(botonCuenta, opcionesCuenta);
 
     let urlDestino = ''; 
     let usuarioActual = null;
@@ -167,22 +303,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // ======================================================
     // 2. MANEJO DE SESIÓN (Log In / Log Out)
     // ======================================================
-    onAuthStateChanged(auth, (user) => {
+    // El boton de la derecha dice "Entrar" o "Mi cuenta", como en la
+    // calculadora. Sin sesion abre el modal de ingreso; con sesion despliega
+    // las opciones.
+    onAuthStateChanged(auth, async (user) => {
         usuarioActual = user;
-        if (user) {
-            console.log("Usuario logueado:", user.email);
-            if(btnLogout) btnLogout.style.display = 'block';
-            if(btnLogin) btnLogin.style.display = 'none';
-            if(linkMiCuenta) linkMiCuenta.style.display = 'inline-block';
-        } else {
+        if (!user) {
             console.log("Sin sesión activa.");
-            if(btnLogout) btnLogout.style.display = 'none';
-            if(btnLogin) btnLogin.style.display = 'block';
-            if(linkMiCuenta) linkMiCuenta.style.display = 'none';
+            if (botonCuenta) {
+                botonCuenta.textContent = 'Entrar';
+                botonCuenta.setAttribute('aria-haspopup', 'false');
+            }
+            desplegableCuenta.cerrar();
+            if (alertaNombre) alertaNombre.hidden = true;
+            return;
+        }
+
+        console.log("Usuario logueado:", user.email);
+        if (botonCuenta) {
+            botonCuenta.textContent = 'Mi cuenta';
+            botonCuenta.setAttribute('aria-haspopup', 'true');
+        }
+
+        // El puntito al lado de "Mis datos". El nombre es lo que se imprime
+        // en el diploma, asi que conviene avisar antes de que haga falta.
+        if (alertaNombre) {
+            let nombre = (user.displayName || '').trim();
+            if (!nombre) {
+                try {
+                    const snap = await getDoc(doc(db, 'usuarios', user.email.toLowerCase().trim()));
+                    nombre = ((snap.exists() && snap.data().nombre) || '').trim();
+                } catch (e) {
+                    // Si no se puede leer, no se inventa una alerta.
+                    console.error(e);
+                    nombre = 'x';
+                }
+            }
+            alertaNombre.hidden = Boolean(nombre);
         }
     });
 
-    if (btnLogin) btnLogin.onclick = () => { modal.style.display = 'flex'; };
+    // Sin sesion el boton no despliega nada: abre el modal de ingreso.
+    if (botonCuenta) {
+        botonCuenta.addEventListener('click', () => {
+            if (usuarioActual) return;
+            desplegableCuenta.cerrar();
+            if (modal) {
+                modal.style.display = 'flex';
+                if (seccionLogin) seccionLogin.style.display = 'block';
+                if (seccionRegistro) seccionRegistro.style.display = 'none';
+            }
+        });
+    }
 
     if (btnLogout) {
         btnLogout.onclick = async () => {

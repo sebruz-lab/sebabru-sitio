@@ -5187,6 +5187,21 @@ exports.mantenerDespierto = onSchedule({
 //   cursosHabilitantes: que aulas de usuarios/{email}.cursos dan derecho.
 //            Esta separado del id de la formacion porque un titulo puede
 //            venir de mas de un aula, o de un aula con otro slug.
+// Los dos tramos que repiten casi todos los seminarios. Viven aca y no
+// copiados en cada entrada para que no se vayan separando con el tiempo: si
+// hay que cambiar una coma, se cambia en un solo lugar.
+const APERTURA_SEMINARIO = 'Ha cursado exitosamente el seminario de';
+const CIERRE_INCLUIR = 'Así, ha adquirido conocimientos profundos para incluir '
+  + 'en su lectura e interpretación astrológica';
+
+// "en la Escuela de Astrología de Seba Bru; que se compone de un total de 10
+// horas de cursada." El `extra` es para el titulo intermedio, que ademas de
+// las horas lleva los trabajos practicos.
+function horasDeCursada(horas, extra = '') {
+  return ` en la Escuela de Astrología de Seba Bru; que se compone de un total `
+    + `de ${horas} horas de cursada${extra}.`;
+}
+
 const FORMACIONES_TITULO = {
   // La formacion entera, cuatro anos. Quien esta en las aulas del ultimo ano
   // (escucha astrologica y linaje y genealogia) ya la termino: son las dos
@@ -5205,22 +5220,170 @@ const FORMACIONES_TITULO = {
     prefijoNumero: '4-1122',
   },
 
-  // Un ano suelto. Cerrado por ahora: los cuatro egresadxs de 2026 ya tienen
-  // su certificado por el camino viejo (descargarCertificado), y darles un
-  // segundo documento distinto confunde mas de lo que suma. Se abre poniendo
-  // abierta: true y redeployando.
+  // ---------- Los seminarios ----------
+  //
+  // Todos usan la plantilla 'seminario', que no tiene el texto escrito en la
+  // hoja: lo arma con los tres tramos de `cuerpo` alrededor de la italica.
+  // Es asi porque los ocho textos que paso Seba no son un molde con huecos:
+  // cambia la apertura (el seminario de / la formacion en / el curso de) y
+  // cuatro de ellos tienen un cierre propio.
+  //
+  // El bloque grande del final va en `titulo`. En los seminarios no es un rol
+  // sino el tema que se acredita, asi que es un string y no pide pronombres;
+  // la unica excepcion es `lectura`, donde si es un rol.
+  //
+  // Cada uno numera su propia serie: los nueve prefijos son distintos y la
+  // clave del contador es `<prefijo>-<anio>`.
+
+  lunanegra: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Luna Negra: Lilith en la Carta Natal',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(10),
+      // "a la" y no "a": es la unica que lleva articulo.
+      cierre: `${CIERRE_INCLUIR} a la`,
+    },
+    titulo: 'LUNA NEGRA',
+    anio: 2026,
+    // La version on demand acredita lo mismo que la cursada regular.
+    cursosHabilitantes: ['lunanegra', 'lilith'],
+    abierta: true,
+    prefijoNumero: '3-1133',
+  },
+
+  pluton: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Plutón y los Nodos Lunares',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(18),
+      cierre: `${CIERRE_INCLUIR} a`,
+    },
+    titulo: 'Plutón y los Nodos Lunares',
+    anio: 2026,
+    cursosHabilitantes: ['pluton', 'pluton26'],
+    abierta: true,
+    prefijoNumero: '3-1122',
+  },
+
+  // El aula se llama "Neptuno, Urano y Quiron", pero el seminario se titula
+  // "El camino de la singularidad" y lo que acredita son los tres planetas,
+  // en ese orden. No es un error de tipeo.
+  quiron: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'El camino de la singularidad',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(18),
+      cierre: `${CIERRE_INCLUIR} a`,
+    },
+    titulo: 'Neptuno, Quirón y Urano',
+    anio: 2026,
+    cursosHabilitantes: ['quiron'],
+    abierta: true,
+    prefijoNumero: '2-1144',
+  },
+
+  escucha: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Escucha Astrológica',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(18),
+      // Cierre propio: este seminario no suma un tema a la lectura, suma una
+      // forma de acompanar.
+      cierre: 'Así, ha adquirido herramientas para acompañar de una forma más '
+        + 'precisa a sus consultantes y ha enriquecido su',
+    },
+    titulo: 'ESCUCHA ASTROLÓGICA',
+    anio: 2026,
+    cursosHabilitantes: ['escucha'],
+    abierta: true,
+    prefijoNumero: '3-1144',
+  },
+
+  saturnoluna: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Saturno, Luna y las defensas emocionales',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(18),
+      cierre: `${CIERRE_INCLUIR} a`,
+    },
+    titulo: 'Saturno y la Luna',
+    anio: 2026,
+    cursosHabilitantes: ['saturnoluna'],
+    abierta: true,
+    prefijoNumero: '2-1133',
+  },
+
+  // Ojo: lo habilitan 'linaje26' (cursada regular) y 'linaje' (la abierta).
+  // El id de la formacion es 'linaje' a secas y no coincide con el aula
+  // regular: por eso cursosHabilitantes esta escrito entero.
+  linaje: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Linaje y genealogía a través de las casas',
+    cuerpo: {
+      antes: APERTURA_SEMINARIO,
+      medio: horasDeCursada(18),
+      cierre: `${CIERRE_INCLUIR} la capacidad de analizar y comprender con más `
+        + 'profundidad en las cartas de sus consultantes su',
+    },
+    titulo: 'Linaje, Clan y Genealogía',
+    anio: 2026,
+    cursosHabilitantes: ['linaje26', 'linaje'],
+    abierta: true,
+    prefijoNumero: '3-1155',
+  },
+
+  revo: {
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Seminario',
+    curso: 'Revoluciones Solares',
+    cuerpo: {
+      antes: 'Ha concluido exitosamente el curso de',
+      medio: horasDeCursada(12),
+      cierre: `${CIERRE_INCLUIR} las`,
+    },
+    titulo: 'Revoluciones Solares',
+    anio: 2026,
+    cursosHabilitantes: ['revo'],
+    abierta: true,
+    prefijoNumero: '4-1133',
+  },
+
+  // El titulo intermedio. Es el unico de los nuevos que acredita un rol, asi
+  // que marca genero y el formulario pregunta los pronombres. Tambien es el
+  // unico que sigue diciendo "Certificado de Formacion" arriba.
+  //
+  // Antes estaba cerrado (abierta: false) porque sus cuatro egresadxs ya
+  // tenian el certificado viejo hecho a mano. Ahora se abre: van a ver las
+  // dos cosas, el certificado anterior y este, y la pagina las distingue.
   lectura: {
-    plantilla: 'curso',
-    curso: 'Lectura e Interpretación de la Carta Natal',
-    titulo: 'Intérprete de Cartas Natales',
+    plantilla: 'seminario',
+    encabezado: 'Certificado de Formación',
+    curso: 'Lectura e interpretación de Cartas Natales',
+    cuerpo: {
+      antes: 'Ha cursado exitosamente la formación en',
+      // El unico que dice 'dictada por' y no 'en': asi lo escribio Seba, y
+      // es lo que pide la apertura ('la formacion en <nombre>, dictada por').
+      medio: ', dictada por la Escuela de Astrología de Seba Bru; que se compone '
+        + 'de un total de 28 horas de cursada y una serie de trabajos prácticos.',
+      cierre: 'Así, ha adquirido conocimientos profundos para concluir su '
+        + 'primer trayecto en su formación como',
+    },
+    titulo: { f: 'Astróloga', m: 'Astrólogo', x: 'Astrólogx' },
     anio: 2026,
     cursosHabilitantes: ['lectura'],
-    abierta: false,
-    // Sin definir a proposito: el primer digito del numero parece ser la
-    // cantidad de anos de la formacion, y todavia no esta dicho cual le toca
-    // a un curso suelto. Mientras sea null no se puede emitir, lo que es
-    // correcto: inventar un numero de certificado es peor que no emitirlo.
-    prefijoNumero: null,
+    abierta: true,
+    prefijoNumero: '2-1122',
   },
 };
 
@@ -5340,6 +5503,9 @@ async function pdfDeTitulo(registro) {
     fecha: fechaLargaTitulo(registro.fecha),
     numero: registro.numero,
     qr,
+    // Solo los usa la plantilla 'seminario', que no trae el texto escrito.
+    ...(formacion.encabezado ? { encabezado: formacion.encabezado } : {}),
+    ...(formacion.cuerpo || {}),
   };
   const hoja = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const url = `${process.env.TITULO_HOJA_URL || 'https://sebabru.com/escuela/titulo/hoja.html'}#hoja=${hoja}`;

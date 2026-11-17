@@ -9,7 +9,7 @@
     <link rel="canonical" href="https://sebabru.com/escuela/cosito/">
     <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
     <link rel="stylesheet" href="../../style.css?v=29">
-    <link rel="stylesheet" href="../escuela.css?v=6">
+    <link rel="stylesheet" href="../escuela.css?v=7">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <!-- Google tag (gtag.js) -->
@@ -34,8 +34,8 @@
 
     <div class="mobile-header">
         <span class="mobile-title">Curso: Cosito</span>
-        <button class="hamburger-btn" id="menu-toggle">
-            <i class="fa-solid fa-bars"></i> TEMARIO
+        <button class="hamburger-btn" id="menu-toggle" aria-label="Temario">
+            <i class="fa-solid fa-bars"></i>
         </button>
     </div>
 
@@ -189,14 +189,14 @@
         </main>
     </div>
 
-    <script type="module" src="../escuela.js?v=7"></script>
+    <script type="module" src="../escuela.js?v=8"></script>
 
     <script type="module">
         // ATENCIÓN: Si tu firebase.js está en la raiz, cambiá '../' por '../../'
         import { auth, db } from '../firebase.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=7';
+        import { poblarVideosClases, activarLazyVideos } from '../escuela.js?v=8';
 
         const overlay = document.getElementById('security-overlay');
         const statusText = document.getElementById('status-text');

@@ -68,6 +68,15 @@ body[data-plantilla="formacion"] .cert { padding: 34mm 50mm; }
 body[data-plantilla="formacion"] .divider { margin-bottom: 6mm; }
 body[data-plantilla="formacion"] .texto { margin-bottom: 5mm; }
 body[data-plantilla="formacion"] .titulo { margin-bottom: 8mm; }
+
+/* La plantilla de seminario no corta las lineas a mano: el cuerpo viene del
+   config y cambia de largo entre un seminario y otro, asi que se le da un
+   ancho y corta solo. Sin esto, el de 28 horas con trabajos practicos se
+   estira de margen a margen y empuja el pie fuera de la hoja. */
+body[data-plantilla="seminario"] .cert { padding: 34mm 50mm; }
+body[data-plantilla="seminario"] .divider { margin-bottom: 6mm; }
+body[data-plantilla="seminario"] .texto { max-width: 170mm; margin-left: auto; margin-right: auto; margin-bottom: 5mm; }
+body[data-plantilla="seminario"] .titulo { margin-bottom: 8mm; }
 .texto[hidden] { display: none; }
 </style>
 </head>
@@ -97,7 +106,7 @@ body[data-plantilla="formacion"] .titulo { margin-bottom: 8mm; }
   </div>
 
   <div class="body">
-    <div class="cert-title">Certificado de Formaci&oacute;n</div>
+    <div class="cert-title" id="t-encabezado">Certificado de Formaci&oacute;n</div>
     <div class="divider"></div>
     <div class="acredita">Este certificado acredita que</div>
     <div class="nombre" id="t-nombre"></div>
@@ -114,6 +123,14 @@ body[data-plantilla="formacion"] .titulo { margin-bottom: 8mm; }
       cursando un total de 4 a&ntilde;os y adquiriendo conocimientos profundos<br>
       sobre la carta fija y la carta en movimiento.<br>
       Este saber le permite desplegarse felizmente en su rol de
+    </div>
+    <!-- Un seminario o un curso suelto de los nuevos. A diferencia de los dos
+         de arriba, el texto no esta escrito aca: viene armado desde
+         FORMACIONES_TITULO, en tres tramos alrededor de la italica. Los ocho
+         diplomas tienen aperturas y cierres distintos, asi que un molde con
+         huecos no alcanzaba. -->
+    <div class="texto" id="t-texto-seminario" hidden>
+      <span id="t-sem-antes"></span> <em id="t-sem-curso"></em><span id="t-sem-medio"></span> <span id="t-sem-cierre"></span>
     </div>
     <div class="titulo" id="t-titulo"></div>
   </div>
@@ -169,11 +186,22 @@ body[data-plantilla="formacion"] .titulo { margin-bottom: 8mm; }
 
     if (!d || !d.nombre) throw new Error('el payload no trae nombre');
 
-    // Dos plantillas: un curso suelto o la formacion de cuatro anos.
-    var plantilla = d.plantilla === 'formacion' ? 'formacion' : 'curso';
+    // Tres plantillas: un curso suelto, la formacion de cuatro anos, o un
+    // seminario (que trae su propio texto en el payload).
+    var PLANTILLAS = ['curso', 'formacion', 'seminario'];
+    var plantilla = PLANTILLAS.indexOf(d.plantilla) >= 0 ? d.plantilla : 'curso';
     document.body.setAttribute('data-plantilla', plantilla);
     document.getElementById('t-texto-curso').hidden = plantilla !== 'curso';
     document.getElementById('t-texto-formacion').hidden = plantilla !== 'formacion';
+    document.getElementById('t-texto-seminario').hidden = plantilla !== 'seminario';
+
+    // El encabezado: casi todos dicen "Certificado de Seminario", pero el
+    // titulo intermedio sigue siendo una formacion. Lo decide el config.
+    if (d.encabezado) poner('t-encabezado', d.encabezado);
+    poner('t-sem-antes', d.antes);
+    poner('t-sem-curso', d.curso);
+    poner('t-sem-medio', d.medio);
+    poner('t-sem-cierre', d.cierre);
 
     poner('t-fecha', d.fecha);
     poner('t-nombre', d.nombre);
