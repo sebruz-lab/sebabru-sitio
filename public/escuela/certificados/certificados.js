@@ -328,6 +328,12 @@ async function pintar() {
                     // quede claro que todavia no es el definitivo.
                     numero: t.emitido ? t.emitido.numero : (t.numeroMuestra || ''),
                     qr: '',
+                    // La plantilla 'seminario' no trae el texto escrito en la
+                    // hoja: lo recibe en tres tramos. Sin esto la vista previa
+                    // sale con el parrafo vacio y no sirve para lo unico que
+                    // existe, que es mirar como va a quedar antes de emitir.
+                    ...(t.encabezado ? { encabezado: t.encabezado } : {}),
+                    ...(t.cuerpo || {}),
                 }, async () => {
                     const confirmar = $('cert-previa-confirmar');
                     const emitido = await emitir(t, datosForm, confirmar);

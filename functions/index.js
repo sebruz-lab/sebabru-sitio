@@ -6034,6 +6034,11 @@ exports.misTitulos = functions.https.onRequest(async (req, res) => {
           // Para la vista previa, antes de que exista ningun registro.
           titulos: typeof f.titulo === 'string' ? { x: f.titulo } : f.titulo,
           plantilla: f.plantilla || 'curso',
+          // El texto del cuerpo viaja tal cual al front: la vista previa
+          // arma la hoja por su cuenta (no pasa por pdfDeTitulo), asi que
+          // sin esto el parrafo sale vacio y la persona confirma a ciegas.
+          encabezado: f.encabezado || '',
+          cuerpo: f.cuerpo || null,
           emitido: emitido && !emitido.anulado ? {
             numero: emitido.numero,
             nombre: emitido.nombre,
