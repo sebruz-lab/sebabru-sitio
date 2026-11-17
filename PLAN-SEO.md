@@ -121,14 +121,12 @@ no estan, y el signo y el mes en el `<title>`.
 4. Click en **Editar clave** → **Restricciones de API** → **Restringir clave** →
    tildar solo **PageSpeed Insights API** → Guardar. Esto importa: una clave sin
    restringir sirve para cualquier API del proyecto.
-5. **No pegarla en el chat.** Guardarla en `C:\dev\herramientas-sebabru\.env`
-   (esa carpeta esta fuera de git) en una linea nueva:
-
-   ```
-   PAGESPEED_API_KEY=la-clave-que-copiaste
-   ```
-
-   Y avisarme que esta. Yo la leo de ahi y nunca la escribo en ningun lado.
+5. **No pegarla en el chat.** Guardarla en un archivo nuevo
+   `C:\dev\pagespeed-api-key.txt`, con la clave sola y nada mas.
+   Va ahi y no en `herramientas-sebabru`: esa carpeta **si** es un repo y su
+   `.gitignore` no cubre `.env`, asi que una clave puesta ahi se commitearia.
+   `C:\dev\` no es un repo, y es donde ya vive `firebase-admin.json`.
+   Avisarme cuando este. Yo la leo de ahi y nunca la escribo en ningun lado.
 
 ### 2. Search Console
 
