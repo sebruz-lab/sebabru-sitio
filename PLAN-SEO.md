@@ -1,150 +1,250 @@
-# Plan de SEO con fechas — de noviembre 2026 a noviembre 2027
+# Plan de SEO y velocidad de sebabru.com
 
-Arrancado el 17/11/2026. El diagnostico esta en `AUDITORIA-SEO.md`; esto es el
-calendario. Cada linea dice **quien** la hace. Lo que dice "Seba" nadie lo puede
-hacer por el: es texto propio o es una credencial.
+**Actualizado: 18/11/2026.** Reemplaza la version del 17/11 y la auditoria
+`AUDITORIA-SEO.md` del 13/11, las dos vencidas.
 
-Objetivo que fijo Seba: **vender formaciones**, alimentadas por la lista de mail.
-Prioridad geografica: **Argentina**.
+Para quien lo continue en otra sesion: todo lo que esta abajo se midio, no se
+dedujo. Las reglas de trabajo estan al final y **conviene leerlas antes de
+tocar nada**.
 
 ---
 
-## Diciembre 2026 — medir y terminar el texto
+## 1. Donde estamos hoy, medido
 
-| Cuando | Que | Quien |
+### Core Web Vitals reales (CrUX, personas de verdad)
+
+Primera linea de base del sitio. Sale de PageSpeed con la clave. Hoy solo hay
+datos **a nivel de todo el sitio**: ninguna URL sola junta trafico suficiente.
+
+| Metrica | p75 | |
 |---|---|---|
-| Semana del 17/11 | Clave de API de PageSpeed (ver `#como-paso-la-clave`) | Seba |
-| Semana del 17/11 | Confirmar que el `sitemap.xml` esta **enviado** en Search Console | Seba |
-| Semana del 17/11 | Exporte de Search Console de los ultimos 3 meses | Seba |
-| Semana del 24/11 | Primera medicion de Core Web Vitals (home, una de `/carta-natal/`, `/cartas/`) | Claude |
-| Semana del 24/11 | Linea de base de indexacion: cuantas de las 196 entraron | Claude |
-| A medida que lleguen | Las **25 bajadas** que faltan en `/carta-natal/` | Seba escribe, Claude carga |
-| A medida que lleguen | Los **12 textos nuevos** (la descripcion de cada punto en su pagina) | Seba escribe, Claude carga |
-| Diciembre | Los **51 textos finos** (menos de ~300 palabras) | Seba |
-| Diciembre | `/signos/`: faltan sagitario, capricornio, acuario, piscis | Seba |
-| Diciembre | Reestructurar `/lunanueva/` y `/lunallena/` (ver abajo) | Claude, con el OK de Seba |
+| LCP | 4,03 s | **LENTO** |
+| FCP | 4,22 s | **LENTO** |
+| TTFB | 1,72 s | regular |
+| INP | 241 ms | regular |
+| CLS | 0 | rapido |
 
-**Meta de diciembre:** 300-500 clics/mes y que un tercio de las consultas no sea
-el nombre de Seba.
+CrUX es una ventana movil de 28 dias: lo que arreglamos hoy se va a ver recien
+a mediados de diciembre. **Volver a medir el 16/12/2026.**
 
----
+### Laboratorio (PageSpeed, movil)
 
-## Enero - febrero 2027 — que las paginas trabajen
+| Pagina | Score | Peso | Nota |
+|---|---|---|---|
+| `/signos/aries/` | 89 | 0,73 MB | era 62 y 4,35 MB esta manana |
+| `/carta-natal/*` | 96 | 0,20 MB | lo mas rapido del sitio |
+| `/kit/` | 96 | — | |
+| Home | 67 | 1,65 MB | **el numero no es comparable, ver abajo** |
 
-| Cuando | Que | Quien |
-|---|---|---|
-| Enero | `/cartas/`: pagina de presentacion orientada a busqueda + `WebApplication` schema | Claude (repo `tucarta`) |
-| Enero | `/formaciones/` como la pagina canonica de "formacion en astrologia en Argentina" | Seba redacta, Claude estructura |
-| Enero | `/consultas/` segmentada por tipo de consulta | Seba redacta |
-| Febrero | Primera comparacion contra la linea de base de diciembre | Claude |
-| Febrero | Arreglar lo que Core Web Vitals haya marcado en rojo | Claude |
+**La home no se puede medir con Lighthouse.** Lighthouse no scrollea, y el
+contenido de la home *es* un recorrido por scroll: mide la primera pantalla y
+corta. Por eso le da 0 bytes de Instagram y no ve el Spotify que si carga mas
+abajo. Sirve para una sola cosa: contar los bytes propios. Para la experiencia
+real, usar CrUX.
 
----
+### Estructura
 
-## Marzo - agosto 2027 — autoridad
-
-Sin enlaces de otros dominios, nada de lo anterior rankea fuera de la marca.
-Nada de esto se compra.
-
-| Cuando | Que | Quien |
-|---|---|---|
-| Marzo | Google Business Profile para las consultas en Argentina | Seba |
-| Marzo en adelante | Cada episodio del Kit deja un enlace al sitio desde YouTube y Spotify | Seba (ya hay skill) |
-| Abril | Pedirle el enlace a lxs egresadxs que ejercen y tienen sitio | Seba |
-| Mayo | La calculadora en comunidades de astrologia en castellano | Seba |
-| Junio-agosto | Fechas en que la astrologia es noticia: eclipses, Mercurio retrogrado | Seba + Claude |
-
-**Meta de agosto:** 1.500-2.500 clics/mes y 80-150 altas de Brevo por mes desde
-organico, medidas en GA4.
+| | |
+|---|---|
+| Paginas en el sitemap | 237 |
+| `/carta-natal/` | 196 paginas generadas; 51 por debajo de 9 KB |
+| `/signos/` | 9 de 12 (faltan capricornio, acuario, piscis) |
+| `meta description` | 210 de 235 (25 esperan texto de Seba) |
+| JSON-LD | home, `/libros/`, las 8 aulas de `/escuela/abierta/`, las 196 de `/carta-natal/` |
+| Falta JSON-LD | `/programa/` (Course) |
 
 ---
 
-## Septiembre 2027 en adelante — que la lista venda
+## 2. Como se reparten los textos (ya resuelto, no rehacer)
 
-- Ser el resultado de referencia en Argentina para "formacion en astrologia",
-  "curso de astrologia online" y "consulta de carta natal".
-- **Recien aca tiene sentido gastar en publicidad**, porque recien aca se puede
-  comparar el costo contra un numero de inscripciones. Antes es a ciegas.
-- Cuando llegue: Meta/Instagram de remarketing a quien ya visito `/programa/` o
-  `/escuela/abierta/*`, **solo en las 3-4 semanas de cada ventana de inscripcion**,
-  orden de magnitud USD 150-250/mes. No todo el año, y no SEM informacional.
+**Un texto se escribe una vez, en Firestore. Vive en HTML en un solo lugar. A
+todos los demas llega por `fetch`.**
 
-**Meta:** 4.000+ clics/mes y inscripciones atribuibles al organico.
+```
+Firestore (carta_textos)
+    -> paginas-textos.js  (C:\dev\herramientas-sebabru)
+        -> /carta-natal/PUNTO/SIGNO/    196 paginas HTML  <- LA UNICA que Google ve
+        -> /textos/signos/<id>.json     204, los acordeones de /signos/
+        -> /textos/<id>.json             37, la calculadora de /cartas/
+```
 
----
+`/textos/` esta en `Disallow` en `robots.txt`. Googlebot no puede bajar esos
+JSON, asi que no existe una segunda copia con la cual competir. Eso es lo que
+evita que `/signos/aries/` y `/carta-natal/sol/aries/` peleen por la misma
+consulta.
 
-## Las lunaciones
+El precio, deliberado: esos textos **no suman SEO** en `/signos/` ni en
+`/cartas/`. Suman en `/carta-natal/`. Si el export de Search Console de
+diciembre dice que las hojas de ~316 palabras son demasiado finas para rankear
+solas, la jugada opuesta esta anotada en `PLAN-RULETA.md`.
 
-Hoy `/lunanueva/` y `/lunallena/` son dos URLs que se pisan cada lunacion: el
-texto anterior se tira. Ademas el `<title>` dice "Luna Nueva" a secas, sin el
-signo ni el mes, que es justo lo que la gente busca.
-
-**No conviene una URL por lunacion con fecha.** Serian 24 paginas nuevas por año,
-cada una viva tres semanas y muerta para siempre, y las de 2027 competirian
-contra las de 2026 por la misma consulta.
-
-**Conviene una URL por signo:** `/lunanueva/escorpio/`, `/lunallena/tauro/`.
-Son 24 paginas en total, no 24 por año. "Luna nueva en escorpio" se busca todos
-los años, asi que cada una acumula autoridad en vez de repartirla, y el texto
-nuevo de cada año se suma arriba con el anterior abajo como archivo. `/lunanueva/`
-queda como madre y muestra siempre la vigente.
-
-Hace falta ademas `Article` schema con `datePublished` y `dateModified`, que hoy
-no estan, y el signo y el mes en el `<title>`.
+Despues de correr `paginas-textos.js` hay que **pushear a `main`**: el
+generador escribe archivos, no deploya.
 
 ---
 
-## Decisiones que ya tomo Seba (17/11/2026)
+## 3. Corto plazo — diciembre 2026 a febrero 2027
 
-- **`/sobre-mi/` no se hace:** la bio vive en el sector de la home. Queda pendiente
-  que ese bloque tenga su propio `Person` schema, que ya esta puesto en la home.
-- **`/escuela/` se queda indexable**, con description y OG, que le faltaban.
-  Ojo: su `<h1>` dice "FORMACIONES" y compite con `/formaciones/`. Si mas adelante
-  Search Console muestra que Google elige la equivocada, se cambia el `<h1>`.
-- **`/formaciones/` y `/#formaciones` conviven**: la home ofrece todo junto, la
-  pagina desglosa lo que esta abierto ahora. No hay 301. Lo que faltaba era el
-  enlace: `/formaciones/` no la enlazaba **ninguna** pagina del sitio.
+Objetivo: **medir de verdad y dejar de perder**. Meta: 300-500 clics/mes y que
+al menos un tercio de las consultas no sean el nombre de Seba.
+
+### Lo que depende de Seba
+
+| Cuando | Que |
+|---|---|
+| Esta semana | Confirmar en Search Console que el `sitemap.xml` esta **enviado**, no solo publicado |
+| Esta semana | Exportar los ultimos 3 meses de Rendimiento a CSV, a `C:\dev\scratch` |
+| Esta semana | Mirar Indexacion -> Paginas: cuantas de las 196 de `/carta-natal/` entraron |
+| Diciembre | Los 25 textos de `bajada` que faltan |
+| Diciembre | Decidir Instagram en la home (ver punto 6) |
+| Enero | Los 51 textos finos de `/carta-natal/` |
+| Enero | Capricornio, acuario y piscis en `/signos/` |
+| Febrero | Las 12 descripciones de punto |
+
+### Lo que es trabajo de Claude, sin bloqueos
+
+1. `Course` en JSON-LD en `/programa/`.
+2. Font Awesome: **289 KB de webfonts y CSS desde cdnjs** por un punado de
+   iconos de marca. Pasarlos a SVG en linea. Esta en todas las paginas de
+   `/signos/`, donde ahora es el peso mas grande que queda.
+3. Spotify en la home: **1,1 MB** que si cargan cuando la persona recorre.
+   Mirar si ese embed quedo sin facade.
+4. Subir `s-maxage` de 3600 a 86400 una vez confirmado que no hay contenido
+   viejo (el purgado ya esta probado, ver 18/11).
+5. La salida `punto-<slug>.json` del generador, para la ruleta. Paso 1 de
+   `PLAN-RULETA.md`: genera archivos que todavia nadie lee, no rompe nada.
+
+### 16/12/2026 — revision
+
+Volver a medir CrUX y comparar contra la tabla de arriba. Es la primera vez que
+se va a poder decir si algo de esto sirvio.
 
 ---
 
-## Como paso la clave
+## 4. Mediano plazo — marzo a agosto 2027
 
-<a id="como-paso-la-clave"></a>
+Objetivo: **que el organico alimente la lista**. Meta: 1.500-2.500 clics/mes y
+80-150 altas de Brevo por mes atribuibles a organico en GA4.
 
-### 1. La clave de API de PageSpeed (10 minutos, gratis)
+1. `/signos/` completo y enlazado con `/carta-natal/` en los dos sentidos.
+2. **La calculadora como iman de enlaces.** `/cartas/` es lo unico del sitio
+   que otra gente linkearia sin que se lo pidan, y hoy no tiene pagina de
+   presentacion orientada a busqueda ("calcular carta natal gratis", "carta
+   natal online Argentina") ni `WebApplication` schema. Es la pieza de mayor
+   retorno por esfuerzo de todo el plan. Ojo: `/cartas/` **no vive en este
+   repo**, sale de `C:\dev\tucarta`.
+3. **Rescatar `/lunanueva/` y `/lunallena/`**, que hoy se pisan cada lunacion y
+   tiran el contenido. Dos caminos, hay que elegir uno:
+   - URLs con fecha (`/lunanueva/escorpio-noviembre-2026/`) mas una URL madre
+     evergreen. Acumula contenido, pide cambiar el flujo que Seba ya tiene
+     aceitado.
+   - Mantener la URL evergreen con `Article` schema, `dateModified`, el signo y
+     el mes en el `<title>`, y un archivo de las anteriores. Mas barato.
+4. La ruleta de `/carta-natal/`, si el export de diciembre dice que conviene.
+5. Entre 15 y 25 dominios distintos enlazando al sitio.
 
-1. Entrar a <https://console.cloud.google.com/> con la cuenta de siempre y elegir
-   arriba el proyecto **`sebabru-e5563`** (es el mismo de Firebase).
-2. Buscador de arriba: **"PageSpeed Insights API"** → **Habilitar**.
-3. Menu → **APIs y servicios** → **Credenciales** → **Crear credenciales** →
-   **Clave de API**.
-4. Click en **Editar clave** → **Restricciones de API** → **Restringir clave** →
-   tildar solo **PageSpeed Insights API** → Guardar. Esto importa: una clave sin
-   restringir sirve para cualquier API del proyecto.
-5. **No pegarla en el chat.** Guardarla en un archivo nuevo
-   `C:\dev\pagespeed-api-key.txt`, con la clave sola y nada mas.
-   Va ahi y no en `herramientas-sebabru`: esa carpeta **si** es un repo y su
-   `.gitignore` no cubre `.env`, asi que una clave puesta ahi se commitearia.
-   `C:\dev\` no es un repo, y es donde ya vive `firebase-admin.json`.
-   Avisarme cuando este. Yo la leo de ahi y nunca la escribo en ningun lado.
+---
 
-### 2. Search Console
+## 5. Largo plazo — septiembre 2027 en adelante
 
-No hace falta darme acceso. Alcanza con un exporte:
+Objetivo: **que la lista venda las formaciones**. Meta: 4.000+ clics/mes y un
+numero de inscripciones por ciclo atribuible al organico.
 
-1. <https://search.google.com/search-console> → propiedad **sebabru.com**.
-2. **Rendimiento** → arriba a la derecha **Exportar** → **Descargar CSV**.
-   Antes de exportar, poner el rango en **Ultimos 3 meses**.
-3. Dejar el `.zip` en `C:\dev\scratch\` y avisarme.
-4. Aparte, en **Sitemaps** (menu de la izquierda): si no figura `sitemap.xml`,
-   escribir `sitemap.xml` en el campo y **Enviar**. Publicado no es lo mismo que
-   enviado.
-5. Y en **Indexacion → Paginas**, mirar si dice cuantas estan indexadas. Ese es
-   el unico numero que dice si las 196 de `/carta-natal/` sirvieron de algo.
+Ser el resultado de referencia en Argentina para "formacion en astrologia",
+"curso de astrologia online" y "consulta de carta natal", que son las consultas
+que valen plata.
 
-### 3. GA4
+Autoridad, que es lo mas lento y lo que mas pesa. Nada de esto se compra:
 
-Si queres que mida el camino `/carta-natal/` → `/cartas/` → `/suscribirse/`,
-lo mas simple es un exporte igual que el de Search Console, o darle acceso de
-**Lector** a una cuenta de servicio. Esto puede esperar a enero: primero importa
-saber si entramos al indice.
+1. **Google Business Profile** para las consultas en Argentina.
+2. **El podcast Kit** dejando enlace al sitio desde Spotify y YouTube.
+3. **`/escuela/egresadxs/`**: cada egresadx que ejerce y tiene sitio propio es
+   un enlace natural. Pedirlo, no comprarlo.
+4. La calculadora en comunidades de astrologia en castellano.
+5. Medios argentinos en las fechas en que la astrologia es noticia.
+
+### Publicidad
+
+1. **Ahora, nada de SEM informacional.** Pagar por "sol en aries" es quemar
+   plata: esa gente no compra una formacion de 4 anios.
+2. Sin GA4 midiendo hasta la inscripcion, cualquier gasto es a ciegas.
+3. Cuando haya medicion: **Meta/Instagram de remarketing solo en las 3-4
+   semanas de cada ventana de inscripcion**, a quien ya visito `/programa/` o
+   `/escuela/abierta/*`. Orden de magnitud: USD 150-250/mes, no todo el anio.
+4. Google Ads de marca solo si alguien le compite "Seba Bru". Verificar antes
+   de gastar un peso.
+5. El mejor presupuesto publicitario de este sitio es **YouTube**, que ya
+   existe y es gratis.
+
+---
+
+## 6. Decisiones abiertas
+
+| Que | Estado |
+|---|---|
+| Instagram en la home | Seba aprobo la grilla de 6 posteos autoactualizada. **Falta construirla.** |
+| Lunaciones | Sin decidir: URLs con fecha o evergreen con `dateModified` |
+| Ruleta | Plan escrito en `PLAN-RULETA.md`, sin publicar, Seba lo revisa offline |
+| Medir el recorrido de la home | Propuesto: `web-vitals` mandando LCP e INP a GA4 por pagina. Es la unica forma de saber que paga alguien que recorre la home entera. |
+
+### La grilla de Instagram, especificada
+
+`sync-instagram.mjs` ya renueva el token y pide el ultimo posteo. Cambiar a:
+
+```
+fields=permalink,media_url,thumbnail_url,media_type   limit=6
+```
+
+La Action baja las 6 imagenes, las achica a webp en `public/img/ig/1..6.webp`
+(~25 KB cada una) y en la pagina van en grilla de 3x2, **cada celda un link a
+su propio posteo**. Seis archivos y no una imagen compuesta: cada celda clickea
+a su posteo y el navegador las cachea por separado.
+
+Las URLs que devuelve la API de Instagram vencen, asi que las imagenes hay que
+bajarlas y servirlas desde el sitio. El token vive solo como secreto en GitHub:
+no se puede probar localmente, la primera corrida de verdad es en la Action.
+
+---
+
+## 7. Que se hizo el 18/11/2026
+
+- Los 8 (hoy 9) `/signos/` sin el video vertical. De paso se fue el bug de
+  `/signos/cancer/`, que mostraba el video de geminis.
+- La calculadora de carta natal adentro del desplegable "Si no sabes que tenes
+  en SIGNO", con `calc-lunacion.js` generalizado.
+- Embeds de YouTube y Spotify con facade y miniatura, en la home, `/kit/` y
+  `/signos/`. Las miniaturas las renueva una Action los martes al mediodia.
+- El mp4 de las formaciones (427 KB) sale de la carga inicial de la home y de
+  `/programa/`: `preload="none"` + poster generado con ffmpeg.
+- **`NO_LCP` de la home resuelto.** Todo el contenido vivia adentro de un
+  `.bloque` con `opacity: 0`, asi que Chrome no tenia ni un candidato a LCP.
+  `.bloque--intro` arranca visible. Score 0 -> 67.
+- **Embed de Instagram sacado de `/signos/aries/`**, que no era parte del
+  diseno y estaba solo en esa pagina: 3,8 MB de 4,35. Score 62 -> 89.
+- **TTFB:** la regla `**` daba `max-age=300` tambien a la CDN. Ahora el borde
+  guarda una hora (`s-maxage=3600`) con `stale-while-revalidate`. Purgado en
+  deploy confirmado: la cabecera nueva aparecio en 75 s.
+
+---
+
+## 8. Reglas de trabajo — leer antes de tocar nada
+
+1. **Medi, no deduzcas, y pone un control.** Una prueba sin control no mide lo
+   que parece. Hoy paso tres veces: una hipotesis refutada, una medicion
+   ruidosa y un numero mal clasificado.
+2. **Un 200 no prueba un deploy.** Buscar contenido nuevo en la respuesta.
+3. **Nunca `git add -A`.** Hay varias sesiones escribiendo este repo a la vez.
+   Commitear por ruta. Ya paso que un `add -A` se llevo archivos de otra
+   sesion.
+4. **El deploy es solo por push a `main`.** Un `firebase deploy` a mano publica
+   el sitio sin `/cartas/` y se revierte en el proximo push.
+5. **Comillas curvas.** Rompen todos los `class=` y `style=`. Verificar con
+   grep antes de pushear.
+6. **Las 196 paginas de `/carta-natal/` y los JSON de `/textos/` no se editan a
+   mano**: los genera `paginas-textos.js`.
+7. **`npm install` adentro del proyecto lo corrompe Google Drive.** Trabajo
+   pesado en `C:\dev\scratch`.
+8. **Versionar al tocar CSS o JS compartido.** `firebase.json` los cachea 30
+   dias: sin bump del `?v=`, el cambio no llega.
+9. **Nunca inventar ni rellenar texto de contenido.** Los textos los escribe
+   Seba.
