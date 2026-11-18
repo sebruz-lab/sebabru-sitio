@@ -670,10 +670,15 @@
     transition: all 0.3s ease;
 }
 
-.signo-card .signo-card-symbol {
-    font-size: 2.45rem;
-    line-height: 1;
-    transition: all 0.3s ease;
+/* El glifo de la tarjeta. Es un <svg><use> con el dibujo de Seba (antes era
+   el caracter Unicode, que en los celulares sale como emoji de color), y toma
+   el color por currentColor. */
+.signo-card .glifo-signo {
+    width: 2.45rem;
+    height: 2.45rem;
+    display: block;
+    color: var(--tema, var(--text-light));
+    transition: color 0.3s ease, filter 0.3s ease;
 }
 
 .signo-card h3 {
@@ -694,29 +699,72 @@
     transform: translateY(-4px);
 }
 
-.signo-card.aries-theme:hover .signo-card-symbol,
-.signo-card.aries-theme:hover h3 { color: var(--aries-primary); }
-.signo-card.aries-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
+/* El color del hover sale de --tema, que cada tarjeta trae puesto en el
+   HTML. Antes habia tres reglas por signo escritas a mano, y las de Libra,
+   Escorpio y Sagitario estaban archivadas aparte, dentro de la seccion de su
+   propio tema, a 200 lineas de las otras seis: sumar un signo eran tres
+   reglas mas y habia que acordarse donde. Con esta, los doce estan cubiertos
+   y el signo que viene no necesita CSS nuevo. */
+.signo-card:hover .glifo-signo,
+.signo-card:hover h3 { color: var(--tema, var(--text-light)); }
+.signo-card:hover .glifo-signo { filter: drop-shadow(0 0 10px currentColor); }
 
-.signo-card.tauro-theme:hover .signo-card-symbol,
-.signo-card.tauro-theme:hover h3 { color: var(--tauro-primary); }
-.signo-card.tauro-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 155, 149, 0.5); }
+/* Los signos que todavia no tienen pagina. No son un enlace: van apagados,
+   para que la rueda se vea completa y se entienda que faltan tres. */
+.signo-card--pronto {
+    opacity: 0.38;
+    cursor: default;
+}
+.signo-card--pronto:hover {
+    background-color: rgba(30, 34, 48, 0.5);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: none;
+}
+.signo-card--pronto .glifo-signo,
+.signo-card--pronto h3 { color: var(--text-light); }
+.signo-card-pronto {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dark);
+}
 
-.signo-card.geminis-theme:hover .signo-card-symbol,
-.signo-card.geminis-theme:hover h3 { color: var(--geminis-primary); }
-.signo-card.geminis-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(240, 197, 22, 0.5); }
+/* EL GLIFO EN EL ENCABEZADO DE CADA PAGINA DE SIGNO
 
-.signo-card.cancer-theme:hover .signo-card-symbol,
-.signo-card.cancer-theme:hover h3 { color: var(--cancer-primary); }
-.signo-card.cancer-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(196, 170, 224, 0.5); }
+   Va en blanco y no en el color del tema: varios encabezados tienen un
+   gradiente del mismo color de fondo (Aries, Leo, Sagitario) y el glifo
+   teñido desaparecia encima. Reemplaza a lo que habia antes, que era
+   distinto en cada pagina: seis <img> webp/svg de nombres inconsistentes, un
+   <span> con el caracter Unicode en Geminis y Cancer, y un carnero de Font
+   Awesome en Aries. */
+.signo-header .glifo-signo {
+    width: 70px;
+    height: 70px;
+    display: block;
+    margin: 0 auto 15px;
+    color: var(--text-light);
+}
 
-.signo-card.leo-theme:hover .signo-card-symbol,
-.signo-card.leo-theme:hover h3 { color: var(--leo-primary); }
-.signo-card.leo-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
+/* El mismo glifo, mas chico, donde aparece en el cuerpo del articulo. */
+.glifo-signo--medio {
+    width: 48px;
+    height: 48px;
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--text-light);
+}
 
-.signo-card.virgo-theme:hover .signo-card-symbol,
-.signo-card.virgo-theme:hover h3 { color: var(--virgo-primary); }
-.signo-card.virgo-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(36, 155, 149, 0.5); }
+/* La fila de enlaces a /carta-natal/, que antes iba con estilo pegado en el
+   atributo del HTML. */
+.signos-index-enlaces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+}
 
 /* =========================================
    LIBRA THEME
@@ -773,10 +821,6 @@
 }
 .visualizacion.libra p { margin: 0; color: var(--text-light); }
 
-.signo-card.libra-theme:hover .signo-card-symbol,
-.signo-card.libra-theme:hover h3 { color: var(--libra-primary); }
-.signo-card.libra-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(201, 168, 62, 0.5); }
-
 /* =========================================
    ESCORPIO THEME
    ========================================= */
@@ -821,10 +865,6 @@
                 0 0 20px rgba(196, 170, 224, 0.15);
     border-color: rgba(196, 170, 224, 0.3);
 }
-
-.signo-card.escorpio-theme:hover .signo-card-symbol,
-.signo-card.escorpio-theme:hover h3 { color: var(--escorpio-primary); }
-.signo-card.escorpio-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(196, 170, 224, 0.5); }
 
 /* =========================================
    SAGITARIO THEME
@@ -887,10 +927,6 @@
     color: var(--sagitario-secondary);
     text-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
 }
-
-.signo-card.sagitario-theme:hover .signo-card-symbol,
-.signo-card.sagitario-theme:hover h3 { color: var(--sagitario-primary); }
-.signo-card.sagitario-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
 
 /* =========================================
    EL PUNTO POR CASA (lo agrega textos.js al final de cada acordeon)

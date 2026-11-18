@@ -9,8 +9,12 @@
 //
 // data-origen es obligatorio y tiene que estar en la lista cerrada que
 // valida la funcion suscribir (home, lunanueva, lunallena, kit, links,
-// suscribirse, formulario). data-titulo, data-texto y data-exito (lo que
-// dice una vez que la persona ya se anoto) son opcionales.
+// suscribirse, formulario, ebook, cartas, signos). data-titulo, data-texto y
+// data-exito (lo que dice una vez que la persona ya se anoto) son opcionales.
+//
+// data-atajo-libro cambia el formulario por un boton al libro cuando la
+// persona ya se suscribio desde este navegador (ver la marca, mas abajo).
+// Va donde el formulario es el canje por el ebook.
 //
 // NO HAY CASILLA, Y ES A PROPOSITO
 //
@@ -39,6 +43,31 @@
 
 var URL_SUSCRIBIR = 'https://us-central1-sebabru-e5563.cloudfunctions.net/suscribir';
 var SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
+
+// Donde se lee el libro. El lector se abre con el fragmento #leer.
+var URL_LIBRO = '/tu-identidad-en-el-cielo/#leer';
+
+// LA MARCA DE QUIEN YA SE SUSCRIBIO
+//
+// Se escribe SOLO despues de un alta exitosa, y sirve para una cosa: que
+// quien ya cumplio su parte no tenga que volver a tipear su mail para
+// llegar al libro (ver el atajo, mas abajo). No es una credencial y no se
+// usa para dar permisos: vive en el navegador de la persona, no cruza de
+// dispositivo y se puede borrar o inventar desde la consola. Esta bien que
+// sea asi, porque el libro ya se lee en /tu-identidad-en-el-cielo/ sin
+// pedir nada: la marca ahorra un tramite, no abre una puerta.
+//
+// En modo privado localStorage puede tirar, asi que todo va en try/catch y
+// la ausencia de la marca es el caso normal: se muestra el formulario.
+var CLAVE_SUSCRIPTO = 'sb-suscripto';
+
+function marcarSuscripto() {
+    try { localStorage.setItem(CLAVE_SUSCRIPTO, '1'); } catch (e) {}
+}
+
+function yaSuscripto() {
+    try { return localStorage.getItem(CLAVE_SUSCRIPTO) === '1'; } catch (e) { return false; }
+}
 
 // A proposito no se promete un numero de mails por mes: la lista manda
 // lo que el cielo vaya pidiendo, y un numero escrito es una promesa que
@@ -87,6 +116,15 @@ var ESTILOS = `
     transition: background 0.25s ease, color 0.25s ease;
 }
 .suscribirse button:hover:not(:disabled) { background: transparent; color: #fff; }
+/* El atajo al libro: mismo boton, pero es un enlace. */
+.suscribirse .sus-boton-libro {
+    display: block; width: 100%; box-sizing: border-box; padding: 13px 20px;
+    background: #fff; color: #000; border: 1px solid #fff; border-radius: 10px;
+    font-family: 'Outfit', sans-serif; font-size: 0.875rem; letter-spacing: 0.06em;
+    text-transform: uppercase; text-align: center; text-decoration: none;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+.suscribirse .sus-boton-libro:hover { background: transparent; color: #fff; }
 .suscribirse button:disabled { opacity: 0.55; cursor: default; }
 .suscribirse .sus-tarda {
     display: none; margin: 12px 0 0; color: #cccac3;
@@ -196,6 +234,26 @@ function armar(caja, n) {
     var textoBoton = caja.getAttribute('data-boton') || 'Suscribirme';
 
     caja.classList.add('suscribirse');
+
+    // EL ATAJO AL LIBRO
+    //
+    // Donde el formulario es el canje por el ebook (data-atajo-libro), a
+    // quien ya se suscribio en este navegador no se le vuelve a pedir el
+    // mail: se le da el libro. Es el caso real mas comun — se suscribio,
+    // perdio el mail y volvio a la pagina —, y pedirle otra vez la direccion
+    // para mandarle un mail que ya tiene es hacerle dar una vuelta de mas.
+    //
+    // No afloja el canje: la marca se escribe unicamente despues de un alta
+    // exitosa, y sin marca aparece el formulario de siempre.
+    if (caja.hasAttribute('data-atajo-libro') && yaSuscripto()) {
+        caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
+            + '<p class="sus-intro">Ya estás en la lista, así que el libro es tuyo: abrilo cuando quieras.</p>'
+            + '<a class="sus-boton-libro" href="' + URL_LIBRO + '">Leer el libro</a>';
+        caja.querySelector('.sus-boton-libro').addEventListener('click', function () {
+            if (window.gtag) gtag('event', 'ebook_atajo', { origen: origen });
+        });
+        return;
+    }
     caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
         + '<p class="sus-intro">' + texto + '</p>'
         + '<p class="sus-error" id="' + id('error') + '" role="alert"></p>'
@@ -316,6 +374,9 @@ function armar(caja, n) {
                 // a mano: si no, queda pendiente.
                 clearTimeout(relojTarda);
                 if (window.gtag) gtag('event', 'suscripcion', { origen: origen });
+                // Queda la marca para el atajo al libro: a partir de ahora
+                // esta persona no tiene que volver a dejar su mail.
+                marcarSuscripto();
                 return mostrarListo(resp.data.estado, direccion);
             }
 

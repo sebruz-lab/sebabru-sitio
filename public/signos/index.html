@@ -15,9 +15,9 @@
     <meta property="og:site_name" content="Seba Bru Astrología">
     <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
 
-    <link rel="stylesheet" href="../style.css?v=29">
+    <link rel="stylesheet" href="../style.css?v=31">
 
-    <link rel="stylesheet" href="signos.css?v=3">
+    <link rel="stylesheet" href="signos.css?v=5">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
@@ -29,6 +29,37 @@
         <div class="blob color-3"></div>
     </div>
     <div class="luciernagas-container"></div>
+
+    <!--
+      LOS GLIFOS DE LOS DOCE SIGNOS
+
+      Son los dibujos de Seba, los mismos que usa la calculadora de cartas
+      (C:\dev\tucarta, ui/glyphs.js) y el lector del libro
+      (/tu-identidad-en-el-cielo/ebook/glifos.js). No se usan los caracteres
+      Unicode (que es lo que habia aca antes) porque muchos celulares los
+      muestran como emoji de color y de tamanos dispares.
+
+      Van inline y no armados por JavaScript para que salgan con el HTML, sin
+      salto visible, y para que tomen el color del tema por currentColor. Los
+      paths estan una sola vez: cada tarjeta es un <use>.
+
+      GENERADO, NO EDITAR A MANO. Sale de correr el propio glifos.js del
+      sitio, asi el dibujo es identico al de la calculadora.
+    -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="glifo-aries" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M350.63,161.99c-4.49-7.47-11.81-12.31-21.19-14.01-5.19-.93-13.14-.56-21.54,6.53-14.27,12.06-24.74,39.57-31.07,68.46-6.4-28.87-16.94-56.35-31.24-68.38-8.42-7.08-16.36-7.43-21.55-6.49-9.37,1.72-16.69,6.58-21.16,14.06-10.53,17.65-2,44.58-1.63,45.71,1.22,3.79,5.3,5.87,9.08,4.63,3.78-1.23,5.86-5.29,4.63-9.08-1.95-6.02-5.7-23.84.3-33.88,2.34-3.92,6.06-6.3,11.38-7.27,3.14-.58,6.32.51,9.68,3.33,19.25,16.18,33.74,77.86,33.37,120.12-.02,2.52,1.26,4.75,3.22,6.05.02.01.05.02.07.04.36.23.74.44,1.14.61.09.04.2.06.29.09.34.12.68.24,1.04.32.19.04.39.04.59.06.27.03.53.09.8.09.02,0,.05,0,.07,0,0,0,0,0,0,0,0,0,0,0,0,0,.02,0,.05,0,.07,0,.28,0,.54-.06.81-.09.19-.02.39-.03.58-.06.38-.08.73-.2,1.09-.34.08-.03.16-.04.24-.08,2.62-1.1,4.45-3.7,4.42-6.72-.47-42.26,13.88-103.97,33.09-120.2,3.35-2.83,6.52-3.93,9.67-3.36,5.31.96,9.03,3.32,11.38,7.22,6,9.95,2.31,27.86.39,33.91-1.21,3.78.88,7.84,4.66,9.05,3.78,1.22,7.85-.87,9.06-4.66.37-1.14,8.84-28.09-1.74-45.71Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.09792) translate(-276.78499999999997 -220.29500000000002)"/></symbol>
+    <symbol id="glifo-tauro" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M906.09,155.08c-8.04-3.15-25.29-4.89-32.98,11.05-8.46,17.53-24.48,37.77-33.93,38.78-.24.03-.46.1-.69.14-1.62-.23-3.27-.38-4.95-.45-3.33-.14-6.59.07-9.76.57-9.34-2.97-22.93-23.55-29.7-41.11-6.38-16.51-23.71-16.18-31.98-13.69-3.79,1.14-5.93,5.12-4.82,8.92,1.12,3.8,5.12,5.98,8.92,4.89,1.88-.54,11.39-2.81,14.43,5.07.14.35,10.75,27.43,26.34,41.87-14.33,8.21-24.3,23.33-25.02,41.01-1.11,27.33,20.22,50.47,47.55,51.58,27.33,1.11,50.46-20.22,51.58-47.55.76-18.77-9.06-35.56-24.14-44.59,16.46-13.25,28.98-38.85,29.14-39.19,3.66-7.6,12.95-4.58,14.78-3.88,3.69,1.43,7.85-.4,9.3-4.1,1.45-3.71-.38-7.89-4.08-9.34ZM866.68,255.59c-.79,19.39-17.2,34.52-36.59,33.73-19.39-.79-34.52-17.2-33.73-36.59.79-19.39,17.2-34.52,36.59-33.73,19.39.79,34.52,17.2,33.73,36.59Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.10023) translate(-833.825 -226.43)"/></symbol>
+    <symbol id="glifo-geminis" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M629.52,277.31c-1.23-.5-14.79-5.92-35.56-9.43l-.53-92.12c9.96-2.07,20.17-5.01,30.48-9.18,3.69-1.49,5.47-5.7,3.97-9.39-1.49-3.68-5.69-5.47-9.39-3.97-64.86,26.3-128.44,1.04-129.08.79-3.68-1.5-7.88.27-9.39,3.94-1.51,3.68.26,7.89,3.94,9.4,1.23.5,14.81,5.9,35.56,9.41l.53,92.1c-9.96,2.07-20.17,5.04-30.48,9.21-3.69,1.49-5.47,5.7-3.97,9.38,1.14,2.81,3.86,4.52,6.72,4.5.89,0,1.79-.18,2.66-.53,64.86-26.3,128.45-1.04,129.08-.78,3.69,1.5,7.89-.26,9.39-3.95,1.51-3.68-.26-7.89-3.94-9.4ZM534.45,266.44l-.51-87.74c6.79.68,14.09,1.08,21.77,1.03,7.44-.04,15.26-.52,23.31-1.54l.51,87.75c-13.38-1.33-28.71-1.58-45.08.49Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.10032) translate(-556.735 -222.32)"/></symbol>
+    <symbol id="glifo-cancer" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1427.78,175.07c-97.55-45.32-165.38,5.57-168.22,7.76-.64.49-1.14,1.09-1.57,1.72-11.17,7.49-18.33,20.43-17.71,34.82.95,21.97,19.59,39.07,41.55,38.12,21.97-.95,39.06-19.59,38.12-41.55-.7-16.29-11.14-29.89-25.45-35.45,26.49-10.2,71.41-18.27,127.2,7.65,1.08.5,2.23.72,3.34.67,2.6-.11,5.06-1.64,6.23-4.16,1.68-3.61.11-7.9-3.5-9.57ZM1305.56,216.55c.6,14.02-10.32,25.93-24.34,26.53-14.02.6-25.93-10.32-26.53-24.34-.61-14.03,10.32-25.93,24.34-26.54,14.02-.6,25.93,10.32,26.53,24.34ZM1438.68,230.57c-.95-21.97-19.59-39.07-41.56-38.12-21.97.95-39.07,19.59-38.12,41.55.7,16.29,11.14,29.88,25.45,35.45-26.49,10.2-71.41,18.27-127.2-7.65-3.61-1.68-7.9-.11-9.57,3.5-1.68,3.61-.11,7.9,3.5,9.57,32.98,15.32,62.55,19.65,87.37,18.58,48.6-2.09,78.97-24.89,80.85-26.34.64-.49,1.14-1.08,1.56-1.72,11.17-7.49,18.33-20.42,17.71-34.82ZM1399.94,257.72c-14.02.6-25.93-10.32-26.53-24.34-.6-14.02,10.32-25.93,24.34-26.53,14.03-.6,25.93,10.32,26.54,24.34.6,14.02-10.32,25.93-24.34,26.53Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.07810) translate(-1339.47 -224.97)"/></symbol>
+    <symbol id="glifo-leo" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1679.31,271.64c-3.28-2.25-7.77-1.42-10.02,1.86-1.83,2.67-12.45,9.36-20.72,7.73-2.89-.56-6.96-2.33-8.91-11.19-4.24-19.15,8.95-44.3,20.58-66.48,4.1-7.82,7.97-15.2,10.87-21.95,3.88-9.03,6.07-33.14-6.14-50.56-6.43-9.17-19.37-19.78-44.46-18.35-14.34.83-25.94,6.39-34.46,16.5-14.47,17.18-15.84,43.01-15.53,55.62-17.3,3.13-30.68,18.05-31.18,36.3-.57,20.92,15.98,38.41,36.9,38.98,20.92.57,38.4-15.98,38.98-36.9.51-18.65-12.6-34.53-30.27-38.18-.31-10.37.53-32.78,12.12-46.54,5.96-7.07,13.9-10.8,24.28-11.4,14.82-.87,25.53,3.25,31.82,12.23,8.9,12.7,6.97,31.33,4.7,36.6-2.69,6.25-6.43,13.39-10.39,20.96-12.78,24.37-27.26,51.99-21.89,76.29,3.67,16.62,14.25,21.06,20.23,22.22,1.47.29,2.96.44,4.47.48,12.8.35,26.33-7.57,30.88-14.2,2.25-3.28,1.42-7.77-1.86-10.02ZM1600.8,222.81c-.36,12.97-11.2,23.24-24.18,22.89-12.98-.36-23.24-11.2-22.89-24.18.36-12.97,11.2-23.24,24.18-22.88,12.97.36,23.24,11.2,22.88,24.18Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.08456) translate(-1610.885 -204.22)"/></symbol>
+    <symbol id="glifo-virgo" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1878.62,242.89c1.31-26.64.33-54.24-16.83-56.91-5.89-.93-11.14,1.21-15.54,4.44,0-.2,0-.44,0-.63-.07-18.39-.12-32.91-17.75-36.86-9.27-2.06-19.35,5.9-26.71,13.74-2.94-7.11-7.13-10.89-12.97-12.81-11.72-3.85-22.34,4.66-29.34,12.75-6.14-11.61-16.43-16.36-22.95-17.19-3.89-.5-7.43,2.25-7.99,6.14-.55,3.9,2.18,7.53,6.07,8.14,1.62.25,15.82,3.15,15.54,26.33-.36,30.48.36,97.49.37,98.17.04,3.96,3.27,7.14,7.23,7.13.02,0,.03,0,.05,0,3.98-.04,7.17-3.31,7.13-7.29,0-.67-.73-67.52-.37-97.83.03-2.08-.07-4.04-.22-5.93,5.19-8.51,14.49-18.54,19.96-16.72,3.28,1.08,5.48,6.66,6.89,15.91,0,.05.01.09.02.14,3.04,20.13,2.39,57.55,1.1,104.17-.11,3.98,3.03,7.29,7,7.4.08,0,.15,0,.23,0,3.88-.01,7.07-3.11,7.17-7.01,1.43-51.78,1.76-83.99-.82-104,7.11-9.37,16.28-17.57,19.44-17.16,4.79,1.07,6.41,1.43,6.49,22.85.01,2.96-.12,7.71-.3,13.74-.07,2.28-.12,4.52-.18,6.75,0,.05,0,.11,0,.16-.81,33.07-.44,60.76,2.55,81.04-8.28,5.31-18.64,9.21-31.58,10.37-3.96.35-6.89,3.86-6.54,7.82.34,3.75,3.49,6.58,7.2,6.56.21,0,.41,0,.62-.03,13.04-1.17,24.07-4.77,33.34-9.85,2.67,9.49,6.38,16.21,11.44,19.71,1.26.87,2.69,1.28,4.11,1.27,2.28,0,4.52-1.1,5.91-3.11,2.26-3.28,1.44-7.76-1.84-10.03-2.98-2.06-5.36-7.54-7.15-16.37,20.14-16.85,28.49-41,29.18-54.99ZM1845.73,212.79c3.42-5.96,9.7-13.2,13.84-12.57.07.01,6.58,2.8,4.66,41.97-.32,6.59-4.47,23.78-17.19,38.1-1.5-16.63-1.94-39.16-1.31-67.5Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.08706) translate(-1803.7450000000001 -238.38)"/></symbol>
+    <symbol id="glifo-libra" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2094.29,259.02l-64.85.28c-3.27.01-6.13-2.17-6.99-5.32-.85-3.15.51-6.48,3.34-8.12,23.1-13.4,22.67-33.56,20.36-44.38-1.01-4.76-4.7-9.62-10.1-13.33-7.86-5.4-17.78-6.97-27.23-4.3-9.61,2.72-17.39,9.4-21.34,18.32-9.49,21.44,15.91,42.3,16.17,42.51,2.37,1.92,3.29,5.12,2.28,8-1.01,2.88-3.71,4.81-6.76,4.82l-69.66.3c-3.98.02-7.22-3.19-7.24-7.17-.02-3.98,3.19-7.22,7.17-7.24l53.08-.23c-8.33-11.02-16.52-28.09-8.22-46.82,5.69-12.86,16.84-22.47,30.59-26.36,13.58-3.84,27.92-1.55,39.32,6.29,8.53,5.87,14.22,13.75,16.03,22.19,3.72,17.4-.31,33.7-10.91,46.33l44.89-.2c3.98-.02,7.22,3.19,7.24,7.17.02,3.98-3.2,7.22-7.17,7.24ZM2087.24,294.12l-150.36.65c-3.98.02-7.22-3.19-7.24-7.17-.02-3.98,3.19-7.22,7.17-7.24l150.36-.65c3.98-.02,7.22,3.19,7.24,7.17.02,3.98-3.19,7.22-7.17,7.24Z" fill="currentColor" stroke="currentColor" stroke-width="2.8" transform="translate(10 10) scale(0.08650) translate(-2011.865 -231.465)"/></symbol>
+    <symbol id="glifo-escorpio" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2284.4,306.95l-18.88-24.39c-2.44-3.14-6.96-3.72-10.11-1.29-3.15,2.44-3.72,6.96-1.29,10.11l8.67,11.19c-3.8-1.23-6.98-3.16-9.55-5.87-12.73-13.37-11.02-44.21-9.52-71.42,1.61-29.08,3-54.19-11.13-64.53-4.85-3.55-10.56-4.87-16.52-3.81-8.74,1.55-16.81,8.03-22.73,14.16-3.01-8.13-7.64-13.38-14.65-14.67-12.43-2.3-21.8,3.94-28.14,11.73-6.11-9.44-16.03-14.02-22.22-15.25-3.9-.77-7.63,1.74-8.43,5.62-.8,3.88,1.71,7.68,5.57,8.51,1.6.34,15.6,3.79,16.03,19.44.61,21.74.61,100.37.61,101.16,0,3.98,3.23,7.21,7.21,7.21.02,0,.03,0,.05,0,3.96-.02,7.16-3.24,7.16-7.2,0-3.18,0-76.68-.59-100.2,1.56-4.11,8.13-19.06,20.14-16.83.21.04,5.13,1.19,7.14,22.92,1.48,15.94.88,37.09.31,57.55-.33,11.64-.66,23.68-.6,34.43.02,3.98,3.27,7.19,7.25,7.16,3.98-.02,7.19-3.27,7.16-7.25-.06-10.51.25-21.89.59-33.94.66-23.66,1.28-45.73-.74-62.69,4.26-5.71,13.53-16.27,21.38-17.66,2.12-.37,3.81.01,5.49,1.25,7.81,5.72,6.45,30.36,5.25,52.1-1.67,30.12-3.55,64.27,13.47,82.15,5.44,5.71,12.44,9.36,20.85,10.97l-8.97,10.25c-2.62,2.99-2.32,7.55.68,10.17,1.38,1.21,3.09,1.79,4.79,1.78,1.99-.01,3.97-.84,5.38-2.46l18.61-21.25c2.27-2.6,2.39-6.43.28-9.16Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.08287) translate(-2202.825 -246.29000000000002)"/></symbol>
+    <symbol id="glifo-sagitario" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2519.17,157.71l-65.73-6.56c-3.96-.4-7.49,2.49-7.89,6.45-.4,3.96,2.49,7.49,6.45,7.89l52.54,5.24-76.56,61.27-18.76-24.46c-2.42-3.16-6.94-3.75-10.1-1.33-3.16,2.42-3.75,6.95-1.33,10.1l18.94,24.7-47.51,38.02c-3.11,2.49-3.61,7.02-1.12,10.13,1.26,1.58,3.05,2.48,4.91,2.67,1.81.18,3.69-.32,5.22-1.54l47.27-37.83,18,23.46c1.26,1.65,3.09,2.59,5.01,2.79,1.76.18,3.59-.29,5.1-1.45,3.16-2.42,3.75-6.95,1.33-10.1l-18.18-23.7,72.39-57.93-4.36,43.67c-.4,3.96,2.49,7.49,6.45,7.89,3.96.39,7.49-2.49,7.89-6.46l6.49-65.01c.4-3.96-2.49-7.49-6.45-7.89Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.09740) translate(-2446.09 -221.485)"/></symbol>
+    <symbol id="glifo-capricornio" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2789.41,279.68c-.41-16.96-11.25-34.53-29-34.56-20.51-.02-31.78,9.82-41.03,22.54-1.38-6.09-1.7-11.72-1.34-15.57.13-1.33.29-2.9.47-4.64,2.83-27.08,4.49-54.31-8.7-63.83-3.76-2.71-10.27-5.02-19.93-.65-10.88,4.93-18.98,18.32-24.95,33.98-6.16-26.21-33.24-37.89-34.47-38.41-3.65-1.54-7.87.18-9.42,3.83-1.55,3.65.16,7.88,3.81,9.44.24.11,24.65,10.79,26.76,32.73,1.94,20.31-.36,47.81-1.41,58.43-.24,2.13-.4,3.7-.48,4.6-.37,3.93,2.49,7.43,6.41,7.85,3.88.43,7.46-2.4,7.92-6.32.04-.34.27-2.37.59-5.62,3.71-32,14.7-79.9,31.19-87.36,1.53-.69,4.29-1.71,5.56-.8,4.99,3.6,5.93,20.63,2.79,50.64-.19,1.8-.36,3.41-.49,4.79-.73,7.76.56,20.32,5.57,32.36-2.49,3.95-5.08,8-7.96,12.04-14.15,19.89-39.1,16.68-40.12,16.53-3.93-.56-7.6,2.14-8.18,6.08-.58,3.94,2.14,7.6,6.08,8.18.22.03,1.21.17,2.8.27,8.61.58,34.84.24,51.17-22.71,1.52-2.13,2.95-4.24,4.31-6.32,1.07,1.37,2.21,2.7,3.43,3.97,9.43,9.85,21.98,14.68,36.24,13.98,22.92-1.14,32.77-18.62,32.37-35.45ZM2756.33,300.73c-10.13.51-18.58-2.71-25.12-9.54-2.1-2.2-3.91-4.64-5.45-7.21,9.5-14.9,17.1-24.47,34.64-24.44,8.71-.03,14.37,10.64,14.61,20.49.11,4.63-.9,19.82-18.67,20.7Z" fill="currentColor" stroke="currentColor" stroke-width="3" transform="translate(10 10) scale(0.09175) translate(-2704.9399999999996 -252.165)"/></symbol>
+    <symbol id="glifo-acuario" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2935.64,225.88c-.81,0-1.61-.14-2.39-.42-2.44-.88-4.22-3-4.67-5.56l-4.76-27.6-29.91,26.68c-2.96,2.65-7.53,2.39-10.17-.58-2.65-2.97-2.39-7.52.58-10.17l39.6-35.32c1.95-1.74,4.7-2.29,7.17-1.43,2.47.86,4.28,3,4.73,5.58l4.81,27.86,39.12-33.69c1.99-1.72,4.76-2.2,7.23-1.29,2.46.92,4.23,3.12,4.61,5.72l3.65,25.3,33.46-29.4c1.84-1.62,4.36-2.19,6.72-1.52,2.35.67,4.2,2.48,4.92,4.82l12.26,39.94c1.17,3.8-.97,7.83-4.78,9-3.78,1.17-7.83-.97-9-4.78l-8.99-29.29-35.08,30.82c-1.99,1.75-4.77,2.27-7.25,1.35-2.48-.91-4.26-3.12-4.64-5.73l-3.67-25.45-38.8,33.41c-1.34,1.15-3.03,1.76-4.74,1.75ZM2935.23,297.67c-.81,0-1.61-.14-2.39-.42-2.44-.88-4.22-3-4.67-5.56l-4.76-27.6-29.91,26.68c-2.97,2.65-7.53,2.39-10.17-.58-2.65-2.97-2.39-7.52.58-10.17l39.6-35.32c1.96-1.74,4.7-2.29,7.17-1.43,2.47.86,4.28,3,4.73,5.58l4.81,27.86,39.12-33.69c1.99-1.72,4.76-2.2,7.23-1.29,2.46.92,4.23,3.12,4.61,5.72l3.65,25.3,33.46-29.4c1.84-1.61,4.36-2.19,6.72-1.52,2.35.67,4.21,2.48,4.92,4.82l12.26,39.94c1.17,3.8-.97,7.83-4.78,9-3.78,1.17-7.83-.97-9-4.78l-8.99-29.29-35.08,30.82c-1.99,1.75-4.77,2.27-7.25,1.35-2.48-.92-4.26-3.12-4.64-5.73l-3.67-25.45-38.8,33.41c-1.34,1.15-3.03,1.76-4.74,1.75Z" fill="currentColor" stroke="currentColor" stroke-width="2.9" transform="translate(10 10) scale(0.09042) translate(-2967.21 -233.58)"/></symbol>
+    <symbol id="glifo-piscis" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3304.86,225.7c.04-3.98-3.16-7.24-7.14-7.27l-23.96-.21c1.14-32.93,21.96-53.87,23.32-55.2,2.85-2.77,2.93-7.32.17-10.18-2.76-2.86-7.33-2.94-10.19-.18-.4.39-26.1,25.88-27.57,65.43l-29.66-.27c-.75-39.57-26-65.52-26.39-65.91-2.81-2.81-7.38-2.81-10.19,0-2.82,2.81-2.82,7.38,0,10.19,1.35,1.35,21.94,22.58,22.43,55.59l-22.2-.2c-3.98-.04-7.23,3.16-7.27,7.14-.04,3.98,3.16,7.24,7.14,7.27l21.26.19c-2.42,14.94-9.17,31.69-23.12,49.72-2.44,3.15-1.86,7.67,1.29,10.11,1.29,1,2.82,1.49,4.34,1.51,2.18.02,4.34-.94,5.77-2.79,16.26-21.01,23.79-40.76,26.13-58.41l31.05.28c2.02,17.69,9.2,37.58,25.08,58.87,1.4,1.88,3.54,2.88,5.72,2.9,1.52.01,3.06-.45,4.37-1.43,3.19-2.38,3.85-6.89,1.47-10.08-13.61-18.25-20.02-35.12-22.14-50.12l23.05.21c3.98.04,7.23-3.16,7.27-7.14Z" fill="currentColor" stroke="currentColor" stroke-width="2.8" transform="translate(10 10) scale(0.10728) translate(-3245.55 -222.04000000000002)"/></symbol>
+</svg>
 
     <nav class="hamburger-menu">
         <input type="checkbox" id="menu-toggle" class="menu-toggle">
@@ -57,59 +88,80 @@
             <p>Explorá qué significa cada signo en tu carta natal: los planetas, las casas y el modo en que cada energía se despliega en vos.</p>
         </header>
 
+        <!-- El selector. Los tres ultimos todavia no tienen pagina: van
+             apagados en vez de ausentes, para que la rueda se vea completa y
+             se entienda que faltan tres. -->
         <div class="signos-index-grid">
 
-            <a href="aries/" class="signo-card aries-theme">
-                <span class="signo-card-symbol" style="color: var(--aries-primary);">♈</span>
-                <h3>Aries</h3>
-            </a>
+                <a href="aries/" class="signo-card" style="--tema: var(--aries-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-aries"></use></svg>
+                    <h3>Aries</h3>
+                </a>
 
-            <a href="tauro/" class="signo-card tauro-theme">
-                <span class="signo-card-symbol" style="color: var(--tauro-primary);">♉</span>
-                <h3>Tauro</h3>
-            </a>
+                <a href="tauro/" class="signo-card" style="--tema: var(--tauro-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-tauro"></use></svg>
+                    <h3>Tauro</h3>
+                </a>
 
-            <a href="geminis/" class="signo-card geminis-theme">
-                <span class="signo-card-symbol" style="color: var(--geminis-primary);">♊</span>
-                <h3>Géminis</h3>
-            </a>
+                <a href="geminis/" class="signo-card" style="--tema: var(--geminis-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-geminis"></use></svg>
+                    <h3>Géminis</h3>
+                </a>
 
-            <a href="cancer/" class="signo-card cancer-theme">
-                <span class="signo-card-symbol" style="color: var(--cancer-primary);">♋</span>
-                <h3>Cáncer</h3>
-            </a>
+                <a href="cancer/" class="signo-card" style="--tema: var(--cancer-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-cancer"></use></svg>
+                    <h3>Cáncer</h3>
+                </a>
 
-            <a href="leo/" class="signo-card leo-theme">
-                <span class="signo-card-symbol" style="color: var(--leo-primary);">♌</span>
-                <h3>Leo</h3>
-            </a>
+                <a href="leo/" class="signo-card" style="--tema: var(--leo-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-leo"></use></svg>
+                    <h3>Leo</h3>
+                </a>
 
-            <a href="virgo/" class="signo-card virgo-theme">
-                <span class="signo-card-symbol" style="color: var(--virgo-primary);">♍</span>
-                <h3>Virgo</h3>
-            </a>
+                <a href="virgo/" class="signo-card" style="--tema: var(--virgo-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-virgo"></use></svg>
+                    <h3>Virgo</h3>
+                </a>
 
-            <a href="libra/" class="signo-card libra-theme">
-                <span class="signo-card-symbol" style="color: var(--libra-primary);">&#9806;</span>
-                <h3>Libra</h3>
-            </a>
+                <a href="libra/" class="signo-card" style="--tema: var(--libra-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-libra"></use></svg>
+                    <h3>Libra</h3>
+                </a>
 
-            <a href="escorpio/" class="signo-card escorpio-theme">
-                <span class="signo-card-symbol" style="color: var(--escorpio-primary);">&#9807;</span>
-                <h3>Escorpio</h3>
-            </a>
+                <a href="escorpio/" class="signo-card" style="--tema: var(--escorpio-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-escorpio"></use></svg>
+                    <h3>Escorpio</h3>
+                </a>
 
-            <a href="sagitario/" class="signo-card sagitario-theme">
-                <span class="signo-card-symbol" style="color: var(--sagitario-primary);">&#9808;</span>
-                <h3>Sagitario</h3>
-            </a>
+                <a href="sagitario/" class="signo-card" style="--tema: var(--sagitario-primary);">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-sagitario"></use></svg>
+                    <h3>Sagitario</h3>
+                </a>
+
+                <div class="signo-card signo-card--pronto">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-capricornio"></use></svg>
+                    <h3>Capricornio</h3>
+                    <span class="signo-card-pronto">pronto</span>
+                </div>
+
+                <div class="signo-card signo-card--pronto">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-acuario"></use></svg>
+                    <h3>Acuario</h3>
+                    <span class="signo-card-pronto">pronto</span>
+                </div>
+
+                <div class="signo-card signo-card--pronto">
+                    <svg class="glifo-signo" viewBox="0 0 20 20" aria-hidden="true"><use href="#glifo-piscis"></use></svg>
+                    <h3>Piscis</h3>
+                    <span class="signo-card-pronto">pronto</span>
+                </div>
 
         </div>
 
-        <header class="signos-index-header" style="margin-top:72px;">
+        <header class="signos-index-header">
             <h2>Tu Sol, tu Luna y tu Ascendente</h2>
             <p>Los tres puntos con los que empieza toda carta natal, signo por signo.</p>
-            <p style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:24px;">
+            <p class="signos-index-enlaces">
                 <a href="/carta-natal/" class="btn-sutil">La carta natal</a>
                 <a href="/carta-natal/sol/" class="btn-sutil">El Sol en los 12 signos</a>
                 <a href="/carta-natal/lunas/" class="btn-sutil">La Luna en los 12 signos</a>
@@ -117,6 +169,112 @@
                 <a href="/carta-natal/casas/" class="btn-sutil">Las 12 casas</a>
             </p>
         </header>
+
+        <!-- La invitacion a sumarse, igual que en el home. Aca va sin la clase
+             "bloque" y sin data-x/data-y: eso es del recorrido espacial de la
+             portada, que en esta pagina no corre. -->
+        <section class="comunidad-banner" id="comunidad-banner">
+            <div class="comunidad-card">
+
+                <h2>Sumate a la Comunidad Astrológica</h2>
+                <p>Un espacio cotidiano para compartir, debatir y seguir pensando el cielo juntos. Sumate por tu plataforma favorita.</p>
+
+                <div class="comunidad-botones">
+                    <a href="https://chat.whatsapp.com/JK6IVY51OdtKoP0rulrm4G" target="_blank" rel="noopener noreferrer" class="btn-comunidad btn-whatsapp">
+                        WhatsApp
+                    </a>
+
+                    <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" class="btn-comunidad btn-telegram">
+                        Telegram
+                    </a>
+                </div>
+
+                <!-- El formulario lo arma /suscribirse.js: no tocar el div. -->
+                <div data-suscribirse data-origen="signos" style="margin: 36px auto 0;"
+                     data-titulo="O por mail"
+                     data-texto="Contenidos astrológicos gratuitos para mantenerte cerca del cielo y sus movimientos."></div>
+
+            </div>
+        </section>
+
+        <!-- El regalo del libro. El enlace al ebook NO va en la pagina: sale
+             por mail, y es lo que hace que el regalo valga como alta en la
+             lista. Lo unico que se le ahorra el tramite es a quien ya se
+             suscribio desde este navegador, con data-atajo-libro. -->
+        <section class="section-container fade-in-element">
+            <div data-suscribirse data-origen="ebook" data-atajo-libro
+                 data-titulo="Tu identidad en el cielo"
+                 data-texto="El libro sobre la Luna, el Ascendente y el Sol de tu carta. Dejame tu mail y te llega el enlace en un minuto."
+                 data-canje="Al pedirlo quedás en la lista de contenidos astrológicos gratuitos."
+                 data-boton="Quiero el ebook"
+                 data-exito="Listo. Te mandamos el ebook a <strong>tu casilla</strong>: abrilo y leelo cuando quieras."></div>
+        </section>
+
+        <!-- El podcast. Los dos reproductores son fachadas: la imagen pesa
+             nada y el iframe se carga recien cuando se la toca (lo hace
+             script.js). Entre los dos sumaban mas de 2 MB. -->
+        <section class="seccion-podcast-luna" id="podcast">
+            <div class="podcast-container">
+
+                <header class="podcast-header">
+                    <h2>escuchá el podcast!</h2>
+                </header>
+
+                <div class="podcast-media-row">
+
+                    <article class="podcast-card">
+                        <div class="etiqueta-plataforma etiqueta-spotify">
+                            <i class="fa-brands fa-spotify"></i> Spotify
+                        </div>
+                        <div class="iframe-container">
+                            <div class="yt-facade" role="button" tabindex="0" aria-label="Escuchar el podcast en Spotify" data-yt="https://open.spotify.com/embed/show/3pUBeAtMJw2WY3ykB82Tw3/video?utm_source=generator" data-allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"><img class="yt-thumb" src="/img/kit-spotify.jpg" alt="" width="300" height="300" loading="lazy" decoding="async"><svg class="yt-play" viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="34" cy="24" r="23" fill="#1DB954"/><path d="M28 14l17 10-17 10z" fill="#0b0b0b"/></svg></div>
+                        </div>
+                    </article>
+
+                    <article class="podcast-card">
+                        <div class="etiqueta-plataforma etiqueta-youtube">
+                            <i class="fa-brands fa-youtube"></i> YouTube
+                        </div>
+                        <div class="iframe-container">
+                            <div class="yt-facade" role="button" tabindex="0" aria-label="Ver el podcast en YouTube" data-yt="https://www.youtube.com/embed/videoseries?si=toy1NWiMo_YG71Ow&amp;list=PLxMY1XMl9aPWFsQtElx1EZcAoPyMCEYby&amp;autoplay=1"><img class="yt-thumb" src="/img/kit-youtube.jpg" alt="" width="640" height="480" loading="lazy" decoding="async"><svg class="yt-play" viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#f00"/><path d="M45 24 27 14v20" fill="#fff"/></svg></div>
+                        </div>
+                    </article>
+
+                </div>
+
+                <div class="podcast-info">
+                    <h3>Kit astrológico para habitar la tierra</h3>
+                    <p>Los acontecimientos celestes pueden ser el ruido que enturbia nuestra vida o la melodía que nos permite improvisar. En este podcast semanal voy a intentar describir el cielo para invitarte a mirar de otro modo lo que te pasa.</p>
+                    <p>Si todo sale bien, además del análisis de tránsitos semanales haré algún que otro contenido más imperecedero para acompañarte en los días de la vida.</p>
+
+                    <p class="cita-destacada" style="text-align: right; margin-bottom: 0;">
+                        "Improvisar es unirse al mundo, confundirse con él."
+                    </p>
+                    <p style="text-align: right; margin-top: 5px; opacity: 0.8;">
+                        — Deleuze y Guattari.
+                    </p>
+
+                    <div class="grupo-botones-podcast">
+                        <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3?si=1c6cfcdda2704c49" target="_blank" rel="noopener noreferrer" class="btn-sutil"><i class="fa-brands fa-spotify"></i> Escuchar en Spotify</a>
+                        <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" class="btn-sutil"><i class="fa-brands fa-youtube"></i> Canal de YouTube</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="comunidad-banner" id="calculadora-banner">
+            <div class="comunidad-card">
+
+                <h2>Calculá tu carta natal</h2>
+                <p>Con tu fecha, hora y lugar de nacimiento armás tu carta online, gratis — no hace falta cuenta, y si querés guardarla para volver a verla, podés crear una.</p>
+
+                <div class="comunidad-botones">
+                    <a href="/cartas/" class="btn-comunidad btn-calculadora">Calcular mi carta</a>
+                </div>
+
+            </div>
+        </section>
 
     </main>
 
@@ -133,6 +291,7 @@
             <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
             <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         </div>
+        <p><a href="/privacidad/">Privacidad y datos</a></p>
         <p>© 2026 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
     </footer>
 
@@ -143,6 +302,7 @@
         gtag('js', new Date());
         gtag('config', 'G-GDLRMR5D57');
     </script>
-    <script src="../script.js"></script>
+    <script src="../script.js?v=31"></script>
+    <script src="/suscribirse.js?v=9" defer></script>
 </body>
 </html>

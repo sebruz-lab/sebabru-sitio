@@ -2753,7 +2753,7 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // navegador.
 const ORIGENES_SUSCRIPCION = new Set([
   'home', 'lunanueva', 'lunallena', 'kit', 'links', 'suscribirse', 'formulario',
-  'ebook', 'cartas',
+  'ebook', 'cartas', 'signos',
 ]);
 
 // Que mail sale al darse de alta. Casi siempre la bienvenida; desde la
@@ -2765,6 +2765,58 @@ function plantillaDeAlta(origen) {
     return process.env.BREVO_EBOOK_TEMPLATE_ID;
   }
   return process.env.BREVO_BIENVENIDA_TEMPLATE_ID;
+}
+
+// Cuantas veces se le reenvia el libro a una misma direccion que ya esta en
+// la lista. El tope es lo que evita que el formulario del ebook sirva para
+// llenarle la casilla a un tercero: tres alcanzan para el soporte real ("no
+// me llego", "lo borre sin querer") y cortan el abuso.
+const TOPE_REENVIOS_EBOOK = 3;
+
+// El reenvio del libro a quien ya estaba suscrito. Es la excepcion a la
+// regla de no mandar un segundo mail de alta, y existe porque en el ebook el
+// mail no es una cortesia: el enlace al libro vive SOLO en esa plantilla, asi
+// que sin mail la persona no recibe lo que vino a pedir.
+//
+// Devuelve que paso, para dejarlo anotado. Nunca tira: un fallo de Brevo no
+// puede cambiar la respuesta, que tiene que ser siempre la misma (ver el
+// comentario de la rama en suscribir).
+async function reenviarEbook(email, nombre) {
+  let envios = 0;
+  try {
+    const doc = await _db.collection('suscripciones').doc(email).get();
+    envios = Number(doc.exists ? doc.data().ebook_envios : 0) || 0;
+  } catch (error) {
+    functions.logger.error('No se pudieron leer los envíos del ebook:', error.message);
+    return 'error_lectura';
+  }
+
+  if (envios >= TOPE_REENVIOS_EBOOK) return 'tope';
+
+  try {
+    await brevo.enviarConPlantilla({
+      email,
+      nombre,
+      templateId: plantillaDeAlta('ebook'),
+      params: { baja: urlDeBaja(email) },
+      headers: cabecerasDeBaja(email),
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo reenviar el ebook:', error.message);
+    return 'error_envio';
+  }
+
+  // El contador se guarda despues del envio: si el mail no salio, el intento
+  // no gasta uno de los tres.
+  try {
+    await _db.collection('suscripciones').doc(email).set({
+      ebook_envios: admin.firestore.FieldValue.increment(1),
+    }, { merge: true });
+  } catch (error) {
+    functions.logger.error('No se pudo anotar el reenvío del ebook:', error.message);
+  }
+
+  return 'reenviado';
 }
 
 // Los errores de tipeo mas comunes en el dominio. No se rechaza la
@@ -2917,7 +2969,10 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   // bien. Pasa si el formulario se publica antes de configurar Brevo.
   if (!brevo.brevoConfigurado()) {
     functions.logger.error('Alguien quiso suscribirse y BREVO_API_KEY no esta configurada.');
-    await encolarContactoBrevo({ email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion' });
+    await encolarContactoBrevo({
+      email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion',
+      plantilla: plantillaDeAlta(origen),
+    });
     await anotarPedido('sin_configurar');
     return res.status(503).json({ error: 'no_configurado' });
   }
@@ -2934,8 +2989,16 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
       // si una direccion ajena estaba en la lista. Queda anotado en el log y
       // en "suscripciones", que es donde hace falta saberlo. El texto que ve
       // la persona no promete un mail nuevo, asi que sirve en los dos casos.
-      await anotarPedido('ya_suscrito');
-      functions.logger.info('Alta de alguien que ya estaba en la lista', { origen });
+      //
+      // Con UNA excepcion: el ebook. Ahi el mail no es un segundo saludo, es
+      // la entrega de lo que la persona vino a buscar, porque el enlace al
+      // libro esta solo en esa plantilla. Hasta el 2026-11-18 esta rama
+      // cortaba antes de mandarlo: quien ya estaba en la lista leia "te lo
+      // mandamos a tu casilla" y no le llegaba nada. Para cualquier otro
+      // origen la rama sigue sin mandar nada, que es lo que corresponde.
+      const ebook = origen === 'ebook' ? await reenviarEbook(email, nombre) : null;
+      await anotarPedido(ebook === 'tope' ? 'ebook_tope' : 'ya_suscrito');
+      functions.logger.info('Alta de alguien que ya estaba en la lista', { origen, ebook });
       return res.status(200).json({ ok: true, estado: 'suscrito' });
     }
 
@@ -2971,7 +3034,13 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     // Brevo no contesto. En vez de perder a quien se quiso suscribir, el
     // alta queda en la cola y el trigger la reintenta.
     functions.logger.error('Brevo no respondió al dar el alta:', error.message);
-    await encolarContactoBrevo({ email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion' });
+    // La plantilla viaja con el pedido: el trigger la manda cuando el alta
+    // entra de verdad. Sin esto, quien recibe "demorado" queda suscrito pero
+    // no recibe nunca el mail — y si venia por el ebook, no recibe el libro.
+    await encolarContactoBrevo({
+      email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion',
+      plantilla: plantillaDeAlta(origen),
+    });
     await anotarPedido('reintentando');
     return res.status(200).json({ ok: true, estado: 'demorado' });
   }
@@ -3335,6 +3404,26 @@ exports.sincronizarContactoBrevo = onDocumentCreated({
         atributos: pedido.atributos,
         quitarDeListas: pedido.quitarDeListas,
       });
+
+      // El alta que no se pudo hacer en linea tambien tiene que mandar su
+      // mail: es lo que "demorado" le prometio a la persona, y si venia por
+      // el ebook es el libro entero. El params.baja no es opcional —
+      // {{ unsubscribe }} no se sustituye en un transaccional, asi que sin
+      // el param el enlace de baja de la plantilla queda vacio.
+      //
+      // Si el envio falla, cae en el catch de abajo con el mismo criterio
+      // que el upsert. Un reintento puede duplicar el mail, porque el
+      // upsert es idempotente pero el envio no: para la entrega del libro un
+      // mail de mas es mejor que ninguno.
+      if (pedido.plantilla) {
+        await brevo.enviarConPlantilla({
+          email: pedido.email,
+          nombre: pedido.nombre,
+          templateId: pedido.plantilla,
+          params: { baja: urlDeBaja(pedido.email) },
+          headers: cabecerasDeBaja(pedido.email),
+        });
+      }
     }
     // Listo: la cola no tiene por que crecer.
     await event.data.ref.delete();

@@ -93,8 +93,11 @@
                         <p>Para leerlo, te suscribís al mailing del espacio en este formulario.</p>
                     </div>
 
-                    <!-- El formulario lo arma /suscribirse.js: no tocar el div. -->
-                    <div data-suscribirse data-origen="ebook"
+                    <!-- El formulario lo arma /suscribirse.js: no tocar el div.
+                         data-atajo-libro: a quien ya se suscribio desde este
+                         navegador no se le vuelve a pedir el mail, se le da el
+                         libro. Es a donde vuelve quien perdio el mail. -->
+                    <div data-suscribirse data-origen="ebook" data-atajo-libro
                          data-titulo="Te lo mando por mail"
                          data-texto="Dejame tu mail y te llega el enlace al libro en un minuto."
                          data-canje="Al pedirlo quedás en la lista de contenidos astrológicos gratuitos."
@@ -126,6 +129,6 @@
     </footer>
 
     <script src="../script.js"></script>
-    <script src="/suscribirse.js?v=8" defer></script>
+    <script src="/suscribirse.js?v=9" defer></script>
 </body>
 </html>
