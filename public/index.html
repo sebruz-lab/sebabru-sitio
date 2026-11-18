@@ -124,8 +124,8 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </style>
     <!-- Resto del CSS: no bloqueante -->
     <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="style.css?v=29" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css?v=29"></noscript>
+    <link rel="preload" href="style.css?v=30" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.css?v=30"></noscript>
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 </head>
 <body>
@@ -352,7 +352,7 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
                         <span>YouTube Video</span>
                     </div>
                     <div class="iframe-container">
-                        <div class="yt-facade" data-yt="https://www.youtube.com/embed/videoseries?si=toy1NWiMo_YG71Ow&list=PLxMY1XMl9aPWFsQtElx1EZcAoPyMCEYby&autoplay=1">
+                        <div class="yt-facade" role="button" tabindex="0" aria-label="Ver el podcast en YouTube" data-yt="https://www.youtube.com/embed/videoseries?si=toy1NWiMo_YG71Ow&amp;list=PLxMY1XMl9aPWFsQtElx1EZcAoPyMCEYby&amp;autoplay=1"><img class="yt-thumb" src="/img/kit-youtube.jpg" alt="" width="640" height="480" loading="lazy" decoding="async">
                             <svg class="yt-play" viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#f00"/><path d="M45 24 27 14v20" fill="#fff"/></svg>
                         </div>
                     </div>
@@ -1198,37 +1198,10 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
 
   gtag('config', 'G-GDLRMR5D57');
 </script>
-    <script src="script.js?v=28" defer></script>
+    <script src="script.js?v=29" defer></script>
     <script src="/suscribirse.js?v=8" defer></script>
 <style>
-.yt-facade {
-    position: relative;
-    width: 100%;
-    height: 352px;
-    background: #0f0f0f;
-    border-radius: 0 0 12px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-}
-.yt-facade img.yt-thumb {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.75;
-}
-.yt-play {
-    position: relative;
-    width: 68px;
-    height: 48px;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
-    transition: transform 0.15s;
-}
-.yt-facade:hover .yt-play { transform: scale(1.1); }
+/* El facade de embeds se mudo a style.css, para que lo usen todas las paginas. */
 
 /* Mas aire entre bloques: el paso vertical del recorrido paso de 450 a 650px,
    asi que la camara recorre 13.6% mas distancia. La pista de scroll crece en
@@ -1300,62 +1273,8 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     #podcast .efecto-texto .grupo-botones-sutiles { margin-top: 18px; }
 }
 </style>
-<script>
-(function() {
-    const facades = document.querySelectorAll('.yt-facade');
-    if (!facades.length) return;
-
-    // Click → reemplaza con iframe real
-    facades.forEach(function(el) {
-        el.addEventListener('click', function() {
-            const iframe = document.createElement('iframe');
-            iframe.src = el.dataset.yt;
-            iframe.width = '100%';
-            iframe.height = '352';
-            iframe.frameBorder = '0';
-            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-            iframe.allowFullscreen = true;
-            iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-            iframe.style.cssText = 'border-radius:0 0 12px 12px; display:block; width:100%;';
-            el.replaceWith(iframe);
-        });
-    });
-
-    // IntersectionObserver → marca como visible al entrar en viewport (listo para click)
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('yt-visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { rootMargin: '200px' });
-
-    facades.forEach(function(el) { observer.observe(el); });
-})();
-</script>
-<script>
-(function() {
-    const igSection = document.getElementById('instagram-section');
-    if (!igSection) return;
-    let loaded = false;
-    function cargarEmbed() {
-        if (loaded) return;
-        loaded = true;
-        const s = document.createElement('script');
-        s.src = '//www.instagram.com/embed.js';
-        s.async = true;
-        document.body.appendChild(s);
-        window.removeEventListener('scroll', cargarEmbed);
-    }
-    // Dispara la carga apenas la persona empieza a scrollear (no antes,
-    // para no competirle ancho de banda al primer texto/botones; ni recién
-    // al llegar al bloque, porque ahí ya se nota la espera dentro del
-    // recorrido). { passive: true } y sin throttle: solo nos importa la
-    // primera vez que se dispara.
-    window.addEventListener('scroll', cargarEmbed, { passive: true });
-})();
-</script>
+<!-- el facade de embeds se mudo a script.js -->
+<!-- la carga diferida de Instagram se mudo a script.js -->
 <style>
 /* La capa donde se completa el formulario de consultas. Se monta en el body
    (no dentro del recorrido: ahi los bloques estan transformados y position

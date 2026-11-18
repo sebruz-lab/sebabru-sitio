@@ -467,3 +467,106 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
+/* ---------- Facade de embeds, y carga diferida de Instagram ----------
+   Las dos cosas vivian inline en index.html, asi que las tenia solo la home.
+   Medido con PageSpeed el 17/11/2026: la home carga 0 KB de YouTube y 0 KB de
+   Instagram; /signos/aries/ cargaba 1.001 KB del reproductor de YouTube,
+   1.044 KB de Spotify y 1.596 KB de Instagram. De los 4,2 MB de esa pagina,
+   solo 87 KB eran del dominio propio: el peso entero era de tres widgets
+   ajenos. Estan aca abajo para que las use cualquier pagina. */
+(function () {
+    'use strict';
+
+    // ---------- Facade: el iframe real se crea al primer clic ----------
+    // El atributo data-yt tiene la URL del embed (de YouTube o de Spotify, el
+    // mecanismo es el mismo). data-allow y data-h son opcionales, con el valor
+    // que necesita YouTube por defecto, que es el caso mas comun.
+    var PERMISOS_YT = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+
+    function abrir(el) {
+        var src = el.dataset.yt;
+        if (!src) return;
+        var iframe = document.createElement('iframe');
+        iframe.src = src;
+        iframe.width = '100%';
+        iframe.height = el.dataset.h || '352';
+        iframe.frameBorder = '0';
+        iframe.allow = el.dataset.allow || PERMISOS_YT;
+        iframe.allowFullscreen = true;
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        iframe.title = el.getAttribute('aria-label') || 'Reproductor';
+        // Hereda el redondeo que tenia el cartel, para que el reemplazo no se
+        // note como un salto de forma.
+        iframe.style.cssText = 'border-radius:' + (el.dataset.radius || '0 0 12px 12px') +
+            '; display:block; width:100%;';
+        el.replaceWith(iframe);
+        // El foco va al reproductor: si se llego tabulando, el teclado tiene
+        // que seguir donde quedo y no volver al principio de la pagina.
+        try { iframe.focus({ preventScroll: true }); } catch (e) {}
+    }
+
+    var carteles = document.querySelectorAll('.yt-facade');
+    for (var i = 0; i < carteles.length; i++) {
+        (function (el) {
+            el.addEventListener('click', function () { abrir(el); });
+            // Enter y barra espaciadora: antes era un div con un onclick, o
+            // sea que tabulando no habia forma de llegar al video.
+            el.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+                    ev.preventDefault();
+                    abrir(el);
+                }
+            });
+        })(carteles[i]);
+    }
+
+    if (carteles.length && 'IntersectionObserver' in window) {
+        // Marca el cartel como visible al entrar en pantalla. No carga nada:
+        // es solo la clase con la que el CSS puede animarlo si hace falta.
+        var obs = new IntersectionObserver(function (entradas) {
+            entradas.forEach(function (e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('yt-visible');
+                    obs.unobserve(e.target);
+                }
+            });
+        }, { rootMargin: '200px' });
+        for (var j = 0; j < carteles.length; j++) obs.observe(carteles[j]);
+    }
+
+    // ---------- Instagram: embed.js (1,6 MB) recien cuando hace falta ----------
+    // Se dispara con lo que pase primero: el primer scroll, o el bloque
+    // acercandose a la pantalla. El primer scroll es lo que hacia la home, y
+    // tiene sentido ahi porque dentro del recorrido esperar a llegar al bloque
+    // se nota; el IntersectionObserver es mas tacano y sirve en las paginas
+    // que no tienen recorrido. Con los dos, cada pagina usa el que le toca.
+    var bloques = document.querySelectorAll('.instagram-media');
+    if (!bloques.length) return;
+    if (window.instgrm || document.querySelector('script[src*="instagram.com/embed.js"]')) return;
+
+    var pedido = false;
+    function cargarInstagram() {
+        if (pedido) return;
+        pedido = true;
+        window.removeEventListener('scroll', cargarInstagram);
+        var s = document.createElement('script');
+        s.src = 'https://www.instagram.com/embed.js';
+        s.async = true;
+        document.body.appendChild(s);
+    }
+
+    window.addEventListener('scroll', cargarInstagram, { passive: true, once: true });
+    if ('IntersectionObserver' in window) {
+        var obsIg = new IntersectionObserver(function (entradas) {
+            for (var k = 0; k < entradas.length; k++) {
+                if (entradas[k].isIntersecting) {
+                    obsIg.disconnect();
+                    cargarInstagram();
+                    return;
+                }
+            }
+        }, { rootMargin: '300px' });
+        for (var m = 0; m < bloques.length; m++) obsIg.observe(bloques[m]);
+    }
+})();

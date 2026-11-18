@@ -1887,3 +1887,58 @@ label.menu-button:focus-visible {
 .instagram-media {
     min-width: 0 !important;
 }
+
+/* ---------- Facade de embeds (YouTube y Spotify) ----------
+   Antes estas reglas vivian inline en index.html, asi que el facade lo tenia
+   solo la home. Medido con PageSpeed el 17/11/2026: la home carga 0 KB de
+   YouTube y /signos/aries/ cargaba 1.001 KB, mas 1.044 KB de Spotify, por
+   tener el iframe de verdad. Moverlas aca es lo que deja usarlo en todas.
+
+   El cartel es un div con la miniatura y el boton de play; el iframe real lo
+   crea script.js al primer clic. La miniatura la renueva sola la Action
+   "Sync miniaturas del podcast", porque el Kit sale cada semana y una imagen
+   fija envejece. Si el archivo falta, queda el fondo negro y el boton, que es
+   exactamente como se veia la home hasta hoy: no se rompe nada. */
+.yt-facade {
+    position: relative;
+    width: 100%;
+    height: 352px;
+    background: #0f0f0f;
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+}
+.yt-facade img.yt-thumb {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.75;
+}
+.yt-play {
+    position: relative;
+    width: 68px;
+    height: 48px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+    transition: transform 0.15s;
+}
+.yt-facade:hover .yt-play { transform: scale(1.1); }
+/* Ahora es un boton de verdad (role + tabindex en el markup), asi que tiene
+   que mostrar el foco del teclado: antes era un div con un onclick y no habia
+   forma de llegar al video tabulando. */
+.yt-facade:focus-visible {
+    outline: 2px solid #f0e4c4;
+    outline-offset: 2px;
+}
+.yt-facade:focus-visible .yt-play { transform: scale(1.1); }
+/* Variante de la tarjeta del podcast, donde el borde redondeado va completo
+   en lugar de solo abajo (en /kit/ el cartel no cuelga de una etiqueta). */
+.yt-facade.yt-facade--suelto { border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) {
+    .yt-play { transition: none; }
+    .yt-facade:hover .yt-play, .yt-facade:focus-visible .yt-play { transform: none; }
+}

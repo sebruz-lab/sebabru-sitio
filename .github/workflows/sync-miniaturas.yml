@@ -1,0 +1,43 @@
+name: Sync miniaturas del podcast
+
+on:
+  schedule:
+    # 19:30 UTC y no 19:00: a esa hora corre "Sync Instagram permalink", que
+    # tambien commitea a main. Media hora de diferencia evita que los dos
+    # commits automaticos se pisen en el mismo push.
+    - cron: '30 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Si quedo una corrida anterior colgada, no arrancar dos a la vez sobre main.
+concurrency:
+  group: sync-miniaturas
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Los runners de ubuntu ya traen ffmpeg, que es lo que saca el poster
+      # del mp4. Se verifica en vez de asumirlo: si algun dia deja de venir,
+      # el script lo saltea y el log lo dice, en lugar de fallar sin motivo
+      # aparente.
+      - name: Ver si ffmpeg esta disponible
+        run: ffmpeg -version | head -1 || echo "sin ffmpeg: el poster se saltea"
+
+      - name: Bajar miniaturas de YouTube y Spotify, y el poster del mp4
+        run: node .github/scripts/sync-miniaturas.mjs
+
+      - name: Commitear solo si alguna imagen cambio
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: actualizar miniaturas del podcast"
+          file_pattern: public/img/kit-youtube.jpg public/img/kit-spotify.jpg public/img/formaciones2026-poster.jpg
