@@ -11,6 +11,14 @@ on:
     # hace exactamente lo mismo a mano.
     - cron: '0 15 * * 2'
   workflow_dispatch:
+  # Correr tambien cuando se toca este mismo archivo. Es lo que permite
+  # probarlo sin depender del boton "Run workflow", y de paso cada edicion
+  # del workflow se verifica sola. El filtro de paths lo deja fuera de
+  # cualquier otro push: no corre cuando cambia el sitio.
+  push:
+    paths:
+      - '.github/workflows/sync-miniaturas.yml'
+      - '.github/scripts/sync-miniaturas.mjs'
 
 permissions:
   contents: write
