@@ -2,10 +2,14 @@ name: Sync miniaturas del podcast
 
 on:
   schedule:
-    # 19:30 UTC y no 19:00: a esa hora corre "Sync Instagram permalink", que
-    # tambien commitea a main. Media hora de diferencia evita que los dos
-    # commits automaticos se pisen en el mismo push.
-    - cron: '30 19 * * *'
+    # Martes 15:00 UTC = 12:00 en Argentina. Seba sube el video del Kit los
+    # martes a la manana, asi que al mediodia del martes ya esta publicado y
+    # la miniatura del facade queda al dia por el resto de la semana.
+    #
+    # Si alguna semana el video sale despues del mediodia, la miniatura
+    # espera hasta el martes siguiente: para eso esta "Run workflow", que
+    # hace exactamente lo mismo a mano.
+    - cron: '0 15 * * 2'
   workflow_dispatch:
 
 permissions:
