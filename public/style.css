@@ -1711,7 +1711,13 @@ a.section-block:hover h3 {
     width: min(90vw, 720px);
     z-index: 2;
 }
-.bloque--intro { width: min(92vw, 920px); text-align: center; }
+/* El bloque de portada arranca visible. Los .bloque nacen en opacity:0 y
+   visibility:hidden, y el recorrido les pone la opacidad por fotograma; en la
+   home eso dejaba a Chrome sin un solo candidato a LCP en la primera pintura,
+   y PageSpeed devolvia NO_LCP y score 0 (medido el 18/11/2026). A scroll 0 la
+   camara ya esta sobre este bloque, asi que verse igual se ve igual: lo unico
+   que cambia es el estado inicial, antes de que el JS tome el control. */
+.bloque--intro { width: min(92vw, 920px); text-align: center; opacity: 1; visibility: visible; }
 .bloque--intro .main-header { padding: 0 0 0.88rem; }
 .bloque--intro main { padding: 10px 0 0; }
 
