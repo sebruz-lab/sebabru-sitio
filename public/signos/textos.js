@@ -65,7 +65,11 @@
 
         fetch('/textos/signos/' + id + '.json')
             .then(function (r) {
-                if (!r.ok) throw new Error(r.status);
+                if (!r.ok) {
+                    var e = new Error(r.status);
+                    e.status = r.status;
+                    throw e;
+                }
                 return r.json();
             })
             .then(function (datos) {
@@ -73,10 +77,23 @@
                 pintar(caja, datos);
                 caja.dataset.estado = 'listo';
             })
-            .catch(function () {
-                // Si el texto no carga, por lo menos queda el camino a la
-                // pagina donde esta: nunca un acordeon vacio.
+            .catch(function (e) {
                 caja.textContent = '';
+
+                // 404 no es un fallo: es un texto que Seba todavia no
+                // escribio. Enlazar a /carta-natal/ ahi seria mandar a la
+                // persona afuera de la pagina para que lea el mismo aviso.
+                if (e && e.status === 404) {
+                    caja.appendChild(parrafo(
+                        'Este texto todavía no está escrito: ' +
+                        'Seba lo publica acá cuando lo termine.'
+                    ));
+                    caja.dataset.estado = 'vacio';
+                    return;
+                }
+
+                // Si el texto esta pero no cargo, por lo menos queda el
+                // camino a la pagina donde esta: nunca un acordeon vacio.
                 if (caja.dataset.pagina) {
                     var p = document.createElement('p');
                     var a = document.createElement('a');
