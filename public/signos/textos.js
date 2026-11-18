@@ -17,6 +17,48 @@
 
     var cache = {};
 
+    // La rueda arquetipica: la casa 1 es Aries, la 9 es Sagitario. Es la
+    // tabla que explica el ebook en su apertura y que no estaba en ninguna
+    // parte del sitio.
+    var SIGNOS = [
+        ['aries', 'Aries'],
+        ['tauro', 'Tauro'],
+        ['geminis', 'Géminis'],
+        ['cancer', 'Cáncer'],
+        ['leo', 'Leo'],
+        ['virgo', 'Virgo'],
+        ['libra', 'Libra'],
+        ['escorpio', 'Escorpio'],
+        ['sagitario', 'Sagitario'],
+        ['capricornio', 'Capricornio'],
+        ['acuario', 'Acuario'],
+        ['piscis', 'Piscis']
+    ];
+
+    // Como se nombra cada punto en "si tu Saturno esta en casa 3". Es
+    // tambien la lista de los que llevan la leyenda: los acordeones de
+    // casas (casa1-..., casa12-...) no estan aca a proposito, porque ahi
+    // el texto YA es por casa y la leyenda seria circular. El acordeon que
+    // ocho signos llaman "Ascendente" es casa1-<signo>, asi que tampoco.
+    var PUNTOS = {
+        sol: 'Sol',
+        luna: 'Luna',
+        mercurio: 'Mercurio',
+        venus: 'Venus',
+        marte: 'Marte',
+        jupiter: 'Júpiter',
+        saturno: 'Saturno',
+        quiron: 'Quirón',
+        urano: 'Urano',
+        neptuno: 'Neptuno',
+        pluton: 'Plutón',
+        nodonorte: 'Nodo Norte',
+        lunanegra: 'Luna Negra'
+    };
+
+    // Las paginas de /carta-natal/ usan lunas/ para la Luna, no luna/.
+    var CARPETAS = { luna: 'lunas' };
+
     function parrafo(texto) {
         var p = document.createElement('p');
         p.textContent = texto;
@@ -53,6 +95,86 @@
             pie.appendChild(a);
             caja.appendChild(pie);
         }
+
+        var leyenda = porCasa(caja.dataset.texto);
+        if (leyenda) caja.appendChild(leyenda);
+    }
+
+    // La leyenda que cierra el acordeon: el mismo texto se puede leer por
+    // casa, leyendo el signo al que esa casa corresponde. Cada signo de la
+    // tabla enlaza al MISMO punto en ese signo, en /carta-natal/, asi que
+    // la persona llega al texto que le toca con un clic.
+    //
+    // Devuelve null si el id no es de un punto (las casas no la llevan).
+    function porCasa(id) {
+        if (!id) return null;
+        var corte = String(id).lastIndexOf('-');
+        if (corte < 1) return null;
+
+        var punto = String(id).slice(0, corte);
+        var signo = String(id).slice(corte + 1);
+        var nombre = PUNTOS[punto];
+        if (!nombre) return null;
+
+        var carpeta = CARPETAS[punto] || punto;
+
+        var det = document.createElement('details');
+        det.className = 'porcasa';
+
+        var res = document.createElement('summary');
+        res.textContent = 'Si quer\u00e9s saber m\u00e1s sobre este punto en tu carta\u2026';
+        det.appendChild(res);
+
+        var cuerpo = document.createElement('div');
+        cuerpo.className = 'porcasa-cuerpo';
+        cuerpo.appendChild(parrafo(
+            'Pod\u00e9s indagar lo que trae tambi\u00e9n por casa. Para eso pod\u00e9s leer ' +
+            'el texto del signo al que esa casa corresponde. Esa correspondencia es as\u00ed:'
+        ));
+
+        var lista = document.createElement('ul');
+        lista.className = 'casas-signos';
+        SIGNOS.forEach(function (par, i) {
+            var li = document.createElement('li');
+            var num = document.createElement('span');
+            num.textContent = String(i + 1);
+            li.appendChild(num);
+            li.appendChild(document.createTextNode(' '));
+
+            // El signo de esta pagina no es enlace: seria un enlace a si misma.
+            if (par[0] === signo) {
+                var b = document.createElement('b');
+                b.textContent = par[1];
+                li.appendChild(b);
+            } else {
+                var a = document.createElement('a');
+                a.href = '/carta-natal/' + carpeta + '/' + par[0] + '/';
+                a.textContent = par[1];
+                li.appendChild(a);
+            }
+            lista.appendChild(li);
+        });
+        cuerpo.appendChild(lista);
+
+        var cierre = document.createElement('p');
+        cierre.appendChild(document.createTextNode(
+            'O sea, que si tu ' + nombre + ' est\u00e1 en casa 3, leer\u00edas el texto que ' +
+            'escrib\u00ed para G\u00e9minis. En la '
+        ));
+        var calc = document.createElement('a');
+        calc.href = '/cartas/';
+        // Sin data-ga: estas paginas no cargan medicion.js, asi que el
+        // atributo no lo leeria nadie. En /carta-natal/ el mismo enlace si
+        // lo lleva (ver porCasa() en paginas-textos.js).
+        calc.textContent = 'calculadora de la p\u00e1gina';
+        cierre.appendChild(calc);
+        cierre.appendChild(document.createTextNode(
+            ' pod\u00e9s ver en qu\u00e9 casa est\u00e1 cada punto de tu carta.'
+        ));
+        cuerpo.appendChild(cierre);
+
+        det.appendChild(cuerpo);
+        return det;
     }
 
     function cargar(caja) {

@@ -891,3 +891,85 @@
 .signo-card.sagitario-theme:hover .signo-card-symbol,
 .signo-card.sagitario-theme:hover h3 { color: var(--sagitario-primary); }
 .signo-card.sagitario-theme:hover .signo-card-symbol { text-shadow: 0 0 15px rgba(255, 77, 77, 0.5); }
+
+/* =========================================
+   EL PUNTO POR CASA (lo agrega textos.js al final de cada acordeon)
+   =========================================
+   El mismo texto se puede leer por casa, leyendo el signo al que esa casa
+   corresponde. Es la tabla que explica el ebook en su apertura.
+
+   OJO CON EL SUMMARY ANIDADO: la regla `.desplegable-item summary` de mas
+   arriba es un selector de descendencia (display:flex, padding:20px), asi
+   que este <summary>, que vive dentro del acordeon, la hereda y sale con
+   cara de cabecera de acordeon. Hay que anularla a mano. No se la cambia a
+   `>` porque hay unas cuarenta reglas por tema que dependen de ella. */
+
+.porcasa {
+    margin: 22px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.9rem;
+}
+
+.desplegable-item .porcasa > summary,
+.porcasa > summary {
+    display: inline;
+    justify-content: normal;
+    align-items: normal;
+    padding: 0;
+    color: var(--text-dark);
+    cursor: pointer;
+    list-style: none;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+    user-select: auto;
+}
+
+.porcasa > summary::-webkit-details-marker { display: none; }
+.porcasa > summary::marker { content: ''; }
+.porcasa > summary:hover { text-decoration-style: solid; }
+
+.porcasa-cuerpo { margin-top: 18px; }
+
+/* Mas especifico que `.desplegable-content p`, que trae margin-bottom. */
+.desplegable-content .porcasa-cuerpo p {
+    margin: 0;
+    color: var(--text-dark);
+    line-height: 1.7;
+}
+
+/* Doce celdas que se reacomodan solas segun el ancho: ocupa mucho menos
+   que las dos tablas de dos columnas del libro. */
+.casas-signos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 10px 18px;
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.casas-signos li {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin: 0;
+}
+
+.casas-signos span {
+    min-width: 1.4em;
+    opacity: 0.6;
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+/* El signo de esta pagina no es enlace: seria un enlace a si misma. */
+.casas-signos b {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .casas-signos { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
+}

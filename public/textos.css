@@ -353,3 +353,76 @@ h1 {
     .punto { margin-top: 36px; }
     .llamada { padding: 28px 22px; }
 }
+
+/* ---------- el punto por casa ----------
+   El mismo texto se puede leer por casa, leyendo el signo al que esa casa
+   corresponde. La leyenda la cierra un <details> nativo: el resumen tiene
+   cara de enlace y no de boton, que es lo que se pidio, y no hace falta
+   JavaScript (estas paginas no cargan ninguno de UI). */
+
+.porcasa {
+    max-width: 42rem;
+    margin: 52px 0 0;
+    padding-top: 22px;
+    border-top: 1px solid var(--borde);
+    font-size: .9375rem;
+}
+
+.porcasa > summary {
+    display: inline;
+    width: auto;
+    padding: 0;
+    color: var(--primary-color);
+    cursor: pointer;
+    list-style: none;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+}
+
+.porcasa > summary::-webkit-details-marker { display: none; }
+.porcasa > summary::marker { content: ''; }
+.porcasa > summary:hover { text-decoration-style: solid; }
+
+.porcasa-cuerpo { margin-top: 20px; }
+
+.porcasa-cuerpo p {
+    margin: 0;
+    color: var(--text-tenue);
+    line-height: 1.7;
+}
+
+/* La tabla casa -> signo del ebook, rearmada para que ocupe poco: doce
+   celdas que se reacomodan solas segun el ancho. */
+.casas-signos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 10px 18px;
+    margin: 22px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.casas-signos li {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin: 0;
+}
+
+.casas-signos span {
+    min-width: 1.4em;
+    color: var(--text-tenue);
+    font-size: .8125rem;
+    text-align: right;
+}
+
+.casas-signos b {
+    color: var(--text);
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .porcasa { margin-top: 40px; }
+    .casas-signos { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
+}
