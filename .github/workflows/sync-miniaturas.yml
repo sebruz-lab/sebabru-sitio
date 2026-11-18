@@ -35,7 +35,8 @@ jobs:
       # el script lo saltea y el log lo dice, en lugar de fallar sin motivo
       # aparente.
       - name: Ver si ffmpeg esta disponible
-        run: ffmpeg -version | head -1 || echo "sin ffmpeg: el poster se saltea"
+        run: |
+          ffmpeg -version | head -1 || echo "sin ffmpeg, el poster se saltea"
 
       - name: Bajar miniaturas de YouTube y Spotify, y el poster del mp4
         run: node .github/scripts/sync-miniaturas.mjs
