@@ -6,13 +6,25 @@
 // paginas se reescriben enteras cada lunacion: asi lo unico que hay que
 // mantener ahi es el div con data-calc-lunacion.
 //
+// Desde el 17/11/2026 tambien lo usan las 8 paginas de /signos/, que no
+// quieren la lunacion sino la carta pelada. Por eso el div manda, pero el
+// default sigue siendo la lunacion: /lunanueva y /lunallena usan el div
+// pelado y no se pueden romper.
+//
 // Para usarlo:
-//   <div data-calc-lunacion></div>
-//   <script type="module" src="/calc-lunacion.js?v=1"></script>
+//   <div data-calc-lunacion></div>                      (lunacion)
+//   <div data-calc-lunacion data-vista=""></div>        (carta natal)
+//   <div data-calc-lunacion data-texto="..." data-boton="..."></div>
+//   <script type="module" src="/calc-lunacion.js?v=2"></script>
 import { conectarBuscador, normalizarFecha, completarFecha } from '/cartas/buscador-lugares.js?v=1.16.0';
 
 const TEXTO = 'En esta calculadora vas a poder saberlo con exactitud. '
     + 'Solo poné tus datos natales y enterate.';
+
+// Lo que cambia entre /lunanueva y /signos: el texto, el boton y si la URL
+// lleva vista. Si el div no dice nada, queda lo de la lunacion, que es como
+// venia funcionando.
+const opcion = (caja, nombre, porDefecto) => (caja.dataset[nombre] || porDefecto);
 
 const ESTILOS = `
 .calc-lunacion .cl-intro { margin: 0 0 18px; }
@@ -76,9 +88,17 @@ function aBase64Url(texto) {
 }
 
 function armar(caja, n) {
+    // Cada div decide que calculadora es. SIN el atributo queda 'lunacion',
+    // que es como venian /lunanueva y /lunallena, que lo usan pelado: si el
+    // default fuera la carta natal, esas dos dejarian de mostrar la lunacion.
+    // Con data-vista="" (vacio a proposito) la URL sale sin vista y /cartas/
+    // abre la carta natal, que es lo que quieren las 8 de /signos/.
+    const vista = caja.dataset.vista === undefined ? 'lunacion' : caja.dataset.vista;
+    const texto = opcion(caja, 'texto', TEXTO);
+    const boton = opcion(caja, 'boton', 'Ver dónde me cae');
     const id = (parte) => 'cl-' + parte + '-' + n;
     caja.classList.add('calc-lunacion');
-    caja.innerHTML = '<p class="cl-intro">' + TEXTO + '</p>'
+    caja.innerHTML = '<p class="cl-intro">' + texto + '</p>'
         + '<p class="cl-error" id="' + id('error') + '" role="alert"></p>'
         + '<form novalidate>'
         + '<div class="cl-campo">'
@@ -101,10 +121,10 @@ function armar(caja, n) {
         + ' role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id('sug') + '">'
         + '<ul class="sugerencias" id="' + id('sug') + '" role="listbox" hidden></ul>'
         + '</div>'
-        + '<button type="submit">Ver dónde me cae</button>'
+        + '<button type="submit">' + boton + '</button>'
         + '</form>'
         + '<p class="cl-nota">Se abre en una pestaña nueva. '
-        + '<a href="/cartas/#vista=lunacion" target="_blank" rel="noopener">O abrí la calculadora vacía</a>.</p>';
+        + '<a href="/cartas/' + (vista ? '#vista=' + vista : '') + '" target="_blank" rel="noopener">O abrí la calculadora vacía</a>.</p>';
 
     const campo = (parte) => caja.querySelector('#' + id(parte));
     const fecha = campo('fecha');
@@ -139,8 +159,8 @@ function armar(caja, n) {
             hora,
             lugar
         };
-        window.open('/cartas/#carta=' + aBase64Url(JSON.stringify(datos)) + '&vista=lunacion', '_blank', 'noopener');
-        if (window.gtag) gtag('event', 'calculadora_abierta', { origen: 'lunacion' });
+        window.open('/cartas/#carta=' + aBase64Url(JSON.stringify(datos)) + (vista ? '&vista=' + vista : ''), '_blank', 'noopener');
+        if (window.gtag) gtag('event', 'calculadora_abierta', { origen: vista || 'natal' });
     });
 }
 
