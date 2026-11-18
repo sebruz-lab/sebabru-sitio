@@ -60,13 +60,6 @@
     margin-top: 5px;
 }
 
-/* --- SECCIÓN INSTAGRAM --- */
-.instagram-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-}
-
 /* --- SECCIÓN DESPLEGABLES (Accordions) --- */
 .desplegables-section {
     max-width: 1000px;
