@@ -570,3 +570,47 @@ document.addEventListener('DOMContentLoaded', () => {
         for (var m = 0; m < bloques.length; m++) obsIg.observe(bloques[m]);
     }
 })();
+
+// --- Videos de fondo diferidos -------------------------------------------
+// El mp4 de las formaciones pesa 427 KB, mas que todo el resto del HTML, el
+// CSS y el JS propios de la home juntos. Con autoplay el browser lo baja
+// enseguida aunque el carrusel este abajo de todo, y compite por ancho de
+// banda con lo que la persona si esta mirando.
+//
+// La pareja preload="none" + poster corta esa descarga: se ve un fotograma
+// del propio video (lo saca ffmpeg en el workflow de miniaturas, 30 KB) y
+// los bytes del mp4 recien salen cuando el video esta por entrar en pantalla.
+// Sin JS la persona ve el poster quieto, que es lo que corresponde para un
+// video decorativo.
+(function () {
+    'use strict';
+
+    var videos = document.querySelectorAll('video[data-video-diferido]');
+    if (!videos.length) return;
+
+    function arrancar(v) {
+        if (v.dataset.arrancado) return;
+        v.dataset.arrancado = '1';
+        v.preload = 'auto';
+        try { v.load(); } catch (e) {}
+        var p = v.play();
+        // Si el browser rechaza el autoplay, queda el poster. No es un error.
+        if (p && p.catch) p.catch(function () {});
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        for (var i = 0; i < videos.length; i++) arrancar(videos[i]);
+        return;
+    }
+
+    var obs = new IntersectionObserver(function (entradas) {
+        for (var j = 0; j < entradas.length; j++) {
+            if (entradas[j].isIntersecting) {
+                obs.unobserve(entradas[j].target);
+                arrancar(entradas[j].target);
+            }
+        }
+    }, { rootMargin: '200px' });
+
+    for (var k = 0; k < videos.length; k++) obs.observe(videos[k]);
+})();
