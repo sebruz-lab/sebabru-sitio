@@ -38,13 +38,14 @@ jobs:
         with:
           node-version: 20
 
-      # Los runners de ubuntu ya traen ffmpeg, que es lo que saca el poster
-      # del mp4. Se verifica en vez de asumirlo: si algun dia deja de venir,
-      # el script lo saltea y el log lo dice, en lugar de fallar sin motivo
-      # aparente.
-      - name: Ver si ffmpeg esta disponible
+      # ffmpeg es lo que saca el poster del mp4. La imagen de ubuntu-latest
+      # NO lo trae: el 18/11/2026 la corrida paso en verde sin generar nada
+      # porque el script lo salteo al no encontrarlo. Se instala, no se asume.
+      - name: Instalar ffmpeg
         run: |
-          ffmpeg -version | head -1 || echo "sin ffmpeg, el poster se saltea"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
 
       - name: Bajar miniaturas de YouTube y Spotify, y el poster del mp4
         run: node .github/scripts/sync-miniaturas.mjs
