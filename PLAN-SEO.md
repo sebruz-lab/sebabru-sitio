@@ -1,6 +1,6 @@
 # Plan de SEO y velocidad de sebabru.com
 
-**Actualizado: 18/11/2026.** Reemplaza la version del 17/11 y la auditoria
+**Actualizado: 19/11/2026.** Reemplaza la version del 18/11 y la auditoria
 `AUDITORIA-SEO.md` del 13/11, las dos vencidas.
 
 Para quien lo continue en otra sesion: todo lo que esta abajo se midio, no se
@@ -41,6 +41,35 @@ contenido de la home *es* un recorrido por scroll: mide la primera pantalla y
 corta. Por eso le da 0 bytes de Instagram y no ve el Spotify que si carga mas
 abajo. Sirve para una sola cosa: contar los bytes propios. Para la experiencia
 real, usar CrUX.
+
+### Search Console, export del 19/11/2026 (3 meses)
+
+153 clics y 511 impresiones, contra 159 y 473 de la linea de base del 13/11.
+Los clics estan planos; las impresiones subieron 8%.
+
+**Lo que cambio de verdad es la mezcla de consultas.** El 13/11 eran todas el
+nombre de Seba. Hoy, de 35 consultas, unas 25 son tematicas: `carta astral
+acuario`, `luna en los signos`, `sol en geminis`, `obtener carta natal`,
+`como saber mi signo solar`. La meta de "un tercio de las consultas que no sean
+el nombre" ya se cumplio en cantidad de consultas. **Pero todas estan en
+posicion 24 a 80 y suman cero clics**: Google entendio de que habla el sitio y
+lo muestra en la pagina 3 a 8.
+
+Las impresiones tematicas caen en las URLs **viejas** (`/ascendente/acuario/`
+posicion 62, `/sol/geminis/`, `/lunas/cancer/`). Los 301 de `firebase.json`
+estan bien puestos: es que durante la ventana Google todavia tenia indexadas
+esas. Las 196 de `/carta-natal/` no tienen **ni una impresion** todavia.
+
+Indexacion: 37 "Descubierta: actualmente sin indexar", 11 "Rastreada:
+actualmente sin indexar", **17 que dan 404**, 7 con redireccion, 4 noindex.
+Los 17 son el unico numero preocupante y **no se sabe cuales son**: el CSV de
+problemas trae solo el total, hay que entrar a esa fila y exportar la lista.
+
+Un dato nuevo: `https://www.sebabru.com/` aparece como pagina aparte (3
+impresiones, posicion 1,67). El `www` se indexa separado del dominio pelado.
+
+Espania: 106 impresiones y 16 clics, pero la posicion media se fue de 8,35 a
+19,98, porque las impresiones nuevas son todas tematicas y profundas.
 
 ### Estructura
 
@@ -103,21 +132,29 @@ al menos un tercio de las consultas no sean el nombre de Seba.
 
 ### Lo que es trabajo de Claude, sin bloqueos
 
-1. `Course` en JSON-LD en `/programa/`.
-2. Font Awesome: **289 KB de webfonts y CSS desde cdnjs** por un punado de
-   iconos de marca. Pasarlos a SVG en linea. Esta en todas las paginas de
-   `/signos/`, donde ahora es el peso mas grande que queda.
-3. Spotify en la home: **1,1 MB** que si cargan cuando la persona recorre.
-   Mirar si ese embed quedo sin facade.
-4. Subir `s-maxage` de 3600 a 86400 una vez confirmado que no hay contenido
-   viejo (el purgado ya esta probado, ver 18/11).
-5. La salida `punto-<slug>.json` del generador, para la ruleta. Paso 1 de
+Los cuatro primeros se hicieron el 19/11 (ver la seccion 8). Queda:
+
+1. **Los `<title>` y las `meta description` de `/programa/`, `/lilith/` y
+   `/formaciones/`.** Las tres estan en posicion 5,8 a 6,9 con CTR de 2,2% a
+   3,0%: Google ya las muestra arriba y la gente no entra. Es lo mas barato que
+   queda en todo el plan. **Espera que Seba corrija los borradores**, porque es
+   texto que lee la gente y el texto lo escribe el.
+2. Averiguar cuales son los 17 404, cuando Seba exporte la lista, y ver cuales
+   merecen un 301 mas.
+3. La salida `punto-<slug>.json` del generador, para la ruleta. Paso 1 de
    `PLAN-RULETA.md`: genera archivos que todavia nadie lee, no rompe nada.
 
 ### 16/12/2026 — revision
 
 Volver a medir CrUX y comparar contra la tabla de arriba. Es la primera vez que
 se va a poder decir si algo de esto sirvio.
+
+**Esto ya no depende de que alguien se acuerde.** Desde el 19/11 hay dos
+recordatorios agendados que corren solos en la nube y llegan por mail:
+`trig_019neTVnHuX4f7JmMjiW8rpd` el 16/12 (mide CrUX, compara contra la tabla de
+la seccion 1 y pide los exports de Search Console) y
+`trig_01K8DPq1v1qazsKrXkU2gCn6` el 28/11 (DMARC a `p=reject`). Se administran
+en https://claude.ai/code/routines
 
 ---
 
@@ -227,7 +264,33 @@ no se puede probar localmente, la primera corrida de verdad es en la Action.
 
 ---
 
-## 8. Reglas de trabajo — leer antes de tocar nada
+## 8. Que se hizo el 19/11/2026
+
+- **Font Awesome fuera de `/signos/`.** Eran 289 KB de webfonts y CSS desde
+  cdnjs para siete iconos. El caret de los 26 desplegables ahora se dibuja por
+  `mask-image` en `signos.css` (con `background-color: currentColor`, para que
+  las reglas de color de cada signo sigan funcionando sin tocarlas) y los seis
+  iconos de marca son SVG en linea, bajados del paquete oficial y no dibujados
+  a mano. El HTML crece 7,4 KB por pagina y se ahorran 289 KB y una conexion a
+  un tercero. `signos.css` paso a `?v=6`.
+- **El Spotify de la home pasa a facade.** Era el unico embed del sitio que
+  habia quedado como `<iframe loading="lazy">`: 1,1 MB que cargaban igual
+  cuando la persona recorria. Ahora usa el mismo `.yt-facade` compartido que ya
+  usaban `/kit/` y `/signos/`, con la miniatura `kit-spotify.jpg` que renueva
+  la Action de los martes.
+- **`Course` en JSON-LD en `/programa/`**, con los tres cursos como `hasPart` y
+  un `BreadcrumbList`. La descripcion es la misma `meta description` que ya
+  tenia la pagina: el dato estructurado no inventa texto.
+- **`s-maxage` de 3600 a 86400** en `firebase.json`. El borde ahora guarda un
+  dia; el navegador sigue en 300 s.
+- Se leyeron los 11 CSV de Search Console (ver la seccion 1).
+
+**Un hallazgo que resulto FALSO, para no repetirlo:** "`/lilith/` esta indexada
+con los parametros UTM y le falta el `canonical`". El `canonical` **ya estaba**
+puesto y apunta a la URL limpia. Lo que se ve en el CSV es como Google
+descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
+
+## 9. Reglas de trabajo — leer antes de tocar nada
 
 1. **Medi, no deduzcas, y pone un control.** Una prueba sin control no mide lo
    que parece. Hoy paso tres veces: una hipotesis refutada, una medicion
