@@ -8,6 +8,46 @@ Las comillas curvas rompen todos los atributos `class=` y `style=` porque el bro
 
 Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerShell que no haya bytes `e2 80 9d` o `e2 80 9c` en el archivo.
 
+## Centrar texto: si no se centra, es `text-align-last`
+
+`public/style.css` declara, en las reglas de base:
+
+```css
+p  { text-align: left; text-align-last: left; }
+h2 { text-align: left; }
+h3, h4, h5, h6 { text-align: left; }
+```
+
+Eso produce dos problemas distintos, y conviene no confundirlos:
+
+1. **Centrar el contenedor no alcanza.** Un `text-align: center` en el padre no
+   llega al `<p>` ni a los encabezados, porque cada uno trae su propio
+   `text-align: left`. Hay que ponerlo en el elemento.
+2. **Centrar el propio `<p>` tampoco alcanza, y esta es la traicionera.** En un
+   parrafo de **una sola linea**, la unica linea es tambien la ultima, asi que
+   manda `text-align-last` y no `text-align`. El `text-align: center` queda
+   escrito, se ve correcto al leer el codigo, y no hace nada.
+
+**Entonces, para centrar un parrafo hay que escribir las dos:**
+
+```css
+.loquesea { text-align: center; text-align-last: center; }
+```
+
+Ya mordio varias veces: `/links/`, `/consultas/formulario.html` (tres veces) y
+la `404.html` tienen cada uno su `text-align-last: center` puesto a mano para
+esquivarlo.
+
+En `public/style.css` el `text-align-last: left` es **redundante** (la ultima
+linea de un texto alineado a la izquierda ya esta a la izquierda): su unico
+efecto real es romper los centrados. Donde si corresponde es en
+`public/libros/style.css`, que justifica el texto: ahi `text-align-last: left`
+evita que la ultima linea se estire. No borrar esa.
+
+Sacar la declaracion de `public/style.css` arreglaria la clase entera de bug,
+pero toca las 61 paginas que cargan esa hoja y obliga a subir el `?v=` en todas
+(hoy conviven v=1, 26, 29, 30 y 31). Es una decision de Seba, no se hizo.
+
 ## Proyecto
 
 - **El trabajo pesado va en `C:\dev\scratch`, nunca adentro del proyecto.** `functions/` vive en Google Drive, y Drive corta las escrituras mientras sincroniza: un `npm install` ahí dejó 4152 archivos en cero, incluidos los `package.json` de `puppeteer-core` y `mercadopago`, y no avisa más que con un `TAR_ENTRY_ERROR` perdido en la salida. Instalar en `C:\dev\scratch` con una copia del `package.json`, verificar que los módulos carguen, y recién entonces traer el resultado con `robocopy /MIR`. Lo mismo para cualquier archivo temporal grande.
