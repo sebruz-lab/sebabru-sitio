@@ -28,12 +28,28 @@
             text-align: center;
             max-width: 500px;
         }
-        .not-found-content .eyebrow {
-            color: var(--primary-color);
-            font-size: 0.88rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 10px;
+        /* El numero es el titulo de la pagina: grande y fino, y de ahi para
+           abajo todo es mas chico. clamp() para que no desborde en un
+           telefono ni se quede enano en un monitor. */
+        .numerazo {
+            font-size: clamp(5rem, 22vw, 11rem);
+            font-weight: 200;
+            line-height: 0.9;
+            letter-spacing: 0.02em;
+            margin: 0;
+            color: var(--text-light);
+        }
+        .chiste {
+            font-size: 1.05rem;
+            color: var(--text-dark);
+            margin: 14px 0 34px;
+        }
+        /* El boton es inline, asi que se centra con el text-align del
+           contenedor; el parrafo propio le da ese contenedor y lo separa de
+           la grilla. */
+        .volver {
+            text-align: center;
+            margin: 0;
         }
         .not-found-content p {
             color: var(--text-dark);
@@ -118,15 +134,14 @@
 
     <main class="not-found-main">
         <div class="not-found-content">
-            <p class="eyebrow">Error 404</p>
             <header class="main-header">
-                <h1>Página no encontrada</h1>
+                <h1 class="numerazo">404</h1>
             </header>
-            <p>El enlace está roto o la página fue movida.</p>
-            <a href="/" class="btn-sutil"><svg class="icono-marca" aria-hidden="true" focusable="false" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/></svg> Volver al inicio</a>
+            <p class="chiste">Cuatrocientoscuatrochi &iquest;qu&eacute; pas&oacute;?</p>
+            <p class="volver"><a href="/" class="btn-sutil"><svg class="icono-marca" aria-hidden="true" focusable="false" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/></svg> Volver al inicio</a></p>
 
             <section class="gratis">
-                <h2>Pero tenemos todos estos contenidos gratuitos para ofrecerte</h2>
+                <h2>Tenemos todos estos contenidos gratuitos para ofrecerte</h2>
                 <div class="gratis-grilla">
                     <a class="gratis-item" href="/cartas/">
                         <strong>Calculá tu carta natal</strong>
