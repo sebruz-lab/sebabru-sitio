@@ -8,9 +8,11 @@ Las comillas curvas rompen todos los atributos `class=` y `style=` porque el bro
 
 Antes de deployar cualquier edición de HTML, si hay dudas: verificar con PowerShell que no haya bytes `e2 80 9d` o `e2 80 9c` en el archivo.
 
-## Centrar texto: si no se centra, es `text-align-last`
+## Centrar: las dos trampas
 
-`public/style.css` declara, en las reglas de base:
+### Trampa 1: `text-align-last`
+
+`public/style.css` declaraba, en las reglas de base:
 
 ```css
 p  { text-align: left; text-align-last: left; }
@@ -28,7 +30,7 @@ Eso produce dos problemas distintos, y conviene no confundirlos:
    manda `text-align-last` y no `text-align`. El `text-align: center` queda
    escrito, se ve correcto al leer el codigo, y no hace nada.
 
-**Entonces, para centrar un parrafo hay que escribir las dos:**
+**Entonces, hasta el 19/11/2026 habia que escribir las dos:**
 
 ```css
 .loquesea { text-align: center; text-align-last: center; }
@@ -44,9 +46,38 @@ efecto real es romper los centrados. Donde si corresponde es en
 `public/libros/style.css`, que justifica el texto: ahi `text-align-last: left`
 evita que la ultima linea se estire. No borrar esa.
 
-Sacar la declaracion de `public/style.css` arreglaria la clase entera de bug,
-pero toca las 61 paginas que cargan esa hoja y obliga a subir el `?v=` en todas
-(hoy conviven v=1, 26, 29, 30 y 31). Es una decision de Seba, no se hizo.
+**Resuelto el 19/11/2026:** se saco `text-align-last: left` de
+`public/style.css` y de las dos copias inline del CSS critico (la home y
+`/formaciones/`), y las 61 paginas pasaron a `style.css?v=32`. Hoy alcanza con
+`text-align: center`. Los `text-align-last: center` que quedaron en `/links/`,
+en el formulario de consultas y en la `404.html` son restos inofensivos.
+
+### Trampa 2: el elemento ocupa todo el ancho
+
+Mismo sintoma, causa distinta, y es la que mas se confunde con la anterior.
+Centrar el texto de un contenedor no mueve a un hijo que **ya ocupa todo el
+ancho**: la caja es tan ancha como el padre, asi que no hay nada que centrar y
+el contenido se alinea al principio.
+
+El caso concreto: **`.btn-sutil` esta declarado DOS VECES en
+`public/style.css`** (hay un comentario "OJO" en la primera avisandolo), y la
+segunda lo pone en `display: flex`. Un flex de nivel bloque ocupa todo el
+ancho. Por eso el "Volver al inicio" de la `404.html` quedaba a la izquierda
+aunque el parrafo estuviera centrado.
+
+Se arregla haciendo que el elemento vuelva al flujo del texto:
+
+```css
+.loquesea .btn-sutil { display: inline-flex; justify-content: center; }
+```
+
+O, si tiene que seguir siendo de bloque, centrando la caja y no el texto:
+`width: fit-content; margin: 0 auto` (es lo que hace `.deslizar-hint` en la
+home, y por eso esa nunca se vio descentrada).
+
+**Como distinguirlas en dos segundos:** si el texto esta a la izquierda pero
+dentro de una caja que ocupa todo el ancho, es la trampa 2. Si la caja se
+ajusta al texto y aun asi no se centra, era la trampa 1.
 
 ## Proyecto
 
