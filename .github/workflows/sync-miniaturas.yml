@@ -32,7 +32,14 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      # Con el GITHUB_TOKEN por defecto, el commit que hace esta Action NO
+      # dispara el workflow de deploy: GitHub no encadena workflows para evitar
+      # recursion. Resultado: el cambio quedaba en el repo y no llegaba al
+      # sitio hasta el siguiente push a mano. Con el PAT, el push es de una
+      # persona y el deploy corre.
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - uses: actions/setup-node@v4
         with:
