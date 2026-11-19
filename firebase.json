@@ -202,6 +202,36 @@
         "source": "/contenidos/**",
         "destination": "/links",
         "type": 301
+      },
+      {
+        "source": "/planetas",
+        "destination": "/carta-natal",
+        "type": 301
+      },
+      {
+        "source": "/planetas/:resto*",
+        "destination": "/carta-natal",
+        "type": 301
+      },
+      {
+        "source": "/dni",
+        "destination": "/escuela/abierta/identidad",
+        "type": 301
+      },
+      {
+        "source": "/dni/:resto*",
+        "destination": "/escuela/abierta/identidad",
+        "type": 301
+      },
+      {
+        "source": "/tarot",
+        "destination": "/escuela/abierta/tarot",
+        "type": 301
+      },
+      {
+        "source": "/tarot/:resto*",
+        "destination": "/escuela/abierta/tarot",
+        "type": 301
       }
     ]
   }
