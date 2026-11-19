@@ -32,24 +32,43 @@
            abajo todo es mas chico. clamp() para que no desborde en un
            telefono ni se quede enano en un monitor. */
         .numerazo {
-            font-size: clamp(5rem, 22vw, 11rem);
+            font-size: clamp(8rem, 40vw, 26rem);
             font-weight: 200;
-            line-height: 0.9;
-            letter-spacing: 0.02em;
+            line-height: 0.85;
+            letter-spacing: 0.01em;
             margin: 0;
             color: var(--text-light);
+        }
+        /* style.css trae `p { text-align: left; text-align-last: left }`. En un
+           parrafo de una sola linea la que manda es text-align-last, asi que
+           sin repetirla aca el centrado no se aplica. */
+        .chiste,
+        .volver {
+            text-align: center;
+            text-align-last: center;
         }
         .chiste {
             font-size: 1.05rem;
             color: var(--text-dark);
-            margin: 14px 0 34px;
+            margin: 18px 0 38px;
         }
-        /* El boton es inline, asi que se centra con el text-align del
-           contenedor; el parrafo propio le da ese contenedor y lo separa de
-           la grilla. */
-        .volver {
-            text-align: center;
-            margin: 0;
+        .volver { margin: 0; }
+        /* Volver al inicio va sin recuadro: es un enlace, no una accion que
+           compita con la grilla de abajo. Conserva las versalitas del boton
+           para que siga leyendose como tal. */
+        .volver .btn-sutil {
+            border: none;
+            padding: 0;
+            background: none;
+            backdrop-filter: none;
+            color: var(--text-dark);
+        }
+        .volver .btn-sutil:hover,
+        .volver .btn-sutil:focus-visible {
+            background: none;
+            box-shadow: none;
+            transform: none;
+            color: var(--primary-color);
         }
         .not-found-content p {
             color: var(--text-dark);
@@ -64,6 +83,7 @@
             text-align: left;
         }
         .gratis h2 {
+            text-align: center;
             font-size: 1.15rem;
             font-weight: 400;
             line-height: 1.4;
