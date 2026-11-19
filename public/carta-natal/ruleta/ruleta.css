@@ -1,0 +1,230 @@
+/* =========================================================
+   PROTOTIPO: la rueda de puntos de /carta-natal/.
+
+   Esta hoja se suma a textos.css y a madre.css, que ya estan cargadas: de
+   ahi salen los colores, la grilla de los doce signos y el panel que se
+   abre. Aca esta solo la rueda.
+
+   Todo cuelga de html.ruleta, la clase que pone el script inline del
+   <head> y que solo aparece si hay JavaScript y no se pidieron las
+   animaciones apagadas. Sin esa clase la pagina es la grilla de siempre,
+   con sus quince recuadros y sus 180 enlaces a la vista.
+
+   La pagina la arma ruleta-prototipo.js (C:/dev/herramientas-sebabru).
+   ========================================================= */
+
+.aviso-prototipo {
+    max-width: 42rem;
+    margin: 0 0 24px;
+    padding: 10px 14px;
+    border: 1px dashed var(--secondary-color);
+    border-radius: 8px;
+    font-size: .8125rem;
+    color: var(--text-tenue);
+}
+
+/* Sin JavaScript no hay rueda: seria un circulo quieto tapando la grilla. */
+.rueda,
+.rueda-volver { display: none; }
+
+/* ---------- la rueda ---------- */
+
+html.ruleta .rueda {
+    display: block;
+    position: relative;
+    /* --radio es la distancia del centro a cada glifo, y --centro donde
+       cae el centro del circulo dentro de la caja. En compu el circulo
+       entra entero; en celular se baja el centro y se agranda el radio,
+       y queda a la vista nada mas que el arco de arriba. */
+    --radio: 13.5rem;
+    --centro: 50%;
+    height: 34rem;
+    margin: 32px auto 0;
+    max-width: 42rem;
+    overflow: hidden;
+}
+
+html.ruleta .rueda-aro {
+    position: absolute;
+    left: 50%;
+    top: var(--centro);
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    /* El giro lo escribe ruleta.js. La transicion NO va aca: el
+       movimiento ya viene amortiguado por el propio script, y encadenar
+       las dos cosas se siente como barro. */
+    transform: rotate(var(--giro, 0deg));
+}
+
+html.ruleta .rueda-item {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* Cada punto se lleva a su angulo y despues se desgira, para que el glifo
+   quede siempre derecho aunque el aro este rotado. */
+html.ruleta .rueda-punto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 5.5rem;
+    margin: -2.75rem 0 0 -2.75rem;
+    padding: 8px 0;
+    color: var(--text-tenue);
+    text-decoration: none;
+    opacity: .38;
+    transform: rotate(var(--a)) translateY(calc(-1 * var(--radio)))
+               rotate(calc(-1 * (var(--a) + var(--giro, 0deg))));
+    transition: opacity .35s ease, color .35s ease;
+}
+
+html.ruleta .rueda-punto .glifo-punto,
+html.ruleta .rueda-punto .glifo-letra {
+    width: 2.1rem;
+    height: 2.1rem;
+    font-size: .95rem;
+}
+
+html.ruleta .rueda-etiqueta {
+    font-size: .6875rem;
+    letter-spacing: .06em;
+    text-align: center;
+    opacity: 0;
+    transition: opacity .35s ease;
+}
+
+/* El que esta bajo la aguja: a todo color y con su nombre. */
+html.ruleta .rueda-punto.en-foco {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+html.ruleta .rueda-punto.en-foco .rueda-etiqueta { opacity: 1; }
+
+html.ruleta .rueda-punto:hover,
+html.ruleta .rueda-punto:focus-visible { opacity: 1; }
+
+html.ruleta .rueda-punto:focus-visible {
+    outline: 1px solid var(--primary-color);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+/* ---------- el centro y la aguja ---------- */
+
+html.ruleta .rueda-centro {
+    position: absolute;
+    left: 50%;
+    top: var(--centro);
+    transform: translate(-50%, -50%);
+    width: 13rem;
+    text-align: center;
+    pointer-events: none;
+}
+
+html.ruleta .rueda-nombre {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: .02em;
+    color: var(--text);
+}
+
+html.ruleta .rueda-pista {
+    margin: 6px 0 0;
+    font-size: .6875rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-tenue);
+}
+
+/* La aguja marca donde esta el foco. Es el unico adorno del circulo: una
+   rueda con radios dibujados se parece mas a un reloj que a una carta. */
+html.ruleta .rueda-aguja {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--centro) - var(--radio) + 2.9rem);
+    width: 1px;
+    height: 1.2rem;
+    margin-left: -.5px;
+    background: linear-gradient(to top, transparent, var(--primary-color));
+}
+
+/* ---------- la grilla, cuando manda la rueda ----------
+
+   Los quince recuadros siguen en la pagina con sus 180 enlaces: lo que
+   cambia es que sus titulos los reemplaza la rueda, y queda a la vista
+   nada mas que el que esta abierto, justo debajo del circulo. */
+
+html.ruleta .puntos-grid {
+    display: block;
+    margin-top: 10px;
+}
+
+html.ruleta .punto-card:not([open]) { display: none; }
+
+html.ruleta .punto-card > summary { display: none; }
+
+html.ruleta .punto-card[open] {
+    border: none;
+    background: none;
+    border-radius: 0;
+}
+
+html.ruleta .punto-card[open] .punto-cuerpo {
+    border-top: 1px solid var(--borde);
+    padding: 0;
+    padding-top: 4px;
+}
+
+/* El titulo del punto abierto, que en la grilla lo daba el summary. */
+html.ruleta .punto-abierto-titulo {
+    margin: 0 0 4px;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--primary-color);
+}
+
+html.ruleta .rueda-volver {
+    display: block;
+    margin: 28px 0 0;
+    font-size: .875rem;
+}
+
+/* ---------- celular ----------
+   Se ve el arco de arriba: el centro del circulo se va abajo del borde de
+   la caja y el radio crece, asi los glifos entran grandes y de a pocos. */
+
+@media (max-width: 600px) {
+    html.ruleta .rueda {
+        --radio: 17rem;
+        --centro: 120%;
+        height: 20rem;
+        max-width: none;
+    }
+
+    html.ruleta .rueda-centro {
+        top: auto;
+        bottom: 1.5rem;
+        transform: translate(-50%, 0);
+        width: 100%;
+    }
+
+    html.ruleta .rueda-nombre { font-size: 1.25rem; }
+
+    html.ruleta .rueda-aguja {
+        top: calc(var(--centro) - var(--radio) + 2.9rem);
+    }
+}
+
+/* En una pantalla baja (un celular acostado) el circulo no entra: se le
+   recorta el alto y queda el arco, igual que en vertical. */
+@media (max-height: 560px) and (min-width: 601px) {
+    html.ruleta .rueda { height: 22rem; --centro: 108%; --radio: 16rem; }
+    html.ruleta .rueda-centro { top: auto; bottom: 1rem; transform: translate(-50%, 0); }
+}
