@@ -125,52 +125,52 @@
       },
       {
         "source": "/escuela/abierta-test",
-        "destination": "/escuela/abierta",
+        "destination": "/escuela/abierta/",
         "type": 301
       },
       {
         "source": "/escuela/abierta-test/**",
-        "destination": "/escuela/abierta",
+        "destination": "/escuela/abierta/",
         "type": 301
       },
       {
         "source": "/tucarta",
-        "destination": "/cartas",
+        "destination": "/cartas/",
         "type": 301
       },
       {
         "source": "/tucarta/**",
-        "destination": "/cartas",
+        "destination": "/cartas/",
         "type": 301
       },
       {
         "source": "/identidad-astral",
-        "destination": "/tu-identidad-en-el-cielo",
+        "destination": "/tu-identidad-en-el-cielo/",
         "type": 301
       },
       {
         "source": "/identidad-astral/**",
-        "destination": "/tu-identidad-en-el-cielo",
+        "destination": "/tu-identidad-en-el-cielo/",
         "type": 301
       },
       {
         "source": "/linaje-clan-y-genealogia-a-traves-de-las-casas-astrologicas",
-        "destination": "/escuela/abierta/linaje",
+        "destination": "/escuela/abierta/linaje/",
         "type": 301
       },
       {
         "source": "/linaje-clan-y-genealogia-a-traves-de-las-casas-astrologicas/**",
-        "destination": "/escuela/abierta/linaje",
+        "destination": "/escuela/abierta/linaje/",
         "type": 301
       },
       {
         "source": "/formacion-en-astrologia",
-        "destination": "/programa",
+        "destination": "/programa/",
         "type": 301
       },
       {
         "source": "/formacion-en-astrologia/**",
-        "destination": "/programa",
+        "destination": "/programa/",
         "type": 301
       },
       {
@@ -185,52 +185,52 @@
       },
       {
         "source": "/capricornio",
-        "destination": "/carta-natal/sol/capricornio",
+        "destination": "/carta-natal/sol/capricornio/",
         "type": 301
       },
       {
         "source": "/capricornio/**",
-        "destination": "/carta-natal/sol/capricornio",
+        "destination": "/carta-natal/sol/capricornio/",
         "type": 301
       },
       {
         "source": "/contenidos",
-        "destination": "/links",
+        "destination": "/links/",
         "type": 301
       },
       {
         "source": "/contenidos/**",
-        "destination": "/links",
+        "destination": "/links/",
         "type": 301
       },
       {
         "source": "/planetas",
-        "destination": "/carta-natal",
+        "destination": "/carta-natal/",
         "type": 301
       },
       {
         "source": "/planetas/:resto*",
-        "destination": "/carta-natal",
+        "destination": "/carta-natal/",
         "type": 301
       },
       {
         "source": "/dni",
-        "destination": "/escuela/abierta/identidad",
+        "destination": "/escuela/abierta/identidad/",
         "type": 301
       },
       {
         "source": "/dni/:resto*",
-        "destination": "/escuela/abierta/identidad",
+        "destination": "/escuela/abierta/identidad/",
         "type": 301
       },
       {
         "source": "/tarot",
-        "destination": "/escuela/abierta/tarot",
+        "destination": "/escuela/abierta/tarot/",
         "type": 301
       },
       {
         "source": "/tarot/:resto*",
-        "destination": "/escuela/abierta/tarot",
+        "destination": "/escuela/abierta/tarot/",
         "type": 301
       }
     ]
