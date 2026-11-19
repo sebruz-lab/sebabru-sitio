@@ -57,6 +57,13 @@
            compita con la grilla de abajo. Conserva las versalitas del boton
            para que siga leyendose como tal. */
         .volver .btn-sutil {
+            /* style.css define .btn-sutil dos veces y la segunda lo pone en
+               `display: flex`. Un flex de bloque ocupa todo el ancho, asi que
+               el text-align del parrafo no tiene nada que centrar y el
+               contenido queda pegado a la izquierda. inline-flex lo devuelve
+               al flujo del texto, y ahi si se centra. */
+            display: inline-flex;
+            justify-content: center;
             border: none;
             padding: 0;
             background: none;
