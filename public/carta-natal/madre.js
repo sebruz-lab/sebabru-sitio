@@ -69,9 +69,30 @@
         return p;
     }
 
+    // La funcion del punto: que hace ese punto en la carta. No esta escrita
+    // en el HTML de esta pagina a proposito, porque su lugar en Google es
+    // /carta-natal/<punto>/: si estuviera en las dos, las dos competirian.
+    function pintarFuncion(tarjeta, funcion) {
+        var caja = tarjeta.querySelector('.punto-funcion');
+        if (!caja || caja.dataset.pintado || !funcion || !funcion.texto) return;
+
+        if (funcion.titulo) {
+            var h = document.createElement('h4');
+            h.textContent = funcion.titulo;
+            caja.appendChild(h);
+        }
+        funcion.texto.split(/\n\s*\n/).forEach(function (t) {
+            t = t.replace(/\s+/g, ' ').trim();
+            if (t) caja.appendChild(parrafo(t, 'funcion-p'));
+        });
+        caja.dataset.pintado = '1';
+    }
+
     // Cuelga el primer parrafo de cada signo arriba de su enlace. El
     // enlace ya estaba en el HTML: esto no crea ninguno.
     function pintar(tarjeta, datos) {
+        pintarFuncion(tarjeta, datos.funcion);
+
         var porSlug = {};
         (datos.signos || []).forEach(function (s) { porSlug[s.slug] = s; });
 

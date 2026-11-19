@@ -93,6 +93,28 @@ html.estaciones .estacion:not(.estacion--intro) {
     overflow: hidden;
 }
 
+/* Al tocar un punto, su recuadro ocupa la pagina entera: el texto de la
+   funcion se lee a un ancho comodo y los doce signos entran en grilla.
+   Es la misma dinamica de /lunanueva/ y de /signos/<signo>/, donde los
+   desplegables se abren en el lugar sin sacar a nadie de la pagina. */
+.punto-card[open] {
+    grid-column: 1 / -1;
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, .035);
+}
+
+.punto-card[open] > summary {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 20px 22px;
+}
+
+.punto-card[open] > summary h3 {
+    font-size: 1.25rem;
+    text-align: left;
+}
+
 .punto-card > summary {
     display: flex;
     flex-direction: column;
@@ -151,22 +173,46 @@ html.estaciones .estacion:not(.estacion--intro) {
     border-top: 1px solid var(--borde);
 }
 
-.bajada-punto {
-    margin: 16px 0 4px;
-    font-size: .9375rem;
-    line-height: 1.7;
-    color: var(--text-tenue);
+/* La funcion del punto, que cuelga madre.js desde el JSON. Se lee a 42rem
+   como el resto de los textos del sitio, aunque la tarjeta sea ancha: una
+   linea de 1000px no la lee nadie. */
+.punto-funcion {
+    max-width: 42rem;
 }
 
+.punto-funcion:empty { display: none; }
+
+.punto-funcion h4 {
+    margin: 22px 0 10px;
+    font-size: 1.0625rem;
+    font-weight: 400;
+    color: var(--primary-color);
+}
+
+.punto-funcion .funcion-p {
+    margin: 0 0 14px;
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+/* Los doce signos, en grilla. Tres columnas en compu como en /lunanueva/,
+   una sola en celular. Cada uno se abre en su lugar. */
 .punto-signos {
-    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 26px;
+    align-items: start;
 }
 
 .signo-item {
-    border-bottom: 1px solid var(--borde);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 0 14px;
+    background: rgba(255, 255, 255, .02);
 }
 
-.signo-item:last-child { border-bottom: none; }
+.signo-item[open] { border-color: var(--primary-color); }
 
 .signo-item > summary {
     padding: 10px 0;
@@ -222,6 +268,9 @@ html.estaciones .estacion:not(.estacion--intro) {
     }
 
     .punto-card > summary h3 { text-align: left; }
+
+    /* Un signo por fila: tres columnas de nombres largos no entran. */
+    .punto-signos { grid-template-columns: 1fr; }
 
     .estacion--intro { min-height: 70vh; }
 }

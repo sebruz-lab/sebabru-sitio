@@ -227,6 +227,27 @@ h1 {
 
 /* ---------- indices (/carta-natal/sol/, /lunas/, /mercurio/...) ---------- */
 
+/* ---------- la funcion del punto ----------
+   Que hace ese punto en la carta, sacado de la clase en la que Seba lo
+   desarrolla. Es el texto propio del indice de cada punto, que hasta
+   noviembre de 2026 no tenia ninguno: la pagina existia solo para repartir
+   los doce enlaces. La pagina madre lo muestra tambien, pero traido por
+   fetch, para que el texto tenga una sola URL rastreable: esta. */
+
+.funcion {
+    max-width: 42rem;
+    margin-top: 40px;
+}
+
+.funcion h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--primary-color);
+}
+
+.funcion .cuerpo { margin-top: 20px; }
+
 .bajada {
     max-width: 42rem;
     margin: 28px 0 0;
