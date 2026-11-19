@@ -78,7 +78,7 @@ Espania: 106 impresiones y 16 clics, pero la posicion media se fue de 8,35 a
 | Paginas en el sitemap | 237 |
 | `/carta-natal/` | 196 paginas generadas; 51 por debajo de 9 KB |
 | `/signos/` | 9 de 12 (faltan capricornio, acuario, piscis) |
-| `meta description` | 210 de 235 (25 esperan texto de Seba) |
+| `meta description` | 211 de 240. Faltan 29, y 24 estan en `/carta-natal/` |
 | JSON-LD | home, `/libros/`, las 8 aulas de `/escuela/abierta/`, las 196 de `/carta-natal/` |
 | Falta JSON-LD | `/programa/` (Course) |
 
@@ -110,6 +110,13 @@ solas, la jugada opuesta esta anotada en `PLAN-RULETA.md`.
 Despues de correr `paginas-textos.js` hay que **pushear a `main`**: el
 generador escribe archivos, no deploya.
 
+**Estado de las bajadas al 19/11/2026, contado y no supuesto:** las 196 hojas
+de `/carta-natal/` ya tienen su `meta description`. Las 24 que faltan en esa
+carpeta son dos grupos distintos, y conviene no mezclarlos: **13 son la familia
+de casas** (`/carta-natal/casas/` y sus 12 paginas), que es lo unico que queda
+de las bajadas; las otras **11 son las paginas madre de cada punto**, que son
+el item de febrero y no el de diciembre.
+
 ---
 
 ## 3. Corto plazo — diciembre 2026 a febrero 2027
@@ -124,11 +131,11 @@ al menos un tercio de las consultas no sean el nombre de Seba.
 | Esta semana | Confirmar en Search Console que el `sitemap.xml` esta **enviado**, no solo publicado |
 | Esta semana | Exportar los ultimos 3 meses de Rendimiento a CSV, a `C:\dev\scratch` |
 | Esta semana | Mirar Indexacion -> Paginas: cuantas de las 196 de `/carta-natal/` entraron |
-| Diciembre | Los 25 textos de `bajada` que faltan |
+| Diciembre | Las 13 `bajada` de `/carta-natal/casas/` (las unicas que faltan) |
 | Diciembre | Decidir Instagram en la home (ver punto 6) |
 | Enero | Los 51 textos finos de `/carta-natal/` |
 | Enero | Capricornio, acuario y piscis en `/signos/` |
-| Febrero | Las 12 descripciones de punto |
+| Febrero | Las 11 descripciones de punto que faltan (mercurio, venus, marte, jupiter, saturno, quiron, urano, neptuno, pluton, nodonorte, lunanegra) |
 
 ### Lo que es trabajo de Claude, sin bloqueos
 
