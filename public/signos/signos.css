@@ -199,10 +199,32 @@
 }
 
 /* Caret (flechita) */
+/* El caret y los iconos de marca se dibujan con SVG propio. Antes venian de
+   Font Awesome por cdnjs: 289 KB de webfonts y CSS para siete iconos, que era
+   el peso mas grande que le quedaba a estas paginas.
+
+   El caret va por mask-image y no por <img>, para que siga heredando el color
+   del texto: las reglas de cada signo lo pintan con su acento tocando solo
+   'color', y background-color: currentColor hace que eso siga funcionando. */
 .caret {
-    font-size: 0.88rem;
+    display: inline-block;
+    width: 0.88rem;
+    height: 0.88rem;
+    flex: none;
     color: var(--text-dark);
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/%3E%3C/svg%3E") no-repeat center / contain;
     transition: transform 0.3s ease, color 0.3s ease;
+}
+
+/* Los SVG de marca van en linea en el HTML. 1em para que ocupen lo mismo que
+   ocupaba el glifo de la fuente, y el desplazamiento para que apoyen en la
+   linea de base como lo hacia el texto. */
+.icono-marca {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
 }
 
 .desplegable-item[open] summary .caret {
