@@ -18,15 +18,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: Renovar token, actualizar secreto y sincronizar permalink
+      # sharp achica las seis imagenes a webp. Se instala aca y no en el repo:
+      # el sitio es estatico y no tiene package.json en la raiz.
+      - name: Instalar sharp
+        run: npm install --no-save sharp@0.33.5
+
+      - name: Renovar token, actualizar secreto y rearmar la grilla
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
           GH_REPO: ${{ github.repository }}
         run: node .github/scripts/sync-instagram.mjs
 
-      - name: Commitear cambios si el permalink cambio
+      - name: Commitear cambios si la grilla cambio
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: actualizar link de Instagram al ultimo posteo"
-          file_pattern: public/index.html
+          commit_message: "chore: actualizar la grilla de Instagram"
+          file_pattern: public/index.html public/img/ig
