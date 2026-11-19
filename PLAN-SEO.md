@@ -1,7 +1,8 @@
 # Plan de SEO y velocidad de sebabru.com
 
-**Actualizado: 19/11/2026.** Reemplaza la version del 18/11 y la auditoria
-`AUDITORIA-SEO.md` del 13/11, las dos vencidas.
+**Actualizado: 19/11/2026, de noche** (segunda vuelta del dia: la de la
+maniana quedo vieja a las pocas horas). Reemplaza la version del 18/11 y la
+auditoria `AUDITORIA-SEO.md` del 13/11, las dos vencidas.
 
 Para quien lo continue en otra sesion: todo lo que esta abajo se midio, no se
 dedujo. Las reglas de trabajo estan al final y **conviene leerlas antes de
@@ -75,12 +76,12 @@ Espania: 106 impresiones y 16 clics, pero la posicion media se fue de 8,35 a
 
 | | |
 |---|---|
-| Paginas en el sitemap | 237 |
-| `/carta-natal/` | 196 paginas generadas; 51 por debajo de 9 KB |
+| Paginas indexables | 239 (241 con las dos lunaciones fechadas del 19/11 a la noche) |
+| `/carta-natal/` | 196 paginas generadas; ninguna por debajo de 9 KB (la mas chica, 11,2 KB). Por palabras quedan 28 hojas finas, casi todas de Mercurio y Venus |
 | `/signos/` | 9 de 12 (faltan capricornio, acuario, piscis) |
-| `meta description` | 211 de 240. Faltan 29, y 24 estan en `/carta-natal/` |
-| JSON-LD | home, `/libros/`, las 8 aulas de `/escuela/abierta/`, las 196 de `/carta-natal/` |
-| Falta JSON-LD | `/programa/` (Course) |
+| `meta description` | **235 de 239.** Faltan 4: `/carta-natal/casas/`, `/carta-natal/casas/casa-1/`, `/Mey/` y `/tu-identidad-en-el-cielo/ebook/contenido.html` |
+| JSON-LD | home, `/programa/`, `/libros/`, las 8 aulas de `/escuela/abierta/`, las 196 de `/carta-natal/`, las 4 de lunaciones |
+| `BreadcrumbList` | 208 paginas |
 
 ---
 
@@ -110,12 +111,26 @@ solas, la jugada opuesta esta anotada en `PLAN-RULETA.md`.
 Despues de correr `paginas-textos.js` hay que **pushear a `main`**: el
 generador escribe archivos, no deploya.
 
-**Estado de las bajadas al 19/11/2026, contado y no supuesto:** las 196 hojas
-de `/carta-natal/` ya tienen su `meta description`. Las 24 que faltan en esa
-carpeta son dos grupos distintos, y conviene no mezclarlos: **13 son la familia
-de casas** (`/carta-natal/casas/` y sus 12 paginas), que es lo unico que queda
-de las bajadas; las otras **11 son las paginas madre de cada punto**, que son
-el item de febrero y no el de diciembre.
+**Estado de las bajadas al 19/11/2026 a la noche, contado y no supuesto:** de
+las 24 que faltaban a la maniana quedan **2**, y las dos son de casas:
+`/carta-natal/casas/` y `/carta-natal/casas/casa-1/`. Las 11 madres de punto y
+las otras 11 de casa entraron con las funciones (`76c25d4` y `073764e`).
+
+**Lo que SI falta es texto, y el conteo de la maniana lo dio mal:** faltan
+**36 textos**, las 12 casas en **capricornio, acuario y piscis**. El grep de la
+maniana buscaba "en proceso" y el generador escribe otra frase, asi que conto
+cero. **La frase exacta es `todavia no esta escrito`** (con los acentos como
+entidades HTML en el archivo generado):
+
+```
+grep -rl "todav&iacute;a no est&aacute; escrito" public/carta-natal
+```
+
+Son 12 paginas, 3 huecos cada una. Los 11 planetas en esos signos ya se
+escribieron el 19/11 (`1f6e812`), por eso las hojas de planeta estan completas.
+Aparte faltan los **cortos de Sol y Luna** en sagitario, capricornio, acuario y
+piscis (8 textos): esos no son pagina de nadie, se ven solo en los acordeones
+de `/signos/`, y son parte de lo que bloquea las 3 paginas que faltan ahi.
 
 ---
 
@@ -131,25 +146,28 @@ al menos un tercio de las consultas no sean el nombre de Seba.
 | Esta semana | Confirmar en Search Console que el `sitemap.xml` esta **enviado**, no solo publicado |
 | Esta semana | Exportar los ultimos 3 meses de Rendimiento a CSV, a `C:\dev\scratch` |
 | Esta semana | Mirar Indexacion -> Paginas: cuantas de las 196 de `/carta-natal/` entraron |
-| Diciembre | Las 13 `bajada` de `/carta-natal/casas/` (las unicas que faltan) |
-| Diciembre | Decidir Instagram en la home (ver punto 6) |
-| Enero | Los 51 textos finos de `/carta-natal/` |
-| Enero | Capricornio, acuario y piscis en `/signos/` |
-| Febrero | Las 11 descripciones de punto que faltan (mercurio, venus, marte, jupiter, saturno, quiron, urano, neptuno, pluton, nodonorte, lunanegra) |
+| Diciembre | **Los 36 textos de casa en capricornio, acuario y piscis** (ver seccion 2) |
+| Diciembre | Las 2 `bajada` que quedan: `/carta-natal/casas/` y `casa-1` |
+| Enero | Los 28 textos finos de `/carta-natal/`, casi todos de Mercurio y Venus |
+| Enero | Capricornio, acuario y piscis en `/signos/`, que necesitan los 8 cortos de Sol y Luna |
+| Cuando corra | Mirar la grilla de Instagram de la home, que la arma sola una Action |
 
 ### Lo que es trabajo de Claude, sin bloqueos
 
-Los cuatro primeros se hicieron el 19/11 (ver la seccion 8). Queda:
+Lo de la maniana se hizo entero (seccion 8) y lo de la tarde tambien (seccion
+10). De la lista vieja ya no queda nada: los tres `<title>` estan puestos
+(`3cb62e2` y `44d0094`) y la salida `punto-<slug>.json` tambien, con la madre
+consumiendola. Queda:
 
-1. **Los `<title>` y las `meta description` de `/programa/`, `/lilith/` y
-   `/formaciones/`.** Las tres estan en posicion 5,8 a 6,9 con CTR de 2,2% a
-   3,0%: Google ya las muestra arriba y la gente no entra. Es lo mas barato que
-   queda en todo el plan. **Espera que Seba corrija los borradores**, porque es
-   texto que lee la gente y el texto lo escribe el.
-2. Averiguar cuales son los 17 404, cuando Seba exporte la lista, y ver cuales
-   merecen un 301 mas.
-3. La salida `punto-<slug>.json` del generador, para la ruleta. Paso 1 de
-   `PLAN-RULETA.md`: genera archivos que todavia nadie lee, no rompe nada.
+1. Averiguar cuales son los 17 404, **cuando Seba exporte la lista**, y ver
+   cuales merecen un 301 mas.
+2. Que `/cartas/` enlace a `/carta-natal/`, con `WebApplication` schema y una
+   pagina de presentacion orientada a busqueda. Ojo: otro repo
+   (`C:\dev	ucarta`) y otro deploy. Es el item de mayor retorno del mediano
+   plazo.
+3. **Font Awesome sigue cargandose desde cdnjs en 50 paginas** (289 KB y una
+   conexion a un tercero). El 19/11 se saco solo de `/signos/`. Es el pendiente
+   de velocidad mas grande que queda y no depende de nadie.
 
 ### 16/12/2026 — revision
 
@@ -226,12 +244,13 @@ Autoridad, que es lo mas lento y lo que mas pesa. Nada de esto se compra:
 
 | Que | Estado |
 |---|---|
-| Instagram en la home | Seba aprobo la grilla de 6 posteos autoactualizada. **Falta construirla.** |
-| Lunaciones | Sin decidir: URLs con fecha o evergreen con `dateModified` |
+| Instagram en la home | **Construida el 19/11 a la noche.** Falta la primera corrida de la Action: el token es un secreto de GitHub y no se puede probar local |
+| Lunaciones | **Decidido el 19/11:** URL por signo y anio (`/lunanueva/escorpio26/`) con la madre en `/lunanueva/`. Hecho |
 | Ruleta | Plan escrito en `PLAN-RULETA.md`, sin publicar, Seba lo revisa offline |
 | Medir el recorrido de la home | Propuesto: `web-vitals` mandando LCP e INP a GA4 por pagina. Es la unica forma de saber que paga alguien que recorre la home entera. |
 
 ### La grilla de Instagram, especificada
+(Construida. Queda como referencia de por que es asi.)
 
 `sync-instagram.mjs` ya renueva el token y pide el ultimo posteo. Cambiar a:
 
@@ -292,10 +311,56 @@ no se puede probar localmente, la primera corrida de verdad es en la Action.
   dia; el navegador sigue en 300 s.
 - Se leyeron los 11 CSV de Search Console (ver la seccion 1).
 
+**Rutas de exploracion, mirado el 19/11 a la noche:** el informe muestra **1
+elemento valido** y es `https://sebabru.com/sol/`. No es un problema de marcado:
+el `BreadcrumbList` esta en 208 paginas y se sirve bien en vivo (verificado en
+`/carta-natal/pluton/aries/`). El informe cuenta solo paginas **indexadas**, y
+las 196 tienen cuatro dias; `/sol/` es una URL vieja que hoy devuelve 301 y va a
+salir del informe sola. Es el mismo cuello de botella de indexacion que ya
+mostraba el export. **Senial a mirar el 16/12: si sigue en 1, las 196 no
+entraron.**
+
 **Un hallazgo que resulto FALSO, para no repetirlo:** "`/lilith/` esta indexada
 con los parametros UTM y le falta el `canonical`". El `canonical` **ya estaba**
 puesto y apunta a la URL limpia. Lo que se ve en el CSV es como Google
 descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
+
+## 10. Que se hizo el 19/11/2026 a la noche
+
+- **La madre de `/carta-natal/` medida, con control.** Primera corrida 95 y LCP
+  2,3 s; segunda **100 y LCP 0,9 s**, con una hoja de control en 100 y 0,8 s.
+  La primera fue ruido: `parseHTML` da 9 ms y el peso total, 223 KiB, es casi
+  el mismo que el de una hoja. **El rediseno por estaciones no costo
+  velocidad.** Si alguna vez una sola corrida da feo, correrla de nuevo antes de
+  creerle.
+- **Las lunaciones dejan de pisarse.** `/lunanueva/escorpio26/` y
+  `/lunallena/tauro26/` guardan el informe de cada lunacion, con `canonical`
+  propio, el signo y la fecha en el `<title>`, `Article` con `datePublished` y
+  `BreadcrumbList`. `/lunanueva/` y `/lunallena/` pasan a ser madres: la luna en
+  curso arriba, la calculadora (el mismo `calc-lunacion.js`, sin tocarlo) y el
+  listado de las anteriores. **El archivo arranca vacio**: las lunaciones
+  pasadas se pisaron y no quedo ninguna.
+  - **El flujo de cada 15 dias cambia**: ya no se pisa el archivo. Se crea la
+    carpeta `<signo><aa>`, se mueve ahi el informe nuevo, se pasa el anterior al
+    listado de la madre y se cambia la destacada.
+  - **Un borde anotado:** un mismo signo puede tener dos lunaciones en el mismo
+    anio calendario (capricornio en enero y en diciembre). Si pasa, la segunda
+    va como `capricornio26-2`.
+  - Las dos URLs viejas **siguen respondiendo 200**: no hace falta ningun 301 y
+    los dos enlaces de la home no se tocaron.
+- **La grilla de Instagram, construida.** `sync-instagram.mjs` pide los 6
+  ultimos posteos, baja la imagen de cada uno (la miniatura si es video), la
+  achica a 320x320 webp con `sharp` y reescribe la grilla de la home **entre dos
+  marcas** (`<!-- GRILLA-IG:inicio -->` / `:fin`). Los archivos se llaman por el
+  codigo del posteo (`/img/ig/<codigo>.webp`) y no por su posicion: asi un
+  posteo nuevo agrega un archivo y borra el que salio, en vez de reescribir los
+  seis todos los dias y engordar el historial de git.
+  - **Hallazgo de paso: la seccion de Instagram de la home no mostraba nada.**
+    El `blockquote` oficial seguia ahi pero `embed.js` no se cargaba (se fue en
+    la limpieza del 18/11). O sea que la grilla no reemplaza un embed pesado:
+    reemplaza un hueco.
+- **Rutas de exploracion en Search Console: revisado, no hay nada roto.** Ver el
+  detalle en la seccion 8.
 
 ## 9. Reglas de trabajo — leer antes de tocar nada
 
