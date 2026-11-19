@@ -142,9 +142,14 @@ h3, h4, h5, h6 {
     line-height: 1.3;
 }
 
+/* Sin `text-align-last: left`. Era redundante (la ultima linea de un texto
+   alineado a la izquierda ya esta a la izquierda) y su unico efecto real era
+   romper cualquier `text-align: center` puesto sobre un parrafo de una sola
+   linea, donde la unica linea es tambien la ultima y text-align-last manda.
+   Ver CLAUDE.md. Donde SI corresponde es en libros/style.css, que justifica el
+   texto: ahi evita que la ultima linea se estire. */
 p {
     text-align: left;
-    text-align-last: left;
 }
 
 a {
