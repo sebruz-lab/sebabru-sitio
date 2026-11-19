@@ -1,0 +1,238 @@
+/* =========================================================
+   La pagina madre de /carta-natal/, y SOLO ella.
+
+   Las 195 paginas hijas siguen con textos.css sola: son las que reciben
+   a la gente en frio desde Google, muchas veces desde un telefono, y no
+   tienen por que cargar nada de esto. Por el mismo motivo esto no es
+   style.css, que pesa 84 KB y trae medio sitio: lo unico que hacia falta
+   de ahi son las nueve lineas del "Deslizá", copiadas mas abajo.
+
+   Las variables de color (--primary-color, --text, --text-tenue, --borde)
+   salen del :root de textos.css, que ya esta cargada cuando esto llega.
+
+   La pagina la genera paginas-textos.js (C:\dev\herramientas-sebabru).
+   ========================================================= */
+
+/* ---------- las estaciones ----------
+
+   La clase .estaciones la pone en <html> un script inline del <head>, y
+   la saca madre.js a los 5 segundos o al primer scroll. Sin JavaScript
+   nunca se pone, y entonces nada de esto aplica: la pagina es la lista
+   entera, con los 195 enlaces a la vista. Eso es lo que lee Google.
+
+   Se esconde con opacity/visibility y NUNCA con display:none, para que
+   el espacio quede reservado desde el principio: asi la pagina ya es
+   larga al abrir, se puede deslizar, y cuando aparece el resto no salta
+   nada de lugar. */
+
+.estacion {
+    transition: opacity .9s ease, transform .9s ease;
+}
+
+html.estaciones .estacion:not(.estacion--intro) {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px);
+}
+
+/* La primera pantalla: el titulo solo, centrado y con aire. */
+.estacion--intro {
+    min-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 42rem;
+}
+
+/* ---------- el "Deslizá" ----------
+   Copiado de style.css (lineas 427-432 y 539-550), que es donde vive hoy
+   para la home, /lilith/ y /linaje/. Alla aparece siempre; aca lo
+   destapa madre.js recien a los 5 segundos, y solo si la persona no se
+   movio todavia. */
+
+.deslizar-hint {
+    width: fit-content;
+    margin: 40px 0 0;
+    font-weight: 300;
+    font-size: .75rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(224, 230, 237, .45);
+    animation: aparecer .8s ease both;
+}
+
+.flecha-titila {
+    display: inline-block;
+    animation: titila 1.6s ease-in-out infinite;
+}
+
+@keyframes titila {
+    0%, 100% { opacity: .25; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(3px); }
+}
+
+@keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ---------- la grilla de los quince puntos ---------- */
+
+.puntos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+    align-items: start;
+}
+
+.punto-card {
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .02);
+    overflow: hidden;
+}
+
+.punto-card > summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 14px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--text);
+    transition: color .2s ease, background .2s ease;
+}
+
+/* Los marcadores nativos del <details>, en los dos motores. */
+.punto-card > summary::-webkit-details-marker { display: none; }
+.punto-card > summary::marker { content: ''; }
+
+.punto-card > summary h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: .04em;
+    text-align: center;
+}
+
+.punto-card > summary:hover,
+.punto-card[open] > summary {
+    color: var(--primary-color);
+    background: rgba(255, 255, 255, .03);
+}
+
+/* El glifo dibujado. Los trece que lo tienen salen del sprite que la
+   pagina trae inline; el color lo hereda del summary. */
+.glifo-punto {
+    width: 2.45rem;
+    height: 2.45rem;
+    color: currentColor;
+}
+
+/* El Ascendente y las casas no tienen dibujo y van con letras, AC y
+   CASAS. Misma caja que el glifo para que la grilla no se descuadre. */
+.glifo-letra {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.45rem;
+    font-size: 1.25rem;
+    font-weight: 300;
+    letter-spacing: .12em;
+    color: currentColor;
+}
+
+/* ---------- lo que se abre dentro de un punto ---------- */
+
+.punto-cuerpo {
+    padding: 0 16px 18px;
+    border-top: 1px solid var(--borde);
+}
+
+.bajada-punto {
+    margin: 16px 0 4px;
+    font-size: .9375rem;
+    line-height: 1.7;
+    color: var(--text-tenue);
+}
+
+.punto-signos {
+    margin-top: 12px;
+}
+
+.signo-item {
+    border-bottom: 1px solid var(--borde);
+}
+
+.signo-item:last-child { border-bottom: none; }
+
+.signo-item > summary {
+    padding: 10px 0;
+    cursor: pointer;
+    list-style: none;
+    font-size: .9375rem;
+    color: var(--text);
+    transition: color .2s ease;
+}
+
+.signo-item > summary::-webkit-details-marker { display: none; }
+.signo-item > summary::marker { content: ''; }
+
+.signo-item > summary:hover,
+.signo-item[open] > summary { color: var(--primary-color); }
+
+.signo-cuerpo {
+    padding: 0 0 14px;
+    font-size: .9375rem;
+    line-height: 1.7;
+}
+
+/* El primer parrafo, que cuelga madre.js desde el JSON. */
+.signo-cuerpo .entrada {
+    margin: 0 0 10px;
+    color: var(--text-tenue);
+}
+
+.signo-cuerpo .seguir {
+    margin: 0;
+    font-size: .875rem;
+}
+
+.ver-todos {
+    margin: 18px 0 0;
+    font-size: .875rem;
+}
+
+/* ---------- celular ----------
+   Una sola columna, como pidio Seba. Mismo corte que textos.css. */
+
+@media (max-width: 600px) {
+    .puntos-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .punto-card > summary {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 16px 14px;
+    }
+
+    .punto-card > summary h3 { text-align: left; }
+
+    .estacion--intro { min-height: 70vh; }
+}
+
+/* ---------- sin animaciones ----------
+   Si el sistema las pide apagadas, el script del <head> ni siquiera
+   pone la clase .estaciones: la pagina sale entera y quieta. Esto es por
+   si acaso, para las dos animaciones que corren solas. */
+
+@media (prefers-reduced-motion: reduce) {
+    .estacion { transition: none; }
+    .flecha-titila { animation: none; opacity: .8; }
+    .deslizar-hint { animation: none; }
+}
