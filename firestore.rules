@@ -319,5 +319,38 @@ service cloud.firestore {
     match /agenda_turnos/{id} {
       allow read, write: if false;
     }
+
+    // Los espacios que Seba abre de vez en cuando y que no quiere en su
+    // disponibilidad regular.
+    match /agenda_excepcionales/{id} {
+      allow read, write: if false;
+    }
+
+    // El acompanamiento quincenal: una serie por participante, con su dia,
+    // su hora y su ancla. Tiene nombre, mail y telefono, igual que
+    // agenda_pedidos: abrirla al cliente seria publicar quienes son.
+    match /agenda_series/{id} {
+      allow read, write: if false;
+    }
+
+    // El historial de movimientos de turnos, y las solicitudes de cambio de
+    // horario habitual que quedaron pendientes. La solicitud ademas guarda
+    // quien ocupa cada hueco en conflicto, que es un dato que solo Seba
+    // puede ver: lo lee el panel por la function, nunca el navegador.
+    match /agenda_movimientos/{id} {
+      allow read, write: if false;
+    }
+    match /agenda_solicitudes/{id} {
+      allow read, write: if false;
+    }
+
+    // Los enlaces de acceso de cada persona. El id del documento es el
+    // sha256 del token, asi que el token nunca se guarda y buscarlo es un
+    // get directo. Cerrada de los dos lados, y esta es la que mas importa:
+    // si un navegador pudiera listarla, tendria los hashes y los mails de
+    // todas las personas con acceso.
+    match /agenda_accesos/{hash} {
+      allow read, write: if false;
+    }
   }
 }

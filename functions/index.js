@@ -3927,8 +3927,22 @@ exports.baja = functions.https.onRequest(async (req, res) => {
 // calcula con un offset fijo. Es lo que permite generar los horarios con
 // aritmetica de milisegundos y sin una libreria de zonas horarias. Si alguna
 // vez vuelve el huso de verano, esto es lo primero que hay que tocar.
-const AGENDA_OFFSET = '-03:00';
-const AGENDA_ZONA = 'America/Argentina/Cordoba';
+// Las reglas de disponibilidad viven en agenda-motor.js: las fechas, los
+// tipos de turno, los bloqueos, los excepcionales y la proyeccion quincenal.
+// Ese archivo no habla con Firestore ni con Calendar, y por eso se puede
+// probar con `node --test functions/` en un segundo. Aca queda lo que sabe
+// leer y escribir, que es lo que no se puede probar sin credenciales.
+const motor = require('./agenda-motor');
+// Lo usan dos trabajos programados: extenderSeries, aca abajo, y
+// mantenerDespierto, al final del archivo. Va arriba de los dos porque un
+// require en const no se iza: donde estaba antes, extenderSeries se
+// ejecutaba primero y se encontraba con que onSchedule todavia no existia.
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const {
+  AGENDA_OFFSET, AGENDA_ZONA, MAX_TURNO_MIN,
+  msDeHoraLocal, diaLocal, horaLocal, isoLocal, diaDeSemana, sumarDias,
+  minutosDeHora, idDeTurno, chocaCon, tipoDe,
+} = motor;
 
 // El Zoom fijo de las consultas, el mismo que ya va en el mail de
 // confirmacion del formulario.
@@ -3947,11 +3961,34 @@ const AGENDA_CONFIG_POR_DEFECTO = {
   // Aire entre una sesion y la siguiente (y entre una sesion y cualquier
   // otra cosa que haya en el calendario).
   bufferMin: 15,
-  // Cada cuanto puede arrancar un turno dentro de una franja.
+  // Cada cuanto puede arrancar un turno dentro de una franja. Lo usa la
+  // consulta de dos horas mientras no haya cadencia compartida.
   granularidadMin: 30,
+  // La cadencia compartida: un solo ritmo de arranques para los dos tipos,
+  // contado desde donde empieza cada franja. Con 75 (una hora de sesion mas
+  // un cuarto de aire), un jueves de 14 a 18 da 14:00, 15:15 y 16:30, y una
+  // consulta de dos horas arranca en esos mismos puntos: 14 a 16 o 15:15 a
+  // 17:15. Es como funciona la agenda de Seba de verdad.
+  //
+  // Arranca apagada a proposito. Prenderla cambia los horarios que se le
+  // ofrecen a quien pide una consulta (hoy, cada media hora), asi que es una
+  // decision que se toma desde el panel y no algo que pasa solo en un deploy.
+  cadenciaMin: null,
   // Nadie puede reservar para dentro de menos de esto.
   anticipacionHoras: 48,
   ventanaDias: 60,
+  // Hasta donde se materializan los encuentros quincenales del
+  // acompanamiento. Es mas larga que ventanaDias a proposito: el publico
+  // reserva dentro de tres semanas, pero el horario de cada participante
+  // tiene que estar tomado mas adelante que eso, o cualquier consulta se lo
+  // lleva antes de que le toque. Es tambien lo que le da a la evaluacion
+  // automatica del horario habitual varias fechas reales para mirar en lugar
+  // de una.
+  ventanaSeriesDias: 60,
+  // Lo que cambia por tipo de turno (duracion, grilla, aire, anticipacion)
+  // no se escribe aca: los valores de fabrica estan en agenda-motor.js y
+  // agenda_config.tipos guarda unicamente lo que Seba le cambie.
+  //
   // 0 = domingo. Arranca con lunes a viernes de 10 a 18; Seba lo cambia
   // desde /consultas/admin/ sin tocar codigo.
   semana: {
@@ -4051,51 +4088,6 @@ function urlDeAgenda(pedidoId) {
 }
 
 // -------------------------------------------------------
-// Fechas, todas en hora de Argentina con el offset fijo.
-// -------------------------------------------------------
-function msDeHoraLocal(fechaISO, hhmm) {
-  return Date.parse(`${fechaISO}T${hhmm}:00${AGENDA_OFFSET}`);
-}
-
-// 'YYYY-MM-DD' del dia argentino al que pertenece ese instante.
-function diaLocal(ms) {
-  return new Date(ms - 3 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
-// 'HH:MM' en hora argentina.
-function horaLocal(ms) {
-  return new Date(ms - 3 * 3600 * 1000).toISOString().slice(11, 16);
-}
-
-function isoLocal(ms) {
-  return `${diaLocal(ms)}T${horaLocal(ms)}:00${AGENDA_OFFSET}`;
-}
-
-// Domingo = 0. Se mira al mediodia para que ningun redondeo lo corra de dia.
-function diaDeSemana(fechaISO) {
-  return new Date(msDeHoraLocal(fechaISO, '12:00')).getUTCDay();
-}
-
-function sumarDias(fechaISO, n) {
-  return new Date(Date.parse(`${fechaISO}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
-}
-
-function minutosDeHora(hhmm) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
-  if (!m) return null;
-  const h = +m[1], mi = +m[2];
-  if (h > 23 || mi > 59) return null;
-  return h * 60 + mi;
-}
-
-// El id del turno sale del horario, no de un random: dos personas que
-// aprietan el mismo horario a la vez chocan en el mismo documento y una de
-// las dos pierde el create(). Es el mismo truco que pagos_procesados.
-function idDeTurno(ms) {
-  return `${diaLocal(ms)}T${horaLocal(ms).replace(':', '-')}`;
-}
-
-// -------------------------------------------------------
 // Configuracion y bloqueos
 // -------------------------------------------------------
 async function leerConfigAgenda() {
@@ -4113,8 +4105,9 @@ async function leerBloqueos() {
   return snap.docs.map(d => d.data()).filter(b => b && b.desde && b.hasta);
 }
 
-function diaBloqueado(fechaISO, bloqueos) {
-  return bloqueos.some(b => fechaISO >= b.desde && fechaISO <= b.hasta);
+async function leerExcepcionales() {
+  const snap = await _db.collection('agenda_excepcionales').get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e && e.desde && e.hasta);
 }
 
 // -------------------------------------------------------
@@ -4164,39 +4157,6 @@ async function ocupacionEntre(desdeMs, hastaMs) {
   return ocupados;
 }
 
-function chocaCon(inicioMs, finMs, ocupados, bufferMs) {
-  return ocupados.some(([a, b]) => inicioMs < (b + bufferMs) && (finMs + bufferMs) > a);
-}
-
-// -------------------------------------------------------
-// Los horarios libres entre dos fechas, en hora de Argentina.
-// -------------------------------------------------------
-function generarSlots(config, desdeISO, hastaISO, bloqueos, ocupados) {
-  const duracionMs = config.duracionMin * 60000;
-  const bufferMs = (config.bufferMin || 0) * 60000;
-  const paso = (config.granularidadMin || 30) * 60000;
-  const minimoMs = Date.now() + (config.anticipacionHoras || 0) * 3600000;
-  const topeMs = Date.now() + (config.ventanaDias || 60) * 86400000;
-
-  const slots = [];
-  for (let dia = desdeISO; dia <= hastaISO; dia = sumarDias(dia, 1)) {
-    if (diaBloqueado(dia, bloqueos)) continue;
-    const franjas = config.semana[String(diaDeSemana(dia))] || [];
-    for (const franja of franjas) {
-      const desdeMin = minutosDeHora(franja.desde);
-      const hastaMin = minutosDeHora(franja.hasta);
-      if (desdeMin === null || hastaMin === null || hastaMin <= desdeMin) continue;
-      const base = msDeHoraLocal(dia, '00:00');
-      const finFranja = base + hastaMin * 60000;
-      for (let inicio = base + desdeMin * 60000; inicio + duracionMs <= finFranja; inicio += paso) {
-        if (inicio < minimoMs || inicio > topeMs) continue;
-        if (chocaCon(inicio, inicio + duracionMs, ocupados, bufferMs)) continue;
-        slots.push(isoLocal(inicio));
-      }
-    }
-  }
-  return slots;
-}
 
 // -------------------------------------------------------
 // La planilla. Para un pedido que vino del formulario se actualizan las dos
@@ -4543,27 +4503,31 @@ async function avisarTurnoCancelado(pedido, pedidoId, inicioMs, porQuien) {
 // -------------------------------------------------------
 // Crear y borrar el evento en el calendario de Seba.
 // -------------------------------------------------------
-async function crearEventoDeTurno(pedido, pedidoId, inicioMs, finMs, turnoId) {
+async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId) {
   const cal = getCalendarClient();
   const comoSeba = agendaActuaComoSeba();
-  const online = pedido.modalidad !== 'Presencial';
+  const online = sujeto.modalidad !== 'Presencial';
+  // El titulo dice que clase de encuentro es: en el calendario de Seba, un
+  // acompanamiento quincenal y una consulta de dos horas no se distinguen
+  // solo por durar distinto.
+  const etiqueta = sujeto.serieId ? 'Acompañamiento' : 'Consulta';
 
   const cuerpo = {
-    summary: `Consulta — ${pedido.nombre || pedido.email || 'sin nombre'}`,
+    summary: `${etiqueta} — ${sujeto.nombre || sujeto.email || 'sin nombre'}`,
     description: [
-      `${pedido.nombre || ''} · ${pedido.email || ''} · ${pedido.telefono || ''}`,
-      `Modalidad: ${pedido.modalidad || '—'}`,
+      `${sujeto.nombre || ''} · ${sujeto.email || ''} · ${sujeto.telefono || ''}`,
+      `Modalidad: ${sujeto.modalidad || '—'}`,
       '',
-      `Agenda de la persona: ${urlDeAgenda(pedidoId)}`,
-    ].join('\n'),
+      sujeto.enlacePersonal ? `Agenda de la persona: ${sujeto.enlacePersonal}` : '',
+    ].filter(Boolean).join('\n'),
     start: { dateTime: isoLocal(inicioMs), timeZone: AGENDA_ZONA },
     end: { dateTime: isoLocal(finMs), timeZone: AGENDA_ZONA },
   };
 
   // Actuando como Seba, quien reserva entra como invitado y recibe la
   // invitacion de Google, con su boton de confirmar y sus recordatorios.
-  if (comoSeba && pedido.email) {
-    cuerpo.attendees = [{ email: pedido.email, displayName: pedido.nombre || undefined }];
+  if (comoSeba && sujeto.email) {
+    cuerpo.attendees = [{ email: sujeto.email, displayName: sujeto.nombre || undefined }];
   }
   // Y cada sesion online tiene su propio Meet en vez del Zoom compartido.
   if (comoSeba && online) {
@@ -4699,7 +4663,7 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
 // codigo, la vista previa dejaria de servir para lo unico que sirve, que es
 // ver lo que ve la gente.
 // -------------------------------------------------------
-async function slotsVisibles(config, desdePedido, hastaPedido) {
+async function slotsVisibles(config, desdePedido, hastaPedido, tipo) {
   const hoy = diaLocal(Date.now());
   let desde = fechaValida(desdePedido) && desdePedido > hoy ? desdePedido : hoy;
   let hasta = fechaValida(hastaPedido) ? hastaPedido : sumarDias(desde, 45);
@@ -4710,11 +4674,19 @@ async function slotsVisibles(config, desdePedido, hastaPedido) {
   if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
   if (hasta < desde) return { desde, hasta, slots: [] };
 
-  const [ocupados, bloqueos] = await Promise.all([
+  const [ocupados, bloqueos, excepcionales] = await Promise.all([
     ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
     leerBloqueos(),
+    leerExcepcionales(),
   ]);
-  return { desde, hasta, slots: generarSlots(config, desde, hasta, bloqueos, ocupados) };
+  const horarios = motor.horariosDe({
+    config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
+  });
+  // Las tres listas viajan juntas: los regulares libres, los excepcionales
+  // (que la pagina muestra aparte y solo si hacen falta) y los tramos que
+  // este tipo no puede usar, para pintarlos en gris con su motivo en lugar
+  // de que desaparezcan sin explicacion.
+  return { desde, hasta, ...horarios };
 }
 
 // -------------------------------------------------------
@@ -4742,6 +4714,10 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
       turnoDelPedido(pedido),
     ]);
 
+    // Lo que dura el turno sale del tipo del pedido, no de la raiz de la
+    // configuracion. Para un pedido sin tipo son los mismos numeros de antes.
+    const t = tipoDe(config, pedido.tipo);
+
     const respuesta = {
       ok: true,
       nombre: pedido.nombre || '',
@@ -4751,11 +4727,15 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
       // mandar eventos a Analytics cada vez que Seba abre el panel.
       previsualizacion: pedido.origen === 'previsualizacion',
       zona: AGENDA_ZONA,
-      duracionMin: config.duracionMin,
+      tipo: t.id,
+      tipoNombre: t.nombre,
+      duracionMin: t.duracionMin,
       ventanaDias: config.ventanaDias,
-      anticipacionHoras: config.anticipacionHoras,
+      anticipacionHoras: t.anticipacionHoras,
       turno,
       slots: [],
+      excepcionales: [],
+      bloqueados: [],
     };
 
     if (config.pausado) {
@@ -4766,11 +4746,14 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
     const visibles = await slotsVisibles(
       config,
       sanitizeTexto(req.query.desde, 10),
-      sanitizeTexto(req.query.hasta, 10)
+      sanitizeTexto(req.query.hasta, 10),
+      pedido.tipo
     );
     respuesta.desde = visibles.desde;
     respuesta.hasta = visibles.hasta;
     respuesta.slots = visibles.slots;
+    respuesta.excepcionales = visibles.excepcionales;
+    respuesta.bloqueados = visibles.bloqueados;
     return res.status(200).json(respuesta);
 
   } catch (error) {
@@ -4875,21 +4858,38 @@ exports.cancelarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(a
 });
 
 // -------------------------------------------------------
-// El corazon de la reserva, compartido por la pagina y por el panel.
+// El corazon de la reserva: toma un horario y lo deja tomado.
 //
-// Devuelve { turno } si salio, o { error, status } con un motivo nominal.
-// Nunca tira por un fallo de la planilla o del mail: el turno ya existe y
-// la persona ya lo vio confirmado, asi que esos fallos se loguean.
+// Trabaja sobre un "sujeto", que es quien se queda con el turno:
+//
+//   { nombre, email, telefono, modalidad,
+//     tipo,           'una-hora' | 'dos-horas' | nada (= dos horas)
+//     pedidoId,       si viene del formulario o de la agenda suelta
+//     serieId,        si es un encuentro del acompanamiento quincenal
+//     ocurrencia,     que encuentro de la serie es (su fecha quincenal)
+//     turnoAnterior,  el turno que se suelta recien si esto sale bien
+//     enlacePersonal} la URL con la que esa persona administra su turno
+//
+// Antes esto tomaba un pedido de agenda_pedidos, que modela "una persona con
+// UN turno". Una serie quincenal tiene cuatro turnos vivos a la vez, asi que
+// el pedido dejo de alcanzar como sujeto. Lo que no se duplico es esto: la
+// transaccion que evita dos reservas solapadas es la pieza mas delicada de
+// la agenda y tiene que haber una sola.
+//
+// Devuelve { turno, turnoId, finMs, meet } si salio, o { error, status } con
+// un motivo nominal. Nunca tira por un fallo del calendario: el turno ya
+// existe y la persona ya lo vio confirmado, asi que eso se loguea y se avisa.
 // -------------------------------------------------------
-async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
+async function reservarHorario(sujeto, inicioMs, quien) {
   const dia = diaLocal(inicioMs);
 
-  // Las tres son independientes: la config y los bloqueos son dos lecturas
-  // de Firestore y la ocupacion es Google Calendar, que es la lenta. Antes
-  // la config se esperaba sola y recien despues salian las otras dos, asi
-  // que se sumaban. Salen las tres juntas y se paga la mas lenta.
+  // Las cuatro son independientes: tres lecturas de Firestore y la ocupacion,
+  // que es Google Calendar y es la lenta. Antes la config se esperaba sola y
+  // recien despues salian las otras, asi que se sumaban. Salen todas juntas y
+  // se paga la mas lenta.
   const promesaConfig = leerConfigAgenda();
   const promesaBloqueos = leerBloqueos();
+  const promesaExcepcionales = leerExcepcionales();
   const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'));
 
   const config = await promesaConfig;
@@ -4897,15 +4897,22 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
   // pausa o fuera de las franjas: la pausa es para el publico.
   const esAdmin = quien === 'admin';
   if (config.pausado && !esAdmin) {
-    // Las otras dos ya salieron: si se vuelve sin esperarlas, un rechazo
-    // suyo queda sin atender y Node lo levanta como unhandledRejection.
+    // Las otras ya salieron: si se vuelve sin esperarlas, un rechazo suyo
+    // queda sin atender y Node lo levanta como unhandledRejection.
     promesaBloqueos.catch(() => {});
+    promesaExcepcionales.catch(() => {});
     promesaOcupacion.catch(() => {});
     return { error: 'agenda_pausada', status: 409 };
   }
 
-  const turnoAnterior = pedido.turnoId || null;
-  const [bloqueos, ocupadosCrudos] = await Promise.all([promesaBloqueos, promesaOcupacion]);
+  // La duracion, la grilla, el aire y la anticipacion salen del tipo. Un
+  // sujeto sin tipo es una consulta de dos horas con los valores de siempre:
+  // es lo unico que existia antes de que hubiera tipos.
+  const t = tipoDe(config, sujeto.tipo);
+  const turnoAnterior = sujeto.turnoAnterior || null;
+  const [bloqueos, excepcionales, ocupadosCrudos] = await Promise.all([
+    promesaBloqueos, promesaExcepcionales, promesaOcupacion,
+  ]);
   const ocupados = ocupadosCrudos
     // Al reprogramar, el turno que la persona ya tenia no se cuenta como
     // ocupado: si no, no podria mover la sesion dos horas.
@@ -4915,15 +4922,24 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
     // El horario tiene que ser uno de los que la pagina podia ofrecer: no
     // alcanza con que este libre, tambien tiene que caer en una franja, en
     // la grilla y despues de la anticipacion minima.
-    const legales = generarSlots(config, dia, dia, bloqueos, ocupados);
+    //
+    // Los excepcionales cuentan como legales: son horarios que Seba abrio a
+    // mano y la pagina los ofrece, aparte pero los ofrece. Lo que no pueden
+    // hacer es volverse el horario habitual de nadie, y eso se decide en la
+    // evaluacion quincenal, no aca.
+    const horarios = motor.horariosDe({
+      config, tipo: sujeto.tipo, desde: dia, hasta: dia,
+      bloqueos, excepcionales, ocupados,
+    });
+    const legales = [...horarios.slots, ...horarios.excepcionales];
     if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
-  } else if (chocaCon(inicioMs, inicioMs + config.duracionMin * 60000, ocupados, 0)) {
+  } else if (chocaCon(inicioMs, inicioMs + t.duracionMin * 60000, ocupados, 0)) {
     // Al admin solo se le controla que no se pise con algo: las franjas y
     // la anticipacion son sugerencias para el publico, no para el.
     return { error: 'slot_ocupado', status: 409 };
   }
 
-  const finMs = inicioMs + config.duracionMin * 60000;
+  const finMs = inicioMs + t.duracionMin * 60000;
   const turnoId = idDeTurno(inicioMs);
 
   // Aca esta la carrera: dos personas con el mismo horario abierto. El id
@@ -4935,22 +4951,79 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
   // reservarlo nunca mas, porque el create() chocaba con el cadaver. Con la
   // transaccion se puede pisar un cancelado y se sigue perdiendo la carrera
   // contra uno reservado, que es lo que importa.
+  //
+  // Pero el id del documento protege del MISMO horario, no de dos horarios
+  // que se SOLAPAN. Con turnos de 120 minutos y una grilla de 30, dos
+  // pedidos simultaneos a las 10:00 y a las 10:30 escriben documentos
+  // distintos: los dos pasaban la transaccion y quedaba un solapamiento de
+  // hora y media. Hacia falta que cayeran en la misma fraccion de segundo,
+  // asi que con el volumen de hoy practicamente no pasaba; con turnos de una
+  // hora y de dos conviviendo en la misma coleccion, deja de ser improbable.
+  //
+  // Por eso el solapamiento se vuelve a comprobar ADENTRO de la transaccion.
+  // La comprobacion de mas arriba sigue haciendo falta, y no es la misma: esa
+  // mira el calendario de Seba, las franjas y la anticipacion. Esta mira solo
+  // los turnos del sitio, que es lo unico que pudo haber cambiado en el
+  // milisegundo que paso.
   const ref = _db.collection('agenda_turnos').doc(turnoId);
+
+  // Un turno que arranca antes que este puede solaparlo igual, asi que la
+  // consulta empieza el maximo que puede durar uno antes del inicio pedido.
+  // Es un rango sobre un solo campo: no pide indice compuesto, y por eso el
+  // estado se filtra en memoria y no en la consulta.
+  const vecinos = _db.collection('agenda_turnos')
+    .where('inicio', '>=', new Date(inicioMs - MAX_TURNO_MIN * 60000))
+    .where('inicio', '<=', new Date(finMs));
+
+  // El mismo aire que uso la comprobacion de arriba: el del tipo que se esta
+  // reservando para el publico, ninguno para el admin.
+  const bufferTx = esAdmin ? 0 : (t.bufferMin || 0) * 60000;
+
   try {
     await _db.runTransaction(async tx => {
-      const snap = await tx.get(ref);
+      // Las dos lecturas van juntas: una transaccion admite varias, y en
+      // fila se sumarian dos viajes a Firestore adentro del candado.
+      const [snap, cerca] = await Promise.all([tx.get(ref), tx.get(vecinos)]);
       if (snap.exists && snap.data().estado === 'reservado') {
         throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
+      }
+      for (const doc of cerca.docs) {
+        // El propio horario ya se miro arriba, y el turno que esta persona
+        // esta soltando no cuenta: si contara, no podria mover su sesion dos
+        // horas.
+        if (doc.id === turnoId || doc.id === turnoAnterior) continue;
+        const otro = doc.data();
+        if (otro.estado !== 'reservado') continue;
+        const rango = [[otro.inicio.toMillis(), otro.fin.toMillis()]];
+        if (chocaCon(inicioMs, finMs, rango, bufferTx)) {
+          throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
+        }
       }
       tx.set(ref, {
         estado: 'reservado',
         inicio: new Date(inicioMs),
         fin: new Date(finMs),
-        pedidoId,
-        nombre: pedido.nombre || '',
-        email: pedido.email || '',
-        telefono: pedido.telefono || '',
-        modalidad: pedido.modalidad || '',
+        // El tipo y la duracion se guardan en el turno, no se vuelven a
+        // sacar de la configuracion: el mail, el .ics y el panel los leen
+        // mucho despues, y la configuracion puede haber cambiado entre
+        // medio. Un turno tiene que saber cuanto dura el.
+        tipo: t.id,
+        duracionMin: t.duracionMin,
+        serieId: sujeto.serieId || null,
+        // De que encuentro de la serie se trata, con la fecha quincenal que
+        // le toca por calendario. No es lo mismo que el dia del turno: si la
+        // persona mueve el encuentro del 10 de diciembre al 12, el turno
+        // cae el 12 y la ocurrencia sigue siendo el 10.
+        //
+        // Sin esto, extenderSerie no tendria como saber que ese encuentro ya
+        // existe y le crearia otro en su horario habitual, dejando a la
+        // persona con dos sesiones la misma quincena.
+        ocurrencia: sujeto.ocurrencia || null,
+        pedidoId: sujeto.pedidoId || null,
+        nombre: sujeto.nombre || '',
+        email: sujeto.email || '',
+        telefono: sujeto.telefono || '',
+        modalidad: sujeto.modalidad || '',
         eventId: null,
         creado: new Date().toISOString(),
         // Si se esta pisando un cancelado, que quede el rastro.
@@ -4980,7 +5053,7 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
   let eventId = null;
   let meet = null;
   try {
-    ({ eventId, meet } = await crearEventoDeTurno(pedido, pedidoId, inicioMs, finMs, turnoId));
+    ({ eventId, meet } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId));
   } catch (e) {
     // El turno vale igual (la persona ya tiene su confirmacion) pero Seba
     // no lo ve en su calendario: hay que avisarle fuerte.
@@ -4990,24 +5063,62 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
         motivo: 'turno-sin-calendario',
         para: AVISOS_INSCRIPCION,
         asunto: '⚠️ Turno reservado que NO entró en el calendario',
-        html: `<p>Anotalo a mano: ${escapeHtml(textoFechaLarga(inicioMs))} a las ${horaLocal(inicioMs)}, ${escapeHtml(pedido.nombre || '')} (${escapeHtml(pedido.email || '')}).</p><p>Error: ${escapeHtml(e.message)}</p>`,
+        html: `<p>Anotalo a mano: ${escapeHtml(textoFechaLarga(inicioMs))} a las ${horaLocal(inicioMs)}, ${escapeHtml(sujeto.nombre || '')} (${escapeHtml(sujeto.email || '')}).</p><p>Error: ${escapeHtml(e.message)}</p>`,
       });
     } catch (_) { /* encolarMail no tira, pero por las dudas */ }
   }
 
-  // Dos documentos distintos: no hay razon para esperar uno y despues el
-  // otro.
+  // Documentos distintos: no hay razon para esperar uno y despues el otro.
+  // El pedido se actualiza solo si hay pedido: un encuentro de una serie no
+  // apunta a ninguno (es el turno el que lleva el serieId).
   await Promise.all([
     _db.collection('agenda_turnos').doc(turnoId).set({ eventId, meet }, { merge: true }),
-    _db.collection('agenda_pedidos').doc(pedidoId).set({ turnoId }, { merge: true }),
+    ...(sujeto.pedidoId
+      ? [_db.collection('agenda_pedidos').doc(sujeto.pedidoId).set({ turnoId }, { merge: true })]
+      : []),
   ]);
 
-  // La planilla tambien se encola. Era lo ultimo que quedaba en fila antes
-  // de contestar y es el gasto mas grande de reservarTurno despues del
-  // evento en Calendar: hasta cuatro viajes a la API de Sheets para escribir
-  // el dia y la hora en una fila que lee Seba. Lo hace el trigger
-  // escribirFilaPlanilla, que ademas sabe esperar si la fila del formulario
-  // todavia no llego.
+  functions.logger.info('Turno reservado', {
+    turnoId, tipo: t.id, pedidoId: sujeto.pedidoId || null, serieId: sujeto.serieId || null, quien,
+  });
+  return {
+    turnoId,
+    finMs,
+    meet,
+    turno: {
+      id: turnoId, inicio: isoLocal(inicioMs), fin: isoLocal(finMs),
+      tipo: t.id, duracionMin: t.duracionMin,
+      modalidad: sujeto.modalidad || '', meet,
+    },
+  };
+}
+
+// -------------------------------------------------------
+// La reserva de un pedido: la de siempre, la del formulario de consultas y
+// de /consultas/agenda/.
+//
+// Lo que le suma a reservarHorario es lo que solo tiene sentido para un
+// pedido: la fila de la planilla y el mail de confirmacion con su .ics.
+// -------------------------------------------------------
+async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
+  const r = await reservarHorario({
+    nombre: pedido.nombre,
+    email: pedido.email,
+    telefono: pedido.telefono,
+    modalidad: pedido.modalidad,
+    tipo: pedido.tipo,
+    pedidoId,
+    serieId: pedido.serieId || null,
+    turnoAnterior: pedido.turnoId || null,
+    enlacePersonal: urlDeAgenda(pedidoId),
+  }, inicioMs, quien);
+  if (r.error) return r;
+
+  // La planilla se encola. Era lo ultimo que quedaba en fila antes de
+  // contestar y es el gasto mas grande de reservarTurno despues del evento en
+  // Calendar: hasta cuatro viajes a la API de Sheets para escribir el dia y
+  // la hora en una fila que lee Seba. Lo hace el trigger escribirFilaPlanilla,
+  // que ademas sabe esperar si la fila del formulario todavia no llego.
   //
   // El evento en Calendar, en cambio, se queda en linea a proposito: si el
   // turno no entra en el calendario, el turno no existe, y eso la persona lo
@@ -5015,20 +5126,576 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
   try {
     await Promise.all([
       encolarFilaPlanilla({ tipo: 'sesion', pedidoId, inicioMs }),
-      avisarTurnoReservado(pedido, pedidoId, inicioMs, finMs, turnoId, meet),
+      avisarTurnoReservado(pedido, pedidoId, inicioMs, r.finMs, r.turnoId, r.meet),
     ]);
   } catch (e) {
     functions.logger.error('No se pudo avisar del turno', e.message);
   }
 
-  functions.logger.info('Turno reservado', { turnoId, pedidoId, quien, origen: pedido.origen });
+  return { turno: r.turno };
+}
+
+// =======================================================================
+// EL ESPACIO PERSONAL
+//
+// Donde cada persona ve su proximo encuentro y lo mueve. Lo usan los
+// participantes del acompanamiento quincenal, que cambian de horario
+// seguido, y sirve igual para una consulta de dos horas.
+//
+// Se entra de tres maneras y las tres terminan en el mismo lugar
+// (identificarPersona):
+//
+//   1. Con la cuenta de la escuela, que ya existe. No se arma un sistema de
+//      usuarios paralelo: el mail del ID token es la identidad.
+//   2. Con un enlace privado que llega por mail, sin contrasena, para quien
+//      no se maneja con eso. Token aleatorio, hash guardado, revocable.
+//   3. Con el enlace viejo de ?p=&t=, que sigue andando porque ya esta en
+//      los mails de la gente y en los eventos del calendario.
+//
+// Y una cuarta, que no pasa por aca: Seba haciendolo desde su panel.
+// =======================================================================
+
+// -------------------------------------------------------
+// Los enlaces de acceso
+//
+// El HMAC de tokenDeAgenda no se puede revocar: es deterministico, asi que
+// el mismo pedido da siempre el mismo token y la unica forma de invalidarlo
+// seria rotar AGENDA_SECRET, que invalida de golpe todos los enlaces ya
+// enviados. Estos son al revés: aleatorios, de a uno.
+//
+// Del token no se guarda el token, se guarda su sha256, y encima como id
+// del documento. Dos consecuencias buenas: una filtracion de la base de
+// datos no entrega ningun enlace usable, y buscar uno es un get directo en
+// lugar de recorrer una coleccion.
+// -------------------------------------------------------
+const DIAS_ACCESO_SERIE = 365;
+const DIAS_ACCESO_PEDIDO = 180;
+
+function hashDeAcceso(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function urlDeMiAgenda(token) {
+  return `https://sebabru.com/consultas/mi-agenda/?a=${encodeURIComponent(token)}`;
+}
+
+// Devuelve el token en claro, que es la unica vez que existe: de aca va
+// derecho al mail y no queda guardado en ningun lado.
+async function crearAcceso({ email, nombre, serieId = null, pedidoId = null, dias = null }) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const vence = new Date(Date.now() + (dias || (serieId ? DIAS_ACCESO_SERIE : DIAS_ACCESO_PEDIDO)) * 86400000);
+  await _db.collection('agenda_accesos').doc(hashDeAcceso(token)).set({
+    email: String(email || '').toLowerCase().trim(),
+    nombre: nombre || '',
+    serieId, pedidoId,
+    creado: new Date().toISOString(),
+    vence: vence.toISOString(),
+    revocado: false,
+    usos: 0,
+  });
+  return { token, url: urlDeMiAgenda(token), vence: vence.toISOString() };
+}
+
+async function leerAcceso(token) {
+  if (!token || String(token).length < 20) return null;
+  const snap = await _db.collection('agenda_accesos').doc(hashDeAcceso(token)).get();
+  if (!snap.exists) return null;
+  const a = snap.data();
+  if (a.revocado) return null;
+  if (a.vence && a.vence < new Date().toISOString()) return null;
+  return { hash: snap.id, ...a };
+}
+
+// -------------------------------------------------------
+// identificarPersona: de una peticion a un sujeto, por cualquiera de los
+// tres caminos. Devuelve null si ninguno cierra.
+//
+// El orden no es casual: primero la sesion de la escuela, que es la
+// identidad mas fuerte, y despues los enlaces. Asi, quien entro con su
+// cuenta no queda atado a lo que diga un enlace viejo que tenga pegado en
+// la barra de direcciones.
+// -------------------------------------------------------
+async function identificarPersona(req) {
+  const cabecera = req.headers.authorization || '';
+  if (cabecera.startsWith('Bearer ')) {
+    try {
+      const token = await admin.auth().verifyIdToken(cabecera.replace('Bearer ', ''));
+      const email = (token.email || '').toLowerCase().trim();
+      if (email) {
+        return { via: 'escuela', email, nombre: token.name || '', serieId: null, pedidoId: null };
+      }
+    } catch (_) { /* token vencido o invalido: se prueban los otros caminos */ }
+  }
+
+  const enlace = sanitizeTexto(req.query?.a || req.body?.a, 200);
+  if (enlace) {
+    const acceso = await leerAcceso(enlace);
+    if (acceso) {
+      // Cuantas veces se uso: no es seguridad, es lo que deja ver desde el
+      // panel si a alguien el enlace nunca le llego.
+      _db.collection('agenda_accesos').doc(acceso.hash)
+        .set({ usos: (acceso.usos || 0) + 1, ultimoUso: new Date().toISOString() }, { merge: true })
+        .catch(() => {});
+      return {
+        via: 'enlace', email: acceso.email, nombre: acceso.nombre || '',
+        serieId: acceso.serieId || null, pedidoId: acceso.pedidoId || null,
+      };
+    }
+  }
+
+  const pedidoId = sanitizeTexto(req.query?.p || req.body?.p, 64);
+  const firma = sanitizeTexto(req.query?.t || req.body?.t, 64);
+  if (pedidoId && tokenDeAgendaValido(pedidoId, firma)) {
+    const snap = await _db.collection('agenda_pedidos').doc(pedidoId).get();
+    if (snap.exists && snap.data().origen !== 'previsualizacion') {
+      const p = snap.data();
+      return {
+        via: 'pedido', email: (p.email || '').toLowerCase().trim(), nombre: p.nombre || '',
+        serieId: p.serieId || null, pedidoId,
+      };
+    }
+  }
+
+  return null;
+}
+
+// -------------------------------------------------------
+// Las series y los turnos de una persona
+// -------------------------------------------------------
+async function seriesDePersona(persona) {
+  // Con un enlace de serie, esa y nada mas: el enlace es el alcance. Con la
+  // cuenta de la escuela, todas las de ese mail.
+  if (persona.serieId) {
+    const snap = await _db.collection('agenda_series').doc(persona.serieId).get();
+    return snap.exists ? [{ id: snap.id, ...snap.data() }] : [];
+  }
+  if (!persona.email) return [];
+  const snap = await _db.collection('agenda_series').where('email', '==', persona.email).get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Los turnos vigentes de una persona, de aca en adelante. Se mira por mail y
+// no por pedido: alguien que tuvo una consulta y ademas esta en el
+// acompanamiento tiene que ver las dos cosas en un solo lugar.
+async function turnosDePersona(persona, series) {
+  const desde = new Date(Date.now() - 2 * 3600000); // el de hace un rato sigue en pantalla
+  const consultas = [];
+
+  if (persona.email) {
+    const snap = await _db.collection('agenda_turnos')
+      .where('email', '==', persona.email)
+      .where('inicio', '>=', desde)
+      .get();
+    for (const d of snap.docs) consultas.push({ id: d.id, ...d.data() });
+  }
+
+  // Y los de sus series, que pueden no tener el mail escrito igual (una
+  // serie cargada a mano desde el panel, por ejemplo).
+  for (const serie of series) {
+    const snap = await _db.collection('agenda_turnos')
+      .where('serieId', '==', serie.id)
+      .where('inicio', '>=', desde)
+      .get();
+    for (const d of snap.docs) {
+      if (consultas.some(t => t.id === d.id)) continue;
+      consultas.push({ id: d.id, ...d.data() });
+    }
+  }
+
+  return consultas
+    .filter(t => t.estado === 'reservado')
+    .sort((a, b) => a.inicio.toMillis() - b.inicio.toMillis());
+}
+
+// Como se ve un turno desde el espacio personal. Lo que no esta aca no se
+// manda: de otra persona no se sabe nada, ni el nombre ni el mail.
+function turnoParaPersona(turno, config) {
+  const t = tipoDe(config, turno.tipo);
+  const inicioMs = turno.inicio.toMillis();
   return {
-    turno: {
-      id: turnoId, inicio: isoLocal(inicioMs), fin: isoLocal(finMs),
-      modalidad: pedido.modalidad || '', meet,
-    },
+    id: turno.id,
+    inicio: isoLocal(inicioMs),
+    fin: isoLocal(turno.fin.toMillis()),
+    tipo: t.id,
+    tipoNombre: t.nombre,
+    duracionMin: turno.duracionMin || t.duracionMin,
+    modalidad: turno.modalidad || '',
+    meet: turno.meet || null,
+    deSerie: Boolean(turno.serieId),
+    // Si se puede mover solo, y hasta cuando. El servidor lo vuelve a
+    // comprobar al recibir el cambio: esto es para no ofrecer un boton que
+    // va a dar error.
+    puedeCambiar: motor.puedeCambiar(inicioMs, t),
+    anticipacionCambioHoras: t.anticipacionCambioHoras,
   };
 }
+
+// -------------------------------------------------------
+// Materializar una serie: dejar tomados sus encuentros
+//
+// Los encuentros quincenales no se proyectan, existen: son turnos de verdad
+// en agenda_turnos, con su evento en el calendario. Es lo unico que hace que
+// el horario de cada participante este efectivamente ocupado y que se pueda
+// contestar "el jueves 10 a las 16 esta libre?" sin adivinar.
+//
+// Llegan hasta ventanaSeriesDias (60), que es mas lejos que la ventana en la
+// que el publico puede reservar (21). Por eso hay un trabajo diario: a
+// medida que la ventana avanza, aparecen fechas nuevas que hay que tomar.
+//
+// Si una fecha nueva aparece ocupada, no se pisa nada: se anota el conflicto
+// en la serie y se avisa. Un encuentro quincenal no vale lo suficiente para
+// pasar por encima de algo que ya estaba.
+// -------------------------------------------------------
+async function extenderSerie(serie, config) {
+  if (!serie || serie.estado === 'pausada') return { creados: [], conflictos: [] };
+  const conf = config || await leerConfigAgenda();
+
+  const hoy = diaLocal(Date.now());
+  const hasta = diaLocal(Date.now() + (conf.ventanaSeriesDias || 60) * 86400000);
+  const fechas = motor.fechasDeSerie(serie, hoy, hasta);
+
+  // Que encuentros ya tiene, por ocurrencia y no por dia: uno movido a otra
+  // fecha sigue siendo el encuentro de su quincena.
+  const existentes = await _db.collection('agenda_turnos')
+    .where('serieId', '==', serie.id)
+    .where('inicio', '>=', new Date(Date.now() - 86400000))
+    .get();
+  const yaHay = new Set(
+    existentes.docs
+      .filter(d => d.data().estado === 'reservado')
+      .map(d => d.data().ocurrencia)
+      .filter(Boolean)
+  );
+
+  const creados = [];
+  const conflictos = [];
+
+  for (const inicioMs of fechas) {
+    if (inicioMs < Date.now()) continue;
+    const ocurrencia = diaLocal(inicioMs);
+    if (yaHay.has(ocurrencia)) continue;
+
+    // En fila y no en paralelo, a proposito: dos encuentros de la misma
+    // persona no se pisan entre si, pero cada reserva lee la ocupacion del
+    // dia y escribe en el calendario, y lanzarlas todas juntas contra la API
+    // de Google es la forma segura de comerse un 429.
+    const r = await reservarHorario({
+      nombre: serie.nombre, email: serie.email, telefono: serie.telefono,
+      modalidad: serie.modalidad, tipo: 'una-hora',
+      serieId: serie.id,
+      ocurrencia,
+      enlacePersonal: serie.enlace || null,
+    }, inicioMs, 'serie');
+
+    if (r.error) {
+      conflictos.push({ ocurrencia, inicio: isoLocal(inicioMs), motivo: r.error });
+      continue;
+    }
+    creados.push({ ocurrencia, inicio: r.turno.inicio, turnoId: r.turnoId });
+  }
+
+  if (creados.length || conflictos.length) {
+    await _db.collection('agenda_series').doc(serie.id).set({
+      conflictos,
+      extendida: new Date().toISOString(),
+    }, { merge: true });
+  }
+
+  return { creados, conflictos };
+}
+
+// Un aviso por tanda, no uno por conflicto: si una semana se cruzan cinco
+// encuentros, son cinco lineas de un mail y no cinco mails.
+async function avisarConflictosDeSeries(pendientes) {
+  if (!pendientes.length) return;
+  const filas = pendientes.map(({ serie, conflictos }) => conflictos.map(c =>
+    `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(serie.nombre || serie.email || '—')}</td>`
+    + `<td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(textoFechaLarga(Date.parse(c.inicio)))} a las ${escapeHtml(horaLocal(Date.parse(c.inicio)))}</td></tr>`
+  ).join('')).join('');
+
+  await mails.encolarMail(_db, {
+    motivo: 'series-con-conflicto',
+    para: AVISOS_INSCRIPCION,
+    asunto: `⚠️ ${pendientes.length === 1 ? 'Un acompañamiento' : `${pendientes.length} acompañamientos`} sin lugar en su horario`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>Al estirar la agenda aparecieron encuentros quincenales que no se pudieron tomar porque el horario ya estaba ocupado. No se pisó nada: esos encuentros <strong>no están agendados</strong>.</p>
+        <table style="width:100%;border-collapse:collapse;margin-top:12px;">${filas}</table>
+        <p>Desde <a href="https://sebabru.com/consultas/admin/">el panel</a> podés moverlos o proponerle otro horario a la persona.</p>
+      </div>
+    `,
+  });
+}
+
+// -------------------------------------------------------
+// extenderSeries: el trabajo diario que estira las quincenales.
+//
+// Una vez por dia alcanza: lo que cambia de un dia al otro es que entra una
+// fecha nueva en la ventana de 60 dias, y una fecha por serie cada dos
+// semanas no es algo que corra apurado.
+// -------------------------------------------------------
+exports.extenderSeries = onSchedule({
+  schedule: '20 6 * * *',
+  timeZone: 'America/Argentina/Cordoba',
+  memory: '512MiB',
+  timeoutSeconds: 540,
+}, async () => {
+  ensureInit();
+
+  const config = await leerConfigAgenda();
+  const snap = await _db.collection('agenda_series').where('estado', '==', 'activa').get();
+
+  const pendientes = [];
+  let creados = 0;
+
+  for (const doc of snap.docs) {
+    const serie = { id: doc.id, ...doc.data() };
+    try {
+      const r = await extenderSerie(serie, config);
+      creados += r.creados.length;
+      if (r.conflictos.length) pendientes.push({ serie, conflictos: r.conflictos });
+    } catch (e) {
+      // Una serie que falla no se lleva a las demas.
+      functions.logger.error('No se pudo extender una serie', { serieId: doc.id, error: e.message });
+    }
+  }
+
+  try {
+    await avisarConflictosDeSeries(pendientes);
+  } catch (e) {
+    functions.logger.error('No se pudo avisar de los conflictos de series', e.message);
+  }
+
+  functions.logger.info('Series extendidas', {
+    series: snap.size, encuentrosCreados: creados, conConflicto: pendientes.length,
+  });
+});
+
+// -------------------------------------------------------
+// miAgenda: todo lo que ve la persona al entrar.
+// -------------------------------------------------------
+exports.miAgenda = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  ensureInit();
+
+  if (!(await checkRateLimit('miAgenda', req, 60))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  try {
+    const persona = await identificarPersona(req);
+    if (!persona) return res.status(403).json({ error: 'sin_acceso' });
+
+    // Lo unico que se puede cambiar de aca: si quiere o no el recordatorio.
+    // Va por POST en el mismo endpoint y no en uno propio porque es un
+    // casillero, y una function mas son 425 archivos mas que cargar en frio.
+    if (req.method === 'POST') {
+      if (sanitizeTexto(req.body?.accion, 40) !== 'notificaciones') {
+        return res.status(400).json({ error: 'accion_desconocida' });
+      }
+      const series = await seriesDePersona(persona);
+      const serieId = sanitizeTexto(req.body?.serie, 64);
+      // Que la serie sea de esta persona lo decide la lista que trajimos por
+      // su mail, nunca el id que vino en el cuerpo.
+      if (!series.some(s => s.id === serieId)) {
+        return res.status(404).json({ error: 'serie_no_encontrada' });
+      }
+      await _db.collection('agenda_series').doc(serieId).set({
+        notificaciones: {
+          cambios: true,
+          recordatorio: req.body?.recordatorio !== false,
+        },
+      }, { merge: true });
+      return res.status(200).json({ ok: true });
+    }
+
+    const [config, series] = await Promise.all([leerConfigAgenda(), seriesDePersona(persona)]);
+    const turnos = await turnosDePersona(persona, series);
+
+    return res.status(200).json({
+      ok: true,
+      via: persona.via,
+      nombre: persona.nombre || (series[0] && series[0].nombre) || '',
+      zona: AGENDA_ZONA,
+      pausado: config.pausado === true,
+      series: series.map(s => ({
+        id: s.id,
+        diaSemana: s.diaSemana,
+        hora: s.hora,
+        estado: s.estado || 'activa',
+        notificaciones: s.notificaciones || { cambios: true, recordatorio: true },
+      })),
+      turnos: turnos.map(t => turnoParaPersona(t, config)),
+    });
+
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en miAgenda:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// El turno de esta persona, o null. Es el control de que nadie toque el
+// turno de otro: se compara por mail y por serie, nunca por lo que diga la
+// peticion.
+// -------------------------------------------------------
+async function turnoDePersona(turnoId, persona, series) {
+  if (!turnoId) return null;
+  const snap = await _db.collection('agenda_turnos').doc(turnoId).get();
+  if (!snap.exists) return null;
+  const t = snap.data();
+  if (t.estado !== 'reservado') return null;
+  const mismoMail = persona.email && (t.email || '').toLowerCase().trim() === persona.email;
+  const miSerie = t.serieId && series.some(s => s.id === t.serieId);
+  const miPedido = persona.pedidoId && t.pedidoId === persona.pedidoId;
+  if (!mismoMail && !miSerie && !miPedido) return null;
+  return { id: snap.id, ...t };
+}
+
+// -------------------------------------------------------
+// miDisponibilidad: los horarios a los que esta persona puede mover un
+// turno suyo. Van con el tipo de ESE turno: una sesion de una hora no ve
+// los mismos horarios que una consulta de dos.
+// -------------------------------------------------------
+exports.miDisponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('miDisponibilidad', req, 120))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  try {
+    const persona = await identificarPersona(req);
+    if (!persona) return res.status(403).json({ error: 'sin_acceso' });
+
+    const [config, series] = await Promise.all([leerConfigAgenda(), seriesDePersona(persona)]);
+    const turno = await turnoDePersona(sanitizeTexto(req.query.turno, 64), persona, series);
+    if (!turno) return res.status(404).json({ error: 'turno_no_encontrado' });
+
+    const t = tipoDe(config, turno.tipo);
+    if (config.pausado) {
+      return res.status(200).json({ ok: true, pausado: true, slots: [], excepcionales: [], bloqueados: [] });
+    }
+
+    const visibles = await slotsVisibles(
+      config,
+      sanitizeTexto(req.query.desde, 10),
+      sanitizeTexto(req.query.hasta, 10),
+      turno.tipo
+    );
+
+    // El horario que esta persona ya tiene no figura como libre (lo ocupa
+    // ella), y tiene que poder volver a elegirlo: si no, mover el turno y
+    // arrepentirse es un camino sin vuelta.
+    const propio = isoLocal(turno.inicio.toMillis());
+    const slots = visibles.slots.includes(propio)
+      ? visibles.slots
+      : [...visibles.slots, propio].sort();
+
+    return res.status(200).json({
+      ok: true,
+      zona: AGENDA_ZONA,
+      tipo: t.id,
+      tipoNombre: t.nombre,
+      duracionMin: turno.duracionMin || t.duracionMin,
+      desde: visibles.desde,
+      hasta: visibles.hasta,
+      slots,
+      excepcionales: visibles.excepcionales,
+      bloqueados: visibles.bloqueados,
+      actual: propio,
+    });
+
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en miDisponibilidad:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
+
+// -------------------------------------------------------
+// miCambio: mover un turno propio a otro horario.
+//
+// El orden es el del apartado 10 y no se cambia: identidad, anticipacion,
+// disponibilidad, reservar lo nuevo y recien ahi soltar lo viejo. De eso
+// ultimo se encarga reservarHorario, que es el mismo codigo que usa la
+// agenda de siempre.
+// -------------------------------------------------------
+exports.miCambio = functions.runWith({ memory: '512MB' }).https.onRequest(async (req, res) => {
+  setCors(req, res, 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  ensureInit();
+
+  if (!(await checkRateLimit('miCambio', req, 20))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  try {
+    const persona = await identificarPersona(req);
+    if (!persona) return res.status(403).json({ error: 'sin_acceso' });
+
+    const [config, series] = await Promise.all([leerConfigAgenda(), seriesDePersona(persona)]);
+    const turno = await turnoDePersona(sanitizeTexto(req.body?.turno, 64), persona, series);
+    if (!turno) return res.status(404).json({ error: 'turno_no_encontrado' });
+
+    const t = tipoDe(config, turno.tipo);
+    const inicioViejoMs = turno.inicio.toMillis();
+
+    // La regla de las 12 horas, en el servidor. La pantalla ya la respeta,
+    // pero la pantalla no es donde se decide.
+    if (!motor.puedeCambiar(inicioViejoMs, t)) {
+      return res.status(409).json({
+        error: 'muy_tarde',
+        horas: t.anticipacionCambioHoras,
+      });
+    }
+
+    const inicioMs = Date.parse(sanitizeTexto(req.body?.inicio, 40));
+    if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
+    if (idDeTurno(inicioMs) === turno.id) return res.status(200).json({ ok: true, sinCambios: true });
+
+    const r = await reservarHorario({
+      nombre: turno.nombre, email: turno.email, telefono: turno.telefono,
+      modalidad: turno.modalidad, tipo: turno.tipo,
+      pedidoId: turno.pedidoId || null,
+      serieId: turno.serieId || null,
+      // El encuentro sigue siendo el mismo, aunque cambie de dia.
+      ocurrencia: turno.ocurrencia || null,
+      turnoAnterior: turno.id,
+      enlacePersonal: turno.pedidoId ? urlDeAgenda(turno.pedidoId) : null,
+    }, inicioMs, 'persona');
+    if (r.error) return res.status(r.status).json({ error: r.error });
+
+    functions.logger.info('Turno movido desde el espacio personal', {
+      de: turno.id, a: r.turnoId, via: persona.via, serieId: turno.serieId || null,
+    });
+
+    return res.status(200).json({ ok: true, turno: r.turno });
+
+  } catch (error) {
+    if (error.message === 'calendar_no_disponible') {
+      return res.status(503).json({ error: 'calendar_no_disponible' });
+    }
+    functions.logger.error('Error en miCambio:', error.message);
+    return res.status(500).json({ error: 'fallo' });
+  }
+});
 
 // -------------------------------------------------------
 // adminAgenda: todo lo que hace Seba desde /consultas/admin/.
@@ -5052,6 +5719,115 @@ function fechaValida(f) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(f || ''));
 }
 
+// Una serie del panel, campo por campo. Devuelve { serie } o { error }.
+function serieSaneada(cruda) {
+  const nombre = sanitizeTexto(cruda?.nombre, 200);
+  const email = sanitizeTexto(cruda?.email, 200).toLowerCase();
+  const diaSemana = Math.round(Number(cruda?.diaSemana));
+  const hora = sanitizeTexto(cruda?.hora, 5);
+
+  if (!nombre) return { error: 'falta_nombre' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'email_invalido' };
+  if (!Number.isFinite(diaSemana) || diaSemana < 0 || diaSemana > 6) return { error: 'dia_invalido' };
+  if (minutosDeHora(hora) === null) return { error: 'hora_invalida' };
+
+  // El ancla es la fecha del primer encuentro, de la que se cuentan las
+  // quincenas. Si no viene, es el proximo dia de la semana que corresponda:
+  // es lo que se espera al cargar a alguien que arranca ahora.
+  let ancla = sanitizeTexto(cruda?.ancla, 10);
+  if (!fechaValida(ancla)) {
+    ancla = diaLocal(Date.now());
+    while (diaDeSemana(ancla) !== diaSemana) ancla = sumarDias(ancla, 1);
+  }
+  // Un ancla que no cae en el dia de la serie haria que las fechas salieran
+  // todas el dia equivocado, en silencio.
+  if (diaDeSemana(ancla) !== diaSemana) return { error: 'ancla_no_coincide' };
+
+  const notis = cruda?.notificaciones || {};
+  return {
+    serie: {
+      nombre, email, hora, diaSemana, ancla,
+      telefono: sanitizeTexto(cruda?.telefono, 50),
+      modalidad: cruda?.modalidad === 'Presencial' ? 'Presencial' : 'Online',
+      estado: cruda?.estado === 'pausada' ? 'pausada' : 'activa',
+      notificaciones: {
+        cambios: notis.cambios !== false,
+        recordatorio: notis.recordatorio !== false,
+      },
+    },
+  };
+}
+
+// Un horario excepcional del panel. Dos formas: con fecha, o recurrente por
+// dia de la semana.
+function excepcionalSaneado(cruda) {
+  const desde = sanitizeTexto(cruda?.desde, 5);
+  const hasta = sanitizeTexto(cruda?.hasta, 5);
+  const a = minutosDeHora(desde);
+  const b = minutosDeHora(hasta);
+  if (a === null || b === null || b <= a) return { error: 'horas_invalidas' };
+
+  // Por defecto, solo para las consultas de dos horas. Abrirlo a una sesion
+  // de una hora es algo que hay que pedir expresamente.
+  const tipos = Array.isArray(cruda?.tipos)
+    ? cruda.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
+    : [];
+  const base = {
+    desde, hasta,
+    tipos: tipos.length ? tipos : [motor.TIPO_POR_DEFECTO],
+    motivo: sanitizeTexto(cruda?.motivo, 200),
+  };
+
+  if (cruda?.repite === true) {
+    const diaSemana = Math.round(Number(cruda?.diaSemana));
+    if (!Number.isFinite(diaSemana) || diaSemana < 0 || diaSemana > 6) return { error: 'dia_invalido' };
+    const desdeFecha = sanitizeTexto(cruda?.desdeFecha, 10);
+    const hastaFecha = sanitizeTexto(cruda?.hastaFecha, 10);
+    return {
+      excepcional: {
+        ...base, repite: true, diaSemana,
+        desdeFecha: fechaValida(desdeFecha) ? desdeFecha : null,
+        hastaFecha: fechaValida(hastaFecha) ? hastaFecha : null,
+      },
+    };
+  }
+
+  const fecha = sanitizeTexto(cruda?.fecha, 10);
+  if (!fechaValida(fecha)) return { error: 'fecha_invalida' };
+  return { excepcional: { ...base, repite: false, fecha } };
+}
+
+// El mail con el enlace personal. Voz de Seba, primera persona del singular,
+// y el enlace escrito entero: es un mail que alguien puede querer reenviarse
+// o guardar, y un boton sin URL visible no se puede copiar.
+async function mandarEnlacePersonal(duena, url, esSerie) {
+  const parrafos = [
+    duena.nombre ? `Hola, ${escapeHtml(duena.nombre)}:` : 'Hola:',
+    esSerie
+      ? 'Te paso tu enlace propio para ver y cambiar el horario de nuestros encuentros. No hace falta contraseña: con entrar ahí ya estás adentro de tu espacio.'
+      : 'Te paso tu enlace propio para ver y cambiar el horario de tu consulta. No hace falta contraseña: con entrar ahí ya estás adentro.',
+    `<a href="${url}">${url}</a>`,
+    'Te recomiendo guardarlo: es el mismo siempre, así que lo podés usar cada vez que necesites mover un encuentro.',
+    esSerie
+      ? 'Los cambios se pueden hacer hasta 12 horas antes del encuentro. Si se te complica con menos tiempo que eso, escribime y lo vemos.'
+      : 'Si necesitás cambiarla con poco tiempo, escribime y lo vemos.',
+    'Un abrazo,<br>Seba',
+  ];
+
+  await mails.encolarMail(_db, {
+    motivo: 'enlace-personal',
+    para: duena.email,
+    asunto: esSerie ? 'Tu espacio para cambiar el horario de los encuentros' : 'Tu enlace para gestionar la consulta',
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        ${parrafos.map(t => `<p>${t}</p>`).join('')}
+        ${pieDeMail()}
+      </div>
+    `,
+    texto: textoDeParrafos(parrafos),
+  });
+}
+
 // La configuracion que llega del panel se reconstruye campo por campo: lo
 // que no este en esta lista no entra en Firestore.
 function configSaneada(cruda) {
@@ -5071,14 +5847,38 @@ function configSaneada(cruda) {
     }
     if (limpias.length) semana[String(d)] = limpias;
   }
+
+  // Los tipos de turno: solo los ids que el motor conoce y solo los campos
+  // previstos, igual que con la semana. Y solo se guarda el tipo que el panel
+  // haya mandado: lo que no venga se queda con el valor de fabrica del motor,
+  // en lugar de quedar congelado aca una copia que despues se desactualiza.
+  const tipos = {};
+  for (const [id, base] of Object.entries(motor.TIPOS_POR_DEFECTO)) {
+    const crudo = cruda?.tipos?.[id];
+    if (!crudo) continue;
+    tipos[id] = {
+      duracionMin: entero(crudo.duracionMin, 15, MAX_TURNO_MIN, base.duracionMin),
+      granularidadMin: entero(crudo.granularidadMin, 5, 240, base.granularidadMin),
+      bufferMin: entero(crudo.bufferMin, 0, 240, base.bufferMin),
+      anticipacionHoras: entero(crudo.anticipacionHoras, 0, 720, base.anticipacionHoras),
+      anticipacionCambioHoras: entero(crudo.anticipacionCambioHoras, 0, 720, base.anticipacionCambioHoras),
+    };
+  }
+
   return {
     zona: AGENDA_ZONA,
-    duracionMin: entero(cruda?.duracionMin, 15, 480, 120),
+    duracionMin: entero(cruda?.duracionMin, 15, MAX_TURNO_MIN, 120),
     bufferMin: entero(cruda?.bufferMin, 0, 240, 15),
     granularidadMin: entero(cruda?.granularidadMin, 5, 240, 30),
+    // Null es "sin cadencia compartida", que es lo que vale hoy. entero()
+    // devuelve el valor por defecto ante cualquier cosa que no sea un numero
+    // en rango, asi que un campo vacio en el panel la apaga.
+    cadenciaMin: entero(cruda?.cadenciaMin, 15, 240, null),
     anticipacionHoras: entero(cruda?.anticipacionHoras, 0, 720, 48),
     ventanaDias: entero(cruda?.ventanaDias, 1, 365, 60),
+    ventanaSeriesDias: entero(cruda?.ventanaSeriesDias, 1, 365, 60),
     semana,
+    tipos,
     pausado: cruda?.pausado === true,
   };
 }
@@ -5136,10 +5936,18 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
       // reservarTurno lo rechaza por origen.
       case 'previsualizar': {
         const modalidad = req.body?.modalidad === 'Presencial' ? 'Presencial' : 'Online';
+        // Se puede mirar la pagina con cualquiera de los dos tipos: lo que
+        // ve quien pide una consulta de dos horas no es lo mismo que ve
+        // quien mueve una sesion de una.
+        const tipo = motor.TIPOS_POR_DEFECTO[req.body?.tipo] ? req.body.tipo : motor.TIPO_POR_DEFECTO;
         await _db.collection('agenda_pedidos').doc('previsualizacion').set({
           origen: 'previsualizacion',
           nombre: '', email: '', telefono: '',
           modalidad,
+          // El tipo se guarda en el pedido de la vista previa, no se pasa
+          // por la URL: asi la pagina publica lo recibe por el mismo camino
+          // que lo recibe para una persona de verdad.
+          tipo,
           turnoId: null,
           visto: new Date().toISOString(),
         }, { merge: true });
@@ -5148,8 +5956,8 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         // Sin desde ni hasta: los mismos valores por defecto que usa la
         // pagina, para que los horarios sean exactamente los que se ofrecen.
         const visibles = config.pausado
-          ? { desde: null, hasta: null, slots: [] }
-          : await slotsVisibles(config, null, null);
+          ? { desde: null, hasta: null, slots: [], excepcionales: [], bloqueados: [] }
+          : await slotsVisibles(config, null, null, tipo);
 
         return res.status(200).json({
           ok: true,
@@ -5157,10 +5965,13 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           t: tokenDeAgenda('previsualizacion'),
           zona: AGENDA_ZONA,
           pausado: config.pausado === true,
-          duracionMin: config.duracionMin,
+          tipo: tipoDe(config, tipo).id,
+          duracionMin: tipoDe(config, tipo).duracionMin,
           desde: visibles.desde,
           hasta: visibles.hasta,
           slots: visibles.slots,
+          excepcionales: visibles.excepcionales,
+          bloqueados: visibles.bloqueados,
         });
       }
 
@@ -5231,6 +6042,167 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         return res.status(200).json({ ok: true, turno: r.turno });
       }
 
+      // ---------- El acompanamiento quincenal ----------
+
+      case 'series': {
+        const snap = await _db.collection('agenda_series').orderBy('nombre').get();
+        const config = await leerConfigAgenda();
+        const series = [];
+        for (const doc of snap.docs) {
+          const s = { id: doc.id, ...doc.data() };
+          // Los encuentros que tiene tomados de aca en adelante. Es lo que
+          // Seba necesita ver: no la regla, los turnos.
+          const turnos = await _db.collection('agenda_turnos')
+            .where('serieId', '==', doc.id)
+            .where('inicio', '>=', new Date(Date.now() - 2 * 3600000))
+            .get();
+          series.push({
+            id: s.id,
+            nombre: s.nombre || '', email: s.email || '',
+            telefono: s.telefono || '', modalidad: s.modalidad || '',
+            diaSemana: s.diaSemana, hora: s.hora,
+            ancla: s.ancla, estado: s.estado || 'activa',
+            notificaciones: s.notificaciones || { cambios: true, recordatorio: true },
+            conflictos: s.conflictos || [],
+            encuentros: turnos.docs
+              .filter(d => d.data().estado === 'reservado')
+              .map(d => turnoParaPersona({ id: d.id, ...d.data() }, config))
+              .sort((a, b) => a.inicio.localeCompare(b.inicio)),
+          });
+        }
+        return res.status(200).json({ ok: true, series });
+      }
+
+      case 'crearSerie': {
+        const s = serieSaneada(req.body?.serie);
+        if (s.error) return res.status(400).json({ error: s.error });
+
+        const ref = await _db.collection('agenda_series').add({
+          ...s.serie,
+          conflictos: [],
+          creado: new Date().toISOString(),
+          creadoPor: sesion.email,
+        });
+
+        // Y se toman sus encuentros en el acto: una serie que existe pero no
+        // ocupa nada es una serie que no sirve para nada.
+        const r = await extenderSerie({ id: ref.id, ...s.serie });
+        functions.logger.info('Serie creada', {
+          serieId: ref.id, por: sesion.email,
+          creados: r.creados.length, conflictos: r.conflictos.length,
+        });
+        return res.status(200).json({ ok: true, id: ref.id, ...r });
+      }
+
+      case 'guardarSerie': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        const s = serieSaneada(req.body?.serie);
+        if (s.error) return res.status(400).json({ error: s.error });
+        await _db.collection('agenda_series').doc(id).set(s.serie, { merge: true });
+        functions.logger.info('Serie guardada', { serieId: id, por: sesion.email });
+        // Cambiar el dia o la hora aca NO reacomoda los encuentros ya
+        // tomados: eso es el cambio de horario habitual, que tiene su propio
+        // camino con su evaluacion. Esto solo arregla los datos de la serie.
+        return res.status(200).json({ ok: true });
+      }
+
+      case 'extenderSerie': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        const snap = await _db.collection('agenda_series').doc(id).get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const r = await extenderSerie({ id: snap.id, ...snap.data() });
+        return res.status(200).json({ ok: true, ...r });
+      }
+
+      // ---------- Los enlaces de acceso ----------
+
+      case 'enlace': {
+        const serieId = sanitizeTexto(req.body?.serieId, 64) || null;
+        const pedidoId = sanitizeTexto(req.body?.pedidoId, 64) || null;
+        if (!serieId && !pedidoId) return res.status(400).json({ error: 'falta_destino' });
+
+        const snap = serieId
+          ? await _db.collection('agenda_series').doc(serieId).get()
+          : await _db.collection('agenda_pedidos').doc(pedidoId).get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const duena = snap.data();
+        if (!duena.email) return res.status(400).json({ error: 'sin_email' });
+
+        const acceso = await crearAcceso({
+          email: duena.email, nombre: duena.nombre || '', serieId, pedidoId,
+        });
+
+        // El enlace queda guardado en la serie para que el evento del
+        // calendario de cada encuentro lo lleve.
+        if (serieId) {
+          await _db.collection('agenda_series').doc(serieId).set({ enlace: acceso.url }, { merge: true });
+        }
+
+        if (req.body?.mandar === true) {
+          await mandarEnlacePersonal(duena, acceso.url, Boolean(serieId));
+        }
+
+        functions.logger.info('Enlace de acceso creado', {
+          serieId, pedidoId, mandado: req.body?.mandar === true, por: sesion.email,
+        });
+        // El token en claro vuelve una sola vez, para que Seba lo pueda
+        // copiar. No queda guardado en ningun lado.
+        return res.status(200).json({ ok: true, url: acceso.url, vence: acceso.vence });
+      }
+
+      case 'accesos': {
+        const serieId = sanitizeTexto(req.body?.serieId, 64);
+        if (!serieId) return res.status(400).json({ error: 'falta_destino' });
+        const snap = await _db.collection('agenda_accesos').where('serieId', '==', serieId).get();
+        // Sin el token, que no existe mas: lo que se puede ver es cuando se
+        // creo, cuantas veces se uso y si sigue vivo.
+        return res.status(200).json({
+          ok: true,
+          accesos: snap.docs.map(d => ({
+            hash: d.id,
+            creado: d.data().creado,
+            vence: d.data().vence,
+            revocado: d.data().revocado === true,
+            usos: d.data().usos || 0,
+            ultimoUso: d.data().ultimoUso || null,
+          })).sort((a, b) => String(b.creado).localeCompare(String(a.creado))),
+        });
+      }
+
+      case 'revocarAcceso': {
+        const hash = sanitizeTexto(req.body?.hash, 80);
+        if (!/^[0-9a-f]{64}$/.test(hash)) return res.status(400).json({ error: 'falta_hash' });
+        await _db.collection('agenda_accesos').doc(hash).set({
+          revocado: true, revocadoEl: new Date().toISOString(), revocadoPor: sesion.email,
+        }, { merge: true });
+        functions.logger.info('Enlace de acceso revocado', { por: sesion.email });
+        return res.status(200).json({ ok: true });
+      }
+
+      // ---------- Horarios excepcionales ----------
+
+      case 'excepcional': {
+        const e = excepcionalSaneado(req.body?.excepcional);
+        if (e.error) return res.status(400).json({ error: e.error });
+        const ref = await _db.collection('agenda_excepcionales').add({
+          ...e.excepcional,
+          creado: new Date().toISOString(),
+        });
+        return res.status(200).json({ ok: true, id: ref.id });
+      }
+
+      case 'quitarExcepcional': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        await _db.collection('agenda_excepcionales').doc(id).delete();
+        return res.status(200).json({ ok: true });
+      }
+
+      case 'excepcionales': {
+        return res.status(200).json({ ok: true, excepcionales: await leerExcepcionales() });
+      }
+
       default:
         return res.status(400).json({ error: 'accion_desconocida' });
     }
@@ -5268,9 +6240,7 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
 // endpoints y con cuanta memoria. Por eso esto loguea cuanto tardo cada
 // ping: son los numeros con los que decidir si vale la pena pagar.
 // =======================================================================
-const { onSchedule } = require('firebase-functions/v2/scheduler');
-
-const DESPERTAR = ['registrarInscripcion', 'suscribir', 'reservarTurno'];
+const DESPERTAR = ['registrarInscripcion', 'suscribir', 'reservarTurno', 'miAgenda'];
 
 exports.mantenerDespierto = onSchedule({
   // De 8 de la manana a medianoche, hora de Argentina. De madrugada nadie se

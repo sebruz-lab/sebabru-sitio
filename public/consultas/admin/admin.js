@@ -309,6 +309,215 @@ async function bloquear() {
 }
 
 // -------------------------------------------------------
+// Acompañamiento
+//
+// Lo que se ve acá son las series: una por persona, con su día y su hora
+// quincenal. Los encuentros no son una promesa, son turnos tomados de
+// verdad hasta dos meses para adelante, y por eso se listan.
+// -------------------------------------------------------
+const DIA_CORTO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+let series = [];
+
+async function cargarSeries() {
+  const caja = $('pa-lista-series');
+  caja.textContent = 'Cargando...';
+  try {
+    series = (await llamar({ accion: 'series' })).series || [];
+    pintarSeries();
+  } catch (e) {
+    caja.textContent = '';
+    avisar(`No se pudieron cargar: ${e.message}`, 'error');
+  }
+}
+
+function pintarSeries() {
+  const caja = $('pa-lista-series');
+  caja.innerHTML = '';
+
+  if (!series.length) {
+    const p = document.createElement('p');
+    p.className = 'pa-vacio';
+    p.textContent = 'Todavía no hay nadie en el acompañamiento.';
+    caja.appendChild(p);
+    return;
+  }
+
+  for (const s of series) {
+    const ficha = document.createElement('div');
+    ficha.className = 'pa-serie' + (s.estado === 'pausada' ? ' pausada' : '');
+
+    const cabeza = document.createElement('div');
+    cabeza.className = 'pa-serie-cabeza';
+    const nombre = document.createElement('strong');
+    nombre.textContent = s.nombre || s.email;
+    const cuando = document.createElement('span');
+    cuando.className = 'pa-serie-cuando';
+    cuando.textContent = `${DIA_CORTO[s.diaSemana]} a las ${s.hora}, cada 15 días`;
+    cabeza.append(nombre, cuando);
+    ficha.appendChild(cabeza);
+
+    const datos = document.createElement('div');
+    datos.className = 'pa-serie-datos';
+    datos.textContent = [s.email, s.telefono, s.modalidad].filter(Boolean).join(' · ')
+      + (s.estado === 'pausada' ? ' · EN PAUSA' : '');
+    ficha.appendChild(datos);
+
+    if (s.conflictos && s.conflictos.length) {
+      const aviso = document.createElement('div');
+      aviso.className = 'pa-serie-conflicto';
+      aviso.textContent = 'No se pudieron tomar estos encuentros porque el horario ya estaba ocupado: '
+        + s.conflictos.map(c => fechaLarga(c.inicio)).join('; ')
+        + '. Movelos a mano o proponele otro horario.';
+      ficha.appendChild(aviso);
+    }
+
+    const encuentros = document.createElement('div');
+    encuentros.className = 'pa-serie-encuentros';
+    if (!s.encuentros.length) {
+      const vacio = document.createElement('span');
+      vacio.className = 'pa-vacio';
+      vacio.style.fontSize = '0.8rem';
+      vacio.textContent = 'Sin encuentros tomados.';
+      encuentros.appendChild(vacio);
+    }
+    for (const e of s.encuentros) {
+      const pastilla = document.createElement('span');
+      // Punteado = movido: el encuentro de esa quincena está, pero no en el
+      // horario habitual de la persona.
+      const movido = e.inicio.slice(11, 16) !== s.hora;
+      pastilla.className = 'pa-encuentro' + (movido ? ' movido' : '');
+      pastilla.textContent = fechaLarga(e.inicio);
+      if (movido) pastilla.title = 'Movido: no está en su horario habitual';
+      encuentros.appendChild(pastilla);
+    }
+    ficha.appendChild(encuentros);
+
+    const acciones = document.createElement('div');
+    acciones.className = 'pa-serie-acciones';
+
+    acciones.appendChild(boton('Mandarle el enlace', () => mandarEnlace(s, true)));
+    acciones.appendChild(boton('Ver el enlace', () => mandarEnlace(s, false)));
+    acciones.appendChild(boton('Estirar sus encuentros', () => estirarSerie(s)));
+    acciones.appendChild(boton(s.estado === 'pausada' ? 'Reactivar' : 'Pausar', () => pausarSerie(s)));
+
+    ficha.appendChild(acciones);
+    caja.appendChild(ficha);
+  }
+}
+
+function boton(texto, alTocar) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'pa-mini';
+  b.textContent = texto;
+  b.addEventListener('click', alTocar);
+  return b;
+}
+
+async function crearSerie() {
+  const boton = $('pa-btn-crear-serie');
+  boton.disabled = true;
+  try {
+    const r = await llamar({
+      accion: 'crearSerie',
+      serie: {
+        nombre: $('pa-se-nombre').value.trim(),
+        email: $('pa-se-email').value.trim(),
+        telefono: $('pa-se-telefono').value.trim(),
+        diaSemana: Number($('pa-se-dia').value),
+        hora: $('pa-se-hora').value,
+        ancla: $('pa-se-ancla').value,
+        modalidad: $('pa-se-modalidad').value,
+      },
+    });
+
+    // Un alta puede salir a medias: la serie queda, y alguno de sus
+    // encuentros no entra porque el horario estaba ocupado. Decirlo acá
+    // evita que Seba se entere dos semanas después.
+    const parte = r.conflictos.length
+      ? `Quedó, con ${r.creados.length} encuentro${r.creados.length === 1 ? '' : 's'} tomado${r.creados.length === 1 ? '' : 's'}, pero ${r.conflictos.length} no entró porque el horario ya estaba ocupado.`
+      : `Listo: ${r.creados.length} encuentro${r.creados.length === 1 ? '' : 's'} tomado${r.creados.length === 1 ? '' : 's'}.`;
+    avisar(parte, r.conflictos.length ? 'error' : 'ok');
+
+    if ($('pa-se-mandar').checked && r.id) {
+      await llamar({ accion: 'enlace', serieId: r.id, mandar: true });
+      avisar(`${parte} Le mandé el enlace por mail.`, r.conflictos.length ? 'error' : 'ok');
+    }
+
+    for (const id of ['pa-se-nombre', 'pa-se-email', 'pa-se-telefono', 'pa-se-ancla']) $(id).value = '';
+    await cargarSeries();
+  } catch (e) {
+    avisar(`No se pudo sumar: ${mensajeDeSerie(e)}`, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function mensajeDeSerie(e) {
+  return {
+    falta_nombre: 'falta el nombre',
+    email_invalido: 'revisá el mail',
+    dia_invalido: 'elegí un día',
+    hora_invalida: 'revisá la hora',
+    ancla_no_coincide: 'la fecha del primer encuentro no cae en el día que elegiste',
+    sin_email: 'esa persona no tiene mail cargado',
+  }[e.message] || e.message;
+}
+
+async function mandarEnlace(s, mandar) {
+  try {
+    const r = await llamar({ accion: 'enlace', serieId: s.id, mandar });
+    if (mandar) {
+      avisar(`Le mandé el enlace a ${s.email}.`, 'ok');
+      return;
+    }
+    // Mostrarlo en pantalla, porque el token existe una sola vez: de acá en
+    // más solo queda su hash guardado.
+    const ficha = [...document.querySelectorAll('.pa-serie')][series.indexOf(s)];
+    let caja = ficha.querySelector('.pa-enlace-copiar');
+    if (!caja) {
+      caja = document.createElement('div');
+      caja.className = 'pa-enlace-copiar';
+      ficha.appendChild(caja);
+    }
+    caja.textContent = r.url;
+    avisar('Copialo ahora: el enlace se muestra una sola vez.', 'ok');
+  } catch (e) {
+    avisar(`No se pudo: ${mensajeDeSerie(e)}`, 'error');
+  }
+}
+
+async function estirarSerie(s) {
+  try {
+    const r = await llamar({ accion: 'extenderSerie', id: s.id });
+    avisar(r.conflictos.length
+      ? `Tomé ${r.creados.length}, y ${r.conflictos.length} no entró: el horario ya estaba ocupado.`
+      : `Listo: ${r.creados.length} encuentro${r.creados.length === 1 ? '' : 's'} nuevo${r.creados.length === 1 ? '' : 's'}.`,
+    r.conflictos.length ? 'error' : 'ok');
+    await cargarSeries();
+  } catch (e) {
+    avisar(`No se pudo: ${e.message}`, 'error');
+  }
+}
+
+async function pausarSerie(s) {
+  const pausar = s.estado !== 'pausada';
+  if (pausar && !window.confirm(`¿Pausar el acompañamiento de ${s.nombre || s.email}? Los encuentros que ya están tomados siguen en pie; lo que deja de pasar es que se tomen los nuevos.`)) return;
+  try {
+    await llamar({
+      accion: 'guardarSerie',
+      id: s.id,
+      serie: { ...s, estado: pausar ? 'pausada' : 'activa' },
+    });
+    avisar(pausar ? 'Pausado.' : 'Reactivado.', 'ok');
+    await cargarSeries();
+  } catch (e) {
+    avisar(`No se pudo: ${mensajeDeSerie(e)}`, 'error');
+  }
+}
+
+// -------------------------------------------------------
 // Vista previa
 //
 // El iframe trae la pagina publica de verdad, no una copia: una copia se
@@ -463,11 +672,21 @@ $('pa-btn-guardar').addEventListener('click', guardarConfig);
 $('pa-btn-bloquear').addEventListener('click', bloquear);
 $('pa-btn-previa').addEventListener('click', cargarPrevia);
 
+$('pa-btn-crear-serie').addEventListener('click', crearSerie);
+
+// Las series se piden recién al abrir su pestaña, no al abrir el panel: cada
+// una trae sus encuentros en una consulta propia, y son quince personas.
+let seriesPedidas = false;
+
 for (const tab of document.querySelectorAll('.pa-tab')) {
   tab.addEventListener('click', () => {
     for (const t of document.querySelectorAll('.pa-tab')) t.classList.remove('activa');
     for (const p of document.querySelectorAll('.pa-panel')) p.classList.remove('visible');
     tab.classList.add('activa');
     $(tab.dataset.panel).classList.add('visible');
+    if (tab.dataset.panel === 'pa-series' && !seriesPedidas) {
+      seriesPedidas = true;
+      cargarSeries();
+    }
   });
 }

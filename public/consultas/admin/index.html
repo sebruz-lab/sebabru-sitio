@@ -101,6 +101,63 @@
     }
     .pa-vacio { color: #8f8d88; line-height: 1.7; }
 
+    /* Acompanamiento */
+    .pa-nueva-serie {
+        margin-bottom: 26px; padding: 16px 18px; border-radius: 12px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .pa-nueva-serie summary {
+        cursor: pointer; color: var(--pa-accent); font-size: 0.85rem;
+        min-height: 44px; display: flex; align-items: center;
+    }
+    .pa-serie-campos {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px; margin: 14px 0 4px;
+    }
+    .pa-serie-campos label {
+        display: block; font-size: 0.72rem; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #a9a7a1; margin-bottom: 6px;
+    }
+    .pa-serie-campos input, .pa-serie-campos select {
+        width: 100%; box-sizing: border-box;
+        background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 10px; padding: 11px 14px; font-family: 'Outfit', sans-serif; font-size: 16px;
+    }
+    .pa-serie-campos select option { background: #12141d; color: #fff; }
+    .pa-serie-nota { color: #8f8d88; font-size: 0.78rem; line-height: 1.6; margin: 12px 0 0; }
+
+    .pa-serie {
+        padding: 18px; margin-bottom: 12px; border-radius: 12px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .pa-serie.pausada { opacity: 0.5; }
+    .pa-serie-cabeza {
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 4px;
+    }
+    .pa-serie-cabeza strong { color: #fff; font-weight: 400; }
+    .pa-serie-cuando { color: var(--pa-accent); font-size: 0.85rem; }
+    .pa-serie-datos { color: #a9a7a1; font-size: 0.8rem; line-height: 1.6; margin-bottom: 12px; }
+    .pa-serie-encuentros {
+        display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px;
+    }
+    .pa-encuentro {
+        padding: 6px 12px; border-radius: 20px; font-size: 0.76rem;
+        background: rgba(191,174,224,0.1); border: 1px solid rgba(191,174,224,0.28);
+        color: #e8e6e1; text-transform: capitalize;
+    }
+    .pa-encuentro.movido { border-style: dashed; }
+    .pa-serie-conflicto {
+        padding: 10px 14px; border-radius: 10px; margin-bottom: 12px;
+        background: rgba(245,109,150,0.1); border: 1px solid #f56d96;
+        color: #ffd9e4; font-size: 0.8rem; line-height: 1.6;
+    }
+    .pa-serie-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pa-enlace-copiar {
+        margin-top: 12px; padding: 11px 14px; border-radius: 10px; word-break: break-all;
+        background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.14);
+        color: #cccac3; font-size: 0.76rem; line-height: 1.6;
+    }
+
     /* Vista previa */
     .pa-previa-texto { color: #cccac3; line-height: 1.8; margin-bottom: 18px; }
     .pa-previa-texto a { color: var(--pa-accent); }
@@ -163,6 +220,7 @@
                             <button type="button" class="pa-tab activa" data-panel="pa-turnos">Turnos</button>
                             <button type="button" class="pa-tab" data-panel="pa-disponibilidad">Disponibilidad</button>
                             <button type="button" class="pa-tab" data-panel="pa-bloqueos">Bloqueos</button>
+                            <button type="button" class="pa-tab" data-panel="pa-series">Acompañamiento</button>
                             <button type="button" class="pa-tab" data-panel="pa-previa">Vista previa</button>
                             <button type="button" class="pa-mini" id="pa-btn-salir" style="margin-left:auto;">Salir</button>
                         </div>
@@ -197,6 +255,50 @@
                             <div id="pa-lista-bloqueos"></div>
                         </div>
 
+                        <div id="pa-series" class="pa-panel">
+                            <p class="pa-previa-texto">
+                                Cada persona del acompañamiento tiene su horario quincenal. Los encuentros
+                                se toman de verdad en la agenda, hasta dos meses para adelante, así nadie
+                                más se los puede llevar. El enlace que le mandes le deja ver y mover su
+                                próximo encuentro sin contraseña.
+                            </p>
+
+                            <details class="pa-nueva-serie">
+                                <summary>Sumar a alguien</summary>
+                                <div class="pa-serie-campos">
+                                    <div><label for="pa-se-nombre">Nombre</label><input type="text" id="pa-se-nombre" maxlength="200"></div>
+                                    <div><label for="pa-se-email">Mail</label><input type="email" id="pa-se-email" maxlength="200"></div>
+                                    <div><label for="pa-se-telefono">Teléfono</label><input type="tel" id="pa-se-telefono" maxlength="50"></div>
+                                    <div><label for="pa-se-dia">Día</label>
+                                        <select id="pa-se-dia">
+                                            <option value="1">Lunes</option>
+                                            <option value="2">Martes</option>
+                                            <option value="3">Miércoles</option>
+                                            <option value="4">Jueves</option>
+                                            <option value="5">Viernes</option>
+                                            <option value="6">Sábado</option>
+                                            <option value="0">Domingo</option>
+                                        </select>
+                                    </div>
+                                    <div><label for="pa-se-hora">Hora</label><input type="time" id="pa-se-hora" value="16:00"></div>
+                                    <div><label for="pa-se-ancla">Primer encuentro</label><input type="date" id="pa-se-ancla"></div>
+                                    <div><label for="pa-se-modalidad">Modalidad</label>
+                                        <select id="pa-se-modalidad">
+                                            <option value="Online">Online</option>
+                                            <option value="Presencial">Presencial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <label class="pa-pausa"><input type="checkbox" id="pa-se-mandar" checked> Mandarle el enlace por mail</label>
+                                <button type="button" class="pa-boton" id="pa-btn-crear-serie">Sumar y tomar sus encuentros</button>
+                                <p class="pa-serie-nota">
+                                    Si dejás vacío el primer encuentro, se toma el próximo día de la semana que elegiste.
+                                </p>
+                            </details>
+
+                            <div id="pa-lista-series"></div>
+                        </div>
+
                         <div id="pa-previa" class="pa-panel">
                             <p class="pa-previa-texto">
                                 Esta es la página de verdad, la misma que ve una persona cuando entra a
@@ -222,6 +324,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=2"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=3"></script>
 </body>
 </html>

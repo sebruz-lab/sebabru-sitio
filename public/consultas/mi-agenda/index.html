@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
+<title>Tu espacio | Seba Bru</title>
+<link rel="canonical" href="https://sebabru.com/consultas/mi-agenda/">
+<meta name="description" content="Mirá tu próximo encuentro con Seba Bru y cambiá el horario cuando lo necesites.">
+<!-- Es la pagina privada de cada persona: no tiene nada que buscar Google, y
+     mientras se desarrolla no esta enlazada desde ningun lado. -->
+<meta name="robots" content="noindex, nofollow">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/consultas/mi-agenda">
+<meta property="og:title" content="Tu espacio | Seba Bru Astrología">
+<meta property="og:description" content="Mirá tu próximo encuentro y cambiá el horario cuando lo necesites.">
+<meta property="og:image" content="https://sebabru.com/img/consultas.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+<link rel="stylesheet" href="../../style.css?v=32">
+
+<style>
+    .mi-pagina {
+        --mi-accent: #bfaee0;
+        max-width: 640px; margin: 0 auto; padding: 0 20px;
+        /* Para que los controles que dibuja el navegador vengan oscuros. */
+        color-scheme: dark;
+    }
+    .mi-paso { display: none; }
+    .mi-paso.visible { display: block; }
+
+    .mi-intro { text-align: center; margin-bottom: 30px; }
+    .mi-intro h2 {
+        font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase;
+        font-size: 0.92rem; margin-bottom: 18px;
+    }
+    .mi-intro p { color: #cccac3; line-height: 1.8; margin-bottom: 12px; }
+    .mi-chico { font-size: 0.8rem; color: #8f8d88; line-height: 1.7; }
+
+    /* La ficha del proximo encuentro: lo primero y lo mas grande. */
+    .mi-ficha {
+        padding: 24px; border-radius: 14px; margin-bottom: 22px;
+        background: rgba(191,174,224,0.08); border: 1px solid rgba(191,174,224,0.3);
+    }
+    .mi-ficha .mi-etiqueta {
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--mi-accent); margin: 0 0 10px;
+    }
+    .mi-ficha .mi-cuando {
+        font-size: 1.35rem; font-weight: 300; color: #fff; margin: 0 0 8px;
+        text-transform: capitalize; line-height: 1.4;
+    }
+    .mi-ficha p { color: #cccac3; line-height: 1.7; margin: 0 0 10px; }
+    .mi-ficha p:last-child { margin-bottom: 0; }
+    .mi-ficha a { color: var(--mi-accent); }
+
+    /* Los encuentros que vienen despues. Mas chicos: son informacion, no
+       algo sobre lo que haya que hacer algo ahora. */
+    .mi-siguientes { margin-bottom: 26px; }
+    .mi-siguientes h3 {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #a9a7a1; font-weight: 400; margin: 0 0 12px;
+    }
+    .mi-fila {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 13px 16px; border-radius: 10px; margin-bottom: 8px;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .mi-fila .mi-fecha { color: #e8e6e1; font-size: 0.9rem; text-transform: capitalize; }
+    .mi-fila .mi-dura { color: #8f8d88; font-size: 0.78rem; }
+
+    .mi-boton {
+        width: 100%; padding: 14px 20px; border-radius: 30px; cursor: pointer;
+        background: var(--mi-accent); color: #16131d; border: none;
+        font-family: 'Outfit', sans-serif; font-size: 0.875rem; font-weight: 500;
+        text-transform: uppercase; letter-spacing: 1px; min-height: 44px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .mi-boton:hover:not(:disabled) {
+        transform: translateY(-2px); box-shadow: 0 8px 20px rgba(191,174,224,0.3);
+    }
+    .mi-boton:disabled { opacity: 0.55; cursor: default; }
+
+    .mi-mini {
+        padding: 10px 16px; border-radius: 30px; cursor: pointer;
+        background: transparent; color: #e0e0e0;
+        border: 1px solid rgba(255,255,255,0.22);
+        font-family: 'Outfit', sans-serif; font-size: 0.8rem; min-height: 44px;
+    }
+    .mi-mini:hover:not(:disabled) { border-color: var(--mi-accent); color: #fff; }
+    .mi-mini:disabled { opacity: 0.4; cursor: default; }
+
+    .mi-error {
+        display: none; margin: 14px 0; padding: 12px 15px; border-radius: 10px;
+        background: rgba(245,109,150,0.1); border: 1px solid #f56d96;
+        color: #ffd9e4; font-size: 0.85rem; line-height: 1.6;
+    }
+    .mi-error.visible { display: block; }
+
+    .mi-ok {
+        display: none; margin: 14px 0; padding: 12px 15px; border-radius: 10px;
+        background: rgba(191,174,224,0.12); border: 1px solid rgba(191,174,224,0.45);
+        color: #e8e6e1; font-size: 0.85rem; line-height: 1.6;
+    }
+    .mi-ok.visible { display: block; }
+
+    .mi-tarda {
+        display: none; margin: 12px 0 0; color: #b9b4ae;
+        font-size: 0.8rem; line-height: 1.6; text-align: center;
+    }
+    .mi-tarda.visible { display: block; }
+
+    /* Los dias, uno abajo del otro. La ventana es de tres semanas: una lista
+       se recorre de un scroll y no obliga a adivinar en que dia hay algo,
+       que es lo que pasa con una grilla de mes casi vacia. */
+    .mi-dia {
+        padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .mi-dia:last-child { border-bottom: none; }
+    .mi-dia h4 {
+        font-size: 0.85rem; font-weight: 400; color: #e8e6e1; margin: 0 0 10px;
+        text-transform: capitalize; letter-spacing: 0.02em;
+    }
+    .mi-horas { display: flex; flex-wrap: wrap; gap: 9px; }
+    .mi-hora {
+        padding: 11px 18px; border-radius: 30px; cursor: pointer;
+        background: transparent; color: #e0e0e0;
+        border: 1px solid rgba(255,255,255,0.2);
+        font-family: 'Outfit', sans-serif; font-size: 0.85rem; min-height: 44px;
+    }
+    .mi-hora:hover { border-color: var(--mi-accent); color: #fff; }
+    .mi-hora.elegida { background: var(--mi-accent); color: #16131d; border-color: var(--mi-accent); }
+    .mi-hora.actual {
+        border-style: dashed; border-color: rgba(191,174,224,0.55); color: var(--mi-accent);
+    }
+    /* Los espacios que Seba guardo para consultas de dos horas. Se ven, con
+       su motivo: un hueco gris que dice por que no se puede se entiende, y
+       un hueco que no esta se lee como "no hay lugar". */
+    .mi-hora.reservado {
+        cursor: default; border-style: dashed;
+        border-color: rgba(255,255,255,0.12); color: #55534f;
+    }
+    .mi-hora.reservado:hover { border-color: rgba(255,255,255,0.12); color: #55534f; }
+
+    .mi-sueltos {
+        margin-top: 26px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .mi-sueltos summary {
+        cursor: pointer; color: var(--mi-accent); font-size: 0.85rem;
+        padding: 11px 0; min-height: 44px; display: flex; align-items: center;
+    }
+
+    .mi-resumen {
+        margin-top: 26px; padding: 20px; border-radius: 14px;
+        background: rgba(191,174,224,0.08); border: 1px solid rgba(191,174,224,0.3);
+    }
+    .mi-resumen p { margin: 0 0 14px; line-height: 1.7; color: #e8e6e1; }
+    .mi-resumen strong { color: #fff; }
+
+    .mi-secundarios { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .mi-secundarios button { flex: 1 1 180px; }
+
+    /* Entrar con la cuenta de la escuela */
+    .mi-campo { margin-bottom: 16px; text-align: left; }
+    .mi-campo label {
+        display: block; font-size: 0.75rem; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #a9a7a1; margin-bottom: 6px;
+    }
+    .mi-campo input {
+        width: 100%; background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.18); color: #fff;
+        padding: 12px 15px; border-radius: 10px;
+        font-family: 'Outfit', sans-serif; box-sizing: border-box;
+        /* Con menos de 16px el iPhone hace zoom al tocar el campo. */
+        font-size: 16px;
+    }
+    .mi-campo input:focus { outline: none; border-color: var(--mi-accent); }
+    .mi-separador {
+        display: flex; align-items: center; gap: 12px; margin: 22px 0;
+        color: #8f8d88; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .mi-separador::before, .mi-separador::after {
+        content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.12);
+    }
+
+    /* El casillero de las notificaciones */
+    .mi-notis {
+        margin-top: 30px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .mi-notis h3 {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #a9a7a1; font-weight: 400; margin: 0 0 14px;
+    }
+    .mi-casillero {
+        display: flex; align-items: flex-start; gap: 11px; cursor: pointer;
+        color: #cccac3; font-size: 0.85rem; line-height: 1.6; padding: 7px 0;
+    }
+    .mi-casillero input { margin-top: 3px; accent-color: var(--mi-accent); width: 17px; height: 17px; }
+
+    .mi-cargando { text-align: center; color: #8f8d88; padding: 40px 0; }
+    .mi-spinner {
+        display: inline-block; width: 16px; height: 16px; vertical-align: -3px;
+        border: 2px solid rgba(255,255,255,0.18);
+        border-top-color: var(--mi-accent, #bfaee0);
+        border-radius: 50%; animation: mi-girar 0.8s linear infinite;
+    }
+    @keyframes mi-girar { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .mi-spinner { animation-duration: 2.4s; } }
+</style>
+</head>
+<body>
+
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+            <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+            <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
+        </ul>
+    </nav>
+
+    <div class="content-wrapper">
+
+        <header class="main-header" id="top">
+            <h1>Tu espacio | Seba Bru astrología</h1>
+        </header>
+
+        <main>
+            <section class="mi-pagina">
+
+                <div id="mi-cargando" class="mi-cargando">
+                    <span class="mi-spinner" aria-hidden="true"></span>
+                    Abriendo tu espacio...
+                </div>
+
+                <!-- Entrar, cuando no hay enlace ni sesion -->
+                <div id="mi-entrar" class="mi-paso">
+                    <div class="mi-intro">
+                        <h2>Tu espacio</h2>
+                        <p>Acá podés ver tu próximo encuentro y cambiar el horario.</p>
+                        <p class="mi-chico">Si te llegó un enlace por mail, entrá con ese y listo: no hace falta contraseña. Si lo perdiste, podés entrar con tu cuenta de la escuela.</p>
+                    </div>
+
+                    <button type="button" class="mi-boton" id="mi-btn-google">Entrar con Google</button>
+
+                    <div class="mi-separador">o con tu mail</div>
+
+                    <form id="mi-form-login" novalidate>
+                        <div class="mi-campo">
+                            <label for="mi-email">Tu mail</label>
+                            <input type="email" id="mi-email" maxlength="200" autocomplete="email" required>
+                        </div>
+                        <div class="mi-campo">
+                            <label for="mi-pass">Tu contraseña</label>
+                            <input type="password" id="mi-pass" maxlength="100" autocomplete="current-password" required>
+                        </div>
+                        <div id="mi-error-login" class="mi-error" role="alert"></div>
+                        <button type="submit" class="mi-mini" id="mi-btn-entrar" style="width:100%;">Entrar</button>
+                    </form>
+
+                    <p class="mi-chico" style="margin-top:22px; text-align:center;">
+                        Si no te sale, escribime a <a href="mailto:info@sebabru.com">info@sebabru.com</a> y lo resolvemos.
+                    </p>
+                </div>
+
+                <!-- El espacio, con todo adentro -->
+                <div id="mi-espacio" class="mi-paso">
+                    <div class="mi-intro">
+                        <h2 id="mi-saludo">Tu espacio</h2>
+                        <p class="mi-chico" id="mi-zona"></p>
+                    </div>
+
+                    <div id="mi-ok" class="mi-ok" role="status"></div>
+                    <div id="mi-error-espacio" class="mi-error" role="alert"></div>
+
+                    <div id="mi-sin-turnos" hidden>
+                        <p>No tenés ningún encuentro agendado por ahora.</p>
+                        <p class="mi-chico">Si creés que debería haber uno, escribime a <a href="mailto:info@sebabru.com">info@sebabru.com</a>.</p>
+                    </div>
+
+                    <div id="mi-proximo" class="mi-ficha" hidden>
+                        <p class="mi-etiqueta" id="mi-proximo-etiqueta">Tu próximo encuentro</p>
+                        <p class="mi-cuando" id="mi-proximo-cuando"></p>
+                        <p id="mi-proximo-dura"></p>
+                        <p id="mi-proximo-donde"></p>
+                    </div>
+
+                    <button type="button" class="mi-boton" id="mi-btn-cambiar" hidden>Cambiar este horario</button>
+                    <p class="mi-chico" id="mi-nota-cambiar" style="margin-top:12px;" hidden></p>
+
+                    <div class="mi-siguientes" id="mi-siguientes" hidden>
+                        <h3>Los que vienen después</h3>
+                        <div id="mi-lista-siguientes"></div>
+                        <p class="mi-chico">Estos horarios ya están guardados para vos. Si querés mover alguno, entrá cuando sea el próximo.</p>
+                    </div>
+
+                    <div class="mi-notis" id="mi-notis" hidden>
+                        <h3>Avisos por mail</h3>
+                        <label class="mi-casillero">
+                            <input type="checkbox" id="mi-noti-recordatorio">
+                            <span>Quiero un recordatorio por mail antes de cada encuentro.</span>
+                        </label>
+                        <p class="mi-chico" style="margin-top:10px;">La confirmación de un cambio te llega siempre, es tu comprobante.</p>
+                    </div>
+                </div>
+
+                <!-- Elegir otro horario -->
+                <div id="mi-elegir" class="mi-paso">
+                    <div class="mi-intro">
+                        <h2>Elegí otro horario</h2>
+                        <p class="mi-chico" id="mi-elegir-zona"></p>
+                    </div>
+
+                    <div id="mi-error-elegir" class="mi-error" role="alert"></div>
+
+                    <div id="mi-dias"></div>
+
+                    <details class="mi-sueltos" id="mi-sueltos" hidden>
+                        <summary>¿No encontrás un horario que te sirva?</summary>
+                        <p class="mi-chico" style="margin:12px 0 16px;">Estos son espacios que abro de vez en cuando, fuera de mis horarios habituales.</p>
+                        <div id="mi-dias-sueltos"></div>
+                    </details>
+
+                    <p class="mi-chico" id="mi-nada" style="text-align:center; margin-top:24px;" hidden>
+                        No hay horarios libres en los próximos días. Escribime a
+                        <a href="mailto:info@sebabru.com">info@sebabru.com</a> y buscamos un hueco.
+                    </p>
+
+                    <div id="mi-resumen" class="mi-resumen" hidden>
+                        <p id="mi-resumen-texto"></p>
+                        <div id="mi-error-confirmar" class="mi-error" role="alert"></div>
+                        <button type="button" class="mi-boton" id="mi-btn-confirmar">Confirmar el cambio</button>
+                        <p id="mi-tarda" class="mi-tarda">Estamos moviendo tu encuentro, no cierres esta ventana.</p>
+                    </div>
+
+                    <div class="mi-secundarios">
+                        <button type="button" class="mi-mini" id="mi-btn-volver">Dejarlo como está</button>
+                    </div>
+                </div>
+
+                <!-- Algo no anduvo -->
+                <div id="mi-roto" class="mi-paso">
+                    <div class="mi-intro">
+                        <h2 id="mi-roto-titulo">No pudimos abrir tu espacio</h2>
+                        <p id="mi-roto-texto"></p>
+                    </div>
+                    <div class="mi-secundarios">
+                        <button type="button" class="mi-mini" id="mi-btn-reintentar">Probar de nuevo</button>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+    </div>
+
+    <script type="module" src="mi-agenda.js?v=1"></script>
+</body>
+</html>
