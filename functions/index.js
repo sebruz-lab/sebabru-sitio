@@ -4857,6 +4857,16 @@ exports.cancelarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(a
   }
 });
 
+// El aire que se le exige a una reserva segun quien la hace. Solo el admin
+// reserva sin aire: si Seba decide meter algo pegado a otra cosa, es porque
+// quiere. Todo lo demas, incluido lo que se agenda solo, respeta el aire del
+// tipo. Esta aparte porque lo usan dos comprobaciones que tienen que estar
+// de acuerdo: la de antes de la transaccion y la de adentro.
+function bufferDe(tipo, quien) {
+  if (quien === 'admin') return 0;
+  return (tipo.bufferMin || 0) * 60000;
+}
+
 // -------------------------------------------------------
 // El corazon de la reserva: toma un horario y lo deja tomado.
 //
@@ -4893,10 +4903,24 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'));
 
   const config = await promesaConfig;
-  // Seba, desde el panel, puede poner un turno aunque la agenda este en
-  // pausa o fuera de las franjas: la pausa es para el publico.
-  const esAdmin = quien === 'admin';
-  if (config.pausado && !esAdmin) {
+
+  // Quien reserva define que controles se le aplican. Son tres:
+  //
+  //   'persona'  el publico. Pasa por todo: franjas, grilla, anticipacion,
+  //              pausa y aire. Es lo unico que se ofrece en una pantalla.
+  //   'admin'    Seba desde el panel. Solo se le controla que no se pise
+  //              con algo: las franjas y la anticipacion son sugerencias
+  //              para el publico, no para el.
+  //   'serie'    un encuentro quincenal que se materializa solo. Tampoco
+  //              pasa por la grilla, y la razon es que el horario habitual
+  //              lo fijo Seba: con la cadencia de 75 minutos, un
+  //              acompanamiento que el puso a las 16:00 no cae en la grilla
+  //              (que da 16:15) y no se podria tomar ni una sola de sus
+  //              fechas. Pero si respeta el aire, que es lo que un turno
+  //              automatico no deberia comerse en silencio.
+  const porLaGrilla = quien !== 'admin' && quien !== 'serie';
+
+  if (config.pausado && porLaGrilla) {
     // Las otras ya salieron: si se vuelve sin esperarlas, un rechazo suyo
     // queda sin atender y Node lo levanta como unhandledRejection.
     promesaBloqueos.catch(() => {});
@@ -4918,7 +4942,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     // ocupado: si no, no podria mover la sesion dos horas.
     .filter(([a]) => !(turnoAnterior && idDeTurno(a) === turnoAnterior));
 
-  if (!esAdmin) {
+  if (porLaGrilla) {
     // El horario tiene que ser uno de los que la pagina podia ofrecer: no
     // alcanza con que este libre, tambien tiene que caer en una franja, en
     // la grilla y despues de la anticipacion minima.
@@ -4933,9 +4957,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     });
     const legales = [...horarios.slots, ...horarios.excepcionales];
     if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
-  } else if (chocaCon(inicioMs, inicioMs + t.duracionMin * 60000, ocupados, 0)) {
-    // Al admin solo se le controla que no se pise con algo: las franjas y
-    // la anticipacion son sugerencias para el publico, no para el.
+  } else if (chocaCon(inicioMs, inicioMs + t.duracionMin * 60000, ocupados, bufferDe(t, quien))) {
     return { error: 'slot_ocupado', status: 409 };
   }
 
@@ -4975,9 +4997,8 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     .where('inicio', '>=', new Date(inicioMs - MAX_TURNO_MIN * 60000))
     .where('inicio', '<=', new Date(finMs));
 
-  // El mismo aire que uso la comprobacion de arriba: el del tipo que se esta
-  // reservando para el publico, ninguno para el admin.
-  const bufferTx = esAdmin ? 0 : (t.bufferMin || 0) * 60000;
+  // El mismo aire que uso la comprobacion de arriba.
+  const bufferTx = bufferDe(t, quien);
 
   try {
     await _db.runTransaction(async tx => {
