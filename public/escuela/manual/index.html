@@ -22,7 +22,7 @@
         .manual-estado p { opacity: .85; }
         .manual-invitacion { display: flex; gap: 64px; align-items: center; margin: 30px auto 0; }
         .manual-tapa {
-            flex: none; width: 250px; aspect-ratio: 2 / 3; box-sizing: border-box;
+            flex: none; width: 250px; aspect-ratio: 2 / 3; box-sizing: border-box; isolation: isolate;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
             padding: 28px 20px; border: 0; border-radius: 3px 8px 8px 3px; cursor: pointer;
             background: #f4efe4; color: #2b2721; text-align: center;
@@ -34,8 +34,7 @@
             box-shadow: inset 7px 0 10px -7px rgba(0,0,0,0.35), 0 26px 54px rgba(0,0,0,0.55);
             outline: none;
         }
-        .tapa-glifos { display: flex; align-items: center; gap: 12px; color: #9c7a4a; }
-        .tapa-glifos .glifo { width: 22px; height: 22px; }
+        .tapa-rueda { width: 62%; height: auto; mix-blend-mode: multiply; }
         .tapa-titulo { font: 300 1.7rem/1.15 'Fraunces', Georgia, serif; }
         .tapa-filete { width: 30px; height: 1px; background: #9c7a4a; opacity: 0.6; }
         .tapa-autor { font: 400 0.7rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.22em; text-transform: uppercase; color: #8b8174; }
@@ -102,7 +101,7 @@
         <section id="manual-listo" hidden>
             <div class="manual-invitacion">
                 <button type="button" class="manual-tapa" data-abrir-ebook data-ga="manual_leer" data-ga-origen="tapa" aria-label="Leer el Manual de Primer A&ntilde;o">
-                    <span class="tapa-glifos" data-ebook-glifos aria-hidden="true"></span>
+                    <img class="tapa-rueda" src="tapa.webp" alt="" width="480" height="488" aria-hidden="true">
                     <span class="tapa-titulo">Manual de Primer A&ntilde;o</span>
                     <span class="tapa-filete" aria-hidden="true"></span>
                     <span class="tapa-autor">Seba Bru</span>
