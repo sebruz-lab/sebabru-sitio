@@ -3742,6 +3742,83 @@ exports.descargarCertificado = functions.https.onRequest(async (req, res) => {
 });
 
 // -------------------------------------------------------
+// exports.manualEpub: entrega el Manual de Primer Año en EPUB.
+//
+// Lo lee el lector de /escuela/manual/ y es tambien la descarga. El archivo
+// vive en functions/manual/, que no se publica en el hosting: asi no hay una
+// URL que se pueda pasar de mano en mano.
+//
+// Quien puede: cualquier persona con sesion que tenga al menos un curso en
+// usuarios/{mail}.cursos que NO este en MANUAL_EXCLUIDOS (y lxs admins). La
+// regla es "alcanza con cualquier otro curso", no "hace falta la etiqueta
+// manual": un curso nuevo habilita el manual solo, sin tocar nada aca. Si
+// algun curso nuevo NO tiene que habilitarlo, hay que sumarlo a la lista.
+// Lxs leads no pasan porque tienen cursos: [].
+//
+// El EPUB se arma con C:\dev\herramientas\armar_epub.py --sitio.
+// -------------------------------------------------------
+const MANUAL_EPUB = require('path').join(__dirname, 'manual', 'manual-primer-anio.epub');
+const MANUAL_EXCLUIDOS = new Set(['cosito', 'leads', 'tarot', 'luna', 'lunas26', 'identidad']);
+let manualEnMemoria = null;
+
+exports.manualEpub = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Iniciá sesión en la escuela para leer el manual.' });
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(authHeader.replace('Bearer ', ''));
+  } catch (e) {
+    return res.status(401).json({ error: 'Tu sesión venció. Volvé a iniciarla.' });
+  }
+
+  if (!(await checkRateLimit('manualEpub', req, 30))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
+  const userEmail = (decodedToken.email || '').toLowerCase().trim();
+  if (!userEmail) return res.status(403).json({ error: 'Tu cuenta no tiene un mail asociado.' });
+
+  try {
+    let habilitado = decodedToken.admin === true;
+    if (!habilitado) {
+      const snap = await _db.collection('usuarios').doc(userEmail).get();
+      const cursos = snap.exists && Array.isArray(snap.data().cursos) ? snap.data().cursos : [];
+      habilitado = cursos.some((c) => !MANUAL_EXCLUIDOS.has(String(c).toLowerCase().trim()));
+    }
+    if (!habilitado) {
+      return res.status(403).json({ error: 'El manual está disponible para estudiantes de la formación. Si creés que es un error, escribinos a info@sebabru.com.' });
+    }
+
+    if (!manualEnMemoria) {
+      try {
+        manualEnMemoria = await require('fs').promises.readFile(MANUAL_EPUB);
+      } catch (e) {
+        functions.logger.error('Falta el EPUB del manual en el deploy', { ruta: MANUAL_EPUB });
+        return res.status(500).json({ error: 'No pudimos abrir el manual. Escribinos a info@sebabru.com.' });
+      }
+    }
+
+    functions.logger.info('Manual entregado', { userEmail });
+    res.set('Content-Type', 'application/epub+zip');
+    res.set('Content-Disposition', 'attachment; filename="manual-primer-anio-seba-bru.epub"');
+    res.set('Cache-Control', 'private, no-store');
+    return res.status(200).send(manualEnMemoria);
+  } catch (error) {
+    functions.logger.error('Error en manualEpub:', error.message);
+    return res.status(500).json({ error: 'No pudimos abrir el manual. Probá de nuevo en unos minutos.' });
+  }
+});
+
+// -------------------------------------------------------
 // exports.baja: saca una direccion de la lista de correo.
 //
 // La llama /baja/ con JavaScript, no el enlace del mail directamente. Es a

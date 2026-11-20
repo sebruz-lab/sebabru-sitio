@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=1"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Primer A&ntilde;o | Escuela Online | Seba Bru</title>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sebabru.com/escuela/manual/">
+    <meta property="og:title" content="Manual de Primer A&ntilde;o | Seba Bru Astrolog&iacute;a">
+    <meta property="og:description" content="El manual de primer a&ntilde;o de la formaci&oacute;n: signos, casas y ascendentes, planetas y aspectos. Para estudiantes de la escuela.">
+    <meta property="og:image" content="https://sebabru.com/img/portada.webp">
+    <meta property="og:site_name" content="Seba Bru Astrolog&iacute;a">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico">
+
+    <link rel="stylesheet" href="../../style.css?v=32">
+    <link rel="stylesheet" href="/iconos.css?v=1">
+    <style>
+        .manual-main { max-width: 980px; margin: 0 auto 120px; padding: 0 24px; box-sizing: border-box; }
+        .manual-estado { text-align: center; max-width: 540px; margin: 0 auto; }
+        .manual-estado p { opacity: .85; }
+        .manual-invitacion { display: flex; gap: 64px; align-items: center; margin: 30px auto 0; }
+        .manual-tapa {
+            flex: none; width: 250px; aspect-ratio: 2 / 3; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+            padding: 28px 20px; border: 0; border-radius: 3px 8px 8px 3px; cursor: pointer;
+            background: #f4efe4; color: #2b2721; text-align: center;
+            box-shadow: inset 7px 0 10px -7px rgba(0,0,0,0.35), 0 20px 44px rgba(0,0,0,0.5);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+        .manual-tapa:hover, .manual-tapa:focus-visible {
+            transform: translateY(-4px) rotate(-1deg);
+            box-shadow: inset 7px 0 10px -7px rgba(0,0,0,0.35), 0 26px 54px rgba(0,0,0,0.55);
+            outline: none;
+        }
+        .tapa-glifos { display: flex; align-items: center; gap: 12px; color: #9c7a4a; }
+        .tapa-glifos .glifo { width: 22px; height: 22px; }
+        .tapa-titulo { font: 300 1.7rem/1.15 'Fraunces', Georgia, serif; }
+        .tapa-filete { width: 30px; height: 1px; background: #9c7a4a; opacity: 0.6; }
+        .tapa-autor { font: 400 0.7rem/1 'Fraunces', Georgia, serif; letter-spacing: 0.22em; text-transform: uppercase; color: #8b8174; }
+        .manual-texto h3 { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 8px; font-weight: 400; opacity: .8; }
+        .manual-texto h2 { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 300; margin: 0 0 16px; line-height: 1.3; text-transform: none; }
+        .manual-texto p { font-size: 1rem; line-height: 1.7; margin: 0 0 12px; opacity: .9; }
+        .manual-texto .manual-nota { font-size: 0.82rem; opacity: 0.7; }
+        .manual-botones { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+        .manual-botones .btn-sutil { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: inherit; }
+        @media (max-width: 680px) {
+            .manual-invitacion { flex-direction: column; gap: 34px; text-align: center; }
+            .manual-tapa { width: 180px; }
+            .tapa-titulo { font-size: 1.3rem; }
+            .manual-botones { justify-content: center; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fixed-background">
+        <div class="blob color-1"></div>
+        <div class="blob color-2"></div>
+    </div>
+    <div class="luciernagas-container"></div>
+
+    <nav class="hamburger-menu">
+        <input type="checkbox" id="menu-toggle" class="menu-toggle">
+        <label for="menu-toggle" class="menu-button">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </label>
+        <ul class="menu-list">
+            <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+            <li><a href="https://sebabru.com/escuela/abierta/">FORMACI&Oacute;N ABIERTA</a></li>
+            <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+            <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+            <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+            <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
+            <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+            <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+            <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
+        </ul>
+    </nav>
+
+    <header class="main-header">
+        <h1>Manual de Primer A&ntilde;o</h1>
+    </header>
+
+    <main class="manual-main">
+        <p id="manual-cargando" class="manual-estado">Un segundo...</p>
+
+        <section id="manual-sin-sesion" class="manual-estado" hidden>
+            <h2>Entr&aacute; para leer el manual</h2>
+            <p>El manual es para estudiantes de la escuela. Inici&aacute; sesi&oacute;n con el mismo mail con el que cursás y volv&eacute; a esta p&aacute;gina.</p>
+            <p><a href="../" class="btn-sutil">Ir al ingreso</a></p>
+        </section>
+
+        <section id="manual-sin-acceso" class="manual-estado" hidden>
+            <h2>Todav&iacute;a no ten&eacute;s el manual habilitado</h2>
+            <p id="manual-error"></p>
+        </section>
+
+        <section id="manual-listo" hidden>
+            <div class="manual-invitacion">
+                <button type="button" class="manual-tapa" data-abrir-ebook data-ga="manual_leer" data-ga-origen="tapa" aria-label="Leer el Manual de Primer A&ntilde;o">
+                    <span class="tapa-glifos" data-ebook-glifos aria-hidden="true"></span>
+                    <span class="tapa-titulo">Manual de Primer A&ntilde;o</span>
+                    <span class="tapa-filete" aria-hidden="true"></span>
+                    <span class="tapa-autor">Seba Bru</span>
+                </button>
+                <div class="manual-texto">
+                    <h3>Formaci&oacute;n &middot; primer a&ntilde;o</h3>
+                    <h2>Signos, casas y ascendentes, planetas y aspectos</h2>
+                    <p>Las clases del primer a&ntilde;o, pasadas en limpio y ordenadas en cuatro bloques. Pod&eacute;s leerlo ac&aacute;, como un libro, o bajarlo en EPUB para tu lector de libros electr&oacute;nicos.</p>
+                    <p class="manual-nota">Sesi&oacute;n iniciada como <strong class="manual-email"></strong>. El lector recuerda d&oacute;nde lo dejaste.</p>
+                    <div class="manual-botones">
+                        <button type="button" class="btn-sutil" data-abrir-ebook data-ga="manual_leer" data-ga-origen="boton"><i class="fa-solid fa-book-open"></i> Leer el manual</button>
+                        <a id="manual-descargar" class="btn-sutil" href="#" data-ga="manual_descargar"><i class="fa-solid fa-download"></i> Descargar EPUB</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+            <p>Telefono: +54 9 3544 559877</p>
+        </div>
+        <div class="social-links">
+            <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/sebabru.astrologia" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3?si=c81c8808786648ea" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fab fa-spotify"></i></a>
+            <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+            <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+        <p>&copy; 2026 Seba Bru Astrolog&iacute;a. Todos los derechos y los izquierdos tambi&eacute;n.</p>
+    </footer>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-GDLRMR5D57');
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..400&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+    <script src="glifos.js?v=1" defer></script>
+    <script src="lector.js?v=1" defer></script>
+    <script type="module" src="manual.js?v=1"></script>
+    <script src="../../script.js"></script>
+</body>
+</html>
