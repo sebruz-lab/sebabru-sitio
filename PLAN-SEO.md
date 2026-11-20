@@ -172,9 +172,8 @@ consumiendola. Queda:
    pagina de presentacion orientada a busqueda. Ojo: otro repo
    (`C:\dev	ucarta`) y otro deploy. Es el item de mayor retorno del mediano
    plazo.
-3. **Font Awesome sigue cargandose desde cdnjs en 50 paginas** (289 KB y una
-   conexion a un tercero). El 19/11 se saco solo de `/signos/`. Es el pendiente
-   de velocidad mas grande que queda y no depende de nadie.
+3. **Font Awesome: sacado de todo el sitio el 19/11 a la noche.** Ver la
+   seccion 10.
 
 ### 16/12/2026 — revision
 
@@ -382,6 +381,32 @@ descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
   que es el cuerpo de `/carta-natal/ascendente/` y en dos URLs competiria
   consigo mismo. Queda **una sola** bajada pendiente en todo el sitio
   (`/carta-natal/casas/`), mas `/Mey/` y la del ebook, que son otra cosa.
+
+- **Font Awesome sale del sitio.** Eran 53 paginas bajando la hoja completa de
+  cdnjs: 18 KB de CSS mas las webfonts (158 KB la de los solidos, 118 KB la de
+  las marcas) para **83 iconos** de los 2000 que define, y una conexion a un
+  tercero antes del primer pintado. Ahora es `public/iconos.css`, **13 KB con
+  brotli**, del propio dominio y cacheado 30 dias.
+  - **Los nombres de clase son los mismos**, asi que el HTML no cambio mas que
+    en el `<link>`. Se pintan con `mask-image` y `background-color:
+    currentColor`, como el caret de `signos.css`: heredan el color del texto y
+    no hubo que tocar ni una regla de color.
+  - Las tres reglas de `escuela.css` que usaban la fuente directo (la tilde de
+    clase vista y los dos chevron) pasaron al mismo metodo, y `escuela.css`
+    subio a `?v=9`.
+  - **Verificado con capturas**, no solo leyendo el CSS: la misma pagina contra
+    produccion no se distingue, y una grilla con los 83 iconos los muestra
+    todos. El unico tercero que le queda a `/kit/` es Google Tag.
+  - El score de laboratorio queda igual dentro del ruido (95 contra 96): esas
+    paginas ya eran rapidas y Lighthouse no estaba frenado ahi. **La ganancia
+    se va a ver en CrUX**, que son personas de verdad en celular, el 16/12.
+  - El generador quedo en `C:\dev\herramientas-sebabru\iconos.js`: escanea el
+    sitio, arma el subset y sabe hacer una pagina de prueba con todos los
+    iconos (`--prueba`). Si se agrega un icono nuevo al HTML, correrlo otra vez.
+- **`WebApplication` en `/cartas/`**: escrito en `C:\dev\tucarta`, **sin
+  publicar**. Sale con la proxima release de la calculadora, que la publica
+  Seba cuando da el OK. El enlace de `/cartas/` a `/carta-natal/` ya estaba
+  desde la v1.21.0.
 
 ## 9. Reglas de trabajo — leer antes de tocar nada
 
