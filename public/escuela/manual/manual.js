@@ -3,13 +3,16 @@
 // El EPUB no esta en el hosting: lo entrega la function manualEpub, solo con
 // sesion de la escuela y a quien tenga al menos un curso habilitante (la regla
 // y las excepciones estan en functions/index.js, junto a MANUAL_EXCLUIDOS).
-// Aca se pide una sola vez, y de ese mismo archivo salen las dos cosas: el
-// texto para el lector (window.ManualFuente, que usa lector.js) y la descarga.
+// Aca se pide una sola vez y alimenta al lector (window.ManualFuente, que usa
+// lector.js).
+//
+// EL MANUAL SE LEE EN LINEA Y NO SE BAJA (decision de Seba, 19/11/2026): se
+// saco el boton "Descargar EPUB". El EPUB sigue siendo el formato en el que
+// viaja, pero es un detalle de como esta hecho, no algo que la persona reciba.
 import { auth } from '../firebase.js';
 import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const URL_MANUAL = 'https://us-central1-sebabru-e5563.cloudfunctions.net/manualEpub';
-const NOMBRE_ARCHIVO = 'manual-primer-anio-seba-bru.epub';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,9 +102,6 @@ async function traerManual(usuario) {
     const blob = await resp.blob();
     resolverEpub(blob);
 
-    const descargar = $('manual-descargar');
-    descargar.href = URL.createObjectURL(blob);
-    descargar.download = NOMBRE_ARCHIVO;
     document.querySelectorAll('.manual-email').forEach((el) => { el.textContent = usuario.email || ''; });
     mostrar('manual-listo');
     if (window.gtag) window.gtag('event', 'manual_habilitado');
