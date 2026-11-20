@@ -234,6 +234,16 @@
         "type": 301
       },
       {
+        "source": "/tag/cancer",
+        "destination": "/signos/cancer/",
+        "type": 301
+      },
+      {
+        "source": "/tag/cancer/",
+        "destination": "/signos/cancer/",
+        "type": 301
+      },
+      {
         "source": "/tag/cancer/:resto*",
         "destination": "/signos/cancer/",
         "type": 301
