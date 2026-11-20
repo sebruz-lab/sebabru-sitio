@@ -330,7 +330,10 @@ body {
         position: fixed; top: 0; left: 0; width: 100%;
         z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); box-sizing: border-box;
     }
-    .mobile-title { font-family: 'Outfit', sans-serif; font-size: 0.79rem; color: white; }
+    /* Es un <h1>: las 8 aulas de /escuela/abierta/ no tenian ninguno y son
+       indexables. margin y font-weight van explicitos para que se vea igual
+       que cuando era un <span>. */
+    .mobile-title { font-family: 'Outfit', sans-serif; font-size: 0.79rem; color: white; margin: 0; font-weight: 400; }
     .hamburger-btn {
         background: transparent; border: 1px solid rgba(255,255,255,0.6); color: white;
         padding: 6px 12px; border-radius: 4px; font-family: 'Outfit', sans-serif;

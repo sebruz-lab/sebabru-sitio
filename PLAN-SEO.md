@@ -458,11 +458,12 @@ es noindex). Lo que sigue es lo que el framework encontro y este plan no tenia.
   le copia el estilo del `div`.
 - **Prioridad:** Alta. Es lo mas barato de la lista.
 
-### Hallazgo 2 — Canibalizacion entre las aulas y las paginas publicas de tema
+### Hallazgo 2 — CERRADO: no hay canibalizacion (decision de Seba, 20/11/2026)
 
-- **Impacto:** Alto **si se confirma**. Hoy es un riesgo medido en los titles,
-  no un dano medido en el trafico.
-- **Evidencia:** 6 de las 8 aulas apuntan al mismo tema que una pagina publica.
+- **Impacto:** ninguno. Quedo anotado entero igual, con la hipotesis y por que
+  era falsa, que es mas util que borrarlo.
+- **Lo que se habia medido:** 6 de las 8 aulas apuntan al mismo tema que una
+  pagina publica.
   El par grave es, textual:
   - `/lilith/` -> `Luna Negra: Lilith en la carta natal | Libro y seminario`
   - `/escuela/abierta/lilith/` -> `Luna Negra · Lilith en la carta natal | Aula Virtual`
@@ -473,15 +474,21 @@ es noindex). Lo que sigue es lo que el framework encontro y este plan no tenia.
   en el cielo | ...`), `casas`, `luna`, `signos` y `pluton26` contra sus
   `/carta-natal/` respectivas. En esos cinco la intencion difiere (comercial
   contra informacional) y Google suele distinguirla; en el de Lilith, no.
-- **Lo que falta para confirmarlo, y solo lo puede sacar Seba:** el informe de
-  **Consultas + Paginas** de Search Console. Si una misma consulta trae a las
-  dos URLs y las posiciones rebotan, esta confirmado. **Sin ese dato no se
-  toca nada**: cambiar un title de la pagina con mas impresiones a ciegas es
-  caro.
-- **Arreglo, si se confirma:** elegir una duena de la consulta (la publica) y
-  diferenciar el title del aula hacia lo comercial, que es lo que esa pagina
-  hace de verdad (precio, modalidad, que incluye).
-- **Prioridad:** Alta para pedir el dato, en espera para el arreglo.
+- **Resuelto, y no hacia falta el informe de Search Console: lo contesto Seba.**
+  No son la misma pagina compitiendo por la misma cosa. `/escuela/abierta/lilith/`
+  es **el aula**, el curso grabado que se compra y se cursa.
+  `/lilith/` vende **el libro, el video y el seminario**, que son tres productos
+  distintos del aula. Dos ofertas distintas sobre el mismo tema no son
+  canibalizacion: son dos cosas que de verdad existen por separado.
+- **No se toca nada.** El titulo parecido es consecuencia de que el tema es el
+  mismo, no de un error.
+- **Lo mismo vale para los otros cinco pares** (`identidad`, `casas`, `luna`,
+  `signos`, `pluton26` contra sus paginas publicas): la intencion difiere y
+  Google la distingue.
+- **Lo que queda como leccion:** un title parecido es una *pista* de
+  canibalizacion, no una prueba. La prueba es que una misma consulta traiga a
+  las dos URLs y las posiciones reboten. Antes de proponer el arreglo hay que
+  entender que vende cada pagina, y eso lo sabe Seba, no el HTML.
 
 ### Hallazgo 3 — `/carta-natal/` tiene una `description` de 69 caracteres
 
@@ -645,3 +652,25 @@ delicada. No se hizo.
 Si esto funciona, tendrian que aparecer **consultas tematicas de transitos con
 clics**, que hoy no existen. Las impresiones tematicas ya estan (25 de 35
 consultas) y dan cero clics: mas impresiones no seria la noticia.
+
+---
+
+## 13. Hallazgos 1 y la pagina madre del Kit, resueltos (20/11/2026)
+
+- **Las 8 aulas de `/escuela/abierta/` ya tienen `<h1>`.** El titulo del
+  encabezado movil (`<span class="mobile-title">`, que ya llevaba el nombre
+  completo del curso) paso a ser `<h1 class="mobile-title">`. **No cambia nada
+  visualmente**: en `escuela.css` la regla suma `margin: 0` y `font-weight: 400`,
+  que es lo que un `<h1>` traeria por defecto y un `<span>` no. Se eligio ese
+  elemento y no el `<h3>` de la barra lateral porque es el que lleva el titulo
+  completo y porque Google indexa en movil, que es donde ese encabezado se ve.
+  `escuela.css` paso a `?v=10` en las 24 paginas que lo cargan.
+- **`/kit/` tiene el titulo y la descripcion de Seba.** Las dos frases que eran
+  mias se reemplazaron por las suyas, las del podcast:
+  - `<title>`: `Kit astrológico para habitar la Tierra | Seba Bru` (49)
+  - `description`: `Los acontecimientos celestes pueden ser el ruido que
+    enturbia nuestra vida o la melodía que nos permite improvisar. Análisis de
+    tránsitos semanales.` (148)
+  - El `<h1>` paso de `Kit astrológico | Seba Bru astrología` al nombre real del
+    podcast, y la `description` del `PodcastSeries` en el JSON-LD es la misma.
+  - Unico retoque: Seba escribio "tierra" y va **Tierra**, que es el planeta.
