@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '1';
+    var VERSION = '2';
     var BASE = document.currentScript && document.currentScript.src
         ? new URL('.', document.currentScript.src).href
         : '/escuela/manual/';
@@ -27,7 +27,8 @@
         indice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
         tema: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
         pantalla: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
-        cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+        cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+        chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
     };
 
     var el = {};
@@ -201,11 +202,17 @@
                     '<span>' + esc(c.titulo) + '</span><span class="ix-pronto">pronto</span></span></li>';
                 return;
             }
+            var subs = c.secciones.filter(function (s) { return s.nivel === 3; });
             html += '<li class="ix-capitulo"><button type="button" class="ix-link ix-cap" data-cap="' + c.id + '">' + gl +
                 '<span>' + esc(c.titulo) + '</span></button>';
-            var subs = c.secciones.filter(function (s) { return s.nivel === 3; });
             if (subs.length) {
-                html += '<ol class="ix-sub">';
+                // La flechita va aparte del titulo a proposito: el titulo
+                // sigue llevando al capitulo, como siempre. Un capitulo sin
+                // subtitulos no la lleva, porque no hay nada que abrir.
+                html += '<button type="button" class="ix-toggle" aria-expanded="false" ' +
+                    'aria-controls="ixsub-' + c.id + '" aria-label="Ver los temas de ' + esc(c.titulo) + '">' +
+                    ICONOS.chevron + '</button>';
+                html += '<ol class="ix-sub" id="ixsub-' + c.id + '" hidden>';
                 subs.forEach(function (s) {
                     html += '<li><button type="button" class="ix-link" data-cap="' + c.id + '" data-ancla="' + s.id + '">' + esc(s.texto) + '</button>';
                     var hijos = c.secciones.filter(function (h) { return h.nivel === 4 && h.padre === s.id; });
@@ -363,12 +370,27 @@
         if (el.raiz.classList.contains('barras-ocultas')) mostrarBarras(false); else ocultarBarras();
     }
 
+    // Abre o cierra los subtitulos de un capitulo. El <ol> es el que apunta
+    // aria-controls, asi que el boton y la lista no se pueden desfasar.
+    function alternarSub(boton, abrir) {
+        var lista = document.getElementById(boton.getAttribute('aria-controls'));
+        if (!lista) return;
+        boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        lista.hidden = !abrir;
+    }
+
     function marcarIndice() {
         Array.prototype.forEach.call(el.indice.querySelectorAll('.actual'), function (b) { b.classList.remove('actual'); });
         var c = disponibles[estado.cap];
         if (!c) return;
         var bc = el.indice.querySelector('.ix-cap[data-cap="' + c.id + '"]');
         if (bc) bc.classList.add('actual');
+        // El indice arranca cerrado y se abre solo el capitulo que se esta
+        // leyendo. Va ANTES de que abrirIndice() busque el foco: si no, el
+        // foco caeria en un boton escondido.
+        Array.prototype.forEach.call(el.indice.querySelectorAll('.ix-toggle'), function (t) {
+            alternarSub(t, t.getAttribute('aria-controls') === 'ixsub-' + c.id);
+        });
         var mejor = null;
         c.secciones.forEach(function (s) {
             var h = el.flujo.querySelector('[id="' + s.id + '"]');
@@ -433,6 +455,10 @@
         el.btnMas.addEventListener('click', function () { cambiarTam(1); });
 
         el.indice.addEventListener('click', function (e) {
+            // La flechita se atiende primero y corta: no navega ni cierra el
+            // indice, que es justo lo que la distingue del titulo.
+            var t = e.target.closest('button.ix-toggle');
+            if (t) { alternarSub(t, t.getAttribute('aria-expanded') !== 'true'); return; }
             var b = e.target.closest('button[data-cap]');
             if (!b) return;
             irA(b.getAttribute('data-cap'), { ancla: b.getAttribute('data-ancla'), fundido: true });

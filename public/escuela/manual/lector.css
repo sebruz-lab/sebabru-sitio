@@ -234,8 +234,31 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
 .indice-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .indice-cabeza h2 { margin: 0; font: 300 1.4rem/1 var(--serif-titulo); font-variation-settings: 'SOFT' 100; }
 .lector-indice ol { list-style: none; margin: 0; padding: 0; }
-.ix-capitulo { border-top: 1px solid var(--linea); padding: 6px 0; }
+/* El renglon del capitulo es el titulo + la flechita, y los subtitulos caen
+   abajo a lo ancho. Sin el wrap, el <ol> se metaria en la misma fila. */
+.ix-capitulo {
+    border-top: 1px solid var(--linea); padding: 6px 0;
+    display: flex; flex-wrap: wrap; align-items: center;
+}
 .ix-capitulo:first-child { border-top: 0; }
+/* El titulo es flex y ocupaba todo el ancho: sin esto empuja la flechita
+   fuera del panel (la segunda trampa de centrar, vista al reves). */
+.ix-capitulo > .ix-cap { flex: 1; min-width: 0; width: auto; }
+/* border-box para que los 38px de sangria entren adentro del 100% y el <ol>
+   no se pase 38px del ancho del panel. */
+.ix-capitulo > .ix-sub { flex: 0 0 100%; box-sizing: border-box; }
+
+.ix-toggle {
+    flex: none; width: 34px; height: 34px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 8px; background: none; cursor: pointer;
+    color: var(--tenue);
+    transition: transform 0.18s ease, color 0.18s ease;
+}
+.ix-toggle svg { width: 17px; height: 17px; }
+.ix-toggle:hover, .ix-toggle:focus-visible { background: var(--linea); color: var(--tinta); outline: none; }
+.ix-toggle[aria-expanded="true"] { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .ix-toggle { transition: none; } }
 .ix-link {
     display: flex; align-items: center; gap: 12px; width: 100%;
     padding: 9px 6px; border: 0; border-radius: 8px; background: none; cursor: pointer;
@@ -251,7 +274,11 @@ html.ebook-abierto .hamburger-menu { display: none !important; }
 .ix-pronto {
     margin-left: auto; font: italic 400 0.68rem/1 var(--serif-texto); color: var(--tenue);
 }
-.ix-sub { padding: 0 0 4px 38px; }
+/* Los 38px alinean los subtitulos con el texto del titulo del capitulo
+   (6 de padding + 20 del glifo + 12 de gap). Va con .lector-indice adelante
+   porque `.lector-indice ol { padding: 0 }` le gana por especificidad: la
+   sangria estaba escrita desde el principio y nunca se habia aplicado. */
+.lector-indice .ix-sub { padding: 0 0 4px 38px; }
 .ix-sub .ix-link { font: 400 0.83rem/1.3 var(--serif-texto); padding: 6px 6px; color: var(--tinta); }
 .ix-sub .ix-link.actual { color: var(--acento); }
 .ix-signos {
