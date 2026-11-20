@@ -15,6 +15,12 @@
     var CLAVE_POS = 'manual-primer-anio:posicion';
     var CLAVE_PREFS = 'manual-primer-anio:prefs';
     var TAMANIOS = [16, 17.5, 19, 20.5, 22.5];
+    // Ancho maximo de la columna de texto, en multiplos del tamanio de letra.
+    // Era 33 y Seba lo bajo al 70% (20/11/2026): la linea quedaba demasiado
+    // larga y cansaba leer de corrido. Es un tope, no un ancho fijo: en
+    // pantallas angostas sigue mandando el ancho de la pantalla menos el
+    // margen, asi que en el celular no cambia nada.
+    var ANCHO_COLUMNA = 33 * 0.7;
     var FUENTES = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..500,0..100;1,9..144,300..500,0..100&family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400..500&display=swap';
 
     var ICONOS = {
@@ -241,7 +247,7 @@
         var cols = vw >= 1000 && vw > vh * 1.15 ? 2 : 1;
         var G = cols === 2 ? 72 : 44;
         var margen = vw < 700 ? 44 : 120;
-        var ideal = Math.round(TAMANIOS[estado.tam] * 33);
+        var ideal = Math.round(TAMANIOS[estado.tam] * ANCHO_COLUMNA);
         var W = Math.floor(Math.min(vw - margen, cols * ideal + (cols - 1) * G));
         el.ventana.style.width = W + 'px';
         el.ventana.style.marginLeft = (-W / 2) + 'px';
