@@ -147,7 +147,7 @@ al menos un tercio de las consultas no sean el nombre de Seba.
 | Esta semana | Exportar los ultimos 3 meses de Rendimiento a CSV, a `C:\dev\scratch` |
 | Esta semana | Mirar Indexacion -> Paginas: cuantas de las 196 de `/carta-natal/` entraron |
 | Diciembre | **Los 36 textos de casa en capricornio, acuario y piscis** (ver seccion 2) |
-| Diciembre | Las 2 `bajada` que quedan: `/carta-natal/casas/` y `casa-1` |
+| Diciembre | La `bajada` de `/carta-natal/casas/`, el indice de las doce (`casa-1` ya quedo resuelta) |
 | Enero | Los 28 textos finos de `/carta-natal/`, casi todos de Mercurio y Venus |
 | Enero | Capricornio, acuario y piscis en `/signos/`, que necesitan los 8 cortos de Sol y Luna |
 | Cuando corra | Mirar la grilla de Instagram de la home, que la arma sola una Action |
@@ -159,8 +159,15 @@ Lo de la maniana se hizo entero (seccion 8) y lo de la tarde tambien (seccion
 (`3cb62e2` y `44d0094`) y la salida `punto-<slug>.json` tambien, con la madre
 consumiendola. Queda:
 
-1. Averiguar cuales son los 17 404, **cuando Seba exporte la lista**, y ver
-   cuales merecen un 301 mas.
+1. **Los 17 404: resueltos el 19/11 a la noche.** Seba exporto la lista. Diez
+   ya redirigian desde el 18/11 (el informe los rastreo entre el 13/10 y el
+   5/11, antes de esas reglas), probados uno por uno en vivo. Tres eran
+   archivos de tag de WordPress y se resolvieron con dos reglas nuevas. Quedan
+   cuatro sin destino, y **estan en 404 a proposito**: `/plantas-cuerpo-cielo/`,
+   `/los-vinculos/`, `/intro/` y `/astroconstelaciones/`. No hay en el sitio
+   nada equivalente, y un 301 a una pagina que no responde a lo que buscaban es
+   un soft 404: peor que el 404 honesto. Si alguna tuvo sucesora, es una regla
+   de un minuto.
 2. Que `/cartas/` enlace a `/carta-natal/`, con `WebApplication` schema y una
    pagina de presentacion orientada a busqueda. Ojo: otro repo
    (`C:\dev	ucarta`) y otro deploy. Es el item de mayor retorno del mediano
@@ -361,6 +368,20 @@ descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
     reemplaza un hueco.
 - **Rutas de exploracion en Search Console: revisado, no hay nada roto.** Ver el
   detalle en la seccion 8.
+- **Los 17 404, resueltos.** Ver el punto 1 de la seccion 3.
+- **Dos acordeones rotos en `/signos/sagitario/`, encontrados de paso.** La
+  pagina pedia `sol-sagitario.json` y `luna-sagitario.json` y los dos daban
+  404: esos cortos nunca se escribieron. Los otros ocho signos estan completos,
+  verificado uno por uno. **El generador ahora cae al texto largo** de
+  `tucarta_textos` donde falta el corto, asi que el acordeon muestra el texto
+  de Seba en vez de nada. De paso quedaron escritos los ocho de sagitario,
+  capricornio, acuario y piscis. No duplica nada: `/textos/` esta en Disallow.
+- **`/carta-natal/casas/casa-1/` tiene bajada.** No tenia funcion propia
+  (es la del Ascendente), asi que salia sin `meta description`. Ahora usa
+  `asc-funcion`, **solo para la description**: el cuerpo sigue sin ese texto,
+  que es el cuerpo de `/carta-natal/ascendente/` y en dos URLs competiria
+  consigo mismo. Queda **una sola** bajada pendiente en todo el sitio
+  (`/carta-natal/casas/`), mas `/Mey/` y la del ebook, que son otra cosa.
 
 ## 9. Reglas de trabajo — leer antes de tocar nada
 
