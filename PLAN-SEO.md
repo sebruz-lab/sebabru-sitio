@@ -429,3 +429,219 @@ descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
    dias: sin bump del `?v=`, el cambio no llega.
 9. **Nunca inventar ni rellenar texto de contenido.** Los textos los escribe
    Seba.
+
+---
+
+## 11. Auditoria con el framework `seo-audit` (20/11/2026)
+
+Se corrio el framework `seo-audit` de `coreyhaines31/marketingskills` (markdown
+puro, sin API keys ni cuentas; bajado como referencia a
+`C:\dev\scratch\seo-audit-ref`). Las otras dos opciones que se evaluaron
+—`seranking/seo-skills` e `inhouseseo/superseo-skills`— se descartaron: la
+primera es la interfaz de un producto de pago, la segunda es mitad skills de
+escribir contenido (que viola la regla 9) y mitad anzuelo de su plataforma.
+
+**El framework confirmo que la base esta sana.** Pasan: `robots.txt`, el
+sitemap (239 URLs, generado en el deploy), los canonicals, `http` a `https`,
+el alt text (3 imagenes sin alt en todo el sitio) y los titles unicos (el unico
+duplicado es `escuela/pluton` contra `escuela/abierta/pluton26`, y el primero
+es noindex). Lo que sigue es lo que el framework encontro y este plan no tenia.
+
+### Hallazgo 1 — Las 8 aulas de `/escuela/abierta/` no tienen `<h1>`
+
+- **Impacto:** Medio. Son las paginas que venden la formacion abierta, son
+  indexables y estan las 8 en el sitemap.
+- **Evidencia:** `escuela/abierta/lilith/index.html` tiene 7 `<h2>` y 1 `<h3>`
+  y **cero** `<h1>`. Igual las otras siete. El titulo visual vive en un `<div
+  class="sidebar-header">` y un `<div class="mobile-header">`.
+- **Arreglo:** que ese titulo visual sea un `<h1>`. No cambia el diseno si se
+  le copia el estilo del `div`.
+- **Prioridad:** Alta. Es lo mas barato de la lista.
+
+### Hallazgo 2 — Canibalizacion entre las aulas y las paginas publicas de tema
+
+- **Impacto:** Alto **si se confirma**. Hoy es un riesgo medido en los titles,
+  no un dano medido en el trafico.
+- **Evidencia:** 6 de las 8 aulas apuntan al mismo tema que una pagina publica.
+  El par grave es, textual:
+  - `/lilith/` -> `Luna Negra: Lilith en la carta natal | Libro y seminario`
+  - `/escuela/abierta/lilith/` -> `Luna Negra · Lilith en la carta natal | Aula Virtual`
+
+  Casi identicos, las dos comerciales, las dos indexables. Y `/lilith/` es una
+  de las tres paginas con mas impresiones del sitio. Los otros cinco pares:
+  `identidad` contra `/tu-identidad-en-el-cielo/` (mismo title, `Tu identidad
+  en el cielo | ...`), `casas`, `luna`, `signos` y `pluton26` contra sus
+  `/carta-natal/` respectivas. En esos cinco la intencion difiere (comercial
+  contra informacional) y Google suele distinguirla; en el de Lilith, no.
+- **Lo que falta para confirmarlo, y solo lo puede sacar Seba:** el informe de
+  **Consultas + Paginas** de Search Console. Si una misma consulta trae a las
+  dos URLs y las posiciones rebotan, esta confirmado. **Sin ese dato no se
+  toca nada**: cambiar un title de la pagina con mas impresiones a ciegas es
+  caro.
+- **Arreglo, si se confirma:** elegir una duena de la consulta (la publica) y
+  diferenciar el title del aula hacia lo comercial, que es lo que esa pagina
+  hace de verdad (precio, modalidad, que incluye).
+- **Prioridad:** Alta para pedir el dato, en espera para el arreglo.
+
+### Hallazgo 3 — `/carta-natal/` tiene una `description` de 69 caracteres
+
+- **Impacto:** Medio. Es CTR, no ranking. Pero es **la madre de las 196**, la
+  apuesta entera de la seccion 2 de este plan.
+- **Evidencia:** `Descubrí qué quieren decir los diferentes puntos de tu carta
+  natal.` 69 caracteres contra los 150-160 del rango. Es la mas corta del
+  sitio.
+- **Arreglo:** la escribe Seba (regla 9).
+- **Prioridad:** Media-Alta.
+
+### Hallazgo 4 — `/signos/` tiene el title mas debil del sitio
+
+- **Impacto:** Medio.
+- **Evidencia:** `Signos | Seba Bru Astrología`. Sin keyword y sin razon para
+  clickear, al lado de sus hermanas, que usan el patron que funciona: `La Luna
+  en los 12 signos: qué significa tu Luna natal`.
+- **Arreglo:** lo escribe Seba.
+- **Prioridad:** Media.
+
+### Hallazgo 5 — 60 y pico de `description` cortas en las 196
+
+- **Impacto:** Bajo-Medio.
+- **Evidencia:** 63 paginas indexables con menos de 120 caracteres, casi todas
+  de `/carta-natal/`. Salen de la primera oracion del texto de Firestore.
+- **Arreglo:** **no se tocan a mano** (regla 6). Si se quiere mover, es un
+  campo nuevo en Firestore y un cambio en `paginas-textos.js`. Dado que el
+  problema real del sitio es que las consultas tematicas estan en posicion 24 a
+  80 (no que no las clickeen), esto puede esperar.
+- **Prioridad:** Baja.
+
+### Cerrado con evidencia — el `www` no es un problema
+
+La seccion 1 anotaba, como dato nuevo sin resolver, que
+`https://www.sebabru.com/` aparecia como pagina aparte. **Medido el 20/11:**
+`https://www.sebabru.com/` devuelve **301** a `https://sebabru.com/`, `http://`
+tambien, y el sitio manda `Strict-Transport-Security: max-age=31556926`. Las 3
+impresiones son el indice viejo, igual que las URLs de WordPress. Se va solo.
+**No hay nada que arreglar.**
+
+### Una correccion al registro
+
+`/carta-natal/ruleta/` responde **200 en vivo**, aunque la seccion 6 la da por
+"sin publicar". Esta `noindex` y fuera del sitemap, asi que no hace dano, pero
+el plan decia otra cosa.
+
+### Dos hipotesis que resultaron FALSAS, para no repetirlas
+
+1. **"Falta el `sitemap.xml` y `robots.txt` apunta a un 404."** Falso. Lo
+   genera `.github/scripts/generar-sitemap.mjs` en el deploy y esta en
+   `.gitignore`: por eso no aparece en disco. En vivo tiene las 239 URLs.
+2. **"Las 196 de `/carta-natal/` son huerfanas y por eso no tienen
+   impresiones."** Falso. `/carta-natal/` enlaza a las 196 en **HTML servido**
+   (60 enlaces en cada madre de punto), y la home enlaza a la madre: estan a 2
+   clics. Desde fuera de la carpeta solo entran enlaces a la madre y a las 4
+   madres de punto, pero eso no las vuelve huerfanas. **El cuello de botella no
+   es el enlazado interno.**
+
+Las dos salieron de deducir en vez de medir. Es la regla 1, otra vez.
+
+### Lo que el framework aporta sobre el problema central
+
+El framework dice que las ganancias rapidas estan en las paginas que ya rankean
+en **posicion 8 a 20**. Las consultas tematicas de este sitio estan en **24 a
+80**: todavia no hay nada en esa ventana, asi que esa palanca no aplica. Las
+tres que si estan cerca (`/programa/`, `/lilith/`, `/formaciones/`, en posicion
+6-7) caen en el grupo "posicion 4-7", donde la receta es contenido, **enlaces**
+y formato de fragmento destacado. Los titles ya se arreglaron el 19/11. **Lo
+que sigue para esas tres es autoridad, que es la seccion 5 de este plan.**
+
+Dicho de otro modo: el framework no encontro ningun bloqueo tecnico que
+explique las posiciones 24 a 80. Eso refuerza lo que ya decia el plan, y es
+una mala noticia, porque autoridad es lo mas lento.
+
+### Lo que no se pudo medir
+
+- **Core Web Vitals:** pide PageSpeed con la clave. Ya esta agendado para el
+  **16/12** (`trig_019neTVnHuX4f7JmMjiW8rpd`).
+- **Canibalizacion confirmada:** pide el informe Consultas + Paginas de Search
+  Console. Es de Seba.
+- **JSON-LD:** el framework advierte que `curl` y `WebFetch` no ven el JSON-LD
+  inyectado por JavaScript. Acá se escribe en el HTML, así que `grep` alcanza,
+  pero si alguna vez se pasa a inyectarlo por JS hay que verificarlo con el
+  Rich Results Test y no con `curl`.
+
+---
+
+## 12. El Kit deja de ser una sola pagina (20/11/2026)
+
+**El hueco que ningun informe habia anotado.** El podcast va por el episodio
+**69**, es contenido tematico semanal sobre transitos reales y en la voz de
+Seba, y el sitio tenia **una sola pagina** para todo eso: `/kit/`, congelada en
+el **Kit 19** (Mercurio retrogrado en Leo, julio de 2025) mientras el podcast
+seguia. Todo el contenido tematico semanal vivia en YouTube y Spotify, o sea
+afuera del sitio.
+
+Es el mismo problema que tenian las lunaciones hasta el 19/11, y se resolvio
+igual: **una URL por entrega y la madre convertida en indice**.
+
+### Que quedo
+
+| | |
+|---|---|
+| `/kit/` | Madre. El formulario de suscripcion y los dos reproductores del show se quedaron ahi. Abajo, el listado de episodios entre las marcas `<!-- LISTADO-KIT:inicio -->` y `:fin` |
+| `/kit/19/` | El Kit 19 completo: el texto, los transitos y las 12 casas de aquel Mercurio retrogrado. **No se perdio nada**, y el iman de altas sigue vivo |
+| `/kit/69/` | El episodio del 16/11/2026, generado del borrador del mailing |
+
+Las dos paginas de episodio llevan `canonical` propio, los 6 meta OG, `Article`
+con `datePublished` y `BreadcrumbList`. La madre lleva `PodcastSeries`. `/kit/`
+**sigue respondiendo 200**, asi que no hizo falta ningun 301 y los enlaces de
+la home y de la `404.html` no se tocaron.
+
+El sitemap paso de **239 a 240 URLs** sin tocar nada: lo genera
+`generar-sitemap.mjs` recorriendo `public/`.
+
+### El paso semanal es un comando
+
+`C:\dev\herramientas-sebabru\kit-paginas.js` convierte el borrador del mailing
+—`borradores/AAAA-MM-kit-NN.md`, que la skill `kit-podcast` ya escribe todas
+las semanas— en la pagina del episodio, y agrega la fila al listado de la
+madre. **No es trabajo nuevo: es el mismo texto.**
+
+```
+cd C:\dev\herramientas-sebabru
+node kit-paginas.js --borrador borradores/2026-11-kit-69.md --solo-mostrar
+```
+
+`--solo-mostrar` imprime el `<title>`, la `description`, los largos y la fila
+que agregaria, sin escribir. El paso quedo documentado en la skill
+`kit-podcast`, asi que entra en el flujo de cada semana solo.
+
+**Lo unico que elige el script son el `<title>` y la `description`, y los dos
+salen de recortar las palabras de Seba** (regla 9): el `<title>` es el ultimo
+tramo del titulo antes del `| Kit NN` ("El sol entra en Sagitario | Kit 69", 34
+caracteres), y la `description` son las primeras oraciones del texto hasta unos
+160 (159 en el Kit 69). Se pisan con `--titulo` y `--descripcion`.
+
+El script **falla** si queda una comilla curva adentro de una etiqueta: es la
+regla 5, verificada sobre el HTML final y no sobre el texto de entrada.
+
+### Lo que falta, y es de Seba
+
+| Que | Por que |
+|---|---|
+| **Aprobar el `<title>` y la `description` de `/kit/`** | Son las dos unicas frases de todo esto que no son de Seba. Hoy: `Kit astrológico: los tránsitos de cada semana \| Seba Bru` y `El podcast Kit astrológico para habitar la Tierra: los tránsitos de cada semana, episodio por episodio, y qué moviliza en cada casa de tu carta natal.` |
+| **El texto del formulario de `/kit/`** | Dice "el material de abajo lo podés usar igual". Las 12 casas se mudaron a `/kit/19/`, asi que "abajo" ahora es el listado de episodios. No se toco: es texto de contenido |
+| **Los episodios 20 a 68** | Si guarda esos mailings, cada uno es un `node kit-paginas.js`. No es requisito: el flujo ya acumula de aca en adelante |
+| **Pedir indexacion de `/kit/69/`** | En Search Console, una vez |
+
+### Lo que conviene mirar
+
+El framework `seo-audit` pide, para una pagina nueva, **enlaces internos desde
+al menos tres paginas relevantes**. `/kit/69/` hoy tiene uno: la madre. La home
+enlaza a `/kit/` pero no al episodio. Si las paginas del Kit funcionan, el
+carrusel de `#podcast` de la home es el lugar natural para enlazar al ultimo
+episodio, pero **eso toca la home**, que es el recorrido por scroll y es
+delicada. No se hizo.
+
+### La senial a mirar el 16/12
+
+Si esto funciona, tendrian que aparecer **consultas tematicas de transitos con
+clics**, que hoy no existen. Las impresiones tematicas ya estan (25 de 35
+consultas) y dan cero clics: mas impresiones no seria la noticia.
