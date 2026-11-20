@@ -232,6 +232,21 @@
         "source": "/tarot/:resto*",
         "destination": "/escuela/abierta/tarot/",
         "type": 301
+      },
+      {
+        "source": "/tag/cancer/:resto*",
+        "destination": "/signos/cancer/",
+        "type": 301
+      },
+      {
+        "source": "/tag/:resto*",
+        "destination": "/carta-natal/",
+        "type": 301
+      },
+      {
+        "source": "/tag",
+        "destination": "/carta-natal/",
+        "type": 301
       }
     ]
   }
