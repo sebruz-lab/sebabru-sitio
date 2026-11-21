@@ -83,6 +83,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Cuantas altas entraron cada dia y por que motivo se rechazaron las que
+    // se rechazaron. Un documento por fecha, lo escribe solo la function.
+    // Tambien hace de contador del tope diario de mails, asi que si el
+    // navegador pudiera escribirlo podria apagar el tope.
+    match /metricas_suscribir/{fecha} {
+      allow read, write: if false;
+    }
+
     // Cada cuánto ya se avisó de algo (hoy, que GeoNames dejó de atender):
     // lo escribe solo la Cloud Function.
     match /avisos/{id} {

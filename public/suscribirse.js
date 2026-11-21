@@ -395,7 +395,17 @@ function armar(caja, n) {
                 return;
             }
             if (fallo === 'captcha_requerido') {
-                return avisar('No pudimos verificar que no sos un robot. Recargá la página y probá de nuevo.');
+                // Desde que existe el carril con confirmacion este mensaje es
+                // raro: casi todo lo que antes caia aca ahora entra igual y
+                // recibe un mail para confirmar. Cuando aparece, la causa mas
+                // probable es un bloqueador, y por eso NO dice "recarga la
+                // pagina": recargar con una extension bloqueando da el mismo
+                // resultado las veces que quieras. Nombra la causa y da una
+                // salida que no dependa de que la persona la resuelva.
+                return avisar('', 'Tu navegador está bloqueando la verificación de seguridad, '
+                    + 'casi siempre por una extensión o un bloqueador de anuncios.<br>'
+                    + 'Probá desactivarlo un momento, o escribinos a '
+                    + '<a href="mailto:info@sebabru.com">info@sebabru.com</a> y te anotamos nosotros.');
             }
             if (fallo === 'consentimiento_requerido') {
                 // Este widget manda el consentimiento siempre (los terminos estan

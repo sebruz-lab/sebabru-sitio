@@ -326,34 +326,43 @@ function claveRateLimit(nombreFuncion, req) {
 //     sobre el mismo numero. Con un limite de 10 envios cada 10 minutos por
 //     IP, errarle por uno no significa nada: no es un control de acceso, es
 //     un freno al abuso.
-async function mirarRitmo(nombreFuncion, req, maxRequests) {
-  const ref = _db.collection('rate_limits').doc(claveRateLimit(nombreFuncion, req));
+// opciones.clave      -> reemplaza la clave por IP (la usa el tope por
+//                        direccion de mail, que cuenta por destinatario y no
+//                        por conexion). Cuando viene, NO se toca req._intentos:
+//                        ese numero significa "envios desde esta IP" y
+//                        registrarInscripcion decide con el.
+// opciones.ventanaMs  -> una ventana distinta de los 10 minutos de siempre.
+async function mirarRitmo(nombreFuncion, req, maxRequests, opciones = {}) {
+  const ventanaMs = opciones.ventanaMs || RATE_LIMIT_WINDOW_MS;
+  const porIp = !opciones.clave;
+  const ref = _db.collection('rate_limits').doc(opciones.clave || claveRateLimit(nombreFuncion, req));
   const snap = await ref.get();
   const ahora = Date.now();
 
   // El contador queda tambien en el req para quien lo necesite:
   // registrarInscripcion decide con esto si pide captcha.
-  if (!snap.exists || (ahora - snap.data().windowStart) > RATE_LIMIT_WINDOW_MS) {
-    req._intentos = 1;
+  if (!snap.exists || (ahora - snap.data().windowStart) > ventanaMs) {
+    if (porIp) req._intentos = 1;
     return { ok: true, anotar: () => ref.set({ windowStart: ahora, count: 1 }) };
   }
 
   const cuantos = snap.data().count;
   if (cuantos >= maxRequests) {
-    req._intentos = cuantos;
+    if (porIp) req._intentos = cuantos;
     // No se anota nada: el envio se rechaza y no cuenta.
     return { ok: false, anotar: () => Promise.resolve() };
   }
 
-  req._intentos = cuantos + 1;
+  if (porIp) req._intentos = cuantos + 1;
   return { ok: true, anotar: () => ref.update({ count: admin.firestore.FieldValue.increment(1) }) };
 }
 
 // La forma de siempre, para los siete endpoints donde 150 ms no cambian nada.
 // A proposito no se toca su firma: la usan desde los webhooks de pago hasta
-// el buscador de lugares.
-async function checkRateLimit(nombreFuncion, req, maxRequests) {
-  const ritmo = await mirarRitmo(nombreFuncion, req, maxRequests);
+// el buscador de lugares. El cuarto argumento es opcional y nadie de los
+// viejos lo pasa.
+async function checkRateLimit(nombreFuncion, req, maxRequests, opciones = {}) {
+  const ritmo = await mirarRitmo(nombreFuncion, req, maxRequests, opciones);
   await ritmo.anotar();
   return ritmo.ok;
 }
@@ -396,35 +405,112 @@ function verificarFirmaMP(req, dataId) {
   }
 }
 
-// Verifica un token de Cloudflare Turnstile contra siteverify. Sin
-// TURNSTILE_SECRET_KEY no bloquea nada en el emulador, para no obligar a
-// configurar el captcha en desarrollo; pero en produccion rechaza, porque si
-// no una variable de entorno mal desplegada dejaba el endpoint sin captcha
-// y lo unico que avisaba era una linea en el log.
-async function verificarTurnstile(token, req) {
+// Verifica un token de Cloudflare Turnstile contra siteverify y devuelve un
+// veredicto, no un si/no. La diferencia importa: el rechazo tapaba seis
+// situaciones distintas y cuatro eran fallas NUESTRAS o de Cloudflare
+// (siteverify caido, el fetch sin corte, un remoteip que no coincide, un
+// token reusado al reintentar). Las cuatro terminaban en "No pudimos
+// verificar que no sos un robot", que la persona no puede arreglar de
+// ninguna manera, y se perdia el alta.
+//
+// Los cuatro estados:
+//
+//   ok         -> Cloudflare dijo que si, o la falla es nuestra o de ellos y
+//                 no hay motivo para hacersela pagar a quien se suscribe.
+//   rechazado  -> la unica senal confiable de token forjado.
+//   sin_token  -> no se pudo juzgar: no hubo token (el captcha bloqueado por
+//                 una extension, o el corte de 15 segundos del front) o
+//                 Cloudflare contesto algo que no distingue un humano de un
+//                 bot. NO es un rechazo: quien llama decide, y suscribir lo
+//                 manda al carril con confirmacion.
+//   sin_config -> falta el secreto o Cloudflare lo rechaza. Tambien va al
+//                 carril con confirmacion, nunca al libre: un deploy con una
+//                 variable mal cargada no puede convertir esto en un endpoint
+//                 abierto que da de alta y manda mail. Eso ya se decidio una
+//                 vez y sigue valiendo; lo que cambia es que ahora hay un
+//                 carril intermedio y no hace falta cerrarle la puerta a
+//                 todo el mundo para estar a salvo.
+//
+// Devuelve { estado, codigos, ms }. Los codigos son los error-codes de
+// Cloudflare tal cual: hasta ahora se tiraban a la basura, y eran justo lo
+// unico que permitia saber por que estaba fallando.
+async function evaluarTurnstile(token, req) {
+  const arranque = Date.now();
+  const listo = (estado, codigos) => ({ estado, codigos: codigos || [], ms: Date.now() - arranque });
+
   const secreto = process.env.TURNSTILE_SECRET_KEY;
   if (!secreto) {
     if (process.env.FUNCTIONS_EMULATOR) {
       functions.logger.warn('TURNSTILE_SECRET_KEY no configurado: captcha sin verificar (emulador).');
-      return true;
+      return listo('ok');
     }
-    functions.logger.error('TURNSTILE_SECRET_KEY no configurado en produccion: se rechaza el pedido.');
-    return false;
+    functions.logger.error('TURNSTILE_SECRET_KEY no configurado en produccion: las suscripciones pasan al carril con confirmacion y los demas formularios quedan cerrados.');
+    return listo('sin_config', ['missing-input-secret']);
   }
-  if (!token) return false;
+  if (!token) return listo('sin_token', ['missing-input-response']);
+
+  let data;
   try {
-    const ipCruda = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+    // A proposito NO se manda remoteip. Es opcional, y Cloudflare no
+    // devuelve un codigo distinto cuando la IP no coincide: un desajuste
+    // (una red movil que rota, IPv6 contra IPv4) se ve exactamente igual que
+    // un token forjado. Mientras se mandara, invalid-input-response no
+    // servia como senal de bot — y es la unica senal de bot que queda en
+    // todo el sistema. Sacarlo es lo que le devuelve el significado.
+    //
+    // El corte de 5 segundos tampoco estaba: un siteverify colgado colgaba
+    // la function entera y la persona miraba "Enviando..." hasta que el
+    // runtime la cortaba. dominioRecibeCorreo ya se cuidaba con su
+    // Promise.race de 1,5 s; aca faltaba el equivalente.
     const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret: secreto, response: token, remoteip: ipCruda }),
+      body: new URLSearchParams({ secret: secreto, response: token }),
+      signal: AbortSignal.timeout(5000),
     });
-    const data = await resp.json();
-    return data.success === true;
+    if (!resp.ok) {
+      functions.logger.error('siteverify contesto ' + resp.status + ': se deja pasar.');
+      return listo('ok', ['http-' + resp.status]);
+    }
+    data = await resp.json();
   } catch (e) {
-    functions.logger.error('Error verificando captcha', e.message);
-    return false;
+    // Red caida, el corte de 5 segundos, o una respuesta que no es JSON
+    // porque Cloudflare devolvio una pagina de error. Nada de eso lo causo
+    // quien esta del otro lado del formulario.
+    functions.logger.error('No se pudo verificar el captcha, se deja pasar:', e.name + ' ' + e.message);
+    return listo('ok', ['sin-respuesta']);
   }
+
+  if (data.success === true) return listo('ok');
+
+  const codigos = Array.isArray(data['error-codes']) ? data['error-codes'] : [];
+
+  if (codigos.includes('invalid-input-secret') || codigos.includes('missing-input-secret')) {
+    functions.logger.error('Cloudflare rechaza TURNSTILE_SECRET_KEY: revisar que sea la pareja de la sitekey del sitio.', { codigos });
+    return listo('sin_config', codigos);
+  }
+  if (codigos.includes('bad-request') || codigos.includes('invalid-input-remoteip')) {
+    // El pedido lo armamos mal nosotros: no es culpa de la persona.
+    functions.logger.error('siteverify dice que el pedido esta mal armado.', { codigos });
+    return listo('ok', codigos);
+  }
+  if (codigos.includes('internal-error')) return listo('ok', codigos);
+  if (codigos.includes('invalid-input-response')) return listo('rechazado', codigos);
+
+  // timeout-or-duplicate (un token reusado, que es lo que pasa cuando
+  // alguien aprieta dos veces), missing-input-response, y cualquier codigo
+  // que Cloudflare agregue en el futuro: ninguno distingue un humano de un
+  // bot, asi que ninguno alcanza para rechazar a nadie.
+  return listo('sin_token', codigos);
+}
+
+// La forma de siempre, para los dos endpoints que solo quieren un si/no
+// (registrarInscripcion e iniciarAgenda). Es la proyeccion ESTRICTA del
+// veredicto: pasa solo 'ok'. O sea que ahi un false ahora tiene tres causas
+// distintas, y la unica conducta que les cambia es que una caida de
+// Cloudflare dejo de cerrarles el formulario.
+async function verificarTurnstile(token, req) {
+  return (await evaluarTurnstile(token, req)).estado === 'ok';
 }
 
 // -------------------------------------------------------
@@ -2315,12 +2401,20 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
-  // A partir del 3er envio desde la misma IP (en la ventana de 10 min de
+  // A partir del 5to envio desde la misma IP (en la ventana de 10 min de
   // checkRateLimit), pedimos un captcha de Cloudflare Turnstile resuelto.
-  // Los primeros 2 pasan libres para no molestar a quien se equivoca en el
-  // formulario o se anota con un amigx desde la misma conexion.
+  // Los primeros 4 pasan libres para no molestar a quien se equivoca en el
+  // formulario o se anota con un amigx desde la misma conexion. Eran 2, y en
+  // un wifi compartido eso se llenaba con dos personas: la tercera tenia que
+  // resolver el captcha y, si lo tenia bloqueado por una extension, se
+  // quedaba afuera.
+  //
+  // verificarTurnstile es la proyeccion estricta de evaluarTurnstile: pasa
+  // solo 'ok'. Un false aca puede ser un token forjado, un token que no
+  // llego, o un secreto mal desplegado — los tres siguen cerrando este
+  // formulario, que es lo que corresponde para una inscripcion.
   const intentos = req._intentos || 1;
-  if (intentos > 2) {
+  if (intentos > 4) {
     const captchaOk = await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
     if (!captchaOk) {
       return res.status(400).json({ error: 'captcha_requerido' });
@@ -2756,6 +2850,117 @@ const ORIGENES_SUSCRIPCION = new Set([
   'ebook', 'cartas', 'signos',
 ]);
 
+// -------------------------------------------------------
+// Los topes de gasto y la medicion de suscribir.
+//
+// Ningun limite por IP acota el gasto real, porque para el que abusa la IP
+// es gratis: en IPv6 cada direccion de un /64 es un balde nuevo. Lo unico
+// que lo acota es un contador global, y hace falta porque suscribir manda
+// mail en linea y el plan gratis de Brevo son 300 por dia COMPARTIDOS con
+// las confirmaciones de compra. Sin este tope, un dia malo de abuso deja sin
+// mail a quien acaba de pagar un curso.
+// -------------------------------------------------------
+
+// ~10 veces el volumen real de un dia bueno. Pasado el tope no se rechaza a
+// nadie: el alta se encola y se manda cuando se pueda.
+const TOPE_MAILS_SUSCRIBIR_DIA = 50;
+
+// La respuesta del alta, una sola vez y compartida. Tiene que ser IDENTICA
+// en todas las salidas buenas — alta nueva, ya suscrito, honeypot, carril
+// con confirmacion, tope por direccion y tope diario. Si alguna difiere,
+// aunque sea en una palabra, quien quiera abusar distingue los carriles y
+// elige el barato.
+const RESPUESTA_ALTA = { ok: true, estado: 'suscrito' };
+
+// Cuantas altas se aceptan por DIRECCION. La ventana es de un dia y no de
+// diez minutos porque llenarle la casilla a un tercero es paciente.
+const TOPE_POR_DIRECCION = 3;
+const VENTANA_POR_DIRECCION = 24 * 60 * 60 * 1000;
+
+function diaDeHoy() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// La clave del tope por direccion va HASHEADA. claveRateLimit dejaria el mail
+// casi legible en el nombre del documento, y un nombre de documento no se
+// borra cuando se borra el contenido.
+function claveDireccion(email) {
+  return 'mail_' + crypto.createHash('sha256').update(String(email).trim().toLowerCase()).digest('hex').slice(0, 32);
+}
+
+// La IP en los logs va hasheada. La cruda ya se guarda en "suscripciones",
+// donde tiene una finalidad declarada (la constancia del consentimiento); en
+// un log tiene otra retencion y otra finalidad. El hash igual sirve para lo
+// unico que hace falta: contar conexiones distintas y ver una misma pegandole
+// a muchas direcciones.
+function ipHasheada(req) {
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  if (!ip) return '';
+  const sal = process.env.BAJA_SECRET || process.env.TITULO_SECRET || 'sin-sal';
+  return crypto.createHmac('sha256', sal).update(ip).digest('hex').slice(0, 10);
+}
+
+// El user agent en categorias, no crudo: el crudo es una huella digital y lo
+// unico que hace falta saber es si quien cae es la gente de celular.
+function claseDeUa(req) {
+  const ua = String(req.headers['user-agent'] || '');
+  if (!ua) return 'sin-ua';
+  if (/bot|crawler|spider|curl|python|wget|headless/i.test(ua)) return 'bot-declarado';
+  if (/Mobi|Android|iPhone|iPad/i.test(ua)) return 'movil';
+  return 'escritorio';
+}
+
+// Una linea por cada decision de suscribir, con nombre de evento estable
+// para poder filtrarla en Cloud Logging, y el mismo conteo duplicado en
+// Firestore. Lo de Firestore no es redundante: sobrevive a los 30 dias de
+// retencion del log, se lee de un vistazo, y es el MISMO documento que hace
+// de contador para el tope diario, asi que es una sola escritura.
+//
+// Hasta ahora no quedaba rastro de ningun rechazo, y por eso no habia forma
+// de saber si esto le pasaba a cuatro personas por mes o al cuarenta por
+// ciento. Nunca tira: una metrica no puede romper un alta.
+async function anotarDecisionSuscribir(datos) {
+  const { resultado, captcha, req, origen, dominio, mando } = datos;
+  try {
+    functions.logger.info('suscribir_decision', {
+      evento: 'suscribir_decision',
+      resultado,
+      captcha: captcha ? captcha.estado : 'sin-evaluar',
+      captchaCodigos: captcha ? captcha.codigos : [],
+      captchaMs: captcha ? captcha.ms : 0,
+      origen: origen || '',
+      dominio: dominio || '',   // SOLO el dominio, nunca la parte local
+      intentos: req._intentos || 0,
+      ipHash: ipHasheada(req),
+      uaClase: claseDeUa(req),
+    });
+  } catch (_) { /* un log que falla no es motivo de nada */ }
+
+  try {
+    const campos = {
+      [`r_${resultado}`]: admin.firestore.FieldValue.increment(1),
+      total: admin.firestore.FieldValue.increment(1),
+    };
+    if (mando) campos.mails = admin.firestore.FieldValue.increment(1);
+    await _db.collection('metricas_suscribir').doc(diaDeHoy()).set(campos, { merge: true });
+  } catch (error) {
+    functions.logger.error('No se pudo anotar la métrica de suscripción:', error.message);
+  }
+}
+
+// Cuantos mails lleva mandados hoy el formulario de suscripcion. Si la
+// lectura falla devuelve 0 a proposito: un problema de Firestore no puede
+// cerrar el formulario, que es exactamente el error que estamos arreglando.
+async function mailsDeSuscripcionHoy() {
+  try {
+    const doc = await _db.collection('metricas_suscribir').doc(diaDeHoy()).get();
+    return Number(doc.exists ? doc.data().mails : 0) || 0;
+  } catch (error) {
+    functions.logger.error('No se pudo leer el tope diario de suscripción:', error.message);
+    return 0;
+  }
+}
+
 // Que mail sale al darse de alta. Casi siempre la bienvenida; desde la
 // pagina del regalo, el que lleva al libro — ahi la persona no vino a
 // suscribirse, vino por el ebook, y recibir una bienvenida en su lugar
@@ -2878,9 +3083,24 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
 
   ensureInit();
 
-  // Mas bajo que en los formularios de inscripcion: nadie se suscribe cinco
-  // veces en diez minutos.
-  if (!(await checkRateLimit('suscribir', req, 5))) {
+  // Lo que se necesita para poder anotar cada decision. El mail se lee aca
+  // solo para quedarse con el dominio (la parte local NO va a los logs); la
+  // validacion sigue estando donde estaba.
+  const emailCrudo = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  const dominioLog = emailCrudo.includes('@') ? emailCrudo.split('@')[1] : '';
+  const origenPedido = sanitizeTexto(req.body?.origen, 40);
+  const origen = ORIGENES_SUSCRIPCION.has(origenPedido) ? origenPedido : 'otro';
+  let veredicto = null;
+  const decidir = (resultado, extra) => anotarDecisionSuscribir({
+    resultado, captcha: veredicto, req, origen, dominio: dominioLog, ...(extra || {}),
+  });
+
+  // Eran 5 cada 10 minutos, y eso daba falsos positivos reales: en un wifi
+  // compartido, una oficina o una red movil con NAT, varias personas salen
+  // por la misma IP y la sexta se comia un error. Subirlo no le cambia nada
+  // a un bot, que rota IPs igual; el gasto lo acota el tope diario.
+  if (!(await checkRateLimit('suscribir', req, 15))) {
+    await decidir('rechazado_rate_ip');
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
@@ -2888,25 +3108,35 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   // contesta que salio todo bien y no se hace nada, asi el bot no aprende
   // que fue descubierto.
   if (sanitizeTexto(req.body?.hp, 200)) {
-    functions.logger.info('Suscripción descartada por el honeypot.');
-    return res.status(200).json({ ok: true, estado: 'suscrito' });
+    await decidir('honeypot');
+    return res.status(200).json(RESPUESTA_ALTA);
   }
 
   // El captcha desde el primer envio, al contrario de registrarInscripcion,
-  // que deja pasar los dos primeros. Un formulario de un campo es el blanco
-  // favorito de los bots de listas, y el widget invisible no molesta a
-  // nadie.
-  if (!(await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req))) {
+  // que deja pasar los cuatro primeros. Un formulario de un campo es el
+  // blanco favorito de los bots de listas, y el widget invisible no molesta
+  // a nadie.
+  //
+  // Pero ahora el veredicto tiene cuatro estados y solo uno es un rechazo.
+  // Ver evaluarTurnstile: no hay token no quiere decir que sea un bot,
+  // quiere decir que no sabemos — y la respuesta a no saber es pedir una
+  // confirmacion, no cerrar la puerta.
+  veredicto = await evaluarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
+  if (veredicto.estado === 'rechazado') {
+    await decidir('rechazado_captcha');
     return res.status(400).json({ error: 'captcha_requerido' });
   }
+  const conConfirmacion = veredicto.estado !== 'ok';
 
-  const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+  const email = emailCrudo;
   if (!EMAIL_VALIDO.test(email)) {
+    await decidir('rechazado_email');
     return res.status(400).json({ error: 'email_invalido' });
   }
 
   const [parte, dominio] = email.split('@');
   if (DOMINIOS_TIPEADOS[dominio]) {
+    await decidir('rechazado_typo');
     return res.status(400).json({
       error: 'email_sospechoso',
       sugerencia: `${parte}@${DOMINIOS_TIPEADOS[dominio]}`,
@@ -2914,19 +3144,36 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   }
 
   if (req.body?.consentimiento !== true) {
+    await decidir('rechazado_consentimiento');
     return res.status(400).json({ error: 'consentimiento_requerido' });
   }
 
-  // Sin doble opt-in, esta es la unica barrera contra las direcciones que no
-  // existen. Va despues del captcha para que nadie pueda usar el endpoint
-  // como un escaner de dominios.
+  // La barrera contra las direcciones que no existen. Ojo con lo que NO
+  // hace: mira el dominio, no la direccion, asi que cualquier cosa arroba
+  // gmail.com pasa. Sirve contra los errores de tipeo, no contra un bot.
+  // Va despues del captcha para que nadie pueda usar el endpoint como un
+  // escaner de dominios.
   if (!(await dominioRecibeCorreo(dominio))) {
+    await decidir('rechazado_mx');
     return res.status(400).json({ error: 'dominio_sin_correo', dominio });
   }
 
+  // El tope por direccion, que es el que corta el llenarle la casilla a un
+  // tercero. La rama "ya_suscrito" de mas abajo ya evita el segundo mail de
+  // bienvenida, pero el reenvio del ebook es la excepcion y este tope es lo
+  // que la cierra; ademas sobrevive a que alguien toque esa rama.
+  //
+  // Contesta 200 con el cuerpo del exito, NUNCA 429: un 429 por direccion
+  // seria un oraculo para averiguar si un mail ajeno ya se intento
+  // suscribir. Mismo criterio que la rama "ya_suscrito".
+  if (!(await checkRateLimit('suscribir_mail', req, TOPE_POR_DIRECCION, {
+    clave: claveDireccion(email), ventanaMs: VENTANA_POR_DIRECCION,
+  }))) {
+    await decidir('tope_mail');
+    return res.status(200).json(RESPUESTA_ALTA);
+  }
+
   const nombre = sanitizeTexto(req.body?.nombre, 100);
-  const origenCrudo = sanitizeTexto(req.body?.origen, 40);
-  const origen = ORIGENES_SUSCRIPCION.has(origenCrudo) ? origenCrudo : 'otro';
 
   // Como se dio el consentimiento, para poder distinguirlos despues. Decia
   // 'doi-sitio' por el doble opt-in, que se saco el 2026-11-12: ya no hay
@@ -2974,7 +3221,77 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
       plantilla: plantillaDeAlta(origen),
     });
     await anotarPedido('sin_configurar');
+    await decidir('sin_brevo');
     return res.status(503).json({ error: 'no_configurado' });
+  }
+
+  // -----------------------------------------------------
+  // El carril con confirmacion.
+  //
+  // Aca cae quien no pudo resolver el captcha por motivos que no dependen de
+  // el (una extension que bloquea Cloudflare, el corte del front) y tambien
+  // el caso de un secreto mal desplegado. No se le cierra la puerta: se le
+  // da el alta, pero con un paso de confirmacion en vez de la bienvenida
+  // directa. Un bot no puede completarlo, asi que la lista sigue limpia; una
+  // persona hace un clic de mas y no se pierde.
+  //
+  // La infraestructura ya estaba: pedirDobleOptin quedo en brevo.js cuando
+  // se saco el doble opt-in el 2026-11-12, y el trigger ya tiene la rama
+  // "if (pedido.doi)". Esto la reconecta para la minoria que la necesita.
+  //
+  // Dos cosas que NO se hacen aca: ni upsertContacto ni enviarConPlantilla en
+  // linea. El alta la hace Brevo cuando la persona confirma; hasta entonces
+  // no hay contacto en la lista, que es justamente el punto.
+  if (conConfirmacion) {
+    // Si falta la plantilla, el carril no tiene barrera y seria un endpoint
+    // abierto. Fail-closed a proposito, y es la unica parte de todo esto que
+    // cierra en vez de abrir: un carril degradado sin su control no es un
+    // carril degradado.
+    if (!process.env.BREVO_DOI_TEMPLATE_ID) {
+      functions.logger.error('BREVO_DOI_TEMPLATE_ID no configurado: el carril con confirmación no puede funcionar y se rechaza el alta.');
+      await decidir('rechazado_sin_doi');
+      return res.status(400).json({ error: 'captcha_requerido' });
+    }
+
+    // El ebook queda afuera, y es a proposito. La rama "doi" del trigger
+    // ignora pedido.plantilla: una confirmacion con origen ebook daria de
+    // alta y NUNCA entregaria el libro, que es el bug que ya pasó una vez y
+    // se arregló el 2026-11-18. Hasta que el mail de confirmacion lleve
+    // contenido propio (ver el pendiente en CLAUDE.md), el regalo sigue
+    // pidiendo captcha resuelto.
+    if (origen === 'ebook') {
+      await decidir('rechazado_captcha_ebook');
+      return res.status(400).json({ error: 'captcha_requerido' });
+    }
+
+    // El id es el hash de la direccion a proposito: dos envios de la misma
+    // persona pisan el mismo documento en vez de encolar dos pedidos, asi no
+    // le llegan dos mails de confirmacion. Y de paso el mail no queda escrito
+    // en el nombre de un documento.
+    await encolarContactoBrevo({
+      id: claveDireccion(email),
+      email, nombre, listas: ['suscriptores'], atributos,
+      motivo: 'suscripcion', doi: true,
+    });
+    await anotarPedido('confirmacion_pendiente');
+    await decidir('degradado_doi', { mando: true });
+    return res.status(200).json(RESPUESTA_ALTA);
+  }
+
+  // El tope diario. Lo que protege no es la lista: es el cupo de 300 mails
+  // de Brevo, que comparten las confirmaciones de compra. Pasado el tope el
+  // alta no se pierde — se encola sin plantilla y la persona queda suscrita
+  // igual — pero no sale un mail mas desde este formulario en todo el dia.
+  if ((await mailsDeSuscripcionHoy()) >= TOPE_MAILS_SUSCRIBIR_DIA) {
+    functions.logger.error('Tope diario de mails de suscripción alcanzado: el alta se encola sin mail.', {
+      tope: TOPE_MAILS_SUSCRIBIR_DIA,
+    });
+    await encolarContactoBrevo({
+      email, nombre, listas: ['suscriptores'], atributos, motivo: 'suscripcion',
+    });
+    await anotarPedido('tope_diario');
+    await decidir('tope_global');
+    return res.status(200).json(RESPUESTA_ALTA);
   }
 
   try {
@@ -2999,7 +3316,8 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
       const ebook = origen === 'ebook' ? await reenviarEbook(email, nombre) : null;
       await anotarPedido(ebook === 'tope' ? 'ebook_tope' : 'ya_suscrito');
       functions.logger.info('Alta de alguien que ya estaba en la lista', { origen, ebook });
-      return res.status(200).json({ ok: true, estado: 'suscrito' });
+      await decidir('ya_suscrito', { mando: ebook === 'reenviado' });
+      return res.status(200).json(RESPUESTA_ALTA);
     }
 
     // Alta directa, sin paso de confirmacion. Lo que cuida que la direccion
@@ -3028,7 +3346,8 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
 
     await Promise.all([mandarBienvenida, anotarPedido('suscrito')]);
     functions.logger.info('Suscripción nueva', { origen });
-    return res.status(200).json({ ok: true, estado: 'suscrito' });
+    await decidir('suscrito', { mando: true });
+    return res.status(200).json(RESPUESTA_ALTA);
 
   } catch (error) {
     // Brevo no contesto. En vez de perder a quien se quiso suscribir, el
@@ -3042,6 +3361,7 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
       plantilla: plantillaDeAlta(origen),
     });
     await anotarPedido('reintentando');
+    await decidir('demorado', { mando: true });
     return res.status(200).json({ ok: true, estado: 'demorado' });
   }
 });
@@ -4625,6 +4945,11 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
     return res.status(503).json({ error: 'no_configurado' });
   }
 
+  // La proyeccion estricta de evaluarTurnstile: pasa solo 'ok'. Aca se
+  // mantiene el rechazo tambien cuando no hay token o el secreto esta mal,
+  // al contrario de suscribir: un turno falso en la agenda de Seba es caro
+  // de desarmar, y no hay un equivalente al mail de confirmacion. Lo unico
+  // que cambio es que una caida de Cloudflare ya no cierra la agenda.
   if (!(await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req))) {
     return res.status(400).json({ error: 'captcha_requerido' });
   }

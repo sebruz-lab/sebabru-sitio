@@ -92,7 +92,53 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - Cliente de la API: `functions/brevo.js` (fetch nativo, sin SDK). Hay una copia en `C:\dev\herramientas-sebabru\brevo.js`: si cambia uno, copiar al otro.
 - **Un fallo de Brevo nunca puede romper una compra ni una inscripción.** Las altas se encolan en la colección `brevo_contactos` de Firestore y las procesa el trigger `sincronizarContactoBrevo`. No llamar a Brevo en línea desde un `onRequest`: la instancia se congela después del `res.send()`.
 - El único que llama en línea es `exports.suscribir`, porque ahí Brevo es el flujo. Si falla, encola el alta y contesta que el mail va a demorar.
-- **La suscripción es de un solo paso** (decisión de Seba, 2026-11-12): se da de alta directo y sale un mail de bienvenida. Lo que reemplaza al doble opt-in para evitar rebotes es `dominioRecibeCorreo()`, que verifica los MX del dominio antes de dar el alta; más el captcha desde el primer envío, la trampa para bots y la detección de typos. El mail de bienvenida lleva el enlace de baja bien visible, porque es el primer aviso que recibe quien no se anotó (ver el punto de la baja, más abajo). `pedirDobleOptin()` sigue en `brevo.js` por si se vuelve atrás.
+- **La suscripción es de un paso, o de dos según el carril** (de un solo paso
+  por decisión de Seba del 2026-11-12; el segundo carril se agregó el
+  21/11/2026). Con el captcha resuelto se da de alta directo y sale un mail de
+  bienvenida, que es lo que pasa casi siempre. Lo que reemplaza al doble opt-in
+  para evitar rebotes es `dominioRecibeCorreo()`, que verifica los MX del
+  dominio antes de dar el alta; más el captcha desde el primer envío, la trampa
+  para bots y la detección de typos. El mail de bienvenida lleva el enlace de
+  baja bien visible, porque es el primer aviso que recibe quien no se anotó
+  (ver el punto de la baja, más abajo).
+- **Quien no puede resolver el captcha entra igual, con confirmación.** Antes
+  se lo rechazaba con "No pudimos verificar que no sos un robot", y eso se
+  comía también a quien tenía Cloudflare bloqueado por una extensión — que no
+  puede hacer nada al respecto, ni recargando. Ahora `evaluarTurnstile()`
+  devuelve cuatro estados en vez de un sí/no: sólo `rechazado` (un token
+  forjado) cierra la puerta; `sin_token` y `sin_config` van a un carril que
+  encola `doi: true` y deja que Brevo mande el mail de confirmación, sin
+  `upsertContacto` ni bienvenida en línea. **Si falta `BREVO_DOI_TEMPLATE_ID`
+  ese carril falla cerrado**, porque un carril degradado sin su único control
+  es un endpoint abierto.
+- **El ebook queda fuera del carril con confirmación**, y hay que acordarse de
+  por qué: la rama `if (pedido.doi)` del trigger ignora `pedido.plantilla`, así
+  que un alta del libro por ahí confirmaría la suscripción y nunca entregaría
+  el libro. Es el mismo bug que ya pasó y se arregló el 2026-11-18.
+- **PENDIENTE (pedido de Seba, 21/11/2026): que el mail de confirmación lleve
+  contenido propio** y cuente como un correo con valor, no como un trámite de
+  un clic. Hoy es la plantilla DOI pelada de Brevo. Cuando se haga, el ebook
+  puede volver al carril (su plantilla de confirmación llevaría el libro) y
+  `plantillaDeAlta()` necesita su equivalente para el DOI.
+- **El captcha no es la única barrera, pero casi.** Conviene tenerlo claro
+  antes de aflojar algo más: el honeypot no corre contra un POST directo al
+  endpoint (un bot no manda el campo `hp`), y `dominioRecibeCorreo()` mira el
+  dominio, no la dirección, así que cualquier cosa arroba gmail.com pasa. Lo
+  que acota el daño es el **tope diario** (`TOPE_MAILS_SUSCRIBIR_DIA`, 50
+  mails/día desde el formulario) y el **tope por dirección**
+  (`TOPE_POR_DIRECCION`, 3 cada 24 h). El tope diario existe porque los 300
+  mails/día de Brevo los comparten las confirmaciones de compra: sin él, un día
+  de abuso deja sin mail a quien acaba de pagar un curso.
+- **Todas las salidas buenas devuelven `RESPUESTA_ALTA`, byte por byte.** Alta
+  nueva, ya suscrito, honeypot, carril con confirmación y los dos topes. Si
+  alguna difiere, quien quiera abusar distingue los carriles y elige el barato.
+  Por lo mismo el tope por dirección contesta 200 y nunca 429: un 429 sería un
+  oráculo para averiguar si un mail ajeno ya se intentó suscribir.
+- **Cada decisión de `suscribir` deja una línea `suscribir_decision`** en Cloud
+  Logging y un contador en `metricas_suscribir/{YYYY-MM-DD}`. Antes ningún
+  rechazo dejaba rastro y no había forma de saber si un problema le pasaba a
+  cuatro personas o al 40%. En los logs va **sólo el dominio** del mail (nunca
+  la parte local), la IP hasheada y el user agent en categorías.
 - Mientras `BREVO_API_KEY` esté vacía en `functions/.env`, todo el mailing es un no-op que loguea un warning. **Pero `suscribir` contesta 503 `no_configurado` a propósito**: nunca decirle a alguien que revise su casilla si el mail no va a salir.
 - Los transaccionales (confirmaciones, accesos, la carta en PDF) **siguen en nodemailer/Gmail**, no en Brevo. El plan gratis tiene 300 mails por día compartidos: una newsletter grande dejaría sin mail a quien acaba de comprar.
 - El regalo del ebook (`/ebook/`) es una suscripcion con `origen: "ebook"`. `plantillaDeAlta()` hace que ese alta reciba la plantilla del libro (`BREVO_EBOOK_TEMPLATE_ID`, id 4) en lugar de la de bienvenida: esa persona no vino a suscribirse, vino por el libro. **El enlace al ebook esta solo en esa plantilla**, no en la pagina: es lo que hace que el regalo valga como alta.

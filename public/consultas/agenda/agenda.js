@@ -605,15 +605,32 @@ let captchaToken = '';
 // El script de Turnstile se trae recién acá, en la puerta suelta. Quien
 // entra con su enlace del formulario o del mail no lo descarga nunca.
 let captchaPedido = false;
+// Si el script no carga, esto queda en true y el formulario deja de decir
+// "esperá un segundo" para siempre.
+let captchaImposible = false;
+let captchaDesde = 0;
+
 function montarCaptcha() {
   if (typeof turnstile === 'undefined') {
     if (!captchaPedido) {
       captchaPedido = true;
+      captchaDesde = Date.now();
       const s = document.createElement('script');
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       s.async = true;
       s.defer = true;
+      // Sin esto, una extensión que bloquea Cloudflare dejaba el reintento
+      // de abajo corriendo cada 300 ms para siempre, y la persona se
+      // quedaba mirando "Esperá un segundo a que termine la verificación de
+      // seguridad" sin error, sin salida y sin que nada cambiara nunca.
+      s.onerror = () => { captchaImposible = true; };
       document.head.appendChild(s);
+    }
+    // El mismo corte de 15 segundos que usa el widget de suscripción: pasado
+    // ese tiempo el script no va a llegar.
+    if (captchaImposible || (captchaDesde && Date.now() - captchaDesde > 15000)) {
+      captchaImposible = true;
+      return;
     }
     setTimeout(montarCaptcha, 300);
     return;
@@ -622,6 +639,7 @@ function montarCaptcha() {
     sitekey: TURNSTILE_SITEKEY,
     theme: 'dark',
     callback: token => { captchaToken = token; },
+    'error-callback': () => { captchaToken = ''; captchaImposible = true; },
     'expired-callback': () => { captchaToken = ''; },
   });
 }
@@ -638,7 +656,16 @@ async function identificarse(evento) {
 
   if (!nombre || !telefono) return mostrarError('ag-error-form', MENSAJES.faltan_datos);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return mostrarError('ag-error-form', MENSAJES.email_invalido);
-  if (!captchaToken) return mostrarError('ag-error-form', 'Esperá un segundo a que termine la verificación de seguridad y probá de nuevo.');
+  if (!captchaToken) {
+    // Dos mensajes distintos, porque son dos situaciones distintas: una se
+    // arregla sola esperando y la otra no se arregla nunca.
+    if (captchaImposible) {
+      return mostrarError('ag-error-form', 'Tu navegador está bloqueando la verificación de seguridad, '
+        + 'casi siempre por una extensión o un bloqueador de anuncios. Probá desactivarlo un momento, '
+        + 'o escribinos a info@sebabru.com y coordinamos el turno por mail.');
+    }
+    return mostrarError('ag-error-form', 'Esperá un segundo a que termine la verificación de seguridad y probá de nuevo.');
+  }
 
   boton.disabled = true;
   boton.textContent = 'Buscando horarios...';
