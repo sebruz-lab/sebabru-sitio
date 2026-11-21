@@ -129,6 +129,20 @@ Toda página nueva debe incluir estos 6 meta OG en el `<head>`:
 <meta property="og:url" content="https://sebabru.com/PAGINA">
 <meta property="og:title" content="...">
 <meta property="og:description" content="...">
-<meta property="og:image" content="https://sebabru.com/img/IMAGEN.webp">
+<meta property="og:image" content="https://sebabru.com/img/preview.webp">
 <meta property="og:site_name" content="Seba Bru Astrología">
 ```
+
+`preview.webp` es el fallback. Si la página tiene imagen propia y al tema, va
+esa. Lo que **no** va más es `img/portada.webp`: es la placa del libro Luna
+Negra y estuvo de fallback en 210 páginas hasta el 21/11/2026.
+
+Si la página lleva `twitter:image`, cambiarlo junto con `og:image`: es la otra
+mitad del mismo preview y se olvida fácil. Y ojo con reemplazar el nombre del
+archivo a ciegas: la home usa `img/portada.webp` como `<img>` de verdad, que ahí
+sí corresponde.
+
+El fallback también está escrito en los generadores, en
+`C:\dev\herramientas-sebabru`: `paginas-textos.js` (las 196 de `/carta-natal/`)
+y `kit-paginas.js`. Cambiar solo el HTML deja que la próxima regeneración lo
+pise.
