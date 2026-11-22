@@ -674,3 +674,78 @@ consultas) y dan cero clics: mas impresiones no seria la noticia.
   - El `<h1>` paso de `Kit astrológico | Seba Bru astrología` al nombre real del
     podcast, y la `description` del `PodcastSeries` en el JSON-LD es la misma.
   - Unico retoque: Seba escribio "tierra" y va **Tierra**, que es el planeta.
+
+---
+
+## 14. La calculadora enlaza a las 196 paginas (21/11/2026)
+
+**El agujero mas grande que tenia el sitio, y nadie lo habia anotado.** Las 196
+paginas de `/carta-natal/` no tienen ni una impresion. La calculadora **sabe**
+que esta persona tiene Sol en Tauro y Luna en Piscis, y hay una pagina escrita
+para cada una de esas posiciones. Le daba **un solo enlace generico** a la madre
+y que se buscara sola. Y mostraba texto de tres posiciones, las tres expandidas
+de una vez.
+
+Ahora cada posicion de la carta es un desplegable con el texto de Seba y el
+enlace a la pagina donde ese texto vive. Son **14**: Sol, Luna, Ascendente,
+Mercurio, Venus, Marte, Jupiter, Saturno, Quiron, Urano, Neptuno, Pluton, Nodo
+Norte y Luna Negra.
+
+**Hecho y pusheado en `C:\dev\tucarta` (commits `42bc33f` y `f66872b`), SIN
+PUBLICAR.** La release la dispara un tag `v*` y la pone Seba.
+
+### Lo que habia que saber, y es lo que mas facil se rompe
+
+**Los id del motor no son los del sitio.** Cuatro no coinciden:
+
+| Motor | Pagina |
+|---|---|
+| `luna` | `/carta-natal/lunas/` (plural) |
+| `asc` | `/carta-natal/ascendente/` |
+| `nodo` | `/carta-natal/nodonorte/` |
+| `lilith` | `/carta-natal/lunanegra/` — **no** `/lilith/`, que en el sitio es la pagina del libro y el seminario |
+
+La tabla esta explicita en `POSICIONES` (`ui/interp.js`) y **cada traduccion
+tiene su test**. Es el mismo par de nombres parecidos que ya mordio otras veces.
+
+**Y los nombres de los textos colisionan entre las dos carpetas:**
+`/textos/sol-aries.json` (el texto largo) y `/textos/signos/sol-aries.json` (el
+corto) son **textos distintos con el mismo nombre de archivo**. Por eso la clave
+de la cache pasa a ser la ruta entera: con el id pelado, el Sol se quedaba con
+el primero que llegara. Esa es la trampa que mas tiempo habria costado
+diagnosticar.
+
+### Lo que NO se rompio, y era lo importante
+
+**El texto sigue entrando por `fetch`, nunca escrito en el HTML.** `/textos/`
+esta en `Disallow` a proposito (seccion 2): Googlebot no baja esos JSON y no
+existe una segunda copia compitiendo con las 196 paginas. **Verificado sobre el
+build**: `dist/index.html` no trae una linea de texto de interpretacion. Si
+alguna vez la trae, hay que volver atras.
+
+### Verificado
+
+| Que | Resultado |
+|---|---|
+| Suite completa de `tucarta` | **875 tests, 30 archivos, todo pasa** |
+| Tests nuevos de la tabla de traduccion | 17, en `tests/interp.test.js` |
+| Las 168 paginas de destino en vivo | **168 de 168 dan 200**, ni un 404 |
+| Los 168 archivos de texto | **168 de 168 existen** (36 largos + 132 cortos) |
+| El build | `dist/index.html` sin texto de interpretacion |
+
+### Lo que falta
+
+| Que | Quien |
+|---|---|
+| **La bajada del desplegable de afuera.** Puse "Un texto para cada posicion de tu carta", provisoria: la anterior decia "textos para el sol, la luna y el ascendente" y con 14 era mentira | Seba |
+| **Publicar la release** (tag `v*`), y que salga con el `WebApplication` schema que ya estaba escrito sin publicar | Seba |
+| Despues de la release: `tucarta.version` a la version nueva, commit y push a `main` | Claude |
+| Los **36 textos de casa** (capricornio, acuario, piscis): es lo unico que falta para encender `INCLUIR_CASAS` | Seba |
+
+### La senial
+
+El clic al enlace manda el evento `carta_natal_abierta` a GA4, con la posicion.
+**Es la unica forma de saber si esto sirvio sin esperar tres meses.** Si nadie
+abre los desplegables o nadie clickea, el problema es la invitacion y no el
+enlazado. El **16/12**, junto con lo ya agendado: mirar si las 196 pasaron de
+cero impresiones.
