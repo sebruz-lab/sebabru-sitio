@@ -73,10 +73,14 @@ async function recargar() {
 // -------------------------------------------------------
 function pintarBorrador() {
   $('pa-borrador').hidden = !datos.hayCambios;
-  const n = datos.sinPublicar || 0;
-  $('pa-borrador-detalle').textContent = n
-    ? `Hay ${n} ${n === 1 ? 'bloqueo o espacio extraordinario nuevo' : 'bloqueos o espacios extraordinarios nuevos'}.`
-    : '';
+  // Cada cosa por su nombre. "1 bloqueo o espacio extraordinario nuevo" es
+  // la frase que escribe quien no quiere contar dos listas, y obliga a quien
+  // la lee a ir a buscar cuál de las dos fue.
+  const sueltas = [
+    [(datos.bloqueos || []).filter(b => b.borrador === true).length, 'bloqueo', 'bloqueos'],
+    [(datos.excepcionales || []).filter(e => e.borrador === true).length, 'espacio extraordinario', 'espacios extraordinarios'],
+  ].filter(([n]) => n > 0).map(([n, uno, varios]) => `${n} ${n === 1 ? uno : varios}`);
+  $('pa-borrador-detalle').textContent = sueltas.length ? `Hay ${sueltas.join(' y ')} sin publicar.` : '';
 }
 
 async function publicar() {
@@ -827,6 +831,24 @@ async function abrirExcepcional() {
     excepcional.fecha = $('pa-ex-fecha').value;
   }
 
+  // Un extraordinario adentro de una franja regular no agrega ni un horario:
+  // el motor saca de la lista de extraordinarios lo que ya está entre los
+  // regulares, para no ofrecer la misma hora dos veces. Visto desde el panel
+  // eso es un espacio que se guarda bien y no aparece en ningún lado, así que
+  // conviene decirlo antes y no después.
+  const dow = repite
+    ? excepcional.diaSemana
+    : new Date(`${excepcional.fecha}T12:00:00Z`).getUTCDay();
+  const franjas = (datos.config?.semana || {})[String(dow)] || [];
+  const tapado = franjas.find(f => f.desde <= desde && f.hasta >= hasta);
+  if (tapado) {
+    const ok = window.confirm(
+      `Los ${DIA_CORTO[dow]} ya los tenés abiertos de ${tapado.desde} a ${tapado.hasta} en tus horarios de la semana. `
+      + 'Un extraordinario ahí adentro no agrega ningún horario: los que daría ya se ofrecen como regulares, '
+      + 'y por eso no va a aparecer en la vista previa.\n\n¿Lo guardo igual?');
+    if (!ok) return;
+  }
+
   try {
     await llamar({ accion: 'excepcional', excepcional });
     for (const id of ['pa-ex-fecha', 'pa-ex-desde-fecha', 'pa-ex-hasta-fecha', 'pa-ex-desde', 'pa-ex-hasta', 'pa-ex-motivo']) {
@@ -1176,6 +1198,19 @@ function pintarHorariosLibres(data) {
   // justamente lo que no esta en los horarios regulares, asi que si no se
   // listan acá, agregar uno no cambia nada en esta pantalla.
   const extras = data.excepcionales || [];
+  // El caso que más tiempo come: hay extraordinarios guardados y la vista
+  // previa no muestra ninguno. Callarse ahí es decirle a Seba que el panel
+  // está roto, cuando lo que pasa es una de tres cosas concretas.
+  if (!extras.length && (datos.excepcionales || []).length) {
+    const p = document.createElement('p');
+    p.className = 'pa-previa-total';
+    const n = datos.excepcionales.length;
+    p.textContent = `Tenés ${n} espacio${n > 1 ? 's' : ''} extraordinario${n > 1 ? 's' : ''} `
+      + 'y este turno no puede usar ninguno acá. Suele ser por una de tres: ya están adentro de '
+      + 'tus horarios de la semana (entonces se ofrecen como regulares y no se repiten), '
+      + 'el tramo es más corto que el turno, o no son para este tipo.';
+    caja.appendChild(p);
+  }
   if (extras.length) {
     const p = document.createElement('p');
     p.className = 'pa-previa-total';
