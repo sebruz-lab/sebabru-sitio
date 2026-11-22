@@ -5620,37 +5620,53 @@ async function seriesDePersona(persona) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// -------------------------------------------------------
+// Una nota sobre las consultas a agenda_turnos de aca en adelante
+//
+// Ninguna combina una igualdad (email, serieId) con el rango de `inicio`, y
+// no es por gusto: esa combinacion pide un indice compuesto, que es un paso
+// de deploy aparte. El 22/11/2026 la pestana de Acompanamiento entera
+// contestaba 500 por eso, y la unica pista era un FAILED_PRECONDITION en los
+// logs.
+//
+// A este volumen -- quince personas, 26 encuentros al ano cada una -- la
+// alternativa no cuesta nada: se consulta por UN campo, que Firestore indexa
+// solo, y el resto se filtra en memoria. Si alguna vez esto crece de verdad,
+// ahi si conviene el indice, declarado en un firestore.indexes.json y
+// deployado antes que el codigo que lo usa.
+// -------------------------------------------------------
+
 // Los turnos vigentes de una persona, de aca en adelante. Se mira por mail y
 // no por pedido: alguien que tuvo una consulta y ademas esta en el
 // acompanamiento tiene que ver las dos cosas en un solo lugar.
 async function turnosDePersona(persona, series) {
-  const desde = new Date(Date.now() - 2 * 3600000); // el de hace un rato sigue en pantalla
-  const consultas = [];
+  const desdeMs = Date.now() - 2 * 3600000; // el de hace un rato sigue en pantalla
+  const porId = new Map();
 
-  if (persona.email) {
-    const snap = await _db.collection('agenda_turnos')
-      .where('email', '==', persona.email)
-      .where('inicio', '>=', desde)
-      .get();
-    for (const d of snap.docs) consultas.push({ id: d.id, ...d.data() });
-  }
-
-  // Y los de sus series, que pueden no tener el mail escrito igual (una
-  // serie cargada a mano desde el panel, por ejemplo).
-  for (const serie of series) {
-    const snap = await _db.collection('agenda_turnos')
-      .where('serieId', '==', serie.id)
-      .where('inicio', '>=', desde)
-      .get();
+  const guardar = snap => {
     for (const d of snap.docs) {
-      if (consultas.some(t => t.id === d.id)) continue;
-      consultas.push({ id: d.id, ...d.data() });
+      const t = d.data();
+      if (t.estado !== 'reservado') continue;
+      if (t.inicio.toMillis() < desdeMs) continue;
+      porId.set(d.id, { id: d.id, ...t });
     }
+  };
+
+  // Las de las series van en paralelo con la del mail: son independientes
+  // entre si y cada una es un viaje a Firestore.
+  const consultas = [];
+  if (persona.email) {
+    consultas.push(_db.collection('agenda_turnos').where('email', '==', persona.email).get());
+  }
+  // Los de sus series, que pueden no tener el mail escrito igual (una serie
+  // cargada a mano desde el panel, por ejemplo).
+  for (const serie of series) {
+    consultas.push(_db.collection('agenda_turnos').where('serieId', '==', serie.id).get());
   }
 
-  return consultas
-    .filter(t => t.estado === 'reservado')
-    .sort((a, b) => a.inicio.toMillis() - b.inicio.toMillis());
+  for (const snap of await Promise.all(consultas)) guardar(snap);
+
+  return [...porId.values()].sort((a, b) => a.inicio.toMillis() - b.inicio.toMillis());
 }
 
 // Como se ve un turno desde el espacio personal. Lo que no esta aca no se
@@ -5704,12 +5720,13 @@ async function extenderSerie(serie, config) {
   // fecha sigue siendo el encuentro de su quincena.
   const existentes = await _db.collection('agenda_turnos')
     .where('serieId', '==', serie.id)
-    .where('inicio', '>=', new Date(Date.now() - 86400000))
     .get();
+  const ayer = Date.now() - 86400000;
   const yaHay = new Set(
     existentes.docs
-      .filter(d => d.data().estado === 'reservado')
-      .map(d => d.data().ocurrencia)
+      .map(d => d.data())
+      .filter(t => t.estado === 'reservado' && t.inicio.toMillis() >= ayer)
+      .map(t => t.ocurrencia)
       .filter(Boolean)
   );
 
@@ -6333,10 +6350,31 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         if (!fechaValida(desde) || !fechaValida(hasta) || hasta < desde) {
           return res.status(400).json({ error: 'fechas_invalidas' });
         }
+
+        // El tramo horario y los tipos son opcionales, y su ausencia es lo
+        // que significaban los bloqueos de antes: el dia entero, para todo.
+        // Por eso van como null y [] y no se inventan valores.
+        const desdeHora = sanitizeTexto(req.body?.desdeHora, 5);
+        const hastaHora = sanitizeTexto(req.body?.hastaHora, 5);
+        const conHoras = minutosDeHora(desdeHora) !== null && minutosDeHora(hastaHora) !== null;
+        if (conHoras && minutosDeHora(hastaHora) <= minutosDeHora(desdeHora)) {
+          return res.status(400).json({ error: 'horas_invalidas' });
+        }
+
+        const tipos = Array.isArray(req.body?.tipos)
+          ? req.body.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
+          : [];
+
         const ref = await _db.collection('agenda_bloqueos').add({
           desde, hasta,
+          desdeHora: conHoras ? desdeHora : null,
+          hastaHora: conHoras ? hastaHora : null,
+          tipos,
           motivo: sanitizeTexto(req.body?.motivo, 200),
           creado: new Date().toISOString(),
+        });
+        functions.logger.info('Bloqueo creado', {
+          desde, hasta, conHoras, tipos, por: sesion.email,
         });
         return res.status(200).json({ ok: true, id: ref.id });
       }
@@ -6391,17 +6429,29 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
       // ---------- El acompanamiento quincenal ----------
 
       case 'series': {
-        const snap = await _db.collection('agenda_series').orderBy('nombre').get();
-        const config = await leerConfigAgenda();
+        const desde = new Date(Date.now() - 2 * 3600000);
+        // Una sola consulta para todas las series, por rango de fecha, y
+        // despues se agrupan por serieId en memoria. Antes era una consulta
+        // por serie -- quince viajes a Firestore para pintar una lista -- y
+        // ademas cada una pedia un indice compuesto que no existia.
+        const [snap, config, turnosSnap] = await Promise.all([
+          _db.collection('agenda_series').orderBy('nombre').get(),
+          leerConfigAgenda(),
+          _db.collection('agenda_turnos').where('inicio', '>=', desde).get(),
+        ]);
+
+        const porSerie = new Map();
+        for (const d of turnosSnap.docs) {
+          const t = d.data();
+          if (t.estado !== 'reservado' || !t.serieId) continue;
+          if (!porSerie.has(t.serieId)) porSerie.set(t.serieId, []);
+          porSerie.get(t.serieId).push({ id: d.id, ...t });
+        }
+
         const series = [];
         for (const doc of snap.docs) {
           const s = { id: doc.id, ...doc.data() };
-          // Los encuentros que tiene tomados de aca en adelante. Es lo que
-          // Seba necesita ver: no la regla, los turnos.
-          const turnos = await _db.collection('agenda_turnos')
-            .where('serieId', '==', doc.id)
-            .where('inicio', '>=', new Date(Date.now() - 2 * 3600000))
-            .get();
+          const turnos = porSerie.get(doc.id) || [];
           series.push({
             id: s.id,
             nombre: s.nombre || '', email: s.email || '',
@@ -6410,9 +6460,8 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
             ancla: s.ancla, estado: s.estado || 'activa',
             notificaciones: s.notificaciones || { cambios: true, recordatorio: true },
             conflictos: s.conflictos || [],
-            encuentros: turnos.docs
-              .filter(d => d.data().estado === 'reservado')
-              .map(d => turnoParaPersona({ id: d.id, ...d.data() }, config))
+            encuentros: turnos
+              .map(t => turnoParaPersona(t, config))
               .sort((a, b) => a.inicio.localeCompare(b.inicio)),
           });
         }

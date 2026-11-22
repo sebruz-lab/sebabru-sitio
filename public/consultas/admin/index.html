@@ -95,11 +95,36 @@
     .pa-pausa { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: #cccac3; }
 
     .pa-nuevo-bloqueo { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 22px; }
-    .pa-nuevo-bloqueo input {
+    .pa-nuevo-bloqueo label {
+        display: block; font-size: 0.72rem; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #a9a7a1; margin-bottom: 6px;
+    }
+    .pa-nuevo-bloqueo input, .pa-nuevo-bloqueo select {
         background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.18);
         border-radius: 10px; padding: 11px 14px; font-family: 'Outfit', sans-serif; font-size: 16px;
     }
+    .pa-nuevo-bloqueo select option { background: #12141d; color: #fff; }
     .pa-vacio { color: #8f8d88; line-height: 1.7; }
+
+    /* Disponibilidad, por secciones */
+    .pa-seccion {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--pa-accent); font-weight: 400; margin: 30px 0 10px;
+    }
+    .pa-seccion:first-child { margin-top: 0; }
+    .pa-seccion-nota { color: #a9a7a1; font-size: 0.82rem; line-height: 1.7; margin: 0 0 16px; }
+    .pa-seccion-nota strong { color: #cccac3; }
+    /* La cadencia en concreto: los horarios que produce, escritos. Un numero
+       de minutos no se puede evaluar de un vistazo; una lista de horas si. */
+    .pa-cadencia-previa {
+        margin: 14px 0 0; padding: 12px 15px; border-radius: 10px;
+        background: rgba(191,174,224,0.08); border: 1px solid rgba(191,174,224,0.3);
+        color: #e8e6e1; font-size: 0.82rem; line-height: 1.7;
+    }
+    .pa-cadencia-previa.apagada {
+        background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12);
+        color: #a9a7a1;
+    }
 
     /* Acompanamiento */
     .pa-nueva-serie {
@@ -233,23 +258,85 @@
                         </div>
 
                         <div id="pa-disponibilidad" class="pa-panel">
+                            <h3 class="pa-seccion">Tus horarios de la semana</h3>
+                            <p class="pa-seccion-nota">
+                                Estas franjas valen para todo: adentro de un jueves de 14 a 18 entran
+                                tanto las sesiones de acompañamiento de una hora como las consultas de
+                                dos. Lo que decide qué se ofrece en cada punto es la cadencia, acá abajo,
+                                más lo que ya esté tomado.
+                            </p>
                             <div id="pa-semana"></div>
+
+                            <h3 class="pa-seccion">La cadencia</h3>
+                            <p class="pa-seccion-nota">
+                                Cada cuántos minutos puede arrancar un turno, contando desde donde empieza
+                                la franja. Es <strong>una sola para los dos tipos</strong>: la consulta de
+                                dos horas no tiene horarios propios, arranca en uno de estos mismos puntos
+                                y corre dos horas derecho. Por eso dos espacios de una hora libres y
+                                seguidos se vuelven una consulta.
+                            </p>
                             <div class="pa-numeros">
-                                <div><label for="pa-duracion">Duración (minutos)</label><input type="number" id="pa-duracion" min="15" max="480" step="5"></div>
-                                <div><label for="pa-buffer">Descanso entre sesiones</label><input type="number" id="pa-buffer" min="0" max="240" step="5"></div>
-                                <div><label for="pa-granularidad">Los turnos arrancan cada</label><input type="number" id="pa-granularidad" min="5" max="240" step="5"></div>
-                                <div><label for="pa-anticipacion">Anticipación mínima (horas)</label><input type="number" id="pa-anticipacion" min="0" max="720" step="1"></div>
-                                <div><label for="pa-ventana">Se puede reservar hasta (días)</label><input type="number" id="pa-ventana" min="1" max="365" step="1"></div>
+                                <div>
+                                    <label for="pa-cadencia">Los turnos arrancan cada (minutos)</label>
+                                    <input type="number" id="pa-cadencia" min="15" max="240" step="5" placeholder="apagada">
+                                </div>
                             </div>
+                            <p class="pa-cadencia-previa" id="pa-cadencia-previa"></p>
+
+                            <h3 class="pa-seccion">Sesiones de acompañamiento</h3>
+                            <div class="pa-numeros">
+                                <div><label for="pa-t1-duracion">Duración (minutos)</label><input type="number" id="pa-t1-duracion" min="15" max="480" step="5"></div>
+                                <div><label for="pa-t1-buffer">Aire antes y después</label><input type="number" id="pa-t1-buffer" min="0" max="240" step="5"></div>
+                                <div><label for="pa-t1-anticipacion">Anticipación para reservar (horas)</label><input type="number" id="pa-t1-anticipacion" min="0" max="720" step="1"></div>
+                                <div><label for="pa-t1-cambio">Anticipación para cambiar (horas)</label><input type="number" id="pa-t1-cambio" min="0" max="720" step="1"></div>
+                            </div>
+
+                            <h3 class="pa-seccion">Consultas</h3>
+                            <div class="pa-numeros">
+                                <div><label for="pa-t2-duracion">Duración (minutos)</label><input type="number" id="pa-t2-duracion" min="15" max="480" step="5"></div>
+                                <div><label for="pa-t2-buffer">Aire antes y después</label><input type="number" id="pa-t2-buffer" min="0" max="240" step="5"></div>
+                                <div><label for="pa-t2-anticipacion">Anticipación para reservar (horas)</label><input type="number" id="pa-t2-anticipacion" min="0" max="720" step="1"></div>
+                                <div><label for="pa-t2-cambio">Anticipación para cambiar (horas)</label><input type="number" id="pa-t2-cambio" min="0" max="720" step="1"></div>
+                            </div>
+
+                            <h3 class="pa-seccion">Hasta cuándo</h3>
+                            <div class="pa-numeros">
+                                <div><label for="pa-ventana">Se puede reservar hasta (días)</label><input type="number" id="pa-ventana" min="1" max="365" step="1"></div>
+                                <div><label for="pa-ventana-series">Las quincenales se toman hasta (días)</label><input type="number" id="pa-ventana-series" min="1" max="365" step="1"></div>
+                            </div>
+                            <p class="pa-seccion-nota">
+                                La segunda es más larga a propósito: el público reserva dentro de tres
+                                semanas, pero el horario de cada participante tiene que estar tomado más
+                                adelante que eso, o cualquier consulta se lo lleva antes de que le toque.
+                            </p>
+
                             <label class="pa-pausa"><input type="checkbox" id="pa-pausado"> Cerrar la agenda (nadie puede reservar)</label>
                             <button type="button" class="pa-boton" id="pa-btn-guardar">Guardar</button>
                         </div>
 
                         <div id="pa-bloqueos" class="pa-panel">
+                            <p class="pa-seccion-nota">
+                                Un bloqueo saca horarios de la agenda. Sin horas es el día entero, y
+                                sirve para unas vacaciones. Con horas y "solo las sesiones de una hora"
+                                es otra cosa: <strong>así guardás un bloque para una consulta</strong>.
+                                Un martes de 10 a 12 para consultas sale de los horarios de una hora,
+                                queda entero para una de dos, y a quien busca una sesión le aparece en
+                                gris con su motivo en lugar de desaparecer.
+                            </p>
                             <div class="pa-nuevo-bloqueo">
-                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-desde">Desde</label><input type="date" id="pa-bl-desde"></div>
-                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-hasta">Hasta</label><input type="date" id="pa-bl-hasta"></div>
-                                <div><label style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:#a9a7a1; margin-bottom:6px;" for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
+                                <div><label for="pa-bl-desde">Desde</label><input type="date" id="pa-bl-desde"></div>
+                                <div><label for="pa-bl-hasta">Hasta</label><input type="date" id="pa-bl-hasta"></div>
+                                <div><label for="pa-bl-desde-hora">De (opcional)</label><input type="time" id="pa-bl-desde-hora"></div>
+                                <div><label for="pa-bl-hasta-hora">A (opcional)</label><input type="time" id="pa-bl-hasta-hora"></div>
+                                <div>
+                                    <label for="pa-bl-tipos">Para</label>
+                                    <select id="pa-bl-tipos">
+                                        <option value="">Todo</option>
+                                        <option value="una-hora">Solo las sesiones de una hora</option>
+                                        <option value="dos-horas">Solo las consultas</option>
+                                    </select>
+                                </div>
+                                <div><label for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
                                 <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
                             </div>
                             <div id="pa-lista-bloqueos"></div>
@@ -324,6 +411,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=3"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=4"></script>
 </body>
 </html>

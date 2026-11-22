@@ -158,14 +158,38 @@ async function moverTurno(t) {
 // -------------------------------------------------------
 // Disponibilidad
 // -------------------------------------------------------
+// Los valores de fábrica de cada tipo, los mismos que tiene agenda-motor.js.
+// Están acá para que un campo vacío muestre lo que el servidor va a usar de
+// todos modos, en lugar de un hueco.
+const TIPOS = {
+  'una-hora': { duracionMin: 60, bufferMin: 15, anticipacionHoras: 24, anticipacionCambioHoras: 12 },
+  'dos-horas': { duracionMin: 120, bufferMin: 15, anticipacionHoras: 48, anticipacionCambioHoras: 48 },
+};
+
 function pintarConfig() {
   const c = datos.config || {};
-  $('pa-duracion').value = c.duracionMin ?? 120;
-  $('pa-buffer').value = c.bufferMin ?? 15;
-  $('pa-granularidad').value = c.granularidadMin ?? 30;
-  $('pa-anticipacion').value = c.anticipacionHoras ?? 48;
+
+  // Lo que Seba guardó para cada tipo, o el valor de fábrica. La consulta de
+  // dos horas además hereda los campos sueltos de la configuración vieja, que
+  // es lo que hace que nada haya cambiado el día que aparecieron los tipos.
+  const tipo = (id, campo) => {
+    const guardado = c.tipos?.[id]?.[campo];
+    if (Number.isFinite(guardado)) return guardado;
+    if (id === 'dos-horas' && Number.isFinite(c[campo])) return c[campo];
+    return TIPOS[id][campo];
+  };
+
+  $('pa-cadencia').value = Number.isFinite(c.cadenciaMin) ? c.cadenciaMin : '';
+  for (const [id, pre] of [['una-hora', 'pa-t1'], ['dos-horas', 'pa-t2']]) {
+    $(`${pre}-duracion`).value = tipo(id, 'duracionMin');
+    $(`${pre}-buffer`).value = tipo(id, 'bufferMin');
+    $(`${pre}-anticipacion`).value = tipo(id, 'anticipacionHoras');
+    $(`${pre}-cambio`).value = tipo(id, 'anticipacionCambioHoras');
+  }
   $('pa-ventana').value = c.ventanaDias ?? 60;
+  $('pa-ventana-series').value = c.ventanaSeriesDias ?? 60;
   $('pa-pausado').checked = c.pausado === true;
+  pintarCadencia();
 
   const caja = $('pa-semana');
   caja.innerHTML = '';
@@ -215,6 +239,53 @@ function agregarFranja(contenedor, desde, hasta) {
   contenedor.appendChild(caja);
 }
 
+// La primera franja que haya configurada, para mostrar la cadencia en
+// concreto. Si no hay ninguna, se usa un jueves de 14 a 18, que es el ejemplo
+// con el que esto se pensó.
+function primeraFranja() {
+  for (const fila of document.querySelectorAll('.pa-dia')) {
+    const f = fila.querySelector('.pa-franja');
+    if (!f) continue;
+    const [a, b] = f.querySelectorAll('input');
+    if (a.value && b.value && b.value > a.value) {
+      return { dia: DIAS[Number(fila.dataset.dia)], desde: a.value, hasta: b.value };
+    }
+  }
+  return { dia: 'jueves', desde: '14:00', hasta: '18:00' };
+}
+
+// Los horarios que la cadencia produce, escritos. Un número de minutos no se
+// evalúa de un vistazo; una lista de horas sí. No duplica el motor: es la
+// misma progresión aritmética, desde el arranque de la franja.
+function pintarCadencia() {
+  const caja = $('pa-cadencia-previa');
+  const cadencia = Number($('pa-cadencia').value);
+  const franja = primeraFranja();
+  const enMinutos = h => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+  const enHora = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+  if (!Number.isFinite(cadencia) || cadencia < 15) {
+    caja.classList.add('apagada');
+    const sugerida = Number($('pa-t1-duracion').value) + Number($('pa-t1-buffer').value);
+    caja.textContent = `Apagada: cada tipo usa su propia grilla, y la consulta se sigue ofreciendo cada ${datos.config?.granularidadMin ?? 30} minutos. Para que los dos compartan la misma, poné ${sugerida}.`;
+    return;
+  }
+
+  caja.classList.remove('apagada');
+  const inicio = enMinutos(franja.desde);
+  const fin = enMinutos(franja.hasta);
+  const arranques = [];
+  for (let m = inicio; m <= fin; m += cadencia) arranques.push(m);
+
+  const cabe = (duracion) => arranques.filter(m => m + duracion <= fin).map(enHora);
+  const unaHora = cabe(Number($('pa-t1-duracion').value) || 60);
+  const dosHoras = cabe(Number($('pa-t2-duracion').value) || 120);
+
+  caja.textContent = `Un ${franja.dia.toLowerCase()} de ${franja.desde} a ${franja.hasta} daría: `
+    + `sesiones a las ${unaHora.join(', ') || '(ninguna)'}; `
+    + `consultas a las ${dosHoras.join(', ') || '(ninguna)'}.`;
+}
+
 function leerConfigDeLaPantalla() {
   const semana = {};
   for (const fila of document.querySelectorAll('.pa-dia')) {
@@ -225,14 +296,29 @@ function leerConfigDeLaPantalla() {
     }
     if (franjas.length) semana[fila.dataset.dia] = franjas;
   }
+
+  const delTipo = pre => ({
+    duracionMin: Number($(`${pre}-duracion`).value),
+    bufferMin: Number($(`${pre}-buffer`).value),
+    anticipacionHoras: Number($(`${pre}-anticipacion`).value),
+    anticipacionCambioHoras: Number($(`${pre}-cambio`).value),
+  });
+
+  const cadencia = Number($('pa-cadencia').value);
+
   return {
-    duracionMin: Number($('pa-duracion').value),
-    bufferMin: Number($('pa-buffer').value),
-    granularidadMin: Number($('pa-granularidad').value),
-    anticipacionHoras: Number($('pa-anticipacion').value),
+    // Los campos sueltos de siempre siguen yendo, con lo que diga la consulta
+    // de dos horas: son los que lee cualquier cosa que todavía no sepa de
+    // tipos, y el servidor los usa como valor heredado.
+    ...delTipo('pa-t2'),
+    granularidadMin: datos.config?.granularidadMin ?? 30,
+    // Vacío o fuera de rango apaga la cadencia compartida.
+    cadenciaMin: Number.isFinite(cadencia) && cadencia >= 15 ? cadencia : null,
     ventanaDias: Number($('pa-ventana').value),
+    ventanaSeriesDias: Number($('pa-ventana-series').value),
     pausado: $('pa-pausado').checked,
     semana,
+    tipos: { 'una-hora': delTipo('pa-t1'), 'dos-horas': delTipo('pa-t2') },
   };
 }
 
@@ -269,12 +355,21 @@ function pintarBloqueos() {
 
     const texto = document.createElement('div');
     texto.className = 'pa-cuando';
-    texto.textContent = b.desde === b.hasta ? b.desde : `${b.desde} a ${b.hasta}`;
+    const dias = b.desde === b.hasta ? b.desde : `${b.desde} a ${b.hasta}`;
+    texto.textContent = b.desdeHora && b.hastaHora
+      ? `${dias}, de ${b.desdeHora} a ${b.hastaHora}`
+      : dias;
     fila.appendChild(texto);
 
     const motivo = document.createElement('div');
     motivo.className = 'pa-quien';
-    motivo.textContent = b.motivo || '';
+    // A qué tipo aplica, escrito: es lo que distingue "me tomé el día" de
+    // "guardé este bloque para una consulta", y en la lista se confunden.
+    const para = {
+      'una-hora': 'Solo las sesiones de una hora (guardado para una consulta)',
+      'dos-horas': 'Solo las consultas',
+    }[(b.tipos || [])[0]] || 'Todo';
+    motivo.textContent = [para, b.motivo].filter(Boolean).join(' · ');
     fila.appendChild(motivo);
 
     const quitar = document.createElement('button');
@@ -297,11 +392,32 @@ function pintarBloqueos() {
 async function bloquear() {
   const desde = $('pa-bl-desde').value;
   const hasta = $('pa-bl-hasta').value || desde;
+  const desdeHora = $('pa-bl-desde-hora').value;
+  const hastaHora = $('pa-bl-hasta-hora').value;
+  const tipo = $('pa-bl-tipos').value;
+
   if (!desde) return avisar('Elegí al menos la fecha de inicio.', 'error');
+  // Media hora no significa nada: o están las dos o es el día entero.
+  if (Boolean(desdeHora) !== Boolean(hastaHora)) {
+    return avisar('Para bloquear un tramo del día poné las dos horas. Si querés el día entero, dejá las dos vacías.', 'error');
+  }
+  if (desdeHora && hastaHora <= desdeHora) {
+    return avisar('La hora de fin tiene que ser posterior a la de inicio.', 'error');
+  }
+
   try {
-    await llamar({ accion: 'bloquear', desde, hasta, motivo: $('pa-bl-motivo').value.trim() });
-    $('pa-bl-desde').value = ''; $('pa-bl-hasta').value = ''; $('pa-bl-motivo').value = '';
-    avisar('Días bloqueados.', 'ok');
+    await llamar({
+      accion: 'bloquear', desde, hasta,
+      desdeHora: desdeHora || null,
+      hastaHora: hastaHora || null,
+      tipos: tipo ? [tipo] : [],
+      motivo: $('pa-bl-motivo').value.trim(),
+    });
+    for (const id of ['pa-bl-desde', 'pa-bl-hasta', 'pa-bl-desde-hora', 'pa-bl-hasta-hora', 'pa-bl-motivo']) {
+      $(id).value = '';
+    }
+    $('pa-bl-tipos').value = '';
+    avisar(tipo === 'una-hora' ? 'Listo: ese tramo queda guardado para consultas.' : 'Bloqueado.', 'ok');
     await recargar();
   } catch (e) {
     avisar(`No se pudo bloquear: ${e.message}`, 'error');
@@ -673,6 +789,13 @@ $('pa-btn-bloquear').addEventListener('click', bloquear);
 $('pa-btn-previa').addEventListener('click', cargarPrevia);
 
 $('pa-btn-crear-serie').addEventListener('click', crearSerie);
+
+// La vista previa de la cadencia se rehace con cualquier cosa que la cambie:
+// el número, las duraciones, el aire, y las franjas (que le dan el ejemplo).
+for (const id of ['pa-cadencia', 'pa-t1-duracion', 'pa-t1-buffer', 'pa-t2-duracion']) {
+  $(id).addEventListener('input', pintarCadencia);
+}
+$('pa-semana').addEventListener('input', pintarCadencia);
 
 // Las series se piden recién al abrir su pestaña, no al abrir el panel: cada
 // una trae sus encuentros en una consulta propia, y son quince personas.
