@@ -691,8 +691,8 @@ enlace a la pagina donde ese texto vive. Son **14**: Sol, Luna, Ascendente,
 Mercurio, Venus, Marte, Jupiter, Saturno, Quiron, Urano, Neptuno, Pluton, Nodo
 Norte y Luna Negra.
 
-**Hecho y pusheado en `C:\dev\tucarta` (commits `42bc33f` y `f66872b`), SIN
-PUBLICAR.** La release la dispara un tag `v*` y la pone Seba.
+**EN VIVO desde el 22/11/2026, en la v1.23.0.** Salio con el `WebApplication`
+schema, que esperaba desde antes.
 
 ### Lo que habia que saber, y es lo que mas facil se rompe
 
@@ -737,10 +737,15 @@ alguna vez la trae, hay que volver atras.
 
 | Que | Quien |
 |---|---|
-| **La bajada del desplegable de afuera.** Puse "Un texto para cada posicion de tu carta", provisoria: la anterior decia "textos para el sol, la luna y el ascendente" y con 14 era mentira | Seba |
-| **Publicar la release** (tag `v*`), y que salga con el `WebApplication` schema que ya estaba escrito sin publicar | Seba |
-| Despues de la release: `tucarta.version` a la version nueva, commit y push a `main` | Claude |
-| Los **36 textos de casa** (capricornio, acuario, piscis): es lo unico que falta para encender `INCLUIR_CASAS` | Seba |
+| Los **36 textos de casa** (capricornio, acuario, piscis): es lo unico que falta para encender `INCLUIR_CASAS` y sumar las 12 casas a los desplegables | Seba |
+
+La bajada del desplegable es **"Aprende mas sobre tu carta"**, de Seba.
+
+**Como se publica la calculadora, anotado porque es lo que mas se olvida:** la
+release la dispara un **tag `v*`** en el repo de tucarta, no un push a `main`. Y
+hay que esperar que el `.tar.gz` de la release exista antes de cambiar
+`tucarta.version`: el deploy del sitio lo baja con `curl -sSfL` y **falla si
+todavia da 404**.
 
 ### La senial
 
