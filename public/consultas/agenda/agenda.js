@@ -602,6 +602,13 @@ async function cancelar() {
 // -------------------------------------------------------
 let captchaToken = '';
 
+// El borrador del paso 1. Una vez que iniciarAgenda contesta, los datos viven
+// en el servidor y el enlace queda en la barra de direcciones; antes de eso,
+// cerrar la pestana los borraba.
+const borradorAgenda = (window.sbBorrador && document.getElementById('ag-form'))
+  ? window.sbBorrador.cuidar(document.getElementById('ag-form'), 'agenda-paso1')
+  : null;
+
 // El script de Turnstile se trae recién acá, en la puerta suelta. Quien
 // entra con su enlace del formulario o del mail no lo descarga nunca.
 let captchaPedido = false;
@@ -683,6 +690,8 @@ async function identificarse(evento) {
       if (typeof turnstile !== 'undefined') turnstile.reset();
       return;
     }
+    // Los datos ya estan en el servidor: el borrador no hace falta mas.
+    if (borradorAgenda) borradorAgenda.listo();
     estado.p = data.p;
     estado.t = data.t;
     // El enlace queda en la barra de direcciones: si recarga la pagina o lo

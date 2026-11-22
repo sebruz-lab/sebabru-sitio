@@ -302,6 +302,14 @@ async function pintar() {
         const el = $('cert-titulos').querySelector(`[data-id="${CSS.escape(t.id)}"]`);
         const form = el.querySelector('.cert-form');
 
+        // Borrador por titulo. Son tres campos, pero uno es el DNI y el otro
+        // es como va escrito el nombre en el diploma: si la pestana se cierra
+        // a mitad, se vuelve a tipear todo. El aviso de restaurado se omite
+        // porque el formulario arranca oculto detras de "editar".
+        const borrador = window.sbBorrador
+            ? window.sbBorrador.cuidar(form, `titulo-${t.id}`, { aviso: false })
+            : null;
+
         el.addEventListener('click', async (ev) => {
             const boton = ev.target.closest('button[data-accion]');
             if (!boton) return;
@@ -339,6 +347,8 @@ async function pintar() {
                     const emitido = await emitir(t, datosForm, confirmar);
                     cerrarPrevia();
                     if (!emitido) return;
+                    // El titulo quedo emitido: el borrador ya no hace falta.
+                    if (borrador) borrador.listo();
 
                     await pintar();
 

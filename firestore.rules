@@ -91,6 +91,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Lo que alguien escribio y el flujo no pudo procesar: se guarda en vez
+    // de perderse y Seba lo carga a mano. Cerrada de los dos lados, y esta
+    // importa: adentro hay DNI, direcciones de envio y datos de nacimiento
+    // de gente que ni siquiera llego a completar su tramite. El panel la lee
+    // por function con sesion de admin, nunca desde el navegador.
+    // Los documentos se borran solos a los 90 dias por la politica de TTL
+    // sobre el campo "expira".
+    match /datos_sin_procesar/{id} {
+      allow read, write: if false;
+    }
+
     // Cada cuánto ya se avisó de algo (hoy, que GeoNames dejó de atender):
     // lo escribe solo la Cloud Function.
     match /avisos/{id} {

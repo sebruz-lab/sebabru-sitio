@@ -546,6 +546,160 @@ async function encolarContactoBrevo(datos) {
   }
 }
 
+// -------------------------------------------------------
+// Custodia: que no se pierda ningun dato que alguien dejo.
+//
+// Todo el sitio valida primero y guarda al final, asi que historicamente cada
+// rechazo tiraba lo que la persona habia escrito: diez campos de un formulario
+// de consulta, una direccion de envio con el libro ya pagado, un DNI para un
+// titulo. La persona veia un error y del otro lado no quedaba nada — ni
+// siquiera para escribirle y pedirle que lo repita.
+//
+// custodiar() es la red. Donde antes habia un return con un error seco, ahora
+// el dato se guarda igual en "datos_sin_procesar" y Seba lo carga a mano.
+//
+// Reglas, las mismas que encolarContactoBrevo y encolarMail: NUNCA tira. Si
+// falla la custodia se loguea y el flujo sigue — una red de seguridad que
+// rompe lo que venia a proteger es peor que no tenerla.
+// -------------------------------------------------------
+
+const CUSTODIA_DIAS = 90;
+
+// El tope es lo que mantiene la bandeja legible. Sin el, un script apuntando
+// al endpoint la llena de basura, Seba deja de leerla, y entonces no sirve
+// para nada el dia que caiga algo de verdad.
+const TOPE_CUSTODIA_IP_DIA = 20;
+const VENTANA_CUSTODIA_MS = 24 * 60 * 60 * 1000;
+
+// Cada cuanto se repite el aviso del mismo motivo. Mismo criterio que
+// avisarGeoNamesCaido: el error se repite en cada pedido hasta que se arregla,
+// y no queremos un mail por intento. La plata es la excepcion y avisa siempre
+// (ver avisarDeCustodia).
+const AVISO_CUSTODIA_CADA_MS = 6 * 60 * 60 * 1000;
+
+// Deja los datos en una forma que Firestore acepte: sin undefined, sin
+// funciones, con los textos recortados y sin anidar hasta el infinito. Lo que
+// llega es un req.body, o sea algo que mando un desconocido.
+function datosLimpios(valor, profundidad = 0) {
+  if (valor === null || valor === undefined) return null;
+  if (profundidad > 4) return '[...]';
+  if (typeof valor === 'string') return valor.slice(0, 2000);
+  if (typeof valor === 'number' || typeof valor === 'boolean') return valor;
+  if (Array.isArray(valor)) return valor.slice(0, 50).map(v => datosLimpios(v, profundidad + 1));
+  if (typeof valor === 'object') {
+    const salida = {};
+    for (const clave of Object.keys(valor).slice(0, 50)) {
+      // El honeypot y cualquier cosa que huela a contrasena no se guardan.
+      if (/^(hp|password|contrasena|clave|captchaToken)$/i.test(clave)) continue;
+      salida[String(clave).slice(0, 100)] = datosLimpios(valor[clave], profundidad + 1);
+    }
+    return salida;
+  }
+  return null;
+}
+
+// El aviso de que algo cayo en la bandeja. Copia el patron de
+// avisarGeoNamesCaido: una transaccion contra "avisos" decide si toca avisar,
+// asi dos instancias en paralelo no mandan dos mails.
+async function avisarDeCustodia({ id, endpoint, motivo, contacto, ventanaMs }) {
+  try {
+    // ventanaMs 0 = avisar siempre. Es lo que corresponde cuando hay plata
+    // cobrada: dos pagos sin entregar son dos problemas distintos, y juntarlos
+    // en un solo aviso cada seis horas esconde el segundo.
+    if (ventanaMs > 0) {
+      const ref = _db.collection('avisos').doc(`custodia-${motivo}`);
+      const puedeAvisar = await _db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const ahora = Date.now();
+        if (snap.exists && (ahora - (snap.data().ultimo || 0)) < ventanaMs) return false;
+        tx.set(ref, { ultimo: ahora, mensaje: `${endpoint}: ${motivo}`, codigo: null });
+        return true;
+      });
+      if (!puedeAvisar) return;
+    }
+
+    await mails.encolarMail(_db, {
+      para: AVISOS_INSCRIPCION,
+      asunto: `Quedó un dato sin procesar (${endpoint})`,
+      motivo: `custodia:${motivo}`,
+      // El id del documento como id del mail: si esto se reintenta, reescribe
+      // el mismo documento en vez de encolar un segundo aviso.
+      id: `custodia-${id}`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>Alguien dejó sus datos en <strong>${escapeHtml(endpoint)}</strong> y el
+        pedido no se pudo completar, así que quedaron guardados en vez de perderse.</p>
+        <p>Motivo: <strong>${escapeHtml(motivo)}</strong><br>
+        Contacto: ${escapeHtml(contacto?.nombre || 'sin nombre')} &lt;${escapeHtml(contacto?.email || 'sin mail')}&gt;</p>
+        <p>Están en el panel de la escuela, en la pestaña <strong>Pendientes</strong>,
+        con todo lo que escribió para cargarlo a mano.</p>
+      </div>`,
+    });
+  } catch (error) {
+    // Avisar es lo secundario: el dato ya esta guardado, que es lo que importa.
+    functions.logger.error('No se pudo avisar de un dato en custodia:', error.message);
+  }
+}
+
+// gravedad: 'grave'  -> mail al toque (plata cobrada, o configuracion nuestra
+//                       rota, que afecta a todo el mundo hasta que se arregle)
+//           'normal' -> entra en el resumen diario de revisarPendientes
+//
+// avisarSiempre: salta la ventana anti-repeticion. Para la plata.
+async function custodiar({ endpoint, motivo, gravedad, datos, contacto, req, avisarSiempre }) {
+  try {
+    // El tope por IP. Va primero: si se paso, no se escribe nada.
+    if (req) {
+      const alcanza = await checkRateLimit('custodia', req, TOPE_CUSTODIA_IP_DIA, {
+        clave: `custodia_${ipHasheada(req) || 'sin-ip'}`,
+        ventanaMs: VENTANA_CUSTODIA_MS,
+      });
+      if (!alcanza) {
+        functions.logger.warn('Tope de custodia por conexión alcanzado: no se guarda.', { endpoint, motivo });
+        return null;
+      }
+    }
+
+    const esGrave = gravedad === 'grave';
+    const ahora = Date.now();
+    const limpio = datosLimpios(datos);
+    const email = sanitizeTexto(contacto?.email, 200).toLowerCase();
+    const nombre = sanitizeTexto(contacto?.nombre, 200);
+
+    const ref = await _db.collection('datos_sin_procesar').add({
+      endpoint: String(endpoint || 'desconocido'),
+      motivo: String(motivo || 'sin-motivo'),
+      gravedad: esGrave ? 'grave' : 'normal',
+      datos: limpio,
+      // Repetidos afuera para poder escribirle sin abrir el payload, y para
+      // poder buscarlos desde el panel.
+      contacto: { email, nombre },
+      estado: 'pendiente',
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+      // Lo borra sola la politica de TTL de Firestore a los 90 dias. Aca hay
+      // DNI, direcciones y datos de nacimiento: no pueden quedar para siempre.
+      expira: admin.firestore.Timestamp.fromMillis(ahora + CUSTODIA_DIAS * 24 * 60 * 60 * 1000),
+      ipHash: req ? ipHasheada(req) : '',
+      uaClase: req ? claseDeUa(req) : '',
+    });
+
+    functions.logger.info('dato_custodiado', {
+      evento: 'dato_custodiado', endpoint, motivo, gravedad: esGrave ? 'grave' : 'normal', id: ref.id,
+    });
+
+    if (esGrave) {
+      await avisarDeCustodia({
+        id: ref.id, endpoint, motivo, contacto: { email, nombre },
+        ventanaMs: avisarSiempre ? 0 : AVISO_CUSTODIA_CADA_MS,
+      });
+    }
+    return ref.id;
+  } catch (error) {
+    // Lo ultimo que puede pasar es que la red de seguridad rompa el flujo.
+    functions.logger.error('No se pudo custodiar el dato:', error.message, { endpoint, motivo });
+    return null;
+  }
+}
+
 // Los cursos de un usuario como texto, que es lo que entiende Brevo (no
 // tiene atributos de tipo lista).
 function cursosComoTexto(cursos) {
@@ -1595,8 +1749,29 @@ exports.guardarPedido = functions.runWith({ memory: '512MB' }).https.onRequest(a
       estado = 'pagado';
       monto = payment.transaction_amount ?? 35000;
     } catch (error) {
+      // Ojo con lo que es esto: una excepcion de la API de Mercado Pago, o
+      // sea un fallo transitorio NUESTRO, del lado de alguien que ya pago el
+      // libro. Antes se contestaba "No pudimos verificar ese pago" y la
+      // direccion de envio se perdia: la persona pagaba y el pedido no
+      // existia en ningun lado.
       functions.logger.error('guardarPedido: error verificando pago MP', { pagoId, message: error.message });
-      return res.status(400).json({ error: 'No pudimos verificar ese pago.' });
+      await custodiar({
+        endpoint: 'guardarPedido',
+        motivo: 'mp_no_responde_con_pago_hecho',
+        gravedad: 'grave',
+        avisarSiempre: true,
+        datos: { nombre, esquina, email, metodo, pagoId, origen, error: error.message },
+        contacto: { email, nombre },
+        req,
+      });
+      // La respuesta deja de ser un error: el pedido quedo anotado y se
+      // confirma a mano. Decirle "no pudimos verificar ese pago" a alguien que
+      // acaba de pagar es alarmante, y ademas no es cierto.
+      return res.status(200).json({
+        ok: true,
+        estado: 'pendiente',
+        aviso: 'Tu pedido quedó anotado. Estamos confirmando el pago y te escribimos por mail.',
+      });
     }
   }
 
@@ -1655,8 +1830,23 @@ exports.guardarPedido = functions.runWith({ memory: '512MB' }).https.onRequest(a
     return res.status(200).json({ ok: true });
 
   } catch (error) {
+    // Fallo la escritura del pedido o el mail. La direccion de envio no se
+    // puede perder: a esta altura el pago ya salio.
     functions.logger.error('Error en guardarPedido:', error.message);
-    return res.status(500).json({ error: 'No se pudo guardar el pedido. Escribinos a info@sebabru.com si el cobro ya salió.' });
+    await custodiar({
+      endpoint: 'guardarPedido',
+      motivo: 'no_se_pudo_guardar_el_pedido',
+      gravedad: 'grave',
+      avisarSiempre: true,
+      datos: { pedidoId, nombre, esquina, email, metodo, pagoId, origen, estado, monto, error: error.message },
+      contacto: { email, nombre },
+      req,
+    });
+    return res.status(200).json({
+      ok: true,
+      estado: 'pendiente',
+      aviso: 'Tu pedido quedó anotado. Te escribimos por mail para confirmarlo.',
+    });
   }
 });
 
@@ -1744,8 +1934,36 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
 
     const ordenSnap = await _db.collection('ordenes_paypal').doc(orderId).get();
     if (!ordenSnap.exists) {
+      // El pago YA esta capturado y el candado YA esta puesto. Si saliamos por
+      // aca sin mas, la persona veia "gracias", no recibia el acceso, y al
+      // reintentar el candado la mandaba de nuevo a "gracias": un pago cobrado
+      // y entregado a nadie, del que solo quedaba esta linea de log que no lee
+      // ningun sistema.
       functions.logger.error('Orden PayPal no encontrada en Firestore', { orderId });
-      return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
+      await custodiar({
+        endpoint: 'exitoPaypal',
+        motivo: 'pago_cobrado_sin_orden',
+        gravedad: 'grave',
+        avisarSiempre: true,   // hay plata de por medio: nunca se agrupa
+        datos: {
+          orderId,
+          capturaId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || null,
+          monto: capture.purchase_units?.[0]?.payments?.captures?.[0]?.amount || null,
+        },
+        contacto: { email: capture.payer?.email_address || '', nombre: [
+          capture.payer?.name?.given_name, capture.payer?.name?.surname,
+        ].filter(Boolean).join(' ') },
+        req,
+      });
+      // Y se suelta el candado: sin esto el error es permanente y el reintento
+      // de la persona se pierde en silencio. Soltarlo es seguro porque todavia
+      // no se registro la compra ni se entrego nada.
+      try {
+        await pagoRef.delete();
+      } catch (e) {
+        functions.logger.error('No se pudo soltar el candado del pago PayPal', { orderId, error: e.message });
+      }
+      return res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html?pendiente=1`);
     }
     const { cursoId, cursoNombre, userEmail, codigoDescuento, regalo, origen: origenCompra } = ordenSnap.data();
     const payerEmail = capture.payer?.email_address || null;
@@ -1852,8 +2070,99 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     functions.logger.error('Error en exitoPaypal:', { message: error.message });
-    res.redirect(`${process.env.SITE_URL}/escuela/abierta/`);
+
+    // Si el candado esta puesto, la captura ya salio: el pago se cobro y lo
+    // que fallo es algo de aca para adelante (registrar la compra, crear la
+    // invitacion, mandar el mail). Eso no puede terminar en un redirect mudo.
+    //
+    // Si NO esta puesto, el error fue antes de cobrar y no hay plata de por
+    // medio: ahi corresponde el redirect de siempre, porque mandarla a
+    // "gracias" seria decirle que pago cuando no pago.
+    let cobrado = false;
+    try {
+      const candado = _db.collection('pagos_procesados').doc(`paypal_${orderId}`);
+      cobrado = (await candado.get()).exists;
+      if (cobrado) {
+        await custodiar({
+          endpoint: 'exitoPaypal',
+          motivo: 'pago_cobrado_sin_entregar',
+          gravedad: 'grave',
+          avisarSiempre: true,
+          datos: { orderId, error: error.message },
+          contacto: {},
+          req,
+        });
+        // Mismo criterio que arriba: sin soltarlo, el reintento de la persona
+        // sale por la rama ALREADY_EXISTS y se pierde en silencio.
+        await candado.delete();
+      }
+    } catch (e) {
+      functions.logger.error('No se pudo custodiar el fallo de exitoPaypal', { orderId, error: e.message });
+    }
+
+    res.redirect(cobrado
+      ? `${process.env.SITE_URL}/escuela/abierta/gracias.html?pendiente=1`
+      : `${process.env.SITE_URL}/escuela/abierta/`);
   }
+});
+
+// -------------------------------------------------------
+// pendientes: lo que quedo sin procesar, para el panel.
+//
+// Va por callable con sesion de admin y no por lectura directa de Firestore:
+// la coleccion esta cerrada en las reglas a proposito, porque adentro hay
+// DNI, direcciones de envio y datos de nacimiento de gente que ni siquiera
+// llego a completar su tramite.
+// -------------------------------------------------------
+const ADMINS_PANEL = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+
+function exigirAdmin(context) {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
+  }
+  const email = (context.auth.token.email || '').toLowerCase();
+  if (!ADMINS_PANEL.includes(email)) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo admins.');
+  }
+  return email;
+}
+
+exports.pendientes = functions.https.onCall(async (data, context) => {
+  exigirAdmin(context);
+  ensureInit();
+
+  const accion = String(data?.accion || 'listar');
+
+  if (accion === 'resolver') {
+    const id = String(data?.id || '').trim();
+    if (!id) throw new functions.https.HttpsError('invalid-argument', 'Falta el id.');
+    await _db.collection('datos_sin_procesar').doc(id).set({
+      estado: 'resuelto',
+      resuelto: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  }
+
+  const snap = await _db.collection('datos_sin_procesar')
+    .where('estado', '==', 'pendiente')
+    .limit(200)
+    .get();
+
+  // El orden se hace aca y no con orderBy para no pedir un indice compuesto.
+  const filas = snap.docs.map(d => {
+    const v = d.data();
+    return {
+      id: d.id,
+      endpoint: v.endpoint || '',
+      motivo: v.motivo || '',
+      gravedad: v.gravedad || 'normal',
+      contacto: v.contacto || {},
+      datos: v.datos || null,
+      creado: v.creado ? v.creado.toMillis() : 0,
+    };
+  }).sort((a, b) => b.creado - a.creado);
+
+  return { ok: true, filas };
 });
 
 // -------------------------------------------------------
@@ -2396,8 +2705,27 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   // La decision se toma aca, como siempre. Lo que se posterga es solo
   // anotar el envio en el contador: eso viaja abajo, junto con la escritura
   // del pedido, en vez de ser un viaje propio a Firestore. Ver mirarRitmo.
+  // Lo que la persona escribio, listo para custodiar en cualquier rechazo.
+  // Este es el formulario mas largo del sitio (diez campos, con fecha, hora y
+  // lugar de nacimiento, y se llena en el celular): perderlo es perder cinco
+  // minutos de trabajo ajeno y, casi siempre, a la persona.
+  const loQueEscribio = () => ({
+    formId: sanitizeTexto(req.body?.formId, 100),
+    campos: req.body?.campos,
+    lugar: req.body?.lugar,
+    origen: sanitizeOrigen(req.body?.origen),
+  });
+  const quienEs = () => ({
+    email: sanitizeTexto(req.body?.campos?.email, 200).toLowerCase(),
+    nombre: sanitizeTexto(req.body?.campos?.nombre, 200),
+  });
+
   const ritmo = await mirarRitmo('registrarInscripcion', req, 10);
   if (!ritmo.ok) {
+    await custodiar({
+      endpoint: 'registrarInscripcion', motivo: 'rate_limit', gravedad: 'normal',
+      datos: loQueEscribio(), contacto: quienEs(), req,
+    });
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
@@ -2415,8 +2743,19 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   // formulario, que es lo que corresponde para una inscripcion.
   const intentos = req._intentos || 1;
   if (intentos > 4) {
-    const captchaOk = await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
-    if (!captchaOk) {
+    const veredictoCaptcha = await evaluarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
+    if (veredictoCaptcha.estado !== 'ok') {
+      // Un token forjado es un bot y no se custodia: es lo que mantiene la
+      // bandeja legible. Lo demas (sin token, secreto mal desplegado) puede
+      // ser perfectamente una persona con un bloqueador.
+      if (veredictoCaptcha.estado !== 'rechazado') {
+        await custodiar({
+          endpoint: 'registrarInscripcion',
+          motivo: `captcha_${veredictoCaptcha.estado}`,
+          gravedad: veredictoCaptcha.estado === 'sin_config' ? 'grave' : 'normal',
+          datos: loQueEscribio(), contacto: quienEs(), req,
+        });
+      }
       return res.status(400).json({ error: 'captcha_requerido' });
     }
   }
@@ -2424,6 +2763,12 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   const formId = sanitizeTexto(req.body?.formId, 100);
   const config = FORMULARIOS_INSCRIPCION[formId];
   if (!config) {
+    // Un formId que no existe es casi siempre un deploy a medias nuestro, no
+    // alguien jugando: del otro lado hay un formulario lleno.
+    await custodiar({
+      endpoint: 'registrarInscripcion', motivo: 'formulario_no_reconocido', gravedad: 'grave',
+      datos: loQueEscribio(), contacto: quienEs(), req,
+    });
     return res.status(400).json({ error: 'Formulario no reconocido.' });
   }
 
@@ -2542,7 +2887,29 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
     return res.status(200).json({ ok: true, agenda: urlAgenda });
 
   } catch (error) {
+    // Aca caen las dos variables de entorno que faltan (la planilla del
+    // formulario) y cualquier fallo de la escritura. Las tres son nuestras, y
+    // hasta ahora se llevaban puesto el formulario entero: diez campos que la
+    // persona ya peleo, incluido el lugar de nacimiento.
     functions.logger.error('Error en registrarInscripcion:', error.message);
+    const guardado = await custodiar({
+      endpoint: 'registrarInscripcion',
+      motivo: 'no_se_pudo_registrar',
+      gravedad: 'grave',
+      datos: { ...loQueEscribio(), valores, error: error.message },
+      contacto: quienEs(),
+      req,
+    });
+    // Si se pudo custodiar, la inscripcion NO se perdio: se completa a mano.
+    // Decirle "probá de nuevo" seria pedirle que escriba todo otra vez para
+    // chocarse con el mismo error.
+    if (guardado) {
+      return res.status(200).json({
+        ok: true,
+        estado: 'pendiente',
+        aviso: 'Recibimos tus datos. Hubo un problema de nuestro lado al procesarlos, así que lo terminamos a mano y te escribimos por mail.',
+      });
+    }
     return res.status(500).json({ error: 'No se pudo registrar la inscripción. Probá de nuevo en unos minutos.' });
   }
 });
@@ -3095,12 +3462,26 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     resultado, captcha: veredicto, req, origen, dominio: dominioLog, ...(extra || {}),
   });
 
+  // Las ramas que cortan antes de anotarPedido() no dejan el mail en ningun
+  // lado: la metrica cuenta el rechazo pero no guarda a quien. Para un
+  // formulario de un solo campo eso es, justamente, perder la direccion.
+  const guardarLoQueDejo = (motivo, gravedad) => custodiar({
+    endpoint: 'suscribir', motivo, gravedad: gravedad || 'normal',
+    datos: {
+      email: emailCrudo, nombre: sanitizeTexto(req.body?.nombre, 100),
+      origen, utm: sanitizeOrigen(req.body?.utm),
+    },
+    contacto: { email: emailCrudo, nombre: sanitizeTexto(req.body?.nombre, 100) },
+    req,
+  });
+
   // Eran 5 cada 10 minutos, y eso daba falsos positivos reales: en un wifi
   // compartido, una oficina o una red movil con NAT, varias personas salen
   // por la misma IP y la sexta se comia un error. Subirlo no le cambia nada
   // a un bot, que rota IPs igual; el gasto lo acota el tope diario.
   if (!(await checkRateLimit('suscribir', req, 15))) {
     await decidir('rechazado_rate_ip');
+    await guardarLoQueDejo('rate_limit');
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
@@ -3144,7 +3525,10 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   }
 
   if (req.body?.consentimiento !== true) {
+    // El widget manda el consentimiento siempre, asi que si falta es un
+    // problema nuestro y del otro lado hay una direccion valida.
     await decidir('rechazado_consentimiento');
+    await guardarLoQueDejo('sin_consentimiento', 'grave');
     return res.status(400).json({ error: 'consentimiento_requerido' });
   }
 
@@ -3154,7 +3538,10 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   // Va despues del captcha para que nadie pueda usar el endpoint como un
   // escaner de dominios.
   if (!(await dominioRecibeCorreo(dominio))) {
+    // Casi siempre es un typo que la tabla de DOMINIOS_TIPEADOS no cubre.
+    // Guardarlo deja a Seba la opcion de adivinar la direccion correcta.
     await decidir('rechazado_mx');
+    await guardarLoQueDejo('dominio_sin_correo');
     return res.status(400).json({ error: 'dominio_sin_correo', dominio });
   }
 
@@ -3250,6 +3637,7 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     if (!process.env.BREVO_DOI_TEMPLATE_ID) {
       functions.logger.error('BREVO_DOI_TEMPLATE_ID no configurado: el carril con confirmación no puede funcionar y se rechaza el alta.');
       await decidir('rechazado_sin_doi');
+      await guardarLoQueDejo('falta_plantilla_doi', 'grave');
       return res.status(400).json({ error: 'captcha_requerido' });
     }
 
@@ -3260,7 +3648,10 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     // contenido propio (ver el pendiente en CLAUDE.md), el regalo sigue
     // pidiendo captcha resuelto.
     if (origen === 'ebook') {
+      // Se rechaza, pero el mail queda guardado: a esta persona se le puede
+      // mandar el libro a mano, que es exactamente lo que vino a buscar.
       await decidir('rechazado_captcha_ebook');
+      await guardarLoQueDejo('ebook_sin_captcha');
       return res.status(400).json({ error: 'captcha_requerido' });
     }
 
@@ -4170,6 +4561,10 @@ exports.baja = functions.https.onRequest(async (req, res) => {
   const esperado = tokenDeBaja(email);
   if (!esperado) {
     functions.logger.error('Falta BAJA_SECRET: no se puede procesar una baja.');
+    await custodiar({
+      endpoint: 'baja', motivo: 'falta_baja_secret', gravedad: 'grave',
+      datos: { email }, contacto: { email }, req,
+    });
     return res.status(503).json({ error: 'no_configurado' });
   }
 
@@ -4180,7 +4575,15 @@ exports.baja = functions.https.onRequest(async (req, res) => {
     coincide = false; // longitudes distintas: timingSafeEqual tira
   }
   if (!coincide) {
+    // Un token que no coincide casi siempre es un enlace que el cliente de
+    // correo cortó en dos renglones, no alguien atacando. Y dejar a alguien
+    // en la lista contra su voluntad es el unico caso de toda esta tanda con
+    // consecuencia legal, asi que el pedido se guarda igual para darla a mano.
     functions.logger.warn('Baja con token invalido.', { dominio: email.split('@')[1] });
+    await custodiar({
+      endpoint: 'baja', motivo: 'token_invalido', gravedad: 'normal',
+      datos: { email }, contacto: { email }, req,
+    });
     return res.status(400).json({ error: 'token_invalido' });
   }
 
@@ -4218,7 +4621,13 @@ exports.baja = functions.https.onRequest(async (req, res) => {
     return res.status(200).json({ ok: true });
 
   } catch (error) {
+    // No hay cola de bajas, al reves que las altas: si Brevo no contesta, la
+    // persona queda en la lista. Custodiarlo es lo que permite reintentarlo.
     functions.logger.error('Error al dar de baja:', error.message);
+    await custodiar({
+      endpoint: 'baja', motivo: 'no_se_pudo_dar_de_baja', gravedad: 'grave',
+      datos: { email, error: error.message }, contacto: { email }, req,
+    });
     return res.status(500).json({ error: 'fallo' });
   }
 });
@@ -4936,21 +5345,48 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  const loQuePidio = () => ({
+    nombre: sanitizeTexto(req.body?.nombre, 200),
+    email: sanitizeTexto(req.body?.email, 200).toLowerCase(),
+    telefono: sanitizeTexto(req.body?.telefono, 50),
+    modalidad: sanitizeTexto(req.body?.modalidad, 20),
+  });
+  const aQuien = () => ({ email: loQuePidio().email, nombre: loQuePidio().nombre });
+
   if (!(await checkRateLimit('iniciarAgenda', req, 8))) {
+    await custodiar({
+      endpoint: 'iniciarAgenda', motivo: 'rate_limit', gravedad: 'normal',
+      datos: loQuePidio(), contacto: aQuien(), req,
+    });
     return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
   }
 
   if (!process.env.AGENDA_SECRET) {
     functions.logger.error('Falta AGENDA_SECRET: la agenda no puede emitir tokens.');
+    await custodiar({
+      endpoint: 'iniciarAgenda', motivo: 'falta_agenda_secret', gravedad: 'grave',
+      datos: loQuePidio(), contacto: aQuien(), req,
+    });
     return res.status(503).json({ error: 'no_configurado' });
   }
 
-  // La proyeccion estricta de evaluarTurnstile: pasa solo 'ok'. Aca se
-  // mantiene el rechazo tambien cuando no hay token o el secreto esta mal,
-  // al contrario de suscribir: un turno falso en la agenda de Seba es caro
-  // de desarmar, y no hay un equivalente al mail de confirmacion. Lo unico
-  // que cambio es que una caida de Cloudflare ya no cierra la agenda.
-  if (!(await verificarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req))) {
+  // El rechazo se mantiene tambien cuando no hay token o el secreto esta mal,
+  // al contrario de suscribir: un turno falso en la agenda de Seba es caro de
+  // desarmar, y no hay un equivalente al mail de confirmacion. Lo unico que
+  // cambio es que una caida de Cloudflare ya no cierra la agenda.
+  //
+  // Pero aunque se rechace, lo que escribio se guarda — salvo que sea un
+  // token forjado, que es un bot y no se custodia.
+  const veredictoAgenda = await evaluarTurnstile(sanitizeTexto(req.body?.captchaToken, 2000), req);
+  if (veredictoAgenda.estado !== 'ok') {
+    if (veredictoAgenda.estado !== 'rechazado') {
+      await custodiar({
+        endpoint: 'iniciarAgenda',
+        motivo: `captcha_${veredictoAgenda.estado}`,
+        gravedad: veredictoAgenda.estado === 'sin_config' ? 'grave' : 'normal',
+        datos: loQuePidio(), contacto: aQuien(), req,
+      });
+    }
     return res.status(400).json({ error: 'captcha_requerido' });
   }
 
@@ -4976,6 +5412,11 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
     return res.status(200).json({ ok: true, p: ref.id, t: tokenDeAgenda(ref.id), nombre });
   } catch (error) {
     functions.logger.error('Error en iniciarAgenda:', error.message);
+    await custodiar({
+      endpoint: 'iniciarAgenda', motivo: 'no_se_pudo_crear_el_pedido', gravedad: 'grave',
+      datos: { nombre, email, telefono, modalidad, error: error.message },
+      contacto: { email, nombre }, req,
+    });
     return res.status(500).json({ error: 'fallo' });
   }
 });
@@ -5832,6 +6273,121 @@ exports.extenderSeries = onSchedule({
   functions.logger.info('Series extendidas', {
     series: snap.size, encuentrosCreados: creados, conConflicto: pendientes.length,
   });
+});
+
+// -------------------------------------------------------
+// revisarPendientes: el barrido diario de todo lo que quedo a medias.
+//
+// Hasta ahora nada miraba las colas. envios_carta y envios_titulo corren SIN
+// retry, asi que un fallo dejaba el documento con enviado:null y ahi se
+// quedaba para siempre; y los 82 logger.error de este archivo no le llegan a
+// nadie, porque no hay ninguna alerta configurada sobre los logs.
+//
+// Un solo mail con todo, como avisarConflictosDeSeries. Si no hay nada, no
+// manda nada: el silencio es la senal de que esta todo bien.
+// -------------------------------------------------------
+const UNA_HORA_MS = 60 * 60 * 1000;
+
+async function contarPendientes() {
+  const hace1h = new Date(Date.now() - UNA_HORA_MS).toISOString();
+  const bloques = [];
+
+  // Las consultas son a proposito de un solo where. Firestore pide un indice
+  // compuesto para mezclar una igualdad con una desigualdad sobre campos
+  // distintos, y un indice que falta tira en tiempo de ejecucion: el filtro
+  // por antiguedad se hace aca, sobre pocos documentos.
+  const mirar = async (titulo, consulta, sirve, comoFila) => {
+    try {
+      const snap = await consulta;
+      const filas = snap.docs.filter(sirve).map(comoFila);
+      if (filas.length) bloques.push({ titulo, filas });
+    } catch (error) {
+      // Una consulta que falla no se lleva al resto del informe.
+      functions.logger.error(`No se pudo revisar ${titulo}:`, error.message);
+      bloques.push({ titulo, filas: [`(no se pudo revisar: ${error.message})`] });
+    }
+  };
+
+  const siempre = () => true;
+
+  await mirar('Datos sin procesar',
+    _db.collection('datos_sin_procesar').where('estado', '==', 'pendiente').limit(50).get(),
+    siempre,
+    d => `${d.data().endpoint} — ${d.data().motivo} — ${d.data().contacto?.email || 'sin mail'}`);
+
+  await mirar('Mails sin salir (más de una hora)',
+    _db.collection('mails_salientes').where('enviado', '==', null).limit(100).get(),
+    // "creado" se guarda como ISO (ver mails.js), asi que se comparan textos.
+    d => String(d.data().creado || '') < hace1h,
+    d => `${d.data().motivo} → ${d.data().para}`);
+
+  await mirar('Cartas de inscripción sin enviar',
+    _db.collection('envios_carta').where('enviado', '==', null).limit(30).get(),
+    siempre,
+    d => `${d.id} — ${d.data().email || 'sin mail'}`);
+
+  await mirar('Títulos sin enviar',
+    _db.collection('envios_titulo').where('enviado', '==', null).limit(30).get(),
+    siempre,
+    d => `${d.id}`);
+
+  // "fallo" es una marca de tiempo, no un booleano: se filtra por presencia.
+  // La coleccion se vacia sola en el camino bueno, asi que es chica.
+  await mirar('Contactos de Brevo que fallaron',
+    _db.collection('brevo_contactos').limit(100).get(),
+    d => Boolean(d.data().fallo),
+    d => `${d.data().email || d.id} — ${d.data().error || 'sin detalle'}`);
+
+  return bloques;
+}
+
+exports.revisarPendientes = onSchedule({
+  schedule: '40 6 * * *',
+  timeZone: 'America/Argentina/Cordoba',
+  memory: '512MiB',
+  timeoutSeconds: 540,
+}, async () => {
+  ensureInit();
+
+  let bloques = [];
+  try {
+    bloques = await contarPendientes();
+  } catch (error) {
+    functions.logger.error('No se pudo armar el resumen de pendientes:', error.message);
+    return;
+  }
+
+  const total = bloques.reduce((suma, b) => suma + b.filas.length, 0);
+  if (!total) {
+    functions.logger.info('Revisión diaria: nada pendiente.');
+    return;
+  }
+
+  const secciones = bloques.map(b => `
+    <h3 style="margin:18px 0 6px;font-size:1em;">${escapeHtml(b.titulo)} (${b.filas.length})</h3>
+    <ul style="margin:0;padding-left:18px;">
+      ${b.filas.map(f => `<li>${escapeHtml(String(f))}</li>`).join('')}
+    </ul>`).join('');
+
+  try {
+    await mails.encolarMail(_db, {
+      para: AVISOS_INSCRIPCION,
+      asunto: `Quedaron ${total} cosas pendientes`,
+      motivo: 'revision-diaria',
+      // Un mail por dia: si el barrido se repite, reescribe el mismo documento.
+      id: `revision-${diaDeHoy()}`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        <p>La revisión de hoy encontró <strong>${total}</strong> cosas que quedaron a medias.</p>
+        ${secciones}
+        <p style="margin-top:20px;">Los datos sin procesar están en el panel de la escuela,
+        en la pestaña <strong>Pendientes</strong>, con todo lo que escribió cada persona.</p>
+      </div>`,
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo mandar el resumen de pendientes:', error.message);
+  }
+
+  functions.logger.info('Revisión diaria', { total, bloques: bloques.length });
 });
 
 // -------------------------------------------------------
@@ -7142,6 +7698,10 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
   // Sin prefijo no hay numero, y sin numero el titulo no vale nada.
   if (!formacion.prefijoNumero) {
     functions.logger.error('Formacion sin prefijo de numero', { curso });
+    await custodiar({
+      endpoint: 'emitirTitulo', motivo: 'formacion_sin_prefijo', gravedad: 'grave',
+      datos: { curso, nombre, dni, pronombre }, contacto: { email, nombre }, req,
+    });
     return res.status(503).json({ error: 'Todavía no podemos emitir este título. Escribinos a info@sebabru.com.' });
   }
 
@@ -7170,7 +7730,19 @@ exports.emitirTitulo = functions.https.onRequest(async (req, res) => {
       && (formacion.cursosHabilitantes || [curso]).some((c) => cursosDeLaCuenta.includes(c));
 
     if (!porPadron && !porAula) {
+      // Es el caso de soporte mas frecuente ("cursé y no figuro"), y hasta
+      // ahora no dejaba nada: Seba se enteraba por un mail de la persona y
+      // tenia que pedirle los datos de nuevo para cargarla al padron. Ahora
+      // el pedido queda con todo lo necesario para decidir y habilitarla.
+      //
+      // Va como 'normal' y no 'grave': la mayoria son legitimos pero no
+      // urgentes, y aparecen en el resumen diario.
       functions.logger.info('Pedido de titulo sin derecho', { email, curso });
+      await custodiar({
+        endpoint: 'emitirTitulo', motivo: 'sin_derecho', gravedad: 'normal',
+        datos: { curso, nombre, dni, pronombre, cursosDeLaCuenta },
+        contacto: { email, nombre }, req,
+      });
       return res.status(403).json({ error: SIN_DERECHO });
     }
 

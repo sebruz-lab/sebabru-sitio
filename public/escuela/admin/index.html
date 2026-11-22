@@ -272,6 +272,9 @@
         <button class="tab-btn" data-tab="tucarta">
             <i class="fa-solid fa-circle-half-stroke"></i> Tu carta
         </button>
+        <button class="tab-btn" data-tab="pendientes">
+            <i class="fa-solid fa-inbox"></i> Pendientes
+        </button>
     </div>
 
     <!-- TAB: BUSCAR -->
@@ -533,6 +536,23 @@
                 <button class="btn btn-secondary" id="tc-copiar-novedades" disabled><i class="fa-solid fa-copy"></i> Copiar mails</button>
             </div>
             <div id="tc-novedades"></div>
+        </div>
+    </div>
+
+    <!-- TAB: PENDIENTES -->
+    <div id="tab-pendientes" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Datos que no se pudieron procesar</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Lo que alguien escribió y el sistema no pudo terminar: se guarda acá en vez de perderse,
+                para cargarlo a mano. Lo marcado en rojo es grave (plata cobrada, o configuración rota) y
+                además te llegó por mail. Se borran solos a los 90 días.
+            </p>
+            <div class="input-row">
+                <button class="btn btn-primary" id="pe-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
+            </div>
+            <div id="pe-lista" style="margin-top:14px;"></div>
+            <div id="pe-msg"></div>
         </div>
     </div>
 
@@ -1193,6 +1213,64 @@
                 </div>`;
         } catch (e) {
             contenedor.innerHTML = `<div class="alert alert-error">Error: ${e.message}</div>`;
+        }
+    });
+
+    // ---- Pendientes: lo que no se pudo procesar ----
+    //
+    // Sale por callable y no por lectura directa de Firestore: la coleccion
+    // esta cerrada en las reglas porque adentro hay DNI y direcciones.
+    async function cargarPendientes() {
+        const lista = document.getElementById('pe-lista');
+        lista.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+            const fns = getFunctions(getApp(), 'us-central1');
+            const r = await httpsCallable(fns, 'pendientes')({ accion: 'listar' });
+            const filas = r.data.filas || [];
+            if (!filas.length) {
+                lista.innerHTML = '<div class="empty-state">No hay nada pendiente. Todo lo que llegó se procesó bien.</div>';
+                return;
+            }
+            lista.innerHTML = filas.map(f => {
+                const grave = f.gravedad === 'grave';
+                const cuando = f.creado ? new Date(f.creado).toLocaleString('es-AR') : '';
+                return `
+                <div style="border:1px solid ${grave ? 'var(--primary)' : 'var(--border)'};border-radius:8px;padding:12px;margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <strong>${escapeHtml(f.endpoint)} — ${escapeHtml(f.motivo)}</strong>
+                        <small style="opacity:.6;">${escapeHtml(cuando)}</small>
+                    </div>
+                    <div style="margin:6px 0;font-size:.9rem;">
+                        ${escapeHtml(f.contacto?.nombre || 'sin nombre')}
+                        &lt;${escapeHtml(f.contacto?.email || 'sin mail')}&gt;
+                    </div>
+                    <details><summary style="cursor:pointer;opacity:.7;font-size:.85rem;">Ver lo que escribió</summary>
+                        <pre style="white-space:pre-wrap;word-break:break-word;font-size:.8rem;opacity:.9;">${escapeHtml(JSON.stringify(f.datos, null, 2))}</pre>
+                    </details>
+                    <button class="btn btn-secondary btn-sm" data-resolver="${escapeHtml(f.id)}" style="margin-top:8px;">
+                        <i class="fa-solid fa-check"></i> Ya lo cargué
+                    </button>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            lista.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    document.getElementById('pe-cargar').addEventListener('click', cargarPendientes);
+
+    document.getElementById('pe-lista').addEventListener('click', async (ev) => {
+        const boton = ev.target.closest('[data-resolver]');
+        if (!boton) return;
+        boton.disabled = true;
+        try {
+            const fns = getFunctions(getApp(), 'us-central1');
+            await httpsCallable(fns, 'pendientes')({ accion: 'resolver', id: boton.dataset.resolver });
+            await cargarPendientes();
+        } catch (e) {
+            boton.disabled = false;
+            document.getElementById('pe-msg').innerHTML =
+                `<div class="alert alert-error">No se pudo marcar: ${escapeHtml(e.message)}</div>`;
         }
     });
 

@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <script src="/origen.js?v=1"></script>
+<!-- Sin defer: lo usa el script en linea de mas abajo. -->
+<script src="/borrador.js?v=1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datos de envío | Luna Negra</title>
@@ -257,6 +259,15 @@
             document.getElementById('metodo-badge').style.display = 'none';
         }
 
+        // El borrador. Acá se llega DESPUÉS de pagar, así que perder la
+        // dirección de envío por cerrar la pestaña deja un pago sin pedido.
+        // El contenedor no es un <form>, pero alcanza con el div que tiene
+        // los campos adentro.
+        const borrador = (window.sbBorrador && document.getElementById('inp-nombre'))
+            ? window.sbBorrador.cuidar(
+                document.getElementById('inp-nombre').closest('.screen'), 'pedido-libro')
+            : null;
+
         document.getElementById('btn-enviar').addEventListener('click', async () => {
             const btn = document.getElementById('btn-enviar');
             const errorMsg = document.getElementById('error-msg');
@@ -290,10 +301,21 @@
                         origen: window.sbOrigen ? window.sbOrigen() : null
                     })
                 });
-                const data = await res.json();
+                // Sin el .catch, un 502 del proxy (que devuelve HTML) hacia
+                // que esto tirara un error de parseo de JSON.
+                const data = await res.json().catch(() => ({}));
                 if (data.ok) {
+                    if (borrador) borrador.listo();
                     document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
                     document.getElementById('screen-exito').classList.add('visible');
+                    // Si el pedido quedo para terminar a mano, se dice: la
+                    // persona ya pago y merece saber que falta un paso.
+                    if (data.aviso) {
+                        const nota = document.createElement('p');
+                        nota.textContent = data.aviso;
+                        nota.style.cssText = 'margin-top:16px;opacity:0.85;';
+                        document.getElementById('screen-exito').appendChild(nota);
+                    }
                 } else {
                     throw new Error(data.error || 'Error desconocido');
                 }

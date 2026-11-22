@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <script src="/origen.js?v=1"></script>
+<!-- Sin defer a proposito: lo usa el script en linea del formulario, que
+     corre durante el parseo. Con defer, sbBorrador todavia no existiria. -->
+<script src="/borrador.js?v=1"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
 <title>Pedir una consulta | Seba Bru</title>
@@ -392,6 +395,13 @@ if (esRegalo) {
     const form = document.getElementById('form-consulta');
     const btn = document.getElementById('btn-enviar');
     const errorMsg = document.getElementById('error-msg');
+
+    // El borrador. Este es el formulario mas largo del sitio y vive dentro de
+    // un iframe: en el celular, cambiar de app puede hacer que el navegador
+    // lo descarte y hasta ahora eso borraba los diez campos.
+    const borrador = window.sbBorrador
+        ? window.sbBorrador.cuidar(form, 'consulta')
+        : null;
     const inpFecha = document.getElementById('inp-fecha-nacimiento');
     const captchaWrap = document.getElementById('captcha-wrap');
     // La lista de sugerencias dice en que estamos: si tiene un aviso de "no
@@ -616,7 +626,11 @@ if (esRegalo) {
                     captchaToken: captchaToken || undefined,
                 }),
             });
-            const data = await resp.json();
+            // Sin el .catch, una respuesta que no es JSON (un 502 del proxy
+            // devuelve HTML) hacia que la persona viera en pantalla el error
+            // de parseo: "Unexpected token '<'". Mismo patron que baja/ y que
+            // certificados.js.
+            const data = await resp.json().catch(() => ({}));
             if (!resp.ok) {
                 if (data.error === 'captcha_requerido') {
                     captchaToken = '';
@@ -627,12 +641,20 @@ if (esRegalo) {
                 throw new Error(data.error || 'No pudimos registrar tu pedido de consulta.');
             }
 
+            // Salió bien: recién acá se borra el borrador.
+            if (borrador) borrador.listo();
+
             // El enlace a la agenda solo aparece si el servidor lo mandó.
             if (data.agenda) {
                 document.getElementById('btn-agenda').href = data.agenda;
                 document.getElementById('ir-a-agenda').style.display = 'block';
                 document.getElementById('aviso-listo').textContent =
                     '¡Excelente! Ya tenemos tus datos. Ahora elegí el día y la hora de tu sesión.';
+            } else if (data.aviso) {
+                // El pedido se guardó pero no se pudo terminar de procesar:
+                // quedó en custodia y lo completa Seba a mano. Se dice, en vez
+                // de mostrar el mensaje de siempre como si todo hubiera salido.
+                document.getElementById('aviso-listo').textContent = data.aviso;
             }
 
             document.getElementById('form-wrap').style.display = 'none';

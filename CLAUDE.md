@@ -167,6 +167,59 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **Los ocho seminarios usan la plantilla `seminario`** (desde 2026-11-16), que no trae el texto escrito en `hoja.html`: lo recibe en tres tramos (`antes`, `medio`, `cierre`) alrededor de la itálica, desde `cuerpo` en `FORMACIONES_TITULO`. Es así porque los ocho textos no son un molde con huecos: cambia la apertura y cuatro tienen cierre propio. Sumar un seminario es una entrada más, sin tocar la hoja.
 - **El progreso de clases todavía no llega al servidor.** "Clase reproducida" vive solo en `localStorage` (`visitadas_<pathname>`, en `escuela.js`): no cruza de dispositivo. Por eso los diplomas se habilitan por tener el aula y **no** por haber terminado la cursada. Cuando se abran las aulas de 2027 hay que escribirlo en `usuarios/{mail}.progreso.<slug>` y recién ahí el servidor puede exigir la última clase.
 
+## Nunca perder un dato que alguien dejó
+
+**Criterio fijo, y vale para todo formulario nuevo** (pedido de Seba,
+21/11/2026). Si todo está bien, flujo normal. Si hay algo raro, **el dato se
+guarda igual**, se avisa, y la persona recibe una respuesta honesta. Un
+rechazo nunca puede ser la única consecuencia de que alguien se haya tomado el
+trabajo de escribir.
+
+Hasta el 22/11/2026 el sitio validaba primero y guardaba al final, así que cada
+rechazo tiraba lo escrito. Había pérdidas en 7 endpoints, dos de ellas
+**después de cobrar**.
+
+Lo que hay que hacer en cada endpoint nuevo que reciba datos de una persona:
+
+- **`custodiar({ endpoint, motivo, gravedad, datos, contacto, req })`** en vez
+  de un `return res.status(...)` seco. Escribe en `datos_sin_procesar` y nunca
+  tira, como `encolarContactoBrevo` y `encolarMail`.
+- **`gravedad: 'grave'`** para plata cobrada o configuración nuestra rota: sale
+  un mail al toque a `AVISOS_INSCRIPCION`, con la ventana anti-repetición de
+  `avisos/{motivo}`. Con `avisarSiempre: true` no se agrupa — es lo que
+  corresponde cuando hay plata, porque dos pagos sin entregar son dos
+  problemas. **`'normal'`** entra en el resumen diario de `revisarPendientes`.
+- **Nunca custodiar un bot**: ni el honeypot, ni el veredicto `rechazado` del
+  captcha (token forjado). Hay además un tope de 20 custodias por IP por día.
+  Sin esa regla la bandeja se llena de basura, Seba deja de leerla, y no sirve
+  el día que caiga algo de verdad.
+- **La respuesta cambia de tono.** Si el dato quedó guardado, no se contesta un
+  error: se dice que quedó anotado y que se escribe por mail. Decirle "probá de
+  nuevo" a alguien es pedirle que escriba todo otra vez para chocarse con el
+  mismo problema.
+
+Del lado del cliente, todo formulario nuevo lleva **`/borrador.js`**:
+`window.sbBorrador.cuidar(form, 'nombre-del-form')` y `.listo()` cuando el
+envío sale bien. Guarda en `localStorage` mientras se escribe y lo ofrece al
+volver. **Nunca guarda contraseñas ni el honeypot**, y se carga **sin `defer`**
+cuando lo usa un script en línea.
+
+Dos cosas que conviene recordar porque no son obvias:
+
+- **Un `logger.error` no le avisa a nadie.** Hay más de 80 en `index.js` y no
+  existe ninguna alerta configurada sobre los logs. Toda alarma sale por
+  `mails.encolarMail`, nunca por Brevo y nunca confiando en el log.
+- **`envios_carta` y `envios_titulo` corren sin `retry`.** Un fallo deja el
+  documento con `enviado: null`; eso ahora lo levanta `revisarPendientes`, que
+  es el único barrido de colas que existe.
+
+La bandeja se ve en el panel de la escuela, pestaña **Pendientes**, que lee por
+la callable `pendientes` (la colección está cerrada en las reglas: adentro hay
+DNI, direcciones y datos de nacimiento). Se borra sola a los 90 días por la
+política de TTL sobre el campo `expira` — **ese paso es manual** y no va en el
+deploy:
+`gcloud firestore fields ttls update expira --collection-group=datos_sin_procesar --enable-ttl`.
+
 ## OG Tags
 
 Toda página nueva debe incluir estos 6 meta OG en el `<head>`:
