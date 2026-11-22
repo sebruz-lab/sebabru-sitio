@@ -60,6 +60,7 @@ async function recargar() {
   pintarBorrador();
   pintarConfig();
   pintarBloqueos();
+  pintarExcepcionales();
   await cargarCalendario();
 }
 
@@ -107,16 +108,24 @@ async function descartar() {
 // -------------------------------------------------------
 // El calendario
 //
-// Día por día, con todo lo que pasa en cada uno: lo tomado con el nombre de
-// quien lo tomó, lo libre para cada tipo, lo guardado para consultas y lo
-// extraordinario. Mira el borrador, igual que la vista previa.
+// Un mes por pantalla, con el nombre de quien viene cada día, y el día que se
+// toca desplegado abajo con todo lo que pasa en él: lo tomado, lo libre para
+// cada tipo, lo guardado para consultas y lo extraordinario.
+//
+// Por qué el resumen y el detalle están separados: en una celda de mes no
+// entran cinco espacios de tres clases distintas, y menos en el celular. Pero
+// un mes es la unidad en la que se piensa una agenda, así que la celda resume
+// (nombres y puntitos) y el día abierto cuenta el resto.
+//
+// Mira el borrador, igual que la vista previa.
 // -------------------------------------------------------
-let calDesde = null;
+let calMes = null;        // 'YYYY-MM'
+let diaAbierto = null;    // 'YYYY-MM-DD', el día desplegado
 let ultimoCalendario = null;
 // El turno que se está moviendo. Mientras hay uno elegido, los horarios
-// libres del calendario pasan a ser destinos en los que se puede tocar.
+// libres del día abierto pasan a ser destinos en los que se puede tocar.
 let turnoElegido = null;
-const CAL_DIAS = 14;
+const NOMBRES_POR_CELDA = 3;
 
 function hoyISO() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -124,18 +133,41 @@ function hoyISO() {
   }).format(new Date());
 }
 
-function sumarDiasISO(iso, n) {
-  return new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+// Las cuentas del mes se hacen todas en UTC y al mediodía: así ningún cambio
+// de hora corre un día para atrás.
+function mesVecino(mes, n) {
+  const [a, m] = mes.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function diasDelMes(mes) {
+  const [a, m] = mes.split('-').map(Number);
+  return new Date(Date.UTC(a, m, 0)).getUTCDate();
+}
+
+function nombreDeMes(mes) {
+  const [a, m] = mes.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(a, m - 1, 15)));
 }
 
 async function cargarCalendario() {
-  if (!calDesde) calDesde = hoyISO();
+  if (!calMes) calMes = hoyISO().slice(0, 7);
   const caja = $('pa-calendario');
   caja.textContent = 'Cargando...';
   try {
     const data = await llamar({
-      accion: 'calendario', desde: calDesde, hasta: sumarDiasISO(calDesde, CAL_DIAS),
+      accion: 'calendario',
+      desde: `${calMes}-01`,
+      hasta: `${calMes}-${String(diasDelMes(calMes)).padStart(2, '0')}`,
     });
+    // Al entrar, el día de hoy ya desplegado: es lo que Seba viene a mirar.
+    // En otro mes no se abre nada, porque no hay un día obvio.
+    if (!diaAbierto || diaAbierto.slice(0, 7) !== calMes) {
+      const hoy = hoyISO();
+      diaAbierto = hoy.slice(0, 7) === calMes ? hoy : null;
+    }
     pintarCalendario(data);
   } catch (e) {
     caja.textContent = '';
@@ -153,9 +185,17 @@ function fechaDelDia(diaISO) {
   }).format(new Date(`${diaISO}T12:00:00-03:00`));
 }
 
+// El nombre como entra en una celda de mes: el primero, sin apellido. Manda
+// el ancho de la celda, y en un mes entero no hay lugar para más.
+function nombresito(t) {
+  const n = (t.nombre || '').trim();
+  if (n) return n.split(/\s+/)[0];
+  return (t.email || 'sin nombre').split('@')[0];
+}
+
 function pintarCalendario(data) {
   ultimoCalendario = data;
-  $('pa-cal-rango').textContent = `${fechaDelDia(data.desde)} — ${fechaDelDia(data.hasta)}`;
+  $('pa-cal-rango').textContent = nombreDeMes(calMes);
   const caja = $('pa-calendario');
   caja.innerHTML = '';
 
@@ -187,69 +227,170 @@ function pintarCalendario(data) {
     caja.appendChild(barra);
   }
 
-  for (const d of data.dias) {
+  // La grilla del mes
+  const grilla = document.createElement('div');
+  grilla.className = 'pa-mes';
+  for (const n of ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']) {
+    const c = document.createElement('div');
+    c.className = 'pa-mes-nombre';
+    c.textContent = n;
+    grilla.appendChild(c);
+  }
+
+  const porDia = new Map((data.dias || []).map(d => [d.dia, d]));
+  const [anio, mes] = calMes.split('-').map(Number);
+  // getUTCDay da 0 para domingo; la grilla arranca en lunes.
+  const corrimiento = (new Date(Date.UTC(anio, mes - 1, 1)).getUTCDay() + 6) % 7;
+  const hoy = hoyISO();
+
+  for (let k = 0; k < corrimiento; k++) {
+    const c = document.createElement('div');
+    c.className = 'pa-mes-dia fuera';
+    grilla.appendChild(c);
+  }
+
+  for (let n = 1; n <= diasDelMes(calMes); n++) {
+    const clave = `${calMes}-${String(n).padStart(2, '0')}`;
+    const d = porDia.get(clave)
+      || { dia: clave, turnos: [], sesiones: [], consultas: [], guardados: [], extraordinarios: [] };
     const total = d.turnos.length + d.sesiones.length + d.consultas.length
       + d.guardados.length + d.extraordinarios.length;
 
-    const bloque = document.createElement('div');
-    bloque.className = 'pa-cal-dia' + (total ? '' : ' vacio');
+    const celda = document.createElement('button');
+    celda.type = 'button';
+    celda.className = 'pa-mes-dia'
+      + (total ? '' : ' sinnada')
+      + (clave === hoy ? ' hoy' : '')
+      + (clave === diaAbierto ? ' abierto' : '');
+    celda.setAttribute('aria-expanded', clave === diaAbierto ? 'true' : 'false');
 
-    const fecha = document.createElement('div');
-    fecha.className = 'pa-cal-fecha';
-    fecha.textContent = fechaDelDia(d.dia);
-    bloque.appendChild(fecha);
+    const numero = document.createElement('div');
+    numero.className = 'pa-mes-numero';
+    numero.textContent = String(n);
+    celda.appendChild(numero);
 
-    const fichas = document.createElement('div');
-    fichas.className = 'pa-cal-fichas';
-
-    if (!total) {
-      const nada = document.createElement('span');
-      nada.className = 'pa-vacio';
-      nada.style.fontSize = '0.78rem';
-      nada.textContent = 'Sin horarios.';
-      fichas.appendChild(nada);
+    // Los nombresitos: para qué se abre esta pantalla es para ver quién
+    // viene, así que van antes que cualquier otra cosa de la celda.
+    for (const t of d.turnos.slice(0, NOMBRES_POR_CELDA)) {
+      const chip = document.createElement('span');
+      chip.className = `pa-mes-chip ${t.deSerie ? 'sesion' : 'consulta'}`
+        + (t.enCalendario ? '' : ' sin-calendario');
+      chip.textContent = `${soloHora(t.inicio)} ${nombresito(t)}`;
+      celda.appendChild(chip);
+    }
+    if (d.turnos.length > NOMBRES_POR_CELDA) {
+      const mas = document.createElement('span');
+      mas.className = 'pa-mes-mas';
+      mas.textContent = `+${d.turnos.length - NOMBRES_POR_CELDA}`;
+      celda.appendChild(mas);
     }
 
-    // Lo tomado primero: es lo que Seba busca cuando abre esta pantalla.
-    for (const t of d.turnos) {
-      const f = ficha('tomado', `${soloHora(t.inicio)} ${t.nombre || t.email || 'sin nombre'}`);
-      if (!t.enCalendario) {
-        f.classList.add('sin-calendario');
-        f.title = 'No está en tu calendario: anotalo a mano.';
-      } else {
-        f.title = `${t.deSerie ? 'Sesión' : 'Consulta'} · ${t.email || ''} · tocá para moverlo`;
-      }
-      if (turnoElegido && turnoElegido.id === t.id) f.classList.add('elegido');
-      hacerBoton(f, () => elegirTurno(t));
-      fichas.appendChild(f);
+    // Y los puntitos de lo que está libre o guardado, con su número. Es el
+    // resumen que distingue un día con dos huecos de uno lleno.
+    const marcas = document.createElement('div');
+    marcas.className = 'pa-mes-marcas';
+    const paraConsultaDelDia = new Set(d.consultas);
+    const soloSesion = d.sesiones.filter(iso => !paraConsultaDelDia.has(iso)).length;
+    const cuentas = [
+      ['consulta', d.consultas.length, 'libre para una consulta'],
+      ['sesion', soloSesion, 'libre solo para una sesión'],
+      ['guardado', d.guardados.length, 'guardado para consultas'],
+      ['extra', d.extraordinarios.length, 'extraordinario'],
+    ];
+    for (const [clase, cuantos, que] of cuentas) {
+      if (!cuantos) continue;
+      const m = document.createElement('span');
+      m.className = 'pa-mes-marca';
+      m.title = `${cuantos} ${que}`;
+      const punto = document.createElement('i');
+      punto.className = `pa-punto ${clase}`;
+      m.append(punto, document.createTextNode(String(cuantos)));
+      marcas.appendChild(m);
     }
-    // Un horario que está libre para los dos tipos aparece una vez, como
-    // consulta: ofrecerlo dos veces llenaría el día de fichas repetidas y
-    // esconde lo que importa, que es dónde entra una de dos horas.
-    const paraConsulta = new Set(d.consultas);
-    const libre = (clase, iso, texto) => {
-      const f = ficha(clase, texto);
-      if (turnoElegido) {
-        f.classList.add('destino');
-        hacerBoton(f, () => moverTurnoA(iso));
-      }
-      return f;
-    };
-    for (const iso of d.consultas) fichas.appendChild(libre('consulta', iso, `${soloHora(iso)} · 2 h`));
-    for (const iso of d.sesiones) {
-      if (paraConsulta.has(iso)) continue;
-      fichas.appendChild(libre('sesion', iso, `${soloHora(iso)} · 1 h`));
-    }
-    for (const g of d.guardados) {
-      const f = ficha('guardado', `${soloHora(g.desde)}–${soloHora(g.hasta)} guardado`);
-      if (g.motivo) f.title = g.motivo;
-      fichas.appendChild(f);
-    }
-    for (const iso of d.extraordinarios) fichas.appendChild(ficha('extra', `${soloHora(iso)} extraordinario`));
+    celda.appendChild(marcas);
 
-    bloque.appendChild(fichas);
-    caja.appendChild(bloque);
+    celda.addEventListener('click', () => {
+      diaAbierto = diaAbierto === clave ? null : clave;
+      pintarCalendario(data);
+    });
+    grilla.appendChild(celda);
   }
+  caja.appendChild(grilla);
+
+  // Y el día desplegado
+  if (diaAbierto) {
+    const detalle = document.createElement('div');
+    detalle.className = 'pa-mes-detalle';
+    detalle.appendChild(pintarDia(porDia.get(diaAbierto)
+      || { dia: diaAbierto, turnos: [], sesiones: [], consultas: [], guardados: [], extraordinarios: [] }));
+    caja.appendChild(detalle);
+  }
+}
+
+// Un día entero, con sus fichas. Es lo que se ve al tocar una celda del mes,
+// y lo que hace que se pueda mover o cancelar un turno.
+function pintarDia(d) {
+  const total = d.turnos.length + d.sesiones.length + d.consultas.length
+    + d.guardados.length + d.extraordinarios.length;
+
+  const bloque = document.createElement('div');
+  bloque.className = 'pa-cal-dia';
+
+  const fecha = document.createElement('div');
+  fecha.className = 'pa-cal-fecha';
+  fecha.textContent = fechaDelDia(d.dia);
+  bloque.appendChild(fecha);
+
+  const fichas = document.createElement('div');
+  fichas.className = 'pa-cal-fichas';
+
+  if (!total) {
+    const nada = document.createElement('span');
+    nada.className = 'pa-vacio';
+    nada.style.fontSize = '0.78rem';
+    nada.textContent = 'Sin horarios.';
+    fichas.appendChild(nada);
+  }
+
+  // Lo tomado primero: es lo que Seba busca cuando abre esta pantalla.
+  for (const t of d.turnos) {
+    const f = ficha('tomado', `${soloHora(t.inicio)} ${t.nombre || t.email || 'sin nombre'}`);
+    if (!t.enCalendario) {
+      f.classList.add('sin-calendario');
+      f.title = 'No está en tu calendario: anotalo a mano.';
+    } else {
+      f.title = `${t.deSerie ? 'Sesión' : 'Consulta'} · ${t.email || ''} · tocá para moverlo`;
+    }
+    if (turnoElegido && turnoElegido.id === t.id) f.classList.add('elegido');
+    hacerBoton(f, () => elegirTurno(t));
+    fichas.appendChild(f);
+  }
+  // Un horario que está libre para los dos tipos aparece una vez, como
+  // consulta: ofrecerlo dos veces llenaría el día de fichas repetidas y
+  // esconde lo que importa, que es dónde entra una de dos horas.
+  const paraConsulta = new Set(d.consultas);
+  const libre = (clase, iso, texto) => {
+    const f = ficha(clase, texto);
+    if (turnoElegido) {
+      f.classList.add('destino');
+      hacerBoton(f, () => moverTurnoA(iso));
+    }
+    return f;
+  };
+  for (const iso of d.consultas) fichas.appendChild(libre('consulta', iso, `${soloHora(iso)} · 2 h`));
+  for (const iso of d.sesiones) {
+    if (paraConsulta.has(iso)) continue;
+    fichas.appendChild(libre('sesion', iso, `${soloHora(iso)} · 1 h`));
+  }
+  for (const g of d.guardados) {
+    const f = ficha('guardado', `${soloHora(g.desde)}–${soloHora(g.hasta)} guardado`);
+    if (g.motivo) f.title = g.motivo;
+    fichas.appendChild(f);
+  }
+  for (const iso of d.extraordinarios) fichas.appendChild(ficha('extra', `${soloHora(iso)} extraordinario`));
+
+  bloque.appendChild(fichas);
+  return bloque;
 }
 
 function ficha(clase, texto) {
@@ -580,6 +721,121 @@ async function bloquear() {
     await recargar();
   } catch (e) {
     avisar(`No se pudo bloquear: ${e.message}`, 'error');
+  }
+}
+
+// -------------------------------------------------------
+// Espacios extraordinarios
+//
+// Lo contrario de un bloqueo: un horario que no está en las franjas de la
+// semana y que se abre igual. Viven en su propia colección y en la página
+// pública salen aparte, detrás del "¿No encontrás un horario que te sirva?".
+//
+// La regla que la pantalla tiene que dejar clara, porque no se deduce: un
+// extraordinario nunca establece un horario quincenal. El motor los ignora
+// al proyectar una serie, incluso los que repiten todas las semanas.
+// -------------------------------------------------------
+function pintarFormExcepcional() {
+  const repite = $('pa-ex-cuando').value === 'repite';
+  $('pa-ex-caja-fecha').hidden = repite;
+  $('pa-ex-caja-dia').hidden = !repite;
+  $('pa-ex-caja-desde-fecha').hidden = !repite;
+  $('pa-ex-caja-hasta-fecha').hidden = !repite;
+}
+
+function textoDeExcepcional(e) {
+  const horas = `de ${e.desde} a ${e.hasta}`;
+  if (!e.repite) return `${e.fecha}, ${horas}`;
+  const limite = [
+    e.desdeFecha ? `desde el ${e.desdeFecha}` : '',
+    e.hastaFecha ? `hasta el ${e.hastaFecha}` : '',
+  ].filter(Boolean).join(' ');
+  return `Todos los ${DIA_CORTO[e.diaSemana]}, ${horas}${limite ? ` (${limite})` : ''}`;
+}
+
+function pintarExcepcionales() {
+  const caja = $('pa-lista-excepcionales');
+  caja.innerHTML = '';
+  const lista = datos.excepcionales || [];
+  if (!lista.length) {
+    const p = document.createElement('p');
+    p.className = 'pa-vacio';
+    p.textContent = 'No hay espacios extraordinarios.';
+    caja.appendChild(p);
+    return;
+  }
+  for (const e of lista) {
+    const fila = document.createElement('div');
+    fila.className = 'pa-turno';
+
+    const texto = document.createElement('div');
+    texto.className = 'pa-cuando';
+    texto.textContent = textoDeExcepcional(e);
+    fila.appendChild(texto);
+
+    const detalle = document.createElement('div');
+    detalle.className = 'pa-quien';
+    const tipos = e.tipos || [];
+    const para = tipos.length === 1
+      ? { 'una-hora': 'Solo sesiones de una hora', 'dos-horas': 'Solo consultas de dos horas' }[tipos[0]]
+      : 'Consultas y sesiones';
+    detalle.textContent = [para, e.motivo, e.borrador ? 'sin publicar' : ''].filter(Boolean).join(' · ');
+    fila.appendChild(detalle);
+
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'pa-mini';
+    quitar.textContent = 'Quitar';
+    quitar.addEventListener('click', async () => {
+      try {
+        await llamar({ accion: 'quitarExcepcional', id: e.id });
+        await recargar();
+      } catch (err) {
+        avisar(`No se pudo quitar: ${err.message}`, 'error');
+      }
+    });
+    fila.appendChild(quitar);
+    caja.appendChild(fila);
+  }
+}
+
+async function abrirExcepcional() {
+  const repite = $('pa-ex-cuando').value === 'repite';
+  const desde = $('pa-ex-desde').value;
+  const hasta = $('pa-ex-hasta').value;
+  const tipo = $('pa-ex-tipos').value;
+
+  if (!desde || !hasta) return avisar('Poné la hora de inicio y la de fin.', 'error');
+  if (hasta <= desde) return avisar('La hora de fin tiene que ser posterior a la de inicio.', 'error');
+
+  const excepcional = {
+    desde, hasta,
+    tipos: tipo === 'ambos' ? ['dos-horas', 'una-hora'] : [tipo],
+    motivo: $('pa-ex-motivo').value.trim(),
+  };
+  if (repite) {
+    excepcional.repite = true;
+    excepcional.diaSemana = Number($('pa-ex-dia').value);
+    excepcional.desdeFecha = $('pa-ex-desde-fecha').value || null;
+    excepcional.hastaFecha = $('pa-ex-hasta-fecha').value || null;
+    if (excepcional.hastaFecha && excepcional.desdeFecha
+        && excepcional.hastaFecha < excepcional.desdeFecha) {
+      return avisar('El "hasta" tiene que ser posterior al "a partir de".', 'error');
+    }
+  } else {
+    if (!$('pa-ex-fecha').value) return avisar('Elegí la fecha.', 'error');
+    excepcional.fecha = $('pa-ex-fecha').value;
+  }
+
+  try {
+    await llamar({ accion: 'excepcional', excepcional });
+    for (const id of ['pa-ex-fecha', 'pa-ex-desde-fecha', 'pa-ex-hasta-fecha', 'pa-ex-desde', 'pa-ex-hasta', 'pa-ex-motivo']) {
+      $(id).value = '';
+    }
+    avisar('Listo: el espacio queda abierto. Acordate de publicarlo.', 'ok');
+    await recargar();
+  } catch (e) {
+    avisar(`No se pudo abrir: ${e.message}`, 'error');
   }
 }
 
@@ -1030,13 +1286,16 @@ $('pa-btn-crear-serie').addEventListener('click', crearSerie);
 $('pa-btn-publicar').addEventListener('click', publicar);
 $('pa-btn-descartar').addEventListener('click', descartar);
 $('pa-cal-antes').addEventListener('click', () => {
-  calDesde = sumarDiasISO(calDesde || hoyISO(), -CAL_DIAS);
+  calMes = mesVecino(calMes || hoyISO().slice(0, 7), -1);
   cargarCalendario();
 });
 $('pa-cal-despues').addEventListener('click', () => {
-  calDesde = sumarDiasISO(calDesde || hoyISO(), CAL_DIAS);
+  calMes = mesVecino(calMes || hoyISO().slice(0, 7), 1);
   cargarCalendario();
 });
+$('pa-btn-excepcional').addEventListener('click', abrirExcepcional);
+$('pa-ex-cuando').addEventListener('change', pintarFormExcepcional);
+pintarFormExcepcional();
 
 // La vista previa de la cadencia se rehace con cualquier cosa que la cambie:
 // el número, las duraciones, el aire, y las franjas (que le dan el ejemplo).

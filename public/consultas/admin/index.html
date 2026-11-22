@@ -118,9 +118,10 @@
     .pa-borrador-botones { display: flex; gap: 10px; flex-wrap: wrap; }
     .pa-borrador-botones .pa-boton { width: auto; }
 
-    /* El calendario: una lista de dias, no una grilla de mes. Un dia con
-       cinco espacios de tres clases distintas no entra en una celda, y en el
-       celular menos. */
+    /* El calendario es una grilla de mes con los nombres de quien viene, y
+       el dia que se toca se despliega abajo con todo lo que pasa en el.
+       Un dia con cinco espacios de tres clases no entra en una celda: por eso
+       la celda solo resume (nombres y puntitos) y el detalle va afuera. */
     .pa-cal-barra {
         display: flex; align-items: center; justify-content: space-between;
         gap: 12px; margin-bottom: 14px;
@@ -140,6 +141,47 @@
     .pa-punto.consulta { background: rgba(159,224,169,0.22); border-color: rgba(159,224,169,0.55); }
     .pa-punto.guardado { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.28); border-style: dashed; }
     .pa-punto.extra { background: rgba(242,201,76,0.18); border-color: rgba(242,201,76,0.55); }
+
+    /* La grilla de mes */
+    .pa-mes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .pa-mes-nombre {
+        font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase;
+        color: #8f8d88; text-align: center; padding-bottom: 6px;
+    }
+    .pa-mes-dia {
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 6px; min-height: 80px; padding: 5px 5px 6px;
+        display: flex; flex-direction: column; gap: 3px;
+        text-align: left; color: inherit; font: inherit; cursor: pointer;
+        overflow: hidden;
+    }
+    .pa-mes-dia.fuera { background: none; border: none; min-height: 0; }
+    .pa-mes-dia.sinnada { opacity: 0.45; }
+    .pa-mes-dia:hover { border-color: rgba(255,255,255,0.3); }
+    .pa-mes-dia.abierto { border-color: var(--pa-accent); box-shadow: 0 0 0 1px var(--pa-accent); }
+    .pa-mes-numero { font-size: 0.74rem; color: #8f8d88; }
+    .pa-mes-dia.hoy .pa-mes-numero { color: var(--pa-accent); font-weight: 600; }
+    .pa-mes-chip {
+        font-size: 0.62rem; line-height: 1.35; padding: 1px 4px; border-radius: 3px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pa-mes-chip.sesion { background: rgba(126,200,227,0.22); color: #cfe9f3; }
+    .pa-mes-chip.consulta { background: rgba(159,224,169,0.22); color: #d3eed8; }
+    .pa-mes-chip.sin-calendario { box-shadow: 0 0 0 1px #f56d96; }
+    .pa-mes-mas { font-size: 0.6rem; color: #8f8d88; padding-left: 4px; }
+    .pa-mes-marcas { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 3px; }
+    .pa-mes-marca { display: flex; align-items: center; gap: 2px; font-size: 0.58rem; color: #8f8d88; }
+    .pa-mes-marca .pa-punto { width: 7px; height: 7px; border-radius: 2px; }
+    .pa-mes-detalle {
+        margin-top: 20px; padding-top: 16px;
+        border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    @media (max-width: 560px) {
+        .pa-mes { gap: 3px; }
+        .pa-mes-dia { min-height: 58px; padding: 4px 3px; }
+        .pa-mes-chip { font-size: 0.53rem; padding: 0 2px; }
+        .pa-mes-marca { font-size: 0.52rem; }
+    }
 
     .pa-cal-dia { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .pa-cal-dia:last-child { border-bottom: none; }
@@ -340,9 +382,9 @@
 
                         <div id="pa-turnos" class="pa-panel visible">
                             <div class="pa-cal-barra">
-                                <button type="button" class="pa-mini" id="pa-cal-antes">← Antes</button>
+                                <button type="button" class="pa-mini" id="pa-cal-antes">← Mes anterior</button>
                                 <span id="pa-cal-rango"></span>
-                                <button type="button" class="pa-mini" id="pa-cal-despues">Después →</button>
+                                <button type="button" class="pa-mini" id="pa-cal-despues">Mes siguiente →</button>
                             </div>
                             <div class="pa-leyenda">
                                 <span><i class="pa-punto tomado"></i> Tomado</span>
@@ -351,6 +393,7 @@
                                 <span><i class="pa-punto guardado"></i> Guardado para consultas</span>
                                 <span><i class="pa-punto extra"></i> Extraordinario</span>
                             </div>
+                            <p class="pa-seccion-nota">Tocá un día para ver todo lo que pasa en él.</p>
                             <div id="pa-calendario"></div>
                         </div>
 
@@ -412,6 +455,7 @@
                         </div>
 
                         <div id="pa-bloqueos" class="pa-panel">
+                            <h3 class="pa-seccion">Bloqueos: sacar horarios</h3>
                             <p class="pa-seccion-nota">
                                 Un bloqueo saca horarios de la agenda. Sin horas es el día entero, y
                                 sirve para unas vacaciones. Con horas y "solo las sesiones de una hora"
@@ -437,6 +481,53 @@
                                 <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
                             </div>
                             <div id="pa-lista-bloqueos"></div>
+
+                            <h3 class="pa-seccion">Espacios extraordinarios: agregar horarios</h3>
+                            <p class="pa-seccion-nota">
+                                Un extraordinario es un horario que <strong>no está en tus franjas de
+                                la semana</strong> y que abrís igual. No se mezcla con los regulares:
+                                aparece aparte, después del "¿No encontrás un horario que te sirva?",
+                                y <strong>nunca sirve para una sesión quincenal</strong> aunque lo
+                                abras para sesiones. Un horario habitual se cambia en las franjas,
+                                no acá.
+                            </p>
+                            <div class="pa-nuevo-bloqueo">
+                                <div>
+                                    <label for="pa-ex-cuando">Cuándo</label>
+                                    <select id="pa-ex-cuando">
+                                        <option value="fecha">Una fecha sola</option>
+                                        <option value="repite">Todas las semanas</option>
+                                    </select>
+                                </div>
+                                <div id="pa-ex-caja-fecha"><label for="pa-ex-fecha">Fecha</label><input type="date" id="pa-ex-fecha"></div>
+                                <div id="pa-ex-caja-dia" hidden>
+                                    <label for="pa-ex-dia">Día</label>
+                                    <select id="pa-ex-dia">
+                                        <option value="1">Lunes</option>
+                                        <option value="2">Martes</option>
+                                        <option value="3">Miércoles</option>
+                                        <option value="4">Jueves</option>
+                                        <option value="5">Viernes</option>
+                                        <option value="6">Sábado</option>
+                                        <option value="0">Domingo</option>
+                                    </select>
+                                </div>
+                                <div id="pa-ex-caja-desde-fecha" hidden><label for="pa-ex-desde-fecha">A partir de (opcional)</label><input type="date" id="pa-ex-desde-fecha"></div>
+                                <div id="pa-ex-caja-hasta-fecha" hidden><label for="pa-ex-hasta-fecha">Hasta (opcional)</label><input type="date" id="pa-ex-hasta-fecha"></div>
+                                <div><label for="pa-ex-desde">De</label><input type="time" id="pa-ex-desde"></div>
+                                <div><label for="pa-ex-hasta">A</label><input type="time" id="pa-ex-hasta"></div>
+                                <div>
+                                    <label for="pa-ex-tipos">Para</label>
+                                    <select id="pa-ex-tipos">
+                                        <option value="dos-horas">Solo consultas de dos horas</option>
+                                        <option value="una-hora">Solo sesiones de una hora</option>
+                                        <option value="ambos">Consultas y sesiones</option>
+                                    </select>
+                                </div>
+                                <div><label for="pa-ex-motivo">Motivo</label><input type="text" id="pa-ex-motivo" maxlength="200" placeholder="Un hueco suelto"></div>
+                                <button type="button" class="pa-boton" id="pa-btn-excepcional">Abrir el espacio</button>
+                            </div>
+                            <div id="pa-lista-excepcionales"></div>
                         </div>
 
                         <div id="pa-series" class="pa-panel">
@@ -517,6 +608,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=5"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=6"></script>
 </body>
 </html>

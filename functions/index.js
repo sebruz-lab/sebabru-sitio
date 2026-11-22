@@ -7388,7 +7388,10 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
       }
 
       case 'excepcionales': {
-        return res.status(200).json({ ok: true, excepcionales: await leerExcepcionales() });
+        // El borrador, igual que `listar` y que el calendario: el panel es
+        // donde se configura, y un extraordinario recien creado nace con
+        // `borrador: true`. Leyendo lo publicado no aparecería nunca.
+        return res.status(200).json({ ok: true, excepcionales: await leerExcepcionales(MODO_BORRADOR) });
       }
 
       default:
