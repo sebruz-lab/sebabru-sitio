@@ -141,6 +141,7 @@
     .pa-punto.consulta { background: rgba(159,224,169,0.22); border-color: rgba(159,224,169,0.55); }
     .pa-punto.guardado { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.28); border-style: dashed; }
     .pa-punto.extra { background: rgba(242,201,76,0.18); border-color: rgba(242,201,76,0.55); }
+    .pa-punto.ocupado { background: rgba(245,109,150,0.16); border-color: rgba(245,109,150,0.5); }
 
     /* La grilla de mes */
     .pa-mes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -204,6 +205,7 @@
         border-style: dashed; color: #8f8d88;
     }
     .pa-ficha.extra { background: rgba(242,201,76,0.12); border-color: rgba(242,201,76,0.45); color: #f5e6bd; }
+    .pa-ficha.ocupado { background: rgba(245,109,150,0.1); border-color: rgba(245,109,150,0.4); color: #f3c6d4; }
     .pa-ficha.elegido { box-shadow: 0 0 0 2px #fff; }
     /* Mientras se mueve un turno, los horarios libres son destinos. Se
        levantan un poco para que se note que ahora se pueden tocar. */
@@ -392,8 +394,13 @@
                                 <span><i class="pa-punto consulta"></i> Libre para una consulta</span>
                                 <span><i class="pa-punto guardado"></i> Guardado para consultas</span>
                                 <span><i class="pa-punto extra"></i> Extraordinario</span>
+                                <span><i class="pa-punto ocupado"></i> Ocupado en tu calendario</span>
                             </div>
-                            <p class="pa-seccion-nota">Tocá un día para ver todo lo que pasa en él.</p>
+                            <p class="pa-seccion-nota">
+                                Tocá un día para ver todo lo que pasa en él. Lo rosa viene de Google
+                                Calendar: mientras esté ahí, ese rato no se ofrece, ni siquiera si
+                                abrís una franja o un espacio extraordinario encima.
+                            </p>
                             <div id="pa-calendario"></div>
                         </div>
 
@@ -608,6 +615,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=8"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=9"></script>
 </body>
 </html>

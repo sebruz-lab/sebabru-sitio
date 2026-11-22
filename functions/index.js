@@ -7141,7 +7141,7 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           if (!dias.has(clave)) {
             dias.set(clave, {
               dia: clave, turnos: [], sesiones: [], consultas: [],
-              guardados: [], extraordinarios: [],
+              guardados: [], extraordinarios: [], ocupado: [],
             });
           }
           return dias.get(clave);
@@ -7169,6 +7169,38 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         // castellano, un espacio guardado para consultas. Es la distincion
         // que Seba necesita ver con un color propio.
         for (const b of sesiones.bloqueados) dia(b.desde.slice(0, 10)).guardados.push(b);
+
+        // Lo que ya tenes en Google Calendar.
+        //
+        // Sin esto el panel miente por omision: un dia con una franja abierta
+        // y el calendario lleno se ve exactamente igual que un dia sin
+        // franja, o sea vacio, y no hay forma de saber cual de las dos cosas
+        // es. Costo una tarde: un espacio extraordinario abierto encima de
+        // algo que ya estaba en el calendario no produce ni un horario, y la
+        // pantalla no daba ninguna pista.
+        //
+        // Los turnos que dio el sitio ya estan en `turnos`, con su nombre, y
+        // tambien estan en Calendar: se sacan para no contar dos veces lo
+        // mismo.
+        const propios = turnosSnap.docs
+          .filter(d => d.data().estado === 'reservado')
+          .map(d => [d.data().inicio.toMillis(), d.data().fin.toMillis()]);
+        for (const [desdeMs, hastaMs] of ocupados) {
+          if (propios.some(([a, b]) => desdeMs >= a && hastaMs <= b)) continue;
+          // Un intervalo puede cruzar la medianoche, asi que se reparte por
+          // dia y cada pedazo se recorta a su dia.
+          for (let d = diaLocal(desdeMs); d <= diaLocal(hastaMs - 1) && d <= hasta; d = sumarDias(d, 1)) {
+            if (d < desde) continue;
+            const arranca = Math.max(desdeMs, msDeHoraLocal(d, '00:00'));
+            const termina = Math.min(hastaMs, msDeHoraLocal(d, '00:00') + 86400000);
+            if (termina <= arranca) continue;
+            dia(d).ocupado.push({
+              desde: isoLocal(arranca),
+              hasta: isoLocal(termina),
+              diaEntero: termina - arranca >= 86400000 - 60000,
+            });
+          }
+        }
 
         return res.status(200).json({
           ok: true, desde, hasta, zona: AGENDA_ZONA,

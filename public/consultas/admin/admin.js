@@ -256,9 +256,9 @@ function pintarCalendario(data) {
   for (let n = 1; n <= diasDelMes(calMes); n++) {
     const clave = `${calMes}-${String(n).padStart(2, '0')}`;
     const d = porDia.get(clave)
-      || { dia: clave, turnos: [], sesiones: [], consultas: [], guardados: [], extraordinarios: [] };
+      || { dia: clave, turnos: [], sesiones: [], consultas: [], guardados: [], extraordinarios: [], ocupado: [] };
     const total = d.turnos.length + d.sesiones.length + d.consultas.length
-      + d.guardados.length + d.extraordinarios.length;
+      + d.guardados.length + d.extraordinarios.length + (d.ocupado || []).length;
 
     const celda = document.createElement('button');
     celda.type = 'button';
@@ -300,6 +300,7 @@ function pintarCalendario(data) {
       ['sesion', soloSesion, 'libre solo para una sesión'],
       ['guardado', d.guardados.length, 'guardado para consultas'],
       ['extra', d.extraordinarios.length, 'extraordinario'],
+      ['ocupado', (d.ocupado || []).length, 'ocupado en tu calendario'],
     ];
     for (const [clase, cuantos, que] of cuentas) {
       if (!cuantos) continue;
@@ -352,7 +353,7 @@ function pintarDia(d) {
     const nada = document.createElement('span');
     nada.className = 'pa-vacio';
     nada.style.fontSize = '0.78rem';
-    nada.textContent = 'Sin horarios.';
+    nada.textContent = 'Sin horarios: no tenés franja abierta este día.';
     fichas.appendChild(nada);
   }
 
@@ -392,6 +393,15 @@ function pintarDia(d) {
     fichas.appendChild(f);
   }
   for (const iso of d.extraordinarios) fichas.appendChild(ficha('extra', `${soloHora(iso)} extraordinario`));
+  // Lo que ya tenías en Google Calendar. Va al final porque no es un espacio
+  // de la agenda, es la razón por la que faltan espacios.
+  for (const o of (d.ocupado || [])) {
+    const f = ficha('ocupado', o.diaEntero
+      ? 'Todo el día ocupado en tu calendario'
+      : `${soloHora(o.desde)}–${soloHora(o.hasta)} ocupado en tu calendario`);
+    f.title = 'Viene de Google Calendar: mientras esté, no se puede ofrecer ese rato.';
+    fichas.appendChild(f);
+  }
 
   bloque.appendChild(fichas);
   return bloque;
