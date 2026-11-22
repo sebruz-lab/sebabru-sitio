@@ -32,6 +32,11 @@ const estado = {
   zonaDetectada: Boolean(ZONA_DETECTADA),
   zonaNombre: '',
   slots: [],
+  // Los que abrio Seba aparte de sus dias habituales, y los tramos que este
+  // turno no puede usar porque estan guardados para otra cosa. Vienen en
+  // listas propias para que no se mezclen con los regulares.
+  excepcionales: [],
+  bloqueados: [],
   porDia: new Map(),
   diaElegido: null,
   horaElegida: null,
@@ -342,6 +347,20 @@ function agruparSlots() {
   }
 }
 
+// Todo lo que llega de disponibilidad, en un solo lugar: tres listas y los
+// tres pintados. Antes cada sitio que refrescaba los horarios copiaba la
+// linea de `estado.slots`, y por eso los excepcionales y los bloqueados no
+// aparecian en ninguno.
+function recibirHorarios(data) {
+  estado.slots = data.slots || [];
+  estado.excepcionales = data.excepcionales || [];
+  estado.bloqueados = data.bloqueados || [];
+  agruparSlots();
+  pintarCalendario();
+  pintarHorarios();
+  pintarDiasSueltos();
+}
+
 function pintarCalendario() {
   const grilla = $('ag-grilla');
   grilla.innerHTML = '';
@@ -350,7 +369,11 @@ function pintarCalendario() {
     $('ag-mes-nombre').textContent = '';
     $('ag-mes-antes').disabled = true;
     $('ag-mes-despues').disabled = true;
-    grilla.innerHTML = '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en los próximos días. Escribinos a <a href="mailto:info@sebabru.com">info@sebabru.com</a> y buscamos un hueco.</p>';
+    // Con horarios extraordinarios abiertos, decir "no hay nada" sería
+    // falso: están justo abajo, detrás de la pregunta.
+    grilla.innerHTML = estado.excepcionales.length
+      ? '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en mis días habituales, pero abrí algunos aparte: están más abajo.</p>'
+      : '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en los próximos días. Escribinos a <a href="mailto:info@sebabru.com">info@sebabru.com</a> y buscamos un hueco.</p>';
     return;
   }
 
@@ -418,9 +441,71 @@ function pintarHorarios() {
     b.addEventListener('click', () => {
       estado.horaElegida = iso;
       pintarHorarios();
+      pintarDiasSueltos();
       pintarResumen();
     });
     lista.appendChild(b);
+  }
+
+  // Los tramos guardados para otra cosa, solo los de este día: se ven, en
+  // gris y con su motivo, en lugar de desaparecer sin explicación.
+  for (const b of estado.bloqueados) {
+    if (b.diaEntero || claveDia(b.desde) !== estado.diaElegido) continue;
+    const gris = document.createElement('button');
+    gris.type = 'button';
+    gris.className = 'ag-hora reservado';
+    gris.disabled = true;
+    gris.textContent = `${textoHora(b.desde)} a ${textoHora(b.hasta)}`;
+    gris.title = b.motivo || 'Guardado para otro tipo de encuentro';
+    lista.appendChild(gris);
+  }
+}
+
+// Los extraordinarios siguen siendo una lista y no un calendario: son pocos
+// y sueltos, y un mes propio para dos horarios sería un mes casi vacío.
+function pintarDiasSueltos() {
+  const caja = $('ag-dias-sueltos');
+  caja.innerHTML = '';
+
+  const porDia = new Map();
+  for (const iso of estado.excepcionales) {
+    const dia = claveDia(iso);
+    if (!porDia.has(dia)) porDia.set(dia, []);
+    porDia.get(dia).push(iso);
+  }
+  $('ag-sueltos').hidden = porDia.size === 0;
+  if (!porDia.size) return;
+
+  for (const [, horas] of [...porDia.entries()].sort()) {
+    const bloque = document.createElement('div');
+    bloque.className = 'ag-suelto-dia';
+
+    const titulo = document.createElement('h4');
+    titulo.textContent = textoDiaLargo(horas[0]);
+    bloque.appendChild(titulo);
+
+    const fila = document.createElement('div');
+    fila.className = 'ag-lista-horas';
+    for (const iso of horas) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ag-hora' + (iso === estado.horaElegida ? ' elegida' : '');
+      b.textContent = textoHora(iso);
+      b.addEventListener('click', () => {
+        // Un extraordinario no pertenece a ningún día del calendario, así
+        // que elegirlo suelta el día elegido: si no, arriba quedaría
+        // marcada una hora de otro día.
+        estado.diaElegido = null;
+        estado.horaElegida = iso;
+        pintarCalendario();
+        pintarHorarios();
+        pintarDiasSueltos();
+        pintarResumen();
+      });
+      fila.appendChild(b);
+    }
+    bloque.appendChild(fila);
+    caja.appendChild(bloque);
   }
 }
 
@@ -483,7 +568,6 @@ async function traerDisponibilidad() {
 function aplicar(data) {
   estado.previsualizacion = data.previsualizacion === true;
   $('ag-previa').hidden = !estado.previsualizacion;
-  estado.slots = data.slots || [];
   estado.duracionMin = data.duracionMin || 120;
   estado.modalidad = data.modalidad || '';
   estado.nombre = data.nombre || '';
@@ -507,9 +591,7 @@ function aplicar(data) {
     return;
   }
 
-  agruparSlots();
-  pintarCalendario();
-  pintarHorarios();
+  recibirHorarios(data);
   mostrarPaso('ag-elegir');
 }
 
@@ -552,7 +634,7 @@ async function confirmar() {
         estado.horaElegida = null;
         $('ag-resumen').hidden = true;
         const fresco = await traerDisponibilidad().catch(() => null);
-        if (fresco) { estado.slots = fresco.slots || []; agruparSlots(); pintarCalendario(); pintarHorarios(); }
+        if (fresco) recibirHorarios(fresco);
       }
       return;
     }
@@ -759,11 +841,7 @@ function iniciar() {
 // en memoria pueden tener media hora.
 async function cargarHorariosFrescos() {
   try {
-    const data = await traerDisponibilidad();
-    estado.slots = data.slots || [];
-    agruparSlots();
-    pintarCalendario();
-    pintarHorarios();
+    recibirHorarios(await traerDisponibilidad());
   } catch (_) { /* se sigue con los que ya estaban */ }
 }
 

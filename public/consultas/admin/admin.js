@@ -1171,6 +1171,27 @@ function pintarHorariosLibres(data) {
     total.textContent = `${slots.length} horarios libres en ${dias} día${dias > 1 ? 's' : ''}, entre el ${data.desde} y el ${data.hasta}`;
   }
   caja.appendChild(total);
+
+  // Los extraordinarios y los tramos guardados van escritos aparte: son
+  // justamente lo que no esta en los horarios regulares, asi que si no se
+  // listan acá, agregar uno no cambia nada en esta pantalla.
+  const extras = data.excepcionales || [];
+  if (extras.length) {
+    const p = document.createElement('p');
+    p.className = 'pa-previa-total';
+    p.textContent = `Y ${extras.length} extraordinario${extras.length > 1 ? 's' : ''}: `
+      + extras.map(iso => `${iso.slice(0, 10)} ${iso.slice(11, 16)}`).join(' · ');
+    caja.appendChild(p);
+  }
+  const guardados = (data.bloqueados || []).filter(b => !b.diaEntero);
+  if (guardados.length) {
+    const p = document.createElement('p');
+    p.className = 'pa-previa-total';
+    p.textContent = `Y ${guardados.length} tramo${guardados.length > 1 ? 's' : ''} que este tipo no puede usar: `
+      + guardados.map(b => `${b.desde.slice(0, 10)} de ${b.desde.slice(11, 16)} a ${b.hasta.slice(11, 16)}`).join(' · ');
+    caja.appendChild(p);
+  }
+
   if (!slots.length) return;
 
   // Los slots vienen en hora de Argentina y ordenados, asi que el dia sale

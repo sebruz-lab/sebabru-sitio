@@ -163,6 +163,28 @@
     }
     .ag-hora:hover { border-color: var(--ag-accent); color: #fff; }
     .ag-hora.elegida { background: var(--ag-accent); color: #16131d; border-color: var(--ag-accent); }
+    /* Un tramo que este turno no puede usar porque esta guardado para otra
+       cosa. Se ve, con su motivo: un hueco que no esta se lee como "no hay
+       lugar", y uno en gris con su razon se entiende. */
+    .ag-hora.reservado {
+        cursor: default; border-style: dashed; color: #8f8d88;
+        border-color: rgba(255,255,255,0.18);
+    }
+    .ag-hora.reservado:hover { border-color: rgba(255,255,255,0.18); color: #8f8d88; }
+
+    /* Los horarios extraordinarios: aparte de los regulares, y detras de una
+       pregunta, porque son la salida para quien no encontro nada. */
+    .ag-sueltos { margin-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+    .ag-sueltos > summary {
+        cursor: pointer; color: #a9a7a1; font-size: 0.85rem; line-height: 1.7;
+    }
+    .ag-sueltos > summary:hover { color: #e8e6e1; }
+    .ag-sueltos-nota { color: #8f8d88; font-size: 0.8rem; line-height: 1.8; margin: 14px 0 4px; }
+    .ag-suelto-dia { margin-top: 16px; }
+    .ag-suelto-dia h4 {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #a9a7a1; font-weight: 400; margin-bottom: 10px;
+    }
 
     /* La zona horaria: una frase, no un listado. */
     /* Con .ag-intro adelante para ganarle a la regla .ag-intro p, que si no
@@ -346,6 +368,14 @@
                             <div class="ag-lista-horas" id="ag-lista-horas"></div>
                         </div>
 
+                        <details class="ag-sueltos" id="ag-sueltos" hidden>
+                            <summary>¿No encontrás un horario que te sirva?</summary>
+                            <p class="ag-sueltos-nota">
+                                Estos son horarios que abrí aparte de mis días habituales.
+                            </p>
+                            <div id="ag-dias-sueltos"></div>
+                        </details>
+
                         <div id="ag-resumen" class="ag-resumen" hidden>
                             <p id="ag-resumen-texto"></p>
                             <div id="ag-error-reserva" class="ag-error" role="alert"></div>
@@ -405,6 +435,6 @@
     </footer>
 
     <script src="../../script.js"></script>
-    <script type="module" src="/consultas/agenda/agenda.js?v=6"></script>
+    <script type="module" src="/consultas/agenda/agenda.js?v=7"></script>
 </body>
 </html>
