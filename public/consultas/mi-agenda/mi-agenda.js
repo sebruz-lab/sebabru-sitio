@@ -16,6 +16,7 @@ import { auth } from '../../escuela/firebase.js';
 import {
   onAuthStateChanged, signInWithEmailAndPassword,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { calendarioMes } from '../calendario-mes.js?v=1';
 
 const API = 'https://us-central1-sebabru-e5563.cloudfunctions.net';
 const ZONA_SEBA = 'America/Argentina/Cordoba';
@@ -36,9 +37,11 @@ const estado = {
   nombre: '',
   series: [],
   turnos: [],
-  // El turno que se esta moviendo, y lo que se eligio para el.
+  // El turno que se esta moviendo, lo que se eligio para el, y la respuesta
+  // de disponibilidad que las pantallas de abajo vuelven a leer al repintar.
   moviendo: null,
   elegida: null,
+  disponibilidad: null,
   // Para no cargar el espacio dos veces cuando Firebase avisa de la sesion
   // despues de que ya entramos con el enlace.
   abierto: false,
@@ -258,10 +261,10 @@ async function abrirCambio() {
   limpiar('mi-error-elegir');
   limpiar('mi-error-confirmar');
   $('mi-resumen').hidden = true;
-  $('mi-dias').innerHTML = '';
   $('mi-dias-sueltos').innerHTML = '';
   $('mi-sueltos').hidden = true;
   $('mi-nada').hidden = true;
+  $('mi-horarios').hidden = true;
   $('mi-elegir-zona').textContent = `Vas a mover el encuentro del ${textoDiaLargo(turno.inicio)} a las ${textoHora(turno.inicio)}. Los horarios están en hora de ${nombreDeZona()}.`;
   mostrarPaso('mi-elegir');
   cargando(true);
@@ -269,6 +272,7 @@ async function abrirCambio() {
   try {
     const data = await llamar('miDisponibilidad', { query: { turno: turno.id } });
     cargando(false);
+    estado.disponibilidad = data;
     if (data.pausado) {
       mostrarError('mi-error-elegir', MENSAJES.agenda_pausada);
       return;
@@ -280,16 +284,84 @@ async function abrirCambio() {
   }
 }
 
-function pintarHorarios(data) {
-  const hubo = pintarDias($('mi-dias'), data.slots || [], data);
-  const sueltos = pintarDias($('mi-dias-sueltos'), data.excepcionales || [], data);
-  $('mi-sueltos').hidden = !sueltos;
-  $('mi-nada').hidden = hubo || sueltos;
+// El calendario de mes, compartido con /consultas/agenda/. Se arma una sola
+// vez: despues solo se le cambian los horarios.
+let calendario = null;
+
+function armarCalendario() {
+  if (calendario) return calendario;
+  calendario = calendarioMes({
+    grilla: $('mi-grilla'),
+    titulo: $('mi-mes-nombre'),
+    botonAntes: $('mi-mes-antes'),
+    botonDespues: $('mi-mes-despues'),
+    zona: () => estado.zona,
+    vacio: 'No hay horarios libres en los próximos días.',
+    alElegirDia: () => pintarHorasDelDia(),
+  });
+  return calendario;
 }
 
-// Los horarios agrupados por dia, con los tramos reservados en gris al lado
-// de los libres de ese mismo dia.
-function pintarDias(caja, slots, data) {
+function pintarHorarios(data) {
+  const cal = armarCalendario();
+  cal.mostrar(data.slots || []);
+  pintarHorasDelDia();
+
+  const sueltos = pintarDiasSueltos($('mi-dias-sueltos'), data.excepcionales || []);
+  $('mi-sueltos').hidden = !sueltos;
+  $('mi-nada').hidden = (data.slots || []).length > 0 || sueltos;
+}
+
+// Las horas del dia elegido en el calendario, con los tramos guardados para
+// consultas en gris al lado de las que si se pueden tomar.
+function pintarHorasDelDia() {
+  const data = estado.disponibilidad;
+  const caja = $('mi-horarios');
+  const lista = $('mi-lista-horas');
+  lista.innerHTML = '';
+
+  const dia = calendario.diaElegido();
+  const horas = calendario.horariosDelDia();
+  if (!dia || !horas.length) {
+    caja.hidden = true;
+    return;
+  }
+  caja.hidden = false;
+  $('mi-horarios-titulo').textContent = textoDiaLargo(horas[0]);
+
+  for (const iso of horas) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mi-hora'
+      + (iso === estado.elegida ? ' elegida' : '')
+      + (iso === data.actual ? ' actual' : '');
+    b.textContent = textoHora(iso);
+    if (iso === data.actual) b.title = 'El horario que tenés ahora';
+    b.addEventListener('click', () => {
+      estado.elegida = iso;
+      pintarHorasDelDia();
+      pintarResumen(data);
+    });
+    lista.appendChild(b);
+  }
+
+  // Los guardados para consultas, solo los de este dia: se ven, con su
+  // motivo, en lugar de desaparecer sin explicacion.
+  for (const b of (data.bloqueados || [])) {
+    if (b.diaEntero || claveDia(b.desde) !== dia) continue;
+    const gris = document.createElement('button');
+    gris.type = 'button';
+    gris.className = 'mi-hora reservado';
+    gris.disabled = true;
+    gris.textContent = `${textoHora(b.desde)} a ${textoHora(b.hasta)}`;
+    gris.title = b.motivo || 'Guardado para consultas de dos horas';
+    lista.appendChild(gris);
+  }
+}
+
+// Los extraordinarios siguen siendo una lista: son pocos y sueltos, y
+// meterlos en un calendario propio seria un mes casi vacio.
+function pintarDiasSueltos(caja, slots) {
   caja.innerHTML = '';
   const porDia = new Map();
   for (const iso of slots) {
@@ -298,18 +370,7 @@ function pintarDias(caja, slots, data) {
     porDia.get(dia).push(iso);
   }
 
-  // Los bloqueados se muestran solo en los dias que ya tienen algo libre: un
-  // dia entero en gris no informa nada y empuja hacia abajo lo que si sirve.
-  const bloqueadosPorDia = new Map();
-  for (const b of (data.bloqueados || [])) {
-    if (b.diaEntero) continue;
-    const dia = claveDia(b.desde);
-    if (!porDia.has(dia)) continue;
-    if (!bloqueadosPorDia.has(dia)) bloqueadosPorDia.set(dia, []);
-    bloqueadosPorDia.get(dia).push(b);
-  }
-
-  for (const [dia, horas] of [...porDia.entries()].sort()) {
+  for (const [, horas] of [...porDia.entries()].sort()) {
     const bloque = document.createElement('div');
     bloque.className = 'mi-dia';
 
@@ -322,29 +383,15 @@ function pintarDias(caja, slots, data) {
     for (const iso of horas) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'mi-hora'
-        + (iso === estado.elegida ? ' elegida' : '')
-        + (iso === data.actual ? ' actual' : '');
+      b.className = 'mi-hora' + (iso === estado.elegida ? ' elegida' : '');
       b.textContent = textoHora(iso);
-      if (iso === data.actual) b.title = 'El horario que tenés ahora';
       b.addEventListener('click', () => {
         estado.elegida = iso;
-        pintarHorarios(data);
-        pintarResumen(data);
+        pintarDiasSueltos(caja, slots);
+        pintarResumen(estado.disponibilidad);
       });
       fila.appendChild(b);
     }
-
-    for (const b of (bloqueadosPorDia.get(dia) || [])) {
-      const gris = document.createElement('button');
-      gris.type = 'button';
-      gris.className = 'mi-hora reservado';
-      gris.disabled = true;
-      gris.textContent = `${textoHora(b.desde)} a ${textoHora(b.hasta)}`;
-      gris.title = b.motivo || 'Guardado para consultas de dos horas';
-      fila.appendChild(gris);
-    }
-
     bloque.appendChild(fila);
     caja.appendChild(bloque);
   }

@@ -4707,7 +4707,7 @@ const AGENDA_CONFIG_POR_DEFECTO = {
   anticipacionHoras: 48,
   ventanaDias: 60,
   // Hasta donde se materializan los encuentros quincenales del
-  // acompanamiento. Es mas larga que ventanaDias a proposito: el publico
+  // sesiones. Es mas larga que ventanaDias a proposito: el publico
   // reserva dentro de tres semanas, pero el horario de cada participante
   // tiene que estar tomado mas adelante que eso, o cualquier consulta se lo
   // lleva antes de que le toque. Es tambien lo que le da a la evaluacion
@@ -4817,10 +4817,34 @@ function urlDeAgenda(pedidoId) {
 }
 
 // -------------------------------------------------------
-// Configuracion y bloqueos
+// Configuracion y bloqueos: lo publicado y el borrador
+//
+// La agenda tiene dos versiones de su configuracion.
+//
+//   agenda_config/general   lo que ve la gente. No cambia nunca sola: la
+//                           unica forma de tocarla es apretar Publicar.
+//   agenda_config/borrador  donde Seba trabaja, y lo unico que lee la vista
+//                           previa del panel.
+//
+// Existe porque antes configurar y publicar eran la misma accion: cambiar la
+// cadencia para ver que pasaba se lo cambiaba de verdad a quien estuviera
+// eligiendo un horario en ese momento. Con el borrador se puede probar.
+//
+// Los bloqueos y los excepcionales no se duplican enteros: cada documento
+// lleva `borrador: true` mientras no este publicado. El publico los saltea.
 // -------------------------------------------------------
-async function leerConfigAgenda() {
-  const snap = await _db.collection('agenda_config').doc('general').get();
+const MODO_PUBLICADO = 'general';
+const MODO_BORRADOR = 'borrador';
+
+async function leerConfigAgenda(modo = MODO_PUBLICADO) {
+  const ref = _db.collection('agenda_config');
+  let snap = await ref.doc(modo).get();
+
+  // Un borrador que todavia no existe arranca como copia de lo publicado. Es
+  // lo que hace que la primera vez que se abre el panel no aparezca una
+  // configuracion de fabrica que no tiene nada que ver con la de Seba.
+  if (!snap.exists && modo === MODO_BORRADOR) snap = await ref.doc(MODO_PUBLICADO).get();
+
   const guardada = snap.exists ? snap.data() : {};
   const config = { ...AGENDA_CONFIG_POR_DEFECTO, ...guardada };
   // La semana se reemplaza entera, no se mezcla: si Seba deja un dia sin
@@ -4829,14 +4853,25 @@ async function leerConfigAgenda() {
   return config;
 }
 
-async function leerBloqueos() {
-  const snap = await _db.collection('agenda_bloqueos').get();
-  return snap.docs.map(d => d.data()).filter(b => b && b.desde && b.hasta);
+// En modo borrador se ve todo (lo publicado mas lo que esta en preparacion),
+// porque el borrador es el estado completo que quedaria al publicar, no la
+// lista de los cambios.
+function esDelModo(dato, modo) {
+  return modo === MODO_BORRADOR || dato.borrador !== true;
 }
 
-async function leerExcepcionales() {
+async function leerBloqueos(modo = MODO_PUBLICADO) {
+  const snap = await _db.collection('agenda_bloqueos').get();
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(b => b && b.desde && b.hasta && esDelModo(b, modo));
+}
+
+async function leerExcepcionales(modo = MODO_PUBLICADO) {
   const snap = await _db.collection('agenda_excepcionales').get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e && e.desde && e.hasta);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(e => e && e.desde && e.hasta && esDelModo(e, modo));
 }
 
 // -------------------------------------------------------
@@ -5236,10 +5271,10 @@ async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId) {
   const cal = getCalendarClient();
   const comoSeba = agendaActuaComoSeba();
   const online = sujeto.modalidad !== 'Presencial';
-  // El titulo dice que clase de encuentro es: en el calendario de Seba, un
-  // acompanamiento quincenal y una consulta de dos horas no se distinguen
-  // solo por durar distinto.
-  const etiqueta = sujeto.serieId ? 'Acompañamiento' : 'Consulta';
+  // El titulo dice que clase de encuentro es: en el calendario de Seba, una
+  // sesion quincenal y una consulta de dos horas no se distinguen solo por
+  // durar distinto.
+  const etiqueta = sujeto.serieId ? 'Sesión' : 'Consulta';
 
   const cuerpo = {
     summary: `${etiqueta} — ${sujeto.nombre || sujeto.email || 'sin nombre'}`,
@@ -5429,7 +5464,7 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
 // codigo, la vista previa dejaria de servir para lo unico que sirve, que es
 // ver lo que ve la gente.
 // -------------------------------------------------------
-async function slotsVisibles(config, desdePedido, hastaPedido, tipo) {
+async function slotsVisibles(config, desdePedido, hastaPedido, tipo, modo = MODO_PUBLICADO) {
   const hoy = diaLocal(Date.now());
   let desde = fechaValida(desdePedido) && desdePedido > hoy ? desdePedido : hoy;
   let hasta = fechaValida(hastaPedido) ? hastaPedido : sumarDias(desde, 45);
@@ -5442,8 +5477,8 @@ async function slotsVisibles(config, desdePedido, hastaPedido, tipo) {
 
   const [ocupados, bloqueos, excepcionales] = await Promise.all([
     ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
-    leerBloqueos(),
-    leerExcepcionales(),
+    leerBloqueos(modo),
+    leerExcepcionales(modo),
   ]);
   const horarios = motor.horariosDe({
     config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
@@ -5473,10 +5508,16 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
   const pedido = await pedidoDeAgenda(sanitizeTexto(req.query.p, 64), sanitizeTexto(req.query.t, 64));
   if (!pedido) return res.status(403).json({ error: 'token_invalido' });
 
+  // La vista previa del panel mira el borrador; todos los demas, lo
+  // publicado. Es lo que convierte la vista previa en un lugar donde probar:
+  // sin esto seria una ventana a lo que ya esta en vivo, que es justamente lo
+  // que uno no quiere tocar para probar.
+  const modo = pedido.origen === 'previsualizacion' ? MODO_BORRADOR : MODO_PUBLICADO;
+
   try {
     // Independientes entre si: dos lecturas de Firestore que no se esperan.
     const [config, turno] = await Promise.all([
-      leerConfigAgenda(),
+      leerConfigAgenda(modo),
       turnoDelPedido(pedido),
     ]);
 
@@ -5513,7 +5554,8 @@ exports.disponibilidad = functions.runWith({ memory: '512MB' }).https.onRequest(
       config,
       sanitizeTexto(req.query.desde, 10),
       sanitizeTexto(req.query.hasta, 10),
-      pedido.tipo
+      pedido.tipo,
+      modo
     );
     respuesta.desde = visibles.desde;
     respuesta.hasta = visibles.hasta;
@@ -5641,7 +5683,7 @@ function bufferDe(tipo, quien) {
 //   { nombre, email, telefono, modalidad,
 //     tipo,           'una-hora' | 'dos-horas' | nada (= dos horas)
 //     pedidoId,       si viene del formulario o de la agenda suelta
-//     serieId,        si es un encuentro del acompanamiento quincenal
+//     serieId,        si es un encuentro de una serie quincenal
 //     ocurrencia,     que encuentro de la serie es (su fecha quincenal)
 //     turnoAnterior,  el turno que se suelta recien si esto sale bien
 //     enlacePersonal} la URL con la que esa persona administra su turno
@@ -5680,7 +5722,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   //   'serie'    un encuentro quincenal que se materializa solo. Tampoco
   //              pasa por la grilla, y la razon es que el horario habitual
   //              lo fijo Seba: con la cadencia de 75 minutos, un
-  //              acompanamiento que el puso a las 16:00 no cae en la grilla
+  //              sesion que el puso a las 16:00 no cae en la grilla
   //              (que da 16:15) y no se podria tomar ni una sola de sus
   //              fechas. Pero si respeta el aire, que es lo que un turno
   //              automatico no deberia comerse en silencio.
@@ -5926,7 +5968,7 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
 // EL ESPACIO PERSONAL
 //
 // Donde cada persona ve su proximo encuentro y lo mueve. Lo usan los
-// participantes del acompanamiento quincenal, que cambian de horario
+// participantes de las sesiones quincenales, que cambian de horario
 // seguido, y sirve igual para una consulta de dos horas.
 //
 // Se entra de tres maneras y las tres terminan en el mismo lugar
@@ -6066,7 +6108,7 @@ async function seriesDePersona(persona) {
 //
 // Ninguna combina una igualdad (email, serieId) con el rango de `inicio`, y
 // no es por gusto: esa combinacion pide un indice compuesto, que es un paso
-// de deploy aparte. El 22/11/2026 la pestana de Acompanamiento entera
+// de deploy aparte. El 22/11/2026 la pestana de las sesiones entera
 // contestaba 500 por eso, y la unica pista era un FAILED_PRECONDITION en los
 // logs.
 //
@@ -6079,7 +6121,7 @@ async function seriesDePersona(persona) {
 
 // Los turnos vigentes de una persona, de aca en adelante. Se mira por mail y
 // no por pedido: alguien que tuvo una consulta y ademas esta en el
-// acompanamiento tiene que ver las dos cosas en un solo lugar.
+// sesiones quincenales tiene que ver las dos cosas en un solo lugar.
 async function turnosDePersona(persona, series) {
   const desdeMs = Date.now() - 2 * 3600000; // el de hace un rato sigue en pantalla
   const porId = new Map();
@@ -6220,7 +6262,7 @@ async function avisarConflictosDeSeries(pendientes) {
   await mails.encolarMail(_db, {
     motivo: 'series-con-conflicto',
     para: AVISOS_INSCRIPCION,
-    asunto: `⚠️ ${pendientes.length === 1 ? 'Un acompañamiento' : `${pendientes.length} acompañamientos`} sin lugar en su horario`,
+    asunto: `⚠️ ${pendientes.length === 1 ? 'Una sesión' : `${pendientes.length} sesiones`} sin lugar en su horario`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
         <p>Al estirar la agenda aparecieron encuentros quincenales que no se pudieron tomar porque el horario ya estaba ocupado. No se pisó nada: esos encuentros <strong>no están agendados</strong>.</p>
@@ -6844,9 +6886,34 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
             enCalendario: !!t.eventId,
           };
         });
-        const bloqueos = (await _db.collection('agenda_bloqueos').get())
-          .docs.map(d => ({ id: d.id, ...d.data() }));
-        return res.status(200).json({ ok: true, config: await leerConfigAgenda(), turnos, bloqueos });
+        const [bloqueosSnap, borrador, publicada, excepcionales] = await Promise.all([
+          _db.collection('agenda_bloqueos').get(),
+          leerConfigAgenda(MODO_BORRADOR),
+          leerConfigAgenda(MODO_PUBLICADO),
+          leerExcepcionales(MODO_BORRADOR),
+        ]);
+        const bloqueos = bloqueosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // Si hay algo sin publicar. Se compara el JSON de las dos
+        // configuraciones (son planas y chicas) y se cuenta lo que este
+        // marcado como borrador. Al panel le alcanza con saber que si: el
+        // detalle de que cambio lo ve en la pantalla, que es donde lo
+        // acaba de tocar.
+        const sinPublicar = bloqueos.filter(b => b.borrador === true).length
+          + excepcionales.filter(e => e.borrador === true).length;
+        const hayCambios = sinPublicar > 0
+          || JSON.stringify(configSaneada(borrador)) !== JSON.stringify(configSaneada(publicada));
+
+        return res.status(200).json({
+          ok: true,
+          config: borrador,
+          publicada,
+          hayCambios,
+          sinPublicar,
+          turnos,
+          bloqueos,
+          excepcionales,
+        });
       }
 
       // Lo que necesita la vista previa del panel: un pedido con el que
@@ -6871,12 +6938,14 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           visto: new Date().toISOString(),
         }, { merge: true });
 
-        const config = await leerConfigAgenda();
+        // El borrador, igual que la pagina que se abre en el iframe: los dos
+        // tienen que estar mirando lo mismo.
+        const config = await leerConfigAgenda(MODO_BORRADOR);
         // Sin desde ni hasta: los mismos valores por defecto que usa la
         // pagina, para que los horarios sean exactamente los que se ofrecen.
         const visibles = config.pausado
           ? { desde: null, hasta: null, slots: [], excepcionales: [], bloqueados: [] }
-          : await slotsVisibles(config, null, null, tipo);
+          : await slotsVisibles(config, null, null, tipo, MODO_BORRADOR);
 
         return res.status(200).json({
           ok: true,
@@ -6894,11 +6963,55 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         });
       }
 
+      // Guardar es guardar EL BORRADOR. Lo publicado no se toca mas que con
+      // la accion de abajo: esa es toda la idea.
       case 'guardarConfig': {
         const limpia = configSaneada(req.body?.config);
-        await _db.collection('agenda_config').doc('general').set(limpia);
-        functions.logger.info('Configuracion de agenda guardada', { por: sesion.email });
+        await _db.collection('agenda_config').doc(MODO_BORRADOR).set(limpia);
+        functions.logger.info('Borrador de la agenda guardado', { por: sesion.email });
         return res.status(200).json({ ok: true, config: limpia });
+      }
+
+      case 'publicar': {
+        const borrador = await leerConfigAgenda(MODO_BORRADOR);
+        // Se vuelve a sanear antes de publicar: el borrador se escribio ya
+        // saneado, pero esto es lo que sale al publico y no cuesta nada.
+        await _db.collection('agenda_config').doc(MODO_PUBLICADO).set(configSaneada(borrador));
+
+        // Y los bloqueos y excepcionales en preparacion dejan de serlo. En
+        // lote: o salen todos o no sale ninguno, porque publicar la mitad de
+        // una configuracion es peor que no publicarla.
+        const lote = _db.batch();
+        let marcados = 0;
+        for (const coleccion of ['agenda_bloqueos', 'agenda_excepcionales']) {
+          const pendientes = await _db.collection(coleccion).where('borrador', '==', true).get();
+          for (const d of pendientes.docs) {
+            lote.update(d.ref, { borrador: false, publicado: new Date().toISOString() });
+            marcados++;
+          }
+        }
+        if (marcados) await lote.commit();
+
+        functions.logger.info('Agenda publicada', { por: sesion.email, marcados });
+        return res.status(200).json({ ok: true, marcados });
+      }
+
+      case 'descartarBorrador': {
+        const publicada = await leerConfigAgenda(MODO_PUBLICADO);
+        await _db.collection('agenda_config').doc(MODO_BORRADOR).set(configSaneada(publicada));
+
+        // Lo que se creo para el borrador y nunca se publico se borra: no
+        // tiene sentido conservar un bloqueo que se descarto.
+        const lote = _db.batch();
+        let borrados = 0;
+        for (const coleccion of ['agenda_bloqueos', 'agenda_excepcionales']) {
+          const pendientes = await _db.collection(coleccion).where('borrador', '==', true).get();
+          for (const d of pendientes.docs) { lote.delete(d.ref); borrados++; }
+        }
+        if (borrados) await lote.commit();
+
+        functions.logger.info('Borrador descartado', { por: sesion.email, borrados });
+        return res.status(200).json({ ok: true, borrados });
       }
 
       case 'bloquear': {
@@ -6927,9 +7040,11 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           hastaHora: conHoras ? hastaHora : null,
           tipos,
           motivo: sanitizeTexto(req.body?.motivo, 200),
+          // Nace en el borrador: no le saca horarios a nadie hasta publicar.
+          borrador: true,
           creado: new Date().toISOString(),
         });
-        functions.logger.info('Bloqueo creado', {
+        functions.logger.info('Bloqueo creado en el borrador', {
           desde, hasta, conHoras, tipos, por: sesion.email,
         });
         return res.status(200).json({ ok: true, id: ref.id });
@@ -6982,7 +7097,86 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         return res.status(200).json({ ok: true, turno: r.turno });
       }
 
-      // ---------- El acompanamiento quincenal ----------
+      // ---------- El calendario del panel ----------
+      //
+      // La foto de cada dia: lo que esta tomado, con el nombre de quien lo
+      // tomo, y lo que esta libre para cada tipo. No hay logica nueva: es
+      // llamar al motor una vez por tipo y juntarlo con los turnos.
+      //
+      // Mira el BORRADOR, igual que la vista previa: es la pantalla donde
+      // Seba comprueba lo que esta configurando.
+      case 'calendario': {
+        const hoy = diaLocal(Date.now());
+        let desde = fechaValida(req.body?.desde) ? req.body.desde : hoy;
+        let hasta = fechaValida(req.body?.hasta) ? req.body.hasta : sumarDias(desde, 14);
+        // Un tramo acotado: cada llamada le pregunta la ocupacion a Google
+        // Calendar, y un rango largo es una consulta lenta y cara.
+        if (hasta > sumarDias(desde, 45)) hasta = sumarDias(desde, 45);
+        if (hasta < desde) hasta = desde;
+
+        const [config, bloqueos, excepcionales, ocupados, turnosSnap] = await Promise.all([
+          leerConfigAgenda(MODO_BORRADOR),
+          leerBloqueos(MODO_BORRADOR),
+          leerExcepcionales(MODO_BORRADOR),
+          ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
+          _db.collection('agenda_turnos')
+            .where('inicio', '>=', new Date(msDeHoraLocal(desde, '00:00')))
+            .where('inicio', '<=', new Date(msDeHoraLocal(hasta, '23:59')))
+            .get(),
+        ]);
+
+        // Sin anticipacion ni ventana: el panel muestra el dia completo, no
+        // lo que el publico podria reservar hoy. Un hueco que existe pero que
+        // nadie puede tomar porque faltan 40 horas sigue siendo un hueco que
+        // Seba tiene que ver.
+        const paraTipo = tipo => motor.horariosDe({
+          config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
+          sinAnticipacion: true, topeDias: 400,
+        });
+        const sesiones = paraTipo('una-hora');
+        const consultas = paraTipo('dos-horas');
+
+        const dias = new Map();
+        const dia = clave => {
+          if (!dias.has(clave)) {
+            dias.set(clave, {
+              dia: clave, turnos: [], sesiones: [], consultas: [],
+              guardados: [], extraordinarios: [],
+            });
+          }
+          return dias.get(clave);
+        };
+        for (let d = desde; d <= hasta; d = sumarDias(d, 1)) dia(d);
+
+        for (const doc of turnosSnap.docs) {
+          const t = doc.data();
+          if (t.estado !== 'reservado') continue;
+          const inicioMs = t.inicio.toMillis();
+          dia(diaLocal(inicioMs)).turnos.push({
+            id: doc.id,
+            inicio: isoLocal(inicioMs),
+            fin: isoLocal(t.fin.toMillis()),
+            nombre: t.nombre || '', email: t.email || '',
+            tipo: tipoDe(config, t.tipo).id,
+            deSerie: Boolean(t.serieId),
+            enCalendario: !!t.eventId,
+          });
+        }
+        for (const iso of sesiones.slots) dia(iso.slice(0, 10)).sesiones.push(iso);
+        for (const iso of consultas.slots) dia(iso.slice(0, 10)).consultas.push(iso);
+        for (const iso of consultas.excepcionales) dia(iso.slice(0, 10)).extraordinarios.push(iso);
+        // Lo bloqueado para una sesion y no para una consulta es, en
+        // castellano, un espacio guardado para consultas. Es la distincion
+        // que Seba necesita ver con un color propio.
+        for (const b of sesiones.bloqueados) dia(b.desde.slice(0, 10)).guardados.push(b);
+
+        return res.status(200).json({
+          ok: true, desde, hasta, zona: AGENDA_ZONA,
+          dias: [...dias.values()].sort((a, b) => a.dia.localeCompare(b.dia)),
+        });
+      }
+
+      // ---------- Las sesiones quincenales ----------
 
       case 'series': {
         const desde = new Date(Date.now() - 2 * 3600000);
@@ -7056,6 +7250,48 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         // tomados: eso es el cambio de horario habitual, que tiene su propio
         // camino con su evaluacion. Esto solo arregla los datos de la serie.
         return res.status(200).json({ ok: true });
+      }
+
+      // Borrar a alguien no es borrar su documento: es sacarle los encuentros
+      // de encima. Si solo se borrara la serie, sus turnos futuros quedarian
+      // en el calendario y en la agenda sin nadie que los pueda mover, porque
+      // la serie a la que apuntan ya no existe.
+      case 'borrarSerie': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        const snap = await _db.collection('agenda_series').doc(id).get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+
+        const turnos = await _db.collection('agenda_turnos').where('serieId', '==', id).get();
+        const ahora = Date.now();
+        let cancelados = 0;
+        for (const d of turnos.docs) {
+          const t = d.data();
+          if (t.estado !== 'reservado' || t.inicio.toMillis() < ahora) continue;
+          // En fila: cada uno es un borrado contra la API de Calendar.
+          await borrarEventoDeTurno(t.eventId);
+          await d.ref.set({
+            estado: 'cancelado',
+            cancelado: new Date().toISOString(),
+            canceladoPor: 'serie-borrada',
+          }, { merge: true });
+          cancelados++;
+        }
+
+        // Los enlaces de esa persona dejan de servir: el espacio ya no es
+        // suyo, y un enlace vivo que no lleva a nada es peor que ninguno.
+        const accesos = await _db.collection('agenda_accesos').where('serieId', '==', id).get();
+        if (!accesos.empty) {
+          const lote = _db.batch();
+          for (const d of accesos.docs) lote.update(d.ref, { revocado: true });
+          await lote.commit();
+        }
+
+        await snap.ref.delete();
+        functions.logger.info('Serie borrada', {
+          serieId: id, cancelados, accesos: accesos.size, por: sesion.email,
+        });
+        return res.status(200).json({ ok: true, cancelados });
       }
 
       case 'extenderSerie': {
@@ -7138,6 +7374,7 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         if (e.error) return res.status(400).json({ error: e.error });
         const ref = await _db.collection('agenda_excepcionales').add({
           ...e.excepcional,
+          borrador: true,
           creado: new Date().toISOString(),
         });
         return res.status(200).json({ ok: true, id: ref.id });

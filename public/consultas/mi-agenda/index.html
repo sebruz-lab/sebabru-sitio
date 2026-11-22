@@ -112,16 +112,56 @@
     }
     .mi-tarda.visible { display: block; }
 
-    /* Los dias, uno abajo del otro. La ventana es de tres semanas: una lista
-       se recorre de un scroll y no obliga a adivinar en que dia hay algo,
-       que es lo que pasa con una grilla de mes casi vacia. */
-    .mi-dia {
-        padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+    /* El calendario de mes. Las clases son las que dibuja
+       /consultas/calendario-mes.js, que es el mismo modulo que va a usar
+       /consultas/agenda/: por eso se llaman ag- y no mi-. */
+    .ag-mes {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 14px;
     }
+    .ag-mes h3 {
+        font-size: 0.9rem; font-weight: 400; letter-spacing: 0.06em;
+        text-transform: capitalize; margin: 0;
+    }
+    .ag-flecha {
+        background: transparent; border: 1px solid rgba(255,255,255,0.2);
+        color: #e0e0e0; width: 44px; height: 44px; border-radius: 50%;
+        cursor: pointer; font-size: 0.9rem;
+    }
+    .ag-flecha:disabled { opacity: 0.25; cursor: default; }
+
+    .ag-grilla { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .ag-grilla .ag-dia-nombre {
+        text-align: center; font-size: 0.68rem; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #8f8d88; padding-bottom: 6px;
+    }
+    .ag-dia {
+        aspect-ratio: 1; border-radius: 10px; border: 1px solid transparent;
+        background: rgba(255,255,255,0.04); color: #55534f;
+        font-family: 'Outfit', sans-serif; font-size: 0.85rem; cursor: default;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .ag-dia.vacio { background: transparent; }
+    .ag-dia.libre {
+        color: #fff; cursor: pointer;
+        border-color: rgba(191,174,224,0.35);
+        background: rgba(191,174,224,0.08);
+    }
+    .ag-dia.libre:hover { background: rgba(191,174,224,0.2); }
+    .ag-dia.elegido { background: var(--mi-accent); color: #16131d; font-weight: 500; }
+
+    /* Los dias de la lista de extraordinarios. */
+    .mi-dia { padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .mi-dia:last-child { border-bottom: none; }
     .mi-dia h4 {
         font-size: 0.85rem; font-weight: 400; color: #e8e6e1; margin: 0 0 10px;
         text-transform: capitalize; letter-spacing: 0.02em;
+    }
+
+    .mi-horarios { margin-top: 24px; }
+    .mi-horarios h4 {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #a9a7a1; font-weight: 400; margin-bottom: 12px;
     }
     .mi-horas { display: flex; flex-wrap: wrap; gap: 9px; }
     .mi-hora {
@@ -326,7 +366,22 @@
 
                     <div id="mi-error-elegir" class="mi-error" role="alert"></div>
 
-                    <div id="mi-dias"></div>
+                    <div class="ag-mes">
+                        <button type="button" class="ag-flecha" id="mi-mes-antes" aria-label="Mes anterior">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <h3 id="mi-mes-nombre"></h3>
+                        <button type="button" class="ag-flecha" id="mi-mes-despues" aria-label="Mes siguiente">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+
+                    <div class="ag-grilla" id="mi-grilla"></div>
+
+                    <div class="mi-horarios" id="mi-horarios" hidden>
+                        <h4 id="mi-horarios-titulo"></h4>
+                        <div class="mi-horas" id="mi-lista-horas"></div>
+                    </div>
 
                     <details class="mi-sueltos" id="mi-sueltos" hidden>
                         <summary>¿No encontrás un horario que te sirva?</summary>
@@ -367,6 +422,6 @@
 
     </div>
 
-    <script type="module" src="mi-agenda.js?v=1"></script>
+    <script type="module" src="mi-agenda.js?v=2"></script>
 </body>
 </html>

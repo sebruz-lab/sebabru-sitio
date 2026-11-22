@@ -29,18 +29,18 @@ const MAX_TURNO_MIN = 480;
 //
 // Los ids son 'una-hora' y 'dos-horas' y no 'sesion' y 'consulta' por una
 // razon concreta: en castellano las dos palabras se usan para las dos cosas
-// (el acompanamiento quincenal es una "sesion" pero tambien se le dice
-// "consulta", y al reves). Un id que nombra la duracion no se puede
-// confundir con el otro. Los nombres para la pantalla salen de `nombre`.
+// (a una sesion tambien se le dice consulta, y al reves). Un id que nombra la
+// duracion no se puede confundir con el otro. Los nombres para la pantalla
+// salen de `nombre`.
 //
-//   una-hora  -> el acompanamiento individual quincenal.
+//   una-hora  -> la sesion individual, cada 15 dias.
 //   dos-horas -> la consulta suelta (carta natal o revolucion solar: para la
 //                agenda son la misma cosa, y por eso el formulario de
 //                consultas no necesita preguntar cual es).
 // -------------------------------------------------------
 const TIPOS_POR_DEFECTO = {
   'una-hora': {
-    nombre: 'Sesión de acompañamiento',
+    nombre: 'Sesión',
     duracionMin: 60,
     // Solo se usa si la configuracion no tiene cadenciaMin. Y vale 75, no
     // 60, porque una grilla en punto con 15 minutos de aire es incoherente:

@@ -106,6 +106,76 @@
     .pa-nuevo-bloqueo select option { background: #12141d; color: #fff; }
     .pa-vacio { color: #8f8d88; line-height: 1.7; }
 
+    /* El cartel del borrador */
+    .pa-borrador {
+        display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+        justify-content: space-between; margin-bottom: 24px;
+        padding: 15px 18px; border-radius: 12px;
+        background: rgba(242,201,76,0.1); border: 1px solid rgba(242,201,76,0.45);
+    }
+    .pa-borrador-texto { color: #f5e6bd; font-size: 0.85rem; line-height: 1.7; flex: 1 1 320px; }
+    .pa-borrador-texto strong { color: #fff; }
+    .pa-borrador-botones { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pa-borrador-botones .pa-boton { width: auto; }
+
+    /* El calendario: una lista de dias, no una grilla de mes. Un dia con
+       cinco espacios de tres clases distintas no entra en una celda, y en el
+       celular menos. */
+    .pa-cal-barra {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; margin-bottom: 14px;
+    }
+    .pa-cal-barra span { color: #e8e6e1; font-size: 0.85rem; text-transform: capitalize; }
+    .pa-leyenda {
+        display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 20px;
+        color: #a9a7a1; font-size: 0.75rem;
+    }
+    .pa-leyenda span { display: flex; align-items: center; gap: 6px; }
+    .pa-punto {
+        width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+        border: 1px solid transparent;
+    }
+    .pa-punto.tomado { background: var(--pa-accent); }
+    .pa-punto.sesion { background: rgba(126,200,227,0.25); border-color: rgba(126,200,227,0.6); }
+    .pa-punto.consulta { background: rgba(159,224,169,0.22); border-color: rgba(159,224,169,0.55); }
+    .pa-punto.guardado { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.28); border-style: dashed; }
+    .pa-punto.extra { background: rgba(242,201,76,0.18); border-color: rgba(242,201,76,0.55); }
+
+    .pa-cal-dia { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .pa-cal-dia:last-child { border-bottom: none; }
+    .pa-cal-dia.vacio { opacity: 0.4; }
+    .pa-cal-fecha {
+        color: #e8e6e1; font-size: 0.85rem; margin-bottom: 10px;
+        text-transform: capitalize; letter-spacing: 0.02em;
+    }
+    .pa-cal-fichas { display: flex; flex-wrap: wrap; gap: 7px; }
+    .pa-ficha {
+        padding: 7px 13px; border-radius: 20px; font-size: 0.78rem;
+        border: 1px solid transparent; line-height: 1.4;
+    }
+    .pa-ficha.tomado { background: var(--pa-accent); color: #16131d; }
+    .pa-ficha.tomado.sin-calendario { box-shadow: 0 0 0 2px #f56d96; }
+    .pa-ficha.sesion { background: rgba(126,200,227,0.14); border-color: rgba(126,200,227,0.45); color: #cfe9f3; }
+    .pa-ficha.consulta { background: rgba(159,224,169,0.12); border-color: rgba(159,224,169,0.4); color: #d3eed8; }
+    .pa-ficha.guardado {
+        background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.22);
+        border-style: dashed; color: #8f8d88;
+    }
+    .pa-ficha.extra { background: rgba(242,201,76,0.12); border-color: rgba(242,201,76,0.45); color: #f5e6bd; }
+    .pa-ficha.elegido { box-shadow: 0 0 0 2px #fff; }
+    /* Mientras se mueve un turno, los horarios libres son destinos. Se
+       levantan un poco para que se note que ahora se pueden tocar. */
+    .pa-ficha.destino { border-style: solid; }
+    .pa-ficha.destino:hover { background: var(--pa-accent); color: #16131d; border-color: var(--pa-accent); }
+
+    .pa-moviendo {
+        display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+        justify-content: space-between; margin-bottom: 18px;
+        padding: 14px 16px; border-radius: 12px;
+        background: rgba(191,174,224,0.12); border: 1px solid rgba(191,174,224,0.5);
+        color: #e8e6e1; font-size: 0.85rem; line-height: 1.6;
+    }
+
     /* Disponibilidad, por secciones */
     .pa-seccion {
         font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
@@ -126,7 +196,7 @@
         color: #a9a7a1;
     }
 
-    /* Acompanamiento */
+    /* Las sesiones quincenales */
     .pa-nueva-serie {
         margin-bottom: 26px; padding: 16px 18px; border-radius: 12px;
         background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
@@ -245,7 +315,7 @@
                             <button type="button" class="pa-tab activa" data-panel="pa-turnos">Turnos</button>
                             <button type="button" class="pa-tab" data-panel="pa-disponibilidad">Disponibilidad</button>
                             <button type="button" class="pa-tab" data-panel="pa-bloqueos">Bloqueos</button>
-                            <button type="button" class="pa-tab" data-panel="pa-series">Acompañamiento</button>
+                            <button type="button" class="pa-tab" data-panel="pa-series">Sesiones</button>
                             <button type="button" class="pa-tab" data-panel="pa-previa">Vista previa</button>
                             <button type="button" class="pa-mini" id="pa-btn-salir" style="margin-left:auto;">Salir</button>
                         </div>
@@ -253,15 +323,42 @@
                         <div id="pa-error" class="pa-error" role="alert"></div>
                         <div id="pa-ok" class="pa-ok" role="status"></div>
 
+                        <!-- Lo que separa configurar de publicar. Aparece solo
+                             cuando hay algo sin publicar, para que el resto del
+                             tiempo el panel no tenga un cartel de adorno. -->
+                        <div id="pa-borrador" class="pa-borrador" hidden>
+                            <div class="pa-borrador-texto">
+                                <strong>Tenés cambios sin publicar.</strong>
+                                <span id="pa-borrador-detalle"></span>
+                                Los estás viendo en la vista previa; la gente sigue viendo lo de antes.
+                            </div>
+                            <div class="pa-borrador-botones">
+                                <button type="button" class="pa-boton" id="pa-btn-publicar">Publicar</button>
+                                <button type="button" class="pa-mini" id="pa-btn-descartar">Descartar</button>
+                            </div>
+                        </div>
+
                         <div id="pa-turnos" class="pa-panel visible">
-                            <div id="pa-lista-turnos"></div>
+                            <div class="pa-cal-barra">
+                                <button type="button" class="pa-mini" id="pa-cal-antes">← Antes</button>
+                                <span id="pa-cal-rango"></span>
+                                <button type="button" class="pa-mini" id="pa-cal-despues">Después →</button>
+                            </div>
+                            <div class="pa-leyenda">
+                                <span><i class="pa-punto tomado"></i> Tomado</span>
+                                <span><i class="pa-punto sesion"></i> Libre para una sesión</span>
+                                <span><i class="pa-punto consulta"></i> Libre para una consulta</span>
+                                <span><i class="pa-punto guardado"></i> Guardado para consultas</span>
+                                <span><i class="pa-punto extra"></i> Extraordinario</span>
+                            </div>
+                            <div id="pa-calendario"></div>
                         </div>
 
                         <div id="pa-disponibilidad" class="pa-panel">
                             <h3 class="pa-seccion">Tus horarios de la semana</h3>
                             <p class="pa-seccion-nota">
                                 Estas franjas valen para todo: adentro de un jueves de 14 a 18 entran
-                                tanto las sesiones de acompañamiento de una hora como las consultas de
+                                tanto las sesiones de una hora como las consultas de
                                 dos. Lo que decide qué se ofrece en cada punto es la cadencia, acá abajo,
                                 más lo que ya esté tomado.
                             </p>
@@ -283,7 +380,7 @@
                             </div>
                             <p class="pa-cadencia-previa" id="pa-cadencia-previa"></p>
 
-                            <h3 class="pa-seccion">Sesiones de acompañamiento</h3>
+                            <h3 class="pa-seccion">Sesiones (1 h)</h3>
                             <div class="pa-numeros">
                                 <div><label for="pa-t1-duracion">Duración (minutos)</label><input type="number" id="pa-t1-duracion" min="15" max="480" step="5"></div>
                                 <div><label for="pa-t1-buffer">Aire antes y después</label><input type="number" id="pa-t1-buffer" min="0" max="240" step="5"></div>
@@ -291,7 +388,7 @@
                                 <div><label for="pa-t1-cambio">Anticipación para cambiar (horas)</label><input type="number" id="pa-t1-cambio" min="0" max="720" step="1"></div>
                             </div>
 
-                            <h3 class="pa-seccion">Consultas</h3>
+                            <h3 class="pa-seccion">Consultas (2 h)</h3>
                             <div class="pa-numeros">
                                 <div><label for="pa-t2-duracion">Duración (minutos)</label><input type="number" id="pa-t2-duracion" min="15" max="480" step="5"></div>
                                 <div><label for="pa-t2-buffer">Aire antes y después</label><input type="number" id="pa-t2-buffer" min="0" max="240" step="5"></div>
@@ -344,14 +441,19 @@
 
                         <div id="pa-series" class="pa-panel">
                             <p class="pa-previa-texto">
-                                Cada persona del acompañamiento tiene su horario quincenal. Los encuentros
+                                Cada persona con sesiones regulares tiene su horario quincenal. Los encuentros
                                 se toman de verdad en la agenda, hasta dos meses para adelante, así nadie
                                 más se los puede llevar. El enlace que le mandes le deja ver y mover su
                                 próximo encuentro sin contraseña.
                             </p>
 
-                            <details class="pa-nueva-serie">
+                            <details class="pa-nueva-serie" id="pa-nueva-serie">
                                 <summary>Sumar a alguien</summary>
+                                <p class="pa-serie-nota" id="pa-se-aviso" hidden>
+                                    Estás editando a alguien que ya está. Cambiarle el día o la hora
+                                    <strong>no mueve los encuentros que ya tiene tomados</strong>: eso es
+                                    un cambio de horario habitual, y se hace desde su propio espacio.
+                                </p>
                                 <div class="pa-serie-campos">
                                     <div><label for="pa-se-nombre">Nombre</label><input type="text" id="pa-se-nombre" maxlength="200"></div>
                                     <div><label for="pa-se-email">Mail</label><input type="email" id="pa-se-email" maxlength="200"></div>
@@ -395,9 +497,13 @@
                             </p>
                             <div class="pa-previa-barra">
                                 <button type="button" class="pa-boton" id="pa-btn-previa">Cargar la vista previa</button>
+                                <select id="pa-previa-tipo" aria-label="Tipo de turno de la vista previa">
+                                    <option value="dos-horas">Mirar como una consulta (2 h)</option>
+                                    <option value="una-hora">Mirar como una sesión (1 h)</option>
+                                </select>
                                 <select id="pa-previa-modalidad" aria-label="Modalidad de la vista previa">
-                                    <option value="Online">Como una sesión online</option>
-                                    <option value="Presencial">Como una sesión presencial</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Presencial">Presencial</option>
                                 </select>
                             </div>
                             <iframe id="pa-previa-marco" class="pa-previa-marco" title="Vista previa de la agenda" hidden></iframe>
@@ -411,6 +517,6 @@
 
     </div>
 
-    <script type="module" src="/consultas/admin/admin.js?v=4"></script>
+    <script type="module" src="/consultas/admin/admin.js?v=5"></script>
 </body>
 </html>

@@ -57,70 +57,229 @@ async function llamar(cuerpo) {
 async function recargar() {
   const data = await llamar({ accion: 'listar' });
   datos = data;
-  pintarTurnos();
+  pintarBorrador();
   pintarConfig();
   pintarBloqueos();
+  await cargarCalendario();
 }
 
 // -------------------------------------------------------
-// Turnos
+// El borrador
+//
+// Lo que se guarda en Disponibilidad y en Bloqueos va al borrador, no a lo
+// que ve la gente. Este cartel es lo único que separa las dos cosas, así que
+// tiene que estar siempre que haya algo sin publicar y nunca cuando no.
 // -------------------------------------------------------
-function pintarTurnos() {
-  const caja = $('pa-lista-turnos');
+function pintarBorrador() {
+  $('pa-borrador').hidden = !datos.hayCambios;
+  const n = datos.sinPublicar || 0;
+  $('pa-borrador-detalle').textContent = n
+    ? `Hay ${n} ${n === 1 ? 'bloqueo o espacio extraordinario nuevo' : 'bloqueos o espacios extraordinarios nuevos'}.`
+    : '';
+}
+
+async function publicar() {
+  if (!window.confirm('¿Publicar? A partir de ahora la gente ve esta configuración.')) return;
+  const boton = $('pa-btn-publicar');
+  boton.disabled = true;
+  try {
+    await llamar({ accion: 'publicar' });
+    avisar('Publicado. Ahora la gente ve lo mismo que vos.', 'ok');
+    await recargar();
+  } catch (e) {
+    avisar(`No se pudo publicar: ${e.message}`, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+async function descartar() {
+  if (!window.confirm('¿Descartar los cambios sin publicar? Vuelve a quedar como lo que ve la gente.')) return;
+  try {
+    await llamar({ accion: 'descartarBorrador' });
+    avisar('Descartado.', 'ok');
+    await recargar();
+  } catch (e) {
+    avisar(`No se pudo descartar: ${e.message}`, 'error');
+  }
+}
+
+// -------------------------------------------------------
+// El calendario
+//
+// Día por día, con todo lo que pasa en cada uno: lo tomado con el nombre de
+// quien lo tomó, lo libre para cada tipo, lo guardado para consultas y lo
+// extraordinario. Mira el borrador, igual que la vista previa.
+// -------------------------------------------------------
+let calDesde = null;
+let ultimoCalendario = null;
+// El turno que se está moviendo. Mientras hay uno elegido, los horarios
+// libres del calendario pasan a ser destinos en los que se puede tocar.
+let turnoElegido = null;
+const CAL_DIAS = 14;
+
+function hoyISO() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
+function sumarDiasISO(iso, n) {
+  return new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+}
+
+async function cargarCalendario() {
+  if (!calDesde) calDesde = hoyISO();
+  const caja = $('pa-calendario');
+  caja.textContent = 'Cargando...';
+  try {
+    const data = await llamar({
+      accion: 'calendario', desde: calDesde, hasta: sumarDiasISO(calDesde, CAL_DIAS),
+    });
+    pintarCalendario(data);
+  } catch (e) {
+    caja.textContent = '';
+    avisar(`No se pudo cargar el calendario: ${e.message}`, 'error');
+  }
+}
+
+function soloHora(iso) {
+  return iso.slice(11, 16);
+}
+
+function fechaDelDia(diaISO) {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long',
+  }).format(new Date(`${diaISO}T12:00:00-03:00`));
+}
+
+function pintarCalendario(data) {
+  ultimoCalendario = data;
+  $('pa-cal-rango').textContent = `${fechaDelDia(data.desde)} — ${fechaDelDia(data.hasta)}`;
+  const caja = $('pa-calendario');
   caja.innerHTML = '';
-  const ahora = Date.now();
-  const vigentes = datos.turnos.filter(t => t.estado === 'reservado');
 
-  if (!vigentes.length) {
-    const p = document.createElement('p');
-    p.className = 'pa-vacio';
-    p.textContent = 'No hay turnos reservados en esta ventana.';
-    caja.appendChild(p);
-    return;
+  // La barra de "estás moviendo a alguien". Va arriba de todo porque, una vez
+  // que se eligió un turno, es el único estado que importa en la pantalla.
+  if (turnoElegido) {
+    const barra = document.createElement('div');
+    barra.className = 'pa-moviendo';
+
+    const texto = document.createElement('div');
+    texto.textContent = `Moviendo el turno de ${turnoElegido.nombre || turnoElegido.email} del ${fechaLarga(turnoElegido.inicio)}. Tocá el horario nuevo.`;
+    barra.appendChild(texto);
+
+    const botones = document.createElement('div');
+    botones.className = 'pa-borrador-botones';
+    const cancelarT = document.createElement('button');
+    cancelarT.type = 'button';
+    cancelarT.className = 'pa-mini';
+    cancelarT.textContent = 'Cancelar el turno';
+    cancelarT.addEventListener('click', () => cancelarTurno(turnoElegido));
+    const soltar = document.createElement('button');
+    soltar.type = 'button';
+    soltar.className = 'pa-mini';
+    soltar.textContent = 'Dejarlo como está';
+    soltar.addEventListener('click', () => { turnoElegido = null; pintarCalendario(data); });
+    botones.append(cancelarT, soltar);
+    barra.appendChild(botones);
+
+    caja.appendChild(barra);
   }
 
-  for (const t of vigentes) {
-    const fila = document.createElement('div');
-    fila.className = 'pa-turno' + (Date.parse(t.inicio) < ahora ? ' cancelado' : '');
+  for (const d of data.dias) {
+    const total = d.turnos.length + d.sesiones.length + d.consultas.length
+      + d.guardados.length + d.extraordinarios.length;
 
-    const cuando = document.createElement('div');
-    cuando.className = 'pa-cuando';
-    cuando.textContent = fechaLarga(t.inicio);
-    fila.appendChild(cuando);
+    const bloque = document.createElement('div');
+    bloque.className = 'pa-cal-dia' + (total ? '' : ' vacio');
 
-    const quien = document.createElement('div');
-    quien.className = 'pa-quien';
-    quien.textContent = `${t.nombre || 'sin nombre'} · ${t.email || ''} · ${t.telefono || ''} · ${t.modalidad || ''}`;
-    if (!t.enCalendario) {
-      const aviso = document.createElement('div');
-      aviso.className = 'pa-aviso-cal';
-      aviso.textContent = 'No está en tu calendario: anotalo a mano.';
-      quien.appendChild(aviso);
+    const fecha = document.createElement('div');
+    fecha.className = 'pa-cal-fecha';
+    fecha.textContent = fechaDelDia(d.dia);
+    bloque.appendChild(fecha);
+
+    const fichas = document.createElement('div');
+    fichas.className = 'pa-cal-fichas';
+
+    if (!total) {
+      const nada = document.createElement('span');
+      nada.className = 'pa-vacio';
+      nada.style.fontSize = '0.78rem';
+      nada.textContent = 'Sin horarios.';
+      fichas.appendChild(nada);
     }
-    fila.appendChild(quien);
 
-    const acciones = document.createElement('div');
-    acciones.className = 'pa-acciones';
+    // Lo tomado primero: es lo que Seba busca cuando abre esta pantalla.
+    for (const t of d.turnos) {
+      const f = ficha('tomado', `${soloHora(t.inicio)} ${t.nombre || t.email || 'sin nombre'}`);
+      if (!t.enCalendario) {
+        f.classList.add('sin-calendario');
+        f.title = 'No está en tu calendario: anotalo a mano.';
+      } else {
+        f.title = `${t.deSerie ? 'Sesión' : 'Consulta'} · ${t.email || ''} · tocá para moverlo`;
+      }
+      if (turnoElegido && turnoElegido.id === t.id) f.classList.add('elegido');
+      hacerBoton(f, () => elegirTurno(t));
+      fichas.appendChild(f);
+    }
+    // Un horario que está libre para los dos tipos aparece una vez, como
+    // consulta: ofrecerlo dos veces llenaría el día de fichas repetidas y
+    // esconde lo que importa, que es dónde entra una de dos horas.
+    const paraConsulta = new Set(d.consultas);
+    const libre = (clase, iso, texto) => {
+      const f = ficha(clase, texto);
+      if (turnoElegido) {
+        f.classList.add('destino');
+        hacerBoton(f, () => moverTurnoA(iso));
+      }
+      return f;
+    };
+    for (const iso of d.consultas) fichas.appendChild(libre('consulta', iso, `${soloHora(iso)} · 2 h`));
+    for (const iso of d.sesiones) {
+      if (paraConsulta.has(iso)) continue;
+      fichas.appendChild(libre('sesion', iso, `${soloHora(iso)} · 1 h`));
+    }
+    for (const g of d.guardados) {
+      const f = ficha('guardado', `${soloHora(g.desde)}–${soloHora(g.hasta)} guardado`);
+      if (g.motivo) f.title = g.motivo;
+      fichas.appendChild(f);
+    }
+    for (const iso of d.extraordinarios) fichas.appendChild(ficha('extra', `${soloHora(iso)} extraordinario`));
 
-    const mover = document.createElement('button');
-    mover.type = 'button';
-    mover.className = 'pa-mini';
-    mover.textContent = 'Mover';
-    mover.addEventListener('click', () => moverTurno(t));
-    acciones.appendChild(mover);
-
-    const cancelar = document.createElement('button');
-    cancelar.type = 'button';
-    cancelar.className = 'pa-mini';
-    cancelar.textContent = 'Cancelar';
-    cancelar.addEventListener('click', () => cancelarTurno(t));
-    acciones.appendChild(cancelar);
-
-    fila.appendChild(acciones);
-    caja.appendChild(fila);
+    bloque.appendChild(fichas);
+    caja.appendChild(bloque);
   }
 }
 
+function ficha(clase, texto) {
+  const f = document.createElement('span');
+  f.className = `pa-ficha ${clase}`;
+  f.textContent = texto;
+  return f;
+}
+
+// Una ficha se vuelve tocable recién cuando hace algo. Se le pone rol y
+// teclado a mano porque es un span: un botón de verdad traería su propio
+// relleno y su propia tipografía, y habría que desarmárselos.
+function hacerBoton(elemento, alTocar) {
+  elemento.setAttribute('role', 'button');
+  elemento.setAttribute('tabindex', '0');
+  elemento.style.cursor = 'pointer';
+  elemento.addEventListener('click', alTocar);
+  elemento.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alTocar(); }
+  });
+}
+
+// -------------------------------------------------------
+// Mover y cancelar, desde el propio calendario
+//
+// Antes mover un turno era escribir "2026-12-03T16:00" en un window.prompt.
+// Ahora se toca el turno y después el horario nuevo: los horarios libres ya
+// están en pantalla, así que pedirlos tipeados era pedir que adivine algo
+// que tiene delante.
+// -------------------------------------------------------
 async function cancelarTurno(t) {
   if (!window.confirm(`¿Cancelar el turno de ${t.nombre || t.email} del ${fechaLarga(t.inicio)}? Le va a llegar un mail avisándole.`)) return;
   try {
@@ -132,22 +291,22 @@ async function cancelarTurno(t) {
   }
 }
 
-async function moverTurno(t) {
-  const actual = t.inicio.slice(0, 16);
-  const nuevo = window.prompt(
-    'Nueva fecha y hora, en hora de Argentina (formato AAAA-MM-DDTHH:MM):', actual
-  );
-  if (!nuevo) return;
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(nuevo.trim())) {
-    avisar('El formato tiene que ser AAAA-MM-DDTHH:MM, por ejemplo 2026-12-03T16:00.', 'error');
-    return;
-  }
+function elegirTurno(t) {
+  turnoElegido = turnoElegido && turnoElegido.id === t.id ? null : t;
+  pintarCalendario(ultimoCalendario);
+}
+
+async function moverTurnoA(inicioISO) {
+  const t = turnoElegido;
+  if (!t) return;
+  if (!window.confirm(`¿Mover el turno de ${t.nombre || t.email} al ${fechaLarga(inicioISO)}? Le va a llegar un mail con la fecha nueva.`)) return;
   try {
     // Al admin no se le aplican las franjas ni la anticipación: solo se
     // controla que no se pise con algo que ya tenga en el calendario.
-    await llamar({ accion: 'mover', turnoId: t.id, inicio: `${nuevo.trim()}:00-03:00` });
+    await llamar({ accion: 'mover', turnoId: t.id, inicio: inicioISO });
+    turnoElegido = null;
     avisar('Turno movido. A la persona le llegó el mail con la fecha nueva.', 'ok');
-    await recargar();
+    await cargarCalendario();
   } catch (e) {
     avisar(e.message === 'slot_ocupado'
       ? 'Ese horario se pisa con otra cosa de tu calendario.'
@@ -512,10 +671,12 @@ function pintarSeries() {
     const acciones = document.createElement('div');
     acciones.className = 'pa-serie-acciones';
 
+    acciones.appendChild(boton('Editar', () => editarSerie(s)));
     acciones.appendChild(boton('Mandarle el enlace', () => mandarEnlace(s, true)));
     acciones.appendChild(boton('Ver el enlace', () => mandarEnlace(s, false)));
     acciones.appendChild(boton('Estirar sus encuentros', () => estirarSerie(s)));
     acciones.appendChild(boton(s.estado === 'pausada' ? 'Reactivar' : 'Pausar', () => pausarSerie(s)));
+    acciones.appendChild(boton('Borrar', () => borrarSerie(s)));
 
     ficha.appendChild(acciones);
     caja.appendChild(ficha);
@@ -531,7 +692,53 @@ function boton(texto, alTocar) {
   return b;
 }
 
+// Editar es el mismo formulario de arriba, precargado. Mientras hay alguien
+// en edición el botón cambia de texto, porque si no se parece demasiado a
+// estar sumando a otra persona.
+let editando = null;
+
+function editarSerie(s) {
+  editando = s.id;
+  $('pa-se-nombre').value = s.nombre || '';
+  $('pa-se-email').value = s.email || '';
+  $('pa-se-telefono').value = s.telefono || '';
+  $('pa-se-dia').value = String(s.diaSemana);
+  $('pa-se-hora').value = s.hora || '';
+  $('pa-se-ancla').value = s.ancla || '';
+  $('pa-se-modalidad').value = s.modalidad || 'Online';
+  $('pa-btn-crear-serie').textContent = 'Guardar los cambios';
+  $('pa-se-aviso').hidden = false;
+  $('pa-nueva-serie').open = true;
+  $('pa-nueva-serie').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function salirDeEdicion() {
+  editando = null;
+  for (const id of ['pa-se-nombre', 'pa-se-email', 'pa-se-telefono', 'pa-se-ancla']) $(id).value = '';
+  $('pa-btn-crear-serie').textContent = 'Sumar y tomar sus encuentros';
+  $('pa-se-aviso').hidden = true;
+}
+
+async function borrarSerie(s) {
+  const cuantos = s.encuentros.length;
+  const texto = cuantos
+    ? `¿Borrar a ${s.nombre || s.email}? Se le cancelan ${cuantos} encuentro${cuantos === 1 ? '' : 's'} y se sacan de tu calendario. Su enlace deja de funcionar.`
+    : `¿Borrar a ${s.nombre || s.email}? Su enlace deja de funcionar.`;
+  if (!window.confirm(texto)) return;
+  try {
+    const r = await llamar({ accion: 'borrarSerie', id: s.id });
+    avisar(r.cancelados
+      ? `Borrada. Se cancelaron ${r.cancelados} encuentro${r.cancelados === 1 ? '' : 's'}.`
+      : 'Borrada.', 'ok');
+    if (editando === s.id) salirDeEdicion();
+    await cargarSeries();
+  } catch (e) {
+    avisar(`No se pudo borrar: ${mensajeDeSerie(e)}`, 'error');
+  }
+}
+
 async function crearSerie() {
+  if (editando) return guardarSerieEditada();
   const boton = $('pa-btn-crear-serie');
   boton.disabled = true;
   try {
@@ -565,6 +772,33 @@ async function crearSerie() {
     await cargarSeries();
   } catch (e) {
     avisar(`No se pudo sumar: ${mensajeDeSerie(e)}`, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+async function guardarSerieEditada() {
+  const boton = $('pa-btn-crear-serie');
+  boton.disabled = true;
+  try {
+    await llamar({
+      accion: 'guardarSerie',
+      id: editando,
+      serie: {
+        nombre: $('pa-se-nombre').value.trim(),
+        email: $('pa-se-email').value.trim(),
+        telefono: $('pa-se-telefono').value.trim(),
+        diaSemana: Number($('pa-se-dia').value),
+        hora: $('pa-se-hora').value,
+        ancla: $('pa-se-ancla').value,
+        modalidad: $('pa-se-modalidad').value,
+      },
+    });
+    avisar('Guardado. Los encuentros que ya estaban tomados siguen donde estaban.', 'ok');
+    salirDeEdicion();
+    await cargarSeries();
+  } catch (e) {
+    avisar(`No se pudo guardar: ${mensajeDeSerie(e)}`, 'error');
   } finally {
     boton.disabled = false;
   }
@@ -646,7 +880,11 @@ async function cargarPrevia() {
   boton.disabled = true;
   boton.textContent = 'Buscando horarios...';
   try {
-    const data = await llamar({ accion: 'previsualizar', modalidad: $('pa-previa-modalidad').value });
+    const data = await llamar({
+      accion: 'previsualizar',
+      modalidad: $('pa-previa-modalidad').value,
+      tipo: $('pa-previa-tipo').value,
+    });
     const marco = $('pa-previa-marco');
     marco.hidden = false;
     // Con el cache-buster, volver a apretar el boton recarga de verdad.
@@ -789,6 +1027,16 @@ $('pa-btn-bloquear').addEventListener('click', bloquear);
 $('pa-btn-previa').addEventListener('click', cargarPrevia);
 
 $('pa-btn-crear-serie').addEventListener('click', crearSerie);
+$('pa-btn-publicar').addEventListener('click', publicar);
+$('pa-btn-descartar').addEventListener('click', descartar);
+$('pa-cal-antes').addEventListener('click', () => {
+  calDesde = sumarDiasISO(calDesde || hoyISO(), -CAL_DIAS);
+  cargarCalendario();
+});
+$('pa-cal-despues').addEventListener('click', () => {
+  calDesde = sumarDiasISO(calDesde || hoyISO(), CAL_DIAS);
+  cargarCalendario();
+});
 
 // La vista previa de la cadencia se rehace con cualquier cosa que la cambie:
 // el número, las duraciones, el aire, y las franjas (que le dan el ejemplo).
