@@ -1,8 +1,14 @@
 # Plan de SEO y velocidad de sebabru.com
 
-**Actualizado: 19/11/2026, de noche** (segunda vuelta del dia: la de la
-maniana quedo vieja a las pocas horas). Reemplaza la version del 18/11 y la
-auditoria `AUDITORIA-SEO.md` del 13/11, las dos vencidas.
+**Actualizado: 23/11/2026.** Reemplaza la version del 18/11 y la auditoria
+`AUDITORIA-SEO.md` del 13/11, las dos vencidas. El cuerpo del plan (secciones
+1 a 10) se escribio el 19/11 de noche; las secciones 11 a 15 son posteriores y
+**mandan sobre lo de arriba** cuando se contradicen.
+
+**Esto no es solo documentacion: es una dependencia.** Desde el 22/11 las tres
+routines agendadas clonan el repo y leen este archivo como fuente de verdad
+(ver el final de la seccion 3). Un pendiente que quedo viejo aca se convierte
+en un mail que manda a hacer trabajo que no existe.
 
 Para quien lo continue en otra sesion: todo lo que esta abajo se midio, no se
 dedujo. Las reglas de trabajo estan al final y **conviene leerlas antes de
@@ -77,8 +83,8 @@ Espania: 106 impresiones y 16 clics, pero la posicion media se fue de 8,35 a
 | | |
 |---|---|
 | Paginas indexables | 239 (241 con las dos lunaciones fechadas del 19/11 a la noche) |
-| `/carta-natal/` | 196 paginas generadas; ninguna por debajo de 9 KB (la mas chica, 11,2 KB). Por palabras quedan 28 hojas finas, casi todas de Mercurio y Venus |
-| `/signos/` | 9 de 12 (faltan capricornio, acuario, piscis) |
+| `/carta-natal/` | 196 paginas generadas (197 con la madre); ninguna por debajo de 9 KB (la mas chica, 11,2 KB). **Corregido el 23/11:** aca decia "28 hojas finas, casi todas de Mercurio y Venus" y era falso — los textos cortos son todos de casas (seccion 15) |
+| `/signos/` | 9 de 12. Faltan capricornio, acuario y piscis, y lo que les falta es su casa (10, 11 y 12), no los cortos de Sol y Luna |
 | `meta description` | **235 de 239.** Faltan 4: `/carta-natal/casas/`, `/carta-natal/casas/casa-1/`, `/Mey/` y `/tu-identidad-en-el-cielo/ebook/contenido.html` |
 | JSON-LD | home, `/programa/`, `/libros/`, las 8 aulas de `/escuela/abierta/`, las 196 de `/carta-natal/`, las 4 de lunaciones |
 | `BreadcrumbList` | 208 paginas |
@@ -143,14 +149,23 @@ al menos un tercio de las consultas no sean el nombre de Seba.
 
 | Cuando | Que |
 |---|---|
-| Esta semana | Confirmar en Search Console que el `sitemap.xml` esta **enviado**, no solo publicado |
+| Cuando | Que |
+|---|---|
 | Esta semana | Exportar los ultimos 3 meses de Rendimiento a CSV, a `C:\dev\scratch` |
 | Esta semana | Mirar Indexacion -> Paginas: cuantas de las 196 de `/carta-natal/` entraron |
-| Diciembre | **Los 36 textos de casa en capricornio, acuario y piscis** (ver seccion 2) |
+| Diciembre | **Los 36 textos de casa en capricornio, acuario y piscis.** Es el UNICO pendiente de texto que le queda al sitio (medido el 23/11, seccion 15). Destraba `INCLUIR_CASAS` en la calculadora y las 3 paginas que faltan en `/signos/` |
 | Diciembre | La `bajada` de `/carta-natal/casas/`, el indice de las doce (`casa-1` ya quedo resuelta) |
-| Enero | Los 28 textos finos de `/carta-natal/`, casi todos de Mercurio y Venus |
-| Enero | Capricornio, acuario y piscis en `/signos/`, que necesitan los 8 cortos de Sol y Luna |
 | Cuando corra | Mirar la grilla de Instagram de la home, que la arma sola una Action |
+
+**El sitemap ya esta enviado** en Search Console (confirmado por Seba el
+23/11). No volver a pedirlo.
+
+**No pedir mas textos de los otros puntos.** Habia aca dos filas, "los 28
+textos finos de Mercurio y Venus" y "capricornio, acuario y piscis en
+`/signos/` necesitan los 8 cortos de Sol y Luna". **Las dos eran falsas**: se
+escribieron a ojo y la auditoria del 23/11 las refuto (seccion 15). Decision de
+Seba ese dia: los puntos que ya tienen texto se usan **con el largo que
+tienen**.
 
 ### Lo que es trabajo de Claude, sin bloqueos
 
@@ -168,24 +183,51 @@ consumiendola. Queda:
    nada equivalente, y un 301 a una pagina que no responde a lo que buscaban es
    un soft 404: peor que el 404 honesto. Si alguna tuvo sucesora, es una regla
    de un minuto.
-2. Que `/cartas/` enlace a `/carta-natal/`, con `WebApplication` schema y una
-   pagina de presentacion orientada a busqueda. Ojo: otro repo
-   (`C:\dev	ucarta`) y otro deploy. Es el item de mayor retorno del mediano
-   plazo.
+2. **Que `/cartas/` enlace a `/carta-natal/`: HECHO.** Salio con la v1.23.0 de
+   la calculadora (seccion 14) y Seba lo confirmo en vivo el 23/11. Era el item
+   de mayor retorno y ya no esta abierto.
 3. **Font Awesome: sacado de todo el sitio el 19/11 a la noche.** Ver la
    seccion 10.
+
+**Lo unico abierto de mi lado, al 23/11:** enlazar el ultimo episodio del Kit
+desde el carrusel de `#podcast` de la home, para que `/kit/69/` tenga mas de un
+enlace interno (hoy tiene uno, la madre). No se hizo porque **toca la home**,
+que es el recorrido por scroll y es delicada.
 
 ### 16/12/2026 — revision
 
 Volver a medir CrUX y comparar contra la tabla de arriba. Es la primera vez que
 se va a poder decir si algo de esto sirvio.
 
-**Esto ya no depende de que alguien se acuerde.** Desde el 19/11 hay dos
-recordatorios agendados que corren solos en la nube y llegan por mail:
-`trig_019neTVnHuX4f7JmMjiW8rpd` el 16/12 (mide CrUX, compara contra la tabla de
-la seccion 1 y pide los exports de Search Console) y
-`trig_01K8DPq1v1qazsKrXkU2gCn6` el 28/11 (DMARC a `p=reject`). Se administran
-en https://claude.ai/code/routines
+**Esto ya no depende de que alguien se acuerde.** Hay **tres** routines que
+corren solas en la nube y llegan por mail. Se administran en
+https://claude.ai/code/routines
+
+| Routine | Cuando | Que hace |
+|---|---|---|
+| `trig_01K8DPq1v1qazsKrXkU2gCn6` | 28/11 | DMARC a `p=reject` |
+| `trig_019neTVnHuX4f7JmMjiW8rpd` | 16/12 | Mide CrUX, compara contra la tabla de la seccion 1, pide los exports de Search Console y lista los pendientes de este plan |
+| `trig_01K7ETMYMfzFDVVTU2P6ezRL` | el 1 de cada mes | Busca frases literales de los textos en la web. **Si no encuentra nada no escribe**: el silencio es el resultado esperado. Si falla, si escribe |
+
+**Las tres clonan el repo y leen este archivo** (se les puso el `sources` el
+22/11; antes corrian sin repo por una nota vieja que decia que GitHub no estaba
+conectado). Por eso el plan tiene que estar al dia.
+
+Tres cosas que cuestan tiempo si no se saben, probadas el 22/11:
+
+1. **Un `update` de `job_config` reemplaza el objeto entero**, no hace merge:
+   hay que reenviar `environment_id`, `session_context` y `events` completos o
+   se pierde el prompt. `mcp_connections` si se puede actualizar solo, y el
+   cron y el `run_once_at` sobreviven.
+2. **El `connector_uuid` de Gmail puede quedar viejo.** Las dos de noviembre
+   apuntaban a uno que ya no figuraba en la cuenta. Una routine asi corre, mide
+   bien y despues **no puede mandar el mail**, que es lo unico que hace. Al
+   crear o revisar una, comparar el uuid contra el que lista la skill
+   `schedule` ese dia.
+3. **Para comprobar que una routine puede clonar el repo no hay que esperar al
+   cron:** crear una de un solo uso con `run_once_at` lejano, dispararla con
+   `RemoteTrigger action: "run"` y leer el log con `list_runs` + `get_run_log`.
+   Si el clonado falla, no llega a crear sesion.
 
 ---
 
@@ -429,6 +471,11 @@ descubrio la URL, no una pagina sin canonical. No hay nada que arreglar.
    dias: sin bump del `?v=`, el cambio no llega.
 9. **Nunca inventar ni rellenar texto de contenido.** Los textos los escribe
    Seba.
+10. **Un pendiente de este plan tambien se mide.** Las dos filas de textos que
+    se borraron el 23/11 ("los 28 textos finos de Mercurio y Venus" y "los 8
+    cortos de Sol y Luna") se habian escrito a ojo. Eran falsas, y mandaban a
+    buscar trabajo que ya estaba hecho mientras tapaban el unico que falta de
+    verdad. Antes de escribir un pendiente aca: contarlo.
 
 ---
 
@@ -633,10 +680,16 @@ regla 5, verificada sobre el HTML final y no sobre el texto de entrada.
 
 | Que | Por que |
 |---|---|
-| **Aprobar el `<title>` y la `description` de `/kit/`** | Son las dos unicas frases de todo esto que no son de Seba. Hoy: `Kit astrológico: los tránsitos de cada semana \| Seba Bru` y `El podcast Kit astrológico para habitar la Tierra: los tránsitos de cada semana, episodio por episodio, y qué moviliza en cada casa de tu carta natal.` |
 | **El texto del formulario de `/kit/`** | Dice "el material de abajo lo podés usar igual". Las 12 casas se mudaron a `/kit/19/`, asi que "abajo" ahora es el listado de episodios. No se toco: es texto de contenido |
 | **Los episodios 20 a 68** | Si guarda esos mailings, cada uno es un `node kit-paginas.js`. No es requisito: el flujo ya acumula de aca en adelante |
 | **Pedir indexacion de `/kit/69/`** | En Search Console, una vez |
+
+**El `<title>` y la `description` de `/kit/` ya no son un pendiente.** Habia
+aca una fila que pedia aprobarlos porque eran las dos unicas frases que no eran
+de Seba. El commit `f33ddac` del 20/11 las reemplazo por las del podcast, que
+son suyas: estan transcriptas en la **seccion 13** y verificadas en vivo el
+23/11 contra `sebabru.com/kit/`. La fila sobrevivio un dia de mas porque este
+plan no se actualizo cuando se hizo el cambio.
 
 ### Lo que conviene mirar
 
@@ -754,3 +807,87 @@ El clic al enlace manda el evento `carta_natal_abierta` a GA4, con la posicion.
 abre los desplegables o nadie clickea, el problema es la invitacion y no el
 enlazado. El **16/12**, junto con lo ya agendado: mirar si las 196 pasaron de
 cero impresiones.
+
+---
+
+## 15. Que se hizo el 22 y 23/11/2026
+
+### La auditoria de los textos, con los numeros
+
+Se midieron los 264 JSON de `public/textos/signos/`. **Cero vacios.**
+
+| Punto | Textos | Palabras (min - media - max) |
+|---|---|---|
+| Mercurio | 12/12 | 126 - 205 - 292 |
+| Venus | 12/12 | 132 - 221 - 395 |
+| Sol, Luna, Ascendente | 12/12 cada uno | 143 - 345 - 617 |
+| Los otros 9 puntos | 12/12 cada uno | 166 - 290 - 525 |
+| **Las 12 casas** | **9/12** | 59 - 148 - 387 |
+
+Dos cosas que esto cierra:
+
+- **Mercurio y Venus estan completos y no son los mas cortos.** Los 30 textos
+  mas cortos del sitio son **todos de casas**, sin una sola excepcion. El
+  pendiente de "los 28 textos finos" no existia.
+- **Sol, Luna y Ascendente tienen los 12 signos** en la raiz de
+  `public/textos/`. Lo que les falta a las 3 paginas de `/signos/` no son esos
+  cortos: es su casa.
+
+**Falta exactamente 36**: las 12 casas en capricornio, acuario y piscis.
+
+### Que destraban esos 36
+
+1. **`INCLUIR_CASAS`** en la calculadora, que suma las 12 casas a los
+   desplegables (seccion 14).
+2. **Las 3 paginas de `/signos/` que faltan.** Cada signo lleva adentro su
+   casa: capricornio -> 10, acuario -> 11, piscis -> 12 (`CASA_DE_SIGNO`,
+   `paginas-textos.js:77`). Tres de los 36 son justo esos.
+
+Y un detalle que confunde al mirar el arbol de `/carta-natal/casas/`: las
+paginas de casas **no** son una por casa-y-signo. Son **una por casa con los
+doce signos adentro**, y hoy muestran nueve. Escritos los 36, entran solos con
+una corrida del generador: **no se toca HTML**.
+
+### La proteccion de los textos (22/11)
+
+Los textos estan en la web abierta y no habia ninguna constancia de no
+consentimiento frente a los rastreadores de IA. Se hicieron dos cosas, las dos
+en vivo y verificadas:
+
+1. **`robots.txt`: 19 rastreadores de entrenamiento bloqueados.** Los que se
+   llevan el texto y no devuelven nada: `GPTBot`, `ClaudeBot`, `CCBot`,
+   `Bytespider`, `Google-Extended` y compania.
+   **Los de busqueda con IA NO se bloquearon** (`OAI-SearchBot`,
+   `Claude-SearchBot`, `PerplexityBot` y los fetchers que dispara una persona):
+   esos citan y enlazan, y son la unica forma de aparecer en la respuesta de un
+   asistente.
+   **Y a proposito no tienen grupo propio.** En `robots.txt` gana el grupo mas
+   especifico y gana entero: si se les escribiera `Allow: /`, se escapan del
+   `Disallow: /textos/` que hoy los contiene y quedan rastreables los 236 JSON
+   crudos, duplicando el contenido de `/carta-natal/`. Dejarlos sin mencionar
+   es lo correcto, no un olvido.
+   `Google-Extended` no es un rastreador, es un permiso: cubre el entrenamiento
+   y el grounding de Gemini y **no tiene ningun efecto sobre Google Search ni
+   sobre las AI Overviews**, asi que bloquearlo no cuesta una visita.
+2. **Atribucion al copiar, en `origen.js`.** Copiar mas de 200 caracteres se
+   lleva pegada la firma y la URL de la pagina, en `text/plain` y en
+   `text/html`. Va por el evento `copy` y **no** por texto escondido en el
+   HTML: el texto oculto esta nombrado en las politicas de spam de Google y un
+   lector de pantalla lo lee igual. Esta en `origen.js` porque es el unico JS
+   que cargan las 264 paginas, asi que no hubo que tocar ningun HTML y el
+   proximo regenerado no lo pisa (las 264 pasaron a `?v=2`, y tambien los dos
+   generadores).
+
+**Linea de base de plagio, 22/11/2026:** se buscaron cuatro frases literales
+bien particulares. **Cero copias en toda la web.** De aca en adelante lo vigila
+la routine mensual.
+
+Una advertencia que costo una confusion: el buscador devuelve paginas
+tematicamente parecidas que **no** contienen la frase. Una lista de resultados
+no es un hallazgo; hay que abrir la pagina y ver el texto.
+
+### Lo que no se toco
+
+Esto no frena a una persona que copia y pega a mano, y `robots.txt` no es
+vinculante. Tampoco se puso `nosnippet` ni `noindex` en ningun lado: limitan lo
+que se muestra pero cuestan clics.
