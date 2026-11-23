@@ -41,6 +41,17 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      # El GH_PAT nace con "Secrets: write" y el push necesita ademas
+      # "Contents: write". Si falta, el 403 aparecia al final, despues de
+      # renovar el token y bajar las imagenes (paso el 23/11/2026). Esto lo
+      # corta en cinco segundos y dice que hacer.
+      - name: Verificar que el token pueda pushear
+        run: |
+          git push --dry-run origin HEAD:main || {
+            echo "::error::El GH_PAT no puede pushear a main. Darle Contents: Read and write en https://github.com/settings/personal-access-tokens"
+            exit 1
+          }
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
