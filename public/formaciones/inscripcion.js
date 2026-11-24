@@ -1,7 +1,7 @@
 // Formulario de inscripcion a las formaciones de la escuela.
 //
 // Uno solo para las cuatro paginas (/formaciones/intro/, /lectura/,
-// /pluton/, /transitos/): la logica es idéntica y cuatro copias serian
+// /seminarios3/, /transitos/): la logica es idéntica y cuatro copias serian
 // cuatro lugares donde arreglar el mismo bug. Cada pagina lo parametriza
 // con dos atributos en el <form>:
 //

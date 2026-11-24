@@ -1,6 +1,6 @@
 /* Formulario de inscripcion a las formaciones.
    Compartido por las cuatro paginas (/formaciones/intro/, /lectura/,
-   /pluton/, /transitos/): una sola copia, un solo lugar donde arreglar.
+   /seminarios3/, /transitos/): una sola copia, un solo lugar donde arreglar.
 
    Sale del formulario de consultas (public/consultas/formulario.html), que
    vive dentro de un iframe; aca las paginas son paginas de verdad, asi que
