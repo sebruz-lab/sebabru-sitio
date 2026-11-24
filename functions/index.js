@@ -2114,7 +2114,7 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
 // DNI, direcciones de envio y datos de nacimiento de gente que ni siquiera
 // llego a completar su tramite.
 // -------------------------------------------------------
-const ADMINS_PANEL = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+const ADMINS_PANEL = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
 
 function exigirAdmin(context) {
   if (!context.auth) {
@@ -2166,6 +2166,138 @@ exports.pendientes = functions.https.onCall(async (data, context) => {
 });
 
 // -------------------------------------------------------
+// Los pagos del padron.
+//
+// Un pago es un renglon, no un numero: monto, fecha, medio y a que cuota
+// corresponde. El total pagado se calcula siempre a partir de esos
+// renglones y nunca se tipea, porque un total escrito a mano es
+// exactamente de donde salen las diferencias que no se pueden explicar
+// (la planilla de 2026 tiene $255.000 asi en TERCER ANO).
+//
+// El plan dice cuanto hay que pagar y cuando. De ahi sale el unico estado
+// que importa: al dia o atrasado. Lo calcula el servidor y no el navegador,
+// para que la grilla de un curso y la vista general de deudores cuenten lo
+// mismo.
+// -------------------------------------------------------
+const MEDIOS_PAGO = ['Transferencia', 'Mercado Pago', 'PayPal', 'Efectivo', 'Otro'];
+const TIPOS_DE_PLAN = ['anual', 'semestral', 'mensual'];
+
+// Cuantas cuotas tiene cada tipo y cada cuantos meses vence una.
+const FORMA_DEL_PLAN = {
+  anual: { cuotas: 1, cada: 0 },
+  semestral: { cuotas: 2, cada: 6 },
+  mensual: { cuotas: 8, cada: 1 },
+};
+
+// Lo que eligio en el formulario, traducido a un plan. Es solo el punto de
+// partida: en el panel se puede cambiar persona por persona.
+function planSegunLaFormaDePago(formaPago) {
+  const f = String(formaPago || '');
+  if (f.startsWith('En un solo pago')) return 'anual';
+  if (f.startsWith('Por semestre')) return 'semestral';
+  if (f.startsWith('En 8 cuotas')) return 'mensual';
+  return '';
+}
+
+// 'sv-SE' da la fecha en ISO (2027-03-14) sin armarla a mano, y con la zona
+// de Argentina para que un pago cargado a las 22:00 no quede al dia
+// siguiente.
+function hoyEnArgentina() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Cordoba' });
+}
+function mesActualAR() { return hoyEnArgentina().slice(0, 7); }
+
+function mesValido(mes) { return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || '')); }
+
+function mesSumado(mes, n) {
+  const [anio, m] = String(mes).split('-').map(Number);
+  const total = (m - 1) + n;
+  const anioNuevo = anio + Math.floor(total / 12);
+  const mesNuevo = ((total % 12) + 12) % 12 + 1;
+  return `${anioNuevo}-${String(mesNuevo).padStart(2, '0')}`;
+}
+
+// El plan guardado, completado con lo que falte. Una fila sin plan no es un
+// error: es alguien que todavia no arreglo como paga.
+function planDeLaFila(v) {
+  const guardado = v.plan && typeof v.plan === 'object' ? v.plan : null;
+  const tipo = TIPOS_DE_PLAN.includes(guardado?.tipo)
+    ? guardado.tipo
+    : planSegunLaFormaDePago(v.campos?.formaPago);
+  if (!tipo) return null;
+  const forma = FORMA_DEL_PLAN[tipo];
+  const cuotas = Number.isInteger(guardado?.cuotas) && guardado.cuotas > 0
+    ? Math.min(guardado.cuotas, 24) : forma.cuotas;
+  const total = Number.isFinite(guardado?.total) && guardado.total > 0 ? guardado.total : null;
+  const desde = mesValido(guardado?.desde) ? guardado.desde : '';
+  return { tipo, cuotas, total, desde };
+}
+
+// Los vencimientos que genera un plan. Sin mes de inicio no hay
+// vencimientos: nada puede estar atrasado si no se sabe desde cuando.
+function vencimientosDelPlan(plan) {
+  if (!plan || !plan.desde) return [];
+  const cada = FORMA_DEL_PLAN[plan.tipo].cada;
+  const porCuota = plan.total ? Math.round(plan.total / plan.cuotas) : null;
+  const salida = [];
+  for (let i = 0; i < plan.cuotas; i++) {
+    salida.push({ cuota: i + 1, mes: mesSumado(plan.desde, i * cada), monto: porCuota });
+  }
+  return salida;
+}
+
+// El estado de la plata de una fila. Devuelve siempre la misma forma, con
+// plan o sin plan, para que el panel no tenga que preguntar.
+function deudaDeLaFila(v) {
+  const pagos = Array.isArray(v.pagos) ? v.pagos : [];
+  const pagado = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+  const plan = planDeLaFila(v);
+  const base = {
+    tipo: plan?.tipo || '', cuotas: plan?.cuotas || 0, total: plan?.total ?? null,
+    desde: plan?.desde || '', pagado, saldo: plan?.total ? plan.total - pagado : null,
+    cuotasPagas: 0, cuotasPendientes: [], adeudaEsteMes: false,
+    mesHoy: mesActualAR(), estado: plan ? 'sin_fecha' : 'sin_plan',
+  };
+  if (!plan || !plan.desde) return base;
+
+  const vencimientos = vencimientosDelPlan(plan);
+  // Lo cobrado por cuota. Un pago con cuota en null es un pago suelto:
+  // suma al total pero no cancela ninguna cuota, y se ve como tal.
+  const porCuota = {};
+  for (const p of pagos) {
+    const c = Number(p.cuota);
+    if (!Number.isInteger(c) || c < 1) continue;
+    porCuota[c] = (porCuota[c] || 0) + (Number(p.monto) || 0);
+  }
+
+  const pendientes = [];
+  let pagas = 0;
+  for (const venc of vencimientos) {
+    const cobrado = porCuota[venc.cuota] || 0;
+    // Sin monto esperado alcanza con que haya un pago anotado: es el caso
+    // de quien arreglo un precio que todavia no esta cargado.
+    const saldada = venc.monto ? cobrado >= venc.monto : cobrado > 0;
+    if (saldada) { pagas++; continue; }
+    pendientes.push({
+      cuota: venc.cuota, mes: venc.mes, monto: venc.monto,
+      cobrado, vencida: venc.mes <= base.mesHoy,
+    });
+  }
+
+  const vencidas = pendientes.filter(p => p.vencida);
+  let estado;
+  if (!pendientes.length) estado = 'pagado';
+  else if (vencidas.length) estado = 'atrasado';
+  else estado = 'al_dia';
+
+  return {
+    ...base, cuotasPagas: pagas, cuotasPendientes: pendientes, estado,
+    // El mes corriente, que es la pregunta de la vista general.
+    adeudaEsteMes: vencidas.length > 0,
+  };
+}
+
+// -------------------------------------------------------
 // adminPadron: el padron de estudiantes, para la pestana del panel.
 //
 // Va por callable y no por lectura directa de Firestore como el resto del
@@ -2209,6 +2341,11 @@ function filaDePadronParaElPanel(doc, conNacimiento) {
     campos: v.campos || {},
     pagado: v.pagado || 0,
     plan: v.plan ?? null,
+    pagos: (Array.isArray(v.pagos) ? v.pagos : []).slice()
+      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))),
+    // La cuenta la hace el servidor, no el navegador: asi la grilla de un
+    // curso y la vista general de deudores dicen lo mismo.
+    deuda: deudaDeLaFila(v),
     aulaDada: Boolean(v.aulaDada),
     tieneCarta: Boolean(v.nacimiento && v.nacimiento.fecha && v.nacimiento.hora),
     nacimiento: conNacimiento ? (v.nacimiento || null) : null,
@@ -2377,6 +2514,257 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     return { ok: true, estado: despues };
   }
 
+  // Editar una celda. El mail no se puede cambiar y es a proposito: el id
+  // del documento se deriva de el, asi que cambiarlo seria crear otra fila
+  // y dejar la vieja dando vueltas. Para eso esta la baja y un alta nueva.
+  if (accion === 'editarCampo') {
+    const filaId = String(data?.filaId || '').trim();
+    const key = String(data?.key || '').trim();
+    if (!filaId || !key) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila o el campo.');
+
+    if (key === 'email' || key === 'emailNorm') {
+      throw new functions.https.HttpsError('failed-precondition',
+        'La dirección de mail no se edita: es la clave de la fila. Dale de baja y anotala de nuevo.');
+    }
+
+    const filaRef = _db.collection('padron').doc(filaId);
+    const fila = await filaRef.get();
+    if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+    const v = fila.data();
+
+    const PROPIOS = { nombre: 200, telefono: 50 };
+    const parche = {
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: quien,
+    };
+    const valor = sanitizeTexto(data?.valor, 2000);
+    let antes;
+
+    if (Object.prototype.hasOwnProperty.call(PROPIOS, key)) {
+      antes = v[key] || '';
+      parche[key] = sanitizeTexto(data?.valor, PROPIOS[key]);
+      if (key === 'nombre') {
+        if (!parche.nombre) throw new functions.https.HttpsError('invalid-argument', 'El nombre no puede quedar vacío.');
+        parche.nombreNorm = nombreNormalizado(parche.nombre);
+      }
+    } else {
+      // Cualquier otra cosa es una columna, y vive en campos[key]. Nunca
+      // como campo de primer nivel: por eso agregar una columna no migra
+      // ningun documento.
+      antes = v.campos?.[key] ?? '';
+      parche.campos = { [key]: valor };
+    }
+
+    await filaRef.set(parche, { merge: true });
+    await anotarMovimientoDePadron(filaId, `editar:${key}`, antes, parche.campos ? valor : parche[key], quien);
+    const doc = await filaRef.get();
+    return { ok: true, fila: filaDePadronParaElPanel(doc, data?.conNacimiento === true) };
+  }
+
+  // El plan de pago de una persona: cuanto, en cuantas cuotas y desde que
+  // mes. Sin mes de inicio nada puede estar atrasado, asi que el mes de
+  // inicio es lo que enciende la cuenta de atrasos.
+  if (accion === 'guardarPlan') {
+    const filaId = String(data?.filaId || '').trim();
+    if (!filaId) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila.');
+    const tipo = String(data?.tipo || '').trim();
+    if (tipo && !TIPOS_DE_PLAN.includes(tipo)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese tipo de plan no existe.');
+    }
+    const desde = String(data?.desde || '').trim();
+    if (desde && !mesValido(desde)) {
+      throw new functions.https.HttpsError('invalid-argument', 'El mes de inicio va como 2027-03.');
+    }
+    const total = data?.total === null || data?.total === '' ? null : Number(data?.total);
+    if (total !== null && (!Number.isFinite(total) || total < 0 || total > 1e12)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese total no es un número.');
+    }
+    const cuotasPedidas = data?.cuotas === null || data?.cuotas === '' ? null : Number(data?.cuotas);
+    if (cuotasPedidas !== null && (!Number.isInteger(cuotasPedidas) || cuotasPedidas < 1 || cuotasPedidas > 24)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Las cuotas van de 1 a 24.');
+    }
+
+    const filaRef = _db.collection('padron').doc(filaId);
+    const fila = await filaRef.get();
+    if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+    const antes = fila.data().plan ?? null;
+    const plan = tipo
+      ? { tipo, total, cuotas: cuotasPedidas || FORMA_DEL_PLAN[tipo].cuotas, desde }
+      : null;
+
+    await filaRef.set({
+      plan,
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: quien,
+    }, { merge: true });
+    await anotarMovimientoDePadron(filaId, 'guardarPlan', antes, plan, quien);
+    const doc = await filaRef.get();
+    return { ok: true, fila: filaDePadronParaElPanel(doc, data?.conNacimiento === true) };
+  }
+
+  // Anotar un pago. En transaccion porque `pagos` es un arreglo y dos
+  // pestanas abiertas al mismo tiempo se pisarian: un pago perdido es
+  // plata que la persona pago y que el panel dice que debe.
+  if (accion === 'registrarPago') {
+    const filaId = String(data?.filaId || '').trim();
+    if (!filaId) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila.');
+    const monto = Number(data?.monto);
+    if (!Number.isFinite(monto) || monto <= 0 || monto > 1e12) {
+      throw new functions.https.HttpsError('invalid-argument', 'El monto tiene que ser un número mayor que cero.');
+    }
+    const fecha = String(data?.fecha || '').trim() || hoyEnArgentina();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      throw new functions.https.HttpsError('invalid-argument', 'La fecha va como 2027-03-14.');
+    }
+    const medio = String(data?.medio || '').trim();
+    if (medio && !MEDIOS_PAGO.includes(medio)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese medio de pago no está en la lista.');
+    }
+    const cuotaPedida = data?.cuota === null || data?.cuota === '' ? null : Number(data?.cuota);
+    if (cuotaPedida !== null && (!Number.isInteger(cuotaPedida) || cuotaPedida < 1 || cuotaPedida > 24)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Esa cuota no existe.');
+    }
+
+    const pago = {
+      id: crypto.randomBytes(8).toString('hex'),
+      monto, fecha, medio: medio || 'Otro',
+      cuota: cuotaPedida,
+      nota: sanitizeTexto(data?.nota, 300),
+      por: quien,
+      creado: new Date().toISOString(),
+    };
+
+    const filaRef = _db.collection('padron').doc(filaId);
+    await _db.runTransaction(async (tx) => {
+      const fila = await tx.get(filaRef);
+      if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+      const pagos = Array.isArray(fila.data().pagos) ? fila.data().pagos.slice() : [];
+      pagos.push(pago);
+      // `pagado` es un derivado y se recalcula entero: nunca un += que
+      // pueda quedar desfasado de los renglones que se ven.
+      const pagado = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+      tx.set(filaRef, {
+        pagos, pagado,
+        actualizado: admin.firestore.FieldValue.serverTimestamp(),
+        actualizadoPor: quien,
+      }, { merge: true });
+    });
+
+    await anotarMovimientoDePadron(filaId, 'registrarPago', null, pago, quien);
+    const doc = await filaRef.get();
+    return { ok: true, fila: filaDePadronParaElPanel(doc, data?.conNacimiento === true) };
+  }
+
+  // Borrar un pago mal cargado. Queda en padron_movimientos con el renglon
+  // completo: la plata que se saca de la cuenta tiene que poder rastrearse.
+  if (accion === 'borrarPago') {
+    const filaId = String(data?.filaId || '').trim();
+    const pagoId = String(data?.pagoId || '').trim();
+    if (!filaId || !pagoId) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila o el pago.');
+
+    const filaRef = _db.collection('padron').doc(filaId);
+    const borrado = await _db.runTransaction(async (tx) => {
+      const fila = await tx.get(filaRef);
+      if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+      const pagos = Array.isArray(fila.data().pagos) ? fila.data().pagos : [];
+      const quedan = pagos.filter(p => p.id !== pagoId);
+      if (quedan.length === pagos.length) {
+        throw new functions.https.HttpsError('not-found', 'Ese pago ya no está.');
+      }
+      const pagado = quedan.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+      tx.set(filaRef, {
+        pagos: quedan, pagado,
+        actualizado: admin.firestore.FieldValue.serverTimestamp(),
+        actualizadoPor: quien,
+      }, { merge: true });
+      return pagos.find(p => p.id === pagoId) || null;
+    });
+
+    await anotarMovimientoDePadron(filaId, 'borrarPago', borrado, null, quien);
+    const doc = await filaRef.get();
+    return { ok: true, fila: filaDePadronParaElPanel(doc, data?.conNacimiento === true) };
+  }
+
+  // Una columna nueva, sin deploy. La clave se deriva del titulo una sola
+  // vez y despues no se vuelve a tocar: renombrar la columna no pierde los
+  // datos que ya tiene cargados.
+  if (accion === 'agregarColumna') {
+    const cursoId = String(data?.cursoId || '').trim();
+    const label = sanitizeTexto(data?.label, 80);
+    if (!cursoId || !label) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso o el título.');
+    const tipo = ['texto', 'nota', 'numero'].includes(data?.tipo) ? data.tipo : 'texto';
+
+    const key = nombreNormalizado(label).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+    if (!key) throw new functions.https.HttpsError('invalid-argument', 'Ese título no sirve como columna.');
+
+    const colRef = _db.collection('padron_columnas').doc(cursoId);
+    await _db.runTransaction(async (tx) => {
+      const doc = await tx.get(colRef);
+      const columnas = doc.exists ? (doc.data().columnas || []) : [];
+      if (columnas.some(c => c.key === key)) {
+        throw new functions.https.HttpsError('already-exists', 'Ya hay una columna con ese título.');
+      }
+      const orden = columnas.reduce((a, c) => Math.max(a, c.orden || 0), 0) + 1;
+      columnas.push({ key, label, tipo, opciones: [], orden, oculta: false });
+      tx.set(colRef, { cursoId, columnas }, { merge: true });
+    });
+
+    await anotarMovimientoDePadron(`columnas:${cursoId}`, 'agregarColumna', null, { key, label, tipo }, quien);
+    const doc = await colRef.get();
+    return { ok: true, columnas: (doc.data().columnas || []).filter(c => !c.oculta) };
+  }
+
+  // La vista rapida. Dos preguntas en una sola lectura: como viene cada
+  // formacion, y quien de todas las formaciones adeuda el mes.
+  if (accion === 'resumen') {
+    const snap = await _db.collection('padron').limit(2000).get();
+    const porCurso = {};
+    const deudores = [];
+    const nombres = Object.fromEntries(FORMACIONES_ESCUELA.map(f => [f.cursoId, f.nombre]));
+
+    for (const d of snap.docs) {
+      const v = d.data();
+      const cursoId = v.cursoId || 'sin_curso';
+      const c = porCurso[cursoId] || (porCurso[cursoId] = {
+        cursoId, nombreCurso: nombres[cursoId] || cursoId,
+        total: 0, activos: 0, bajas: 0, alDia: 0, atrasados: 0,
+        anualPagado: 0, sinPlan: 0, sinFecha: 0, cobrado: 0, aCobrar: 0,
+      });
+      c.total++;
+      if ((v.estado || 'activo') === 'baja') { c.bajas++; continue; }
+      c.activos++;
+
+      const deuda = deudaDeLaFila(v);
+      c.cobrado += deuda.pagado;
+      if (deuda.total) c.aCobrar += deuda.total;
+
+      if (deuda.estado === 'sin_plan') c.sinPlan++;
+      else if (deuda.estado === 'sin_fecha') c.sinFecha++;
+      else if (deuda.estado === 'pagado') {
+        // "Anual pagado" es el que pediste ver aparte: pago todo de una.
+        if (deuda.tipo === 'anual') c.anualPagado++; else c.alDia++;
+      } else if (deuda.estado === 'al_dia') c.alDia++;
+      else if (deuda.estado === 'atrasado') {
+        c.atrasados++;
+        const vencidas = deuda.cuotasPendientes.filter(p => p.vencida);
+        deudores.push({
+          id: d.id, cursoId, nombreCurso: c.nombreCurso,
+          nombre: v.nombre || '', email: v.email || '', telefono: v.telefono || '',
+          tipo: deuda.tipo, pagado: deuda.pagado, saldo: deuda.saldo,
+          cuotasVencidas: vencidas.map(p => ({ cuota: p.cuota, mes: p.mes, monto: p.monto })),
+          desdeMes: vencidas.length ? vencidas[0].mes : '',
+        });
+      }
+    }
+
+    const cursos = Object.values(porCurso).sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es'));
+    // Primero el que debe desde mas atras: es el orden en que conviene
+    // escribirles.
+    deudores.sort((a, b) => (a.desdeMes || '9999').localeCompare(b.desdeMes || '9999')
+      || a.nombre.localeCompare(b.nombre, 'es'));
+    return { ok: true, cursos, deudores, mes: mesActualAR() };
+  }
+
   throw new functions.https.HttpsError('invalid-argument', `Acción desconocida: ${accion}`);
 });
 
@@ -2387,7 +2775,9 @@ exports.crearEnlace = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesion.');
   }
-  const ADMINS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+  // Una sola lista para todo el panel: tres copias eran tres lugares donde
+  // olvidarse de sumar a alguien.
+  const ADMINS = ADMINS_PANEL;
   const email = (context.auth.token.email || '').toLowerCase();
   if (!ADMINS.includes(email)) {
     throw new functions.https.HttpsError('permission-denied', 'Solo admins pueden crear enlaces.');
@@ -3437,7 +3827,7 @@ exports.enviarCartaInscripcion = onDocumentCreated({
 // cuenta. Cualquier cuenta puede llamar esto, pero solo puede marcarse a sí
 // misma -- nunca a otra.
 // -------------------------------------------------------
-const ADMINS_TUCARTA = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+const ADMINS_TUCARTA = ADMINS_PANEL;
 
 exports.fijarClaimsAdmin = functions.https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');

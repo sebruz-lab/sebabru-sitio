@@ -171,6 +171,66 @@
         }
         .btn-table:hover { background: rgba(36,155,149,0.1); }
 
+        /* PADRON: la planilla editable y la vista rapida.
+           Las celdas son inputs sin borde: se ven como texto hasta que se
+           las toca, para que la tabla no parezca un formulario de 200
+           campos. */
+        .pad-edit {
+            width: 100%; min-width: 90px;
+            background: none; border: 1px solid transparent;
+            color: var(--text); font: inherit;
+            padding: 4px 6px; border-radius: 5px;
+        }
+        .pad-edit:hover { border-color: var(--border); }
+        .pad-edit:focus { outline: none; border-color: var(--primary); background: rgba(255,255,255,0.05); }
+        .pad-edit.guardando { border-color: var(--secondary); }
+        .pad-edit.guardado { border-color: #2f9e6b; }
+
+        .pad-pill {
+            display: inline-block; padding: 2px 8px; border-radius: 99px;
+            font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+        }
+        /* Anual y semestral se distinguen solo por color: no tienen cuotas
+           que seguir mes a mes. */
+        .pad-pill.anual      { background: rgba(155,109,214,0.18); color: #c9a6f0; }
+        .pad-pill.semestral  { background: rgba(72,140,214,0.18);  color: #9ec4ef; }
+        .pad-pill.mensual    { background: rgba(255,255,255,0.08);  color: var(--muted); }
+        .pad-pill.al_dia     { background: rgba(47,158,107,0.18);  color: #7fd3a7; }
+        .pad-pill.pagado     { background: rgba(47,158,107,0.28);  color: #9ae7c0; }
+        .pad-pill.atrasado   { background: rgba(214,72,96,0.20);   color: #f2909f; }
+        .pad-pill.sin_plan,
+        .pad-pill.sin_fecha  { background: rgba(240,197,22,0.16);  color: #e8cf6a; }
+
+        .pad-mini { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+        .pad-fila-atrasada td { background: rgba(214,72,96,0.055); }
+
+        .pad-tarjetas { display: flex; flex-wrap: wrap; gap: 10px; }
+        .pad-tarjeta {
+            flex: 1 1 190px; background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+        }
+        .pad-tarjeta h4 { font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; }
+        .pad-tarjeta dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 0.78rem; }
+        .pad-tarjeta dt { color: var(--muted); }
+        .pad-tarjeta dd { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .pad-detalle td { background: rgba(255,255,255,0.025); }
+        .pad-detalle-caja { display: flex; flex-wrap: wrap; gap: 18px; padding: 4px 0 8px; }
+        .pad-detalle-caja > section { flex: 1 1 320px; min-width: 280px; }
+        .pad-detalle-caja h5 {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--muted); margin-bottom: 8px;
+        }
+        .pad-renglones { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+        .pad-renglones td { padding: 5px 7px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .pad-form-pago { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+        .pad-form-pago input, .pad-form-pago select {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: var(--text); font: inherit; font-size: 0.8rem;
+            padding: 6px 8px; border-radius: 6px;
+        }
+        .pad-form-pago input[type="number"] { width: 110px; }
+
         /* TAGS */
         .tag {
             display: inline-block; padding: 2px 8px;
@@ -244,44 +304,119 @@
         <a href="../index.html" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Escuela</a>
     </header>
 
+    <!-- Cinco grupos. Lo que antes eran once pestanas sueltas: las que se
+         usan juntas quedaron juntas, y el orden es el del trabajo real. -->
     <div class="tabs">
-        <button class="tab-btn active" data-tab="buscar">
-            <i class="fa-solid fa-magnifying-glass"></i> Buscar Usuario
-        </button>
-        <button class="tab-btn" data-tab="compras">
-            <i class="fa-solid fa-receipt"></i> Compras
+        <button class="tab-btn active" data-tab="alumnos">
+            <i class="fa-solid fa-graduation-cap"></i> Gestion de alumnos
         </button>
         <button class="tab-btn" data-tab="usuarios">
-            <i class="fa-solid fa-users"></i> Todos los Usuarios
+            <i class="fa-solid fa-users"></i> Usuarios
         </button>
-        <button class="tab-btn" data-tab="padron">
-            <i class="fa-solid fa-list-check"></i> Inscripciones
+        <button class="tab-btn" data-tab="acceso">
+            <i class="fa-solid fa-key"></i> Acceso a las aulas
         </button>
-        <button class="tab-btn" data-tab="invitaciones">
-            <i class="fa-solid fa-link"></i> Invitaciones
-        </button>
-        <button class="tab-btn" data-tab="descuentos">
-            <i class="fa-solid fa-tag"></i> Descuentos
-        </button>
-        <button class="tab-btn" data-tab="migrar">
-            <i class="fa-solid fa-copy"></i> Migrar acceso
-        </button>
-        <button class="tab-btn" data-tab="enlaces">
-            <i class="fa-solid fa-wand-sparkles"></i> Enlace Maestro
-        </button>
-        <button class="tab-btn" data-tab="videos">
-            <i class="fa-solid fa-video"></i> Videos de curso
-        </button>
-        <button class="tab-btn" data-tab="tucarta">
-            <i class="fa-solid fa-circle-half-stroke"></i> Tu carta
+        <button class="tab-btn" data-tab="contenidos">
+            <i class="fa-solid fa-folder-open"></i> Contenidos
         </button>
         <button class="tab-btn" data-tab="pendientes">
             <i class="fa-solid fa-inbox"></i> Pendientes
         </button>
     </div>
 
+    <!-- ===== GRUPO: ALUMNOS ===== -->
+    <div id="tab-alumnos" class="tab-panel active">
+    <!-- TAB: PADRON (gestión de alumnos)
+         Los datos NO se leen de Firestore desde acá: la colección está
+         cerrada en las reglas a propósito (mail, teléfono, datos de
+         nacimiento y la plata de todo el padrón). Todo pasa por la callable
+         adminPadron, que verifica la sesión del lado del servidor.
+
+         Los totales y el "al día / atrasado" los calcula el servidor, no
+         este archivo: así la vista general de deudores y la planilla de un
+         curso no pueden decir cosas distintas. -->
+
+        <!-- Lo primero que se ve: cómo viene cada formación y quién debe. -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <p class="card-title" style="margin-bottom:4px;">Vista rápida</p>
+                    <p style="opacity:.7; font-size:.85rem;">
+                        Cada formación, y abajo todas las personas que adeudan el mes, de todas juntas.
+                    </p>
+                </div>
+                <button class="btn btn-secondary" id="pad-resumen-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Actualizar</button>
+            </div>
+            <div id="pad-resumen" style="margin-top:14px;"></div>
+            <div id="pad-deudores" style="margin-top:18px; overflow-x:auto;"></div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Planilla por formación</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Se edita acá mismo: toco una celda, escribo y al salir se guarda. Los pagos se abren
+                con el botón de cada fila, y van uno por uno con monto, fecha y medio — el total lo
+                suma el sistema y no se tipea nunca.
+            </p>
+            <div class="input-row">
+                <select id="pad-curso"><option value="">Elegí un curso</option></select>
+                <button class="btn btn-primary" id="pad-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
+            </div>
+            <label class="pad-switch" for="pad-nacimiento" style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:.85rem; opacity:.8; cursor:pointer;">
+                <input type="checkbox" id="pad-nacimiento">
+                <span>Mostrar los datos de nacimiento (apagado para que no queden a la vista en una pantalla compartida)</span>
+            </label>
+            <div id="pad-msg"></div>
+            <div id="pad-totales" style="margin-top:14px;"></div>
+            <div id="pad-lista" style="margin-top:10px; overflow-x:auto;"></div>
+        </div>
+
+        <!-- Una columna nueva no necesita deploy: queda en padron_columnas y
+             el valor de cada fila vive en campos[key]. -->
+        <div class="card">
+            <p class="card-title">Agregar una columna</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Se suma al final de la planilla de la formación elegida arriba, y queda editable como
+                las demás. El título se puede cambiar después sin perder lo cargado.
+            </p>
+            <div class="input-row">
+                <input type="text" id="pad-col-label" placeholder="Título de la columna" maxlength="80">
+                <select id="pad-col-tipo">
+                    <option value="texto">Texto corto</option>
+                    <option value="numero">Número</option>
+                    <option value="nota">Nota larga</option>
+                </select>
+                <button class="btn btn-primary" id="pad-col-crear"><i class="fa-solid fa-plus"></i> Agregar</button>
+            </div>
+            <div id="pad-col-msg"></div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Anotar a alguien a mano</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Para quien se anotó por WhatsApp o por teléfono y nunca pasó por el formulario.
+                El mail es opcional, pero sin mail no se le puede dar el acceso al aula.
+            </p>
+            <div class="input-row">
+                <input type="text" id="pad-nombre" placeholder="Nombre y apellido" maxlength="200">
+                <input type="email" id="pad-email" placeholder="Mail (opcional)" maxlength="200">
+            </div>
+            <div class="input-row" style="margin-top:8px;">
+                <input type="tel" id="pad-telefono" placeholder="Teléfono" maxlength="50">
+                <input type="text" id="pad-fecha" placeholder="Nacimiento DD/MM/AAAA" maxlength="20">
+                <input type="text" id="pad-hora" placeholder="Hora HH:MM" maxlength="20">
+            </div>
+            <div class="input-row" style="margin-top:8px;">
+                <input type="text" id="pad-lugar" placeholder="Lugar de nacimiento" maxlength="200">
+                <button class="btn btn-primary" id="pad-alta"><i class="fa-solid fa-user-plus"></i> Anotar</button>
+            </div>
+            <div id="pad-alta-msg"></div>
+        </div>
+    </div>
+
+    <!-- ===== GRUPO: USUARIOS ===== -->
+    <div id="tab-usuarios" class="tab-panel">
     <!-- TAB: BUSCAR -->
-    <div id="tab-buscar" class="tab-panel active">
         <div class="card">
             <p class="card-title">Buscar o crear usuario</p>
             <div class="input-row">
@@ -292,27 +427,7 @@
             </div>
         </div>
         <div id="resultado-buscar"></div>
-    </div>
-
-    <!-- TAB: COMPRAS -->
-    <div id="tab-compras" class="tab-panel">
-        <div class="card">
-            <p class="card-title">Compras y de dónde vinieron</p>
-            <p style="font-size:0.8rem; color:var(--muted); margin:0 0 12px;">
-                Pagos de Mercado Pago y PayPal, pedidos del libro y transferencias avisadas (a confirmar).
-                El origen es la última campaña (utm / gclid) con la que la persona llegó al sitio en los 60 días previos; "directo" si no vino de ninguna.
-            </p>
-            <div class="input-row">
-                <button class="btn btn-primary" id="btn-cargar-compras">
-                    <i class="fa-solid fa-arrow-rotate-right"></i> Cargar
-                </button>
-            </div>
-        </div>
-        <div id="resultado-compras"></div>
-    </div>
-
     <!-- TAB: USUARIOS -->
-    <div id="tab-usuarios" class="tab-panel">
         <div class="card">
             <p class="card-title">Filtrar por curso</p>
             <div class="input-row">
@@ -329,8 +444,9 @@
         <div id="resultado-usuarios"></div>
     </div>
 
+    <!-- ===== GRUPO: ACCESO ===== -->
+    <div id="tab-acceso" class="tab-panel">
     <!-- TAB: INVITACIONES -->
-    <div id="tab-invitaciones" class="tab-panel">
         <div class="card">
             <p class="card-title">Generar nueva invitación</p>
             <div class="input-row">
@@ -360,10 +476,7 @@
                 </div>
             </div>
         </div>
-    </div>
-
     <!-- TAB: DESCUENTOS -->
-    <div id="tab-descuentos" class="tab-panel">
         <div class="card">
             <p class="card-title">Crear código de descuento</p>
             <div class="input-row">
@@ -392,10 +505,7 @@
                 </div>
             </div>
         </div>
-    </div>
-
     <!-- TAB: MIGRAR -->
-    <div id="tab-migrar" class="tab-panel">
         <div class="card">
             <p class="card-title">Copiar acceso entre cursos</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:20px;">Agrega el curso destino a todos los usuarios que ya tienen el curso origen. No borra ni modifica nada existente.</p>
@@ -414,10 +524,7 @@
             </div>
             <div id="res-migrar" style="font-size:.9rem; opacity:.8;"></div>
         </div>
-    </div>
-
     <!-- TAB: ENLACE MAESTRO -->
-    <div id="tab-enlaces" class="tab-panel">
         <div class="card">
             <p class="card-title">Generar enlace maestro</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:20px;">Genera un enlace que pueden usar varias personas para autoinscribirse a un curso, sin necesidad de invitaciones individuales.</p>
@@ -452,8 +559,9 @@
         </div>
     </div>
 
+    <!-- ===== GRUPO: CONTENIDOS ===== -->
+    <div id="tab-contenidos" class="tab-panel">
     <!-- TAB: VIDEOS DE CURSO -->
-    <div id="tab-videos" class="tab-panel">
         <div class="card">
             <p class="card-title">Cargar videos de un curso (Formación Abierta)</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:16px;">
@@ -482,10 +590,7 @@
             </button>
             <div id="videos-msg"></div>
         </div>
-    </div>
-
     <!-- TAB: TU CARTA (calculadora /cartas) -->
-    <div id="tab-tucarta" class="tab-panel">
         <div class="card">
             <p class="card-title">Textos de Sol, Luna y Ascendente</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
@@ -542,56 +647,9 @@
         </div>
     </div>
 
-    <!-- TAB: PADRON (inscripciones por curso)
-         Los datos NO se leen de Firestore desde acá: la colección está
-         cerrada en las reglas a propósito (mail, teléfono, datos de
-         nacimiento y la plata de todo el padrón). Todo pasa por la callable
-         adminPadron, que verifica la sesión del lado del servidor. -->
-    <div id="tab-padron" class="tab-panel">
-        <div class="card">
-            <p class="card-title">Inscripciones por curso</p>
-            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
-                Cada persona que se inscribió por el formulario del sitio, más las que cargues a mano.
-                Esto es lo que antes vivía solo en la planilla de Google: la planilla sigue recibiendo
-                cada alta como respaldo, pero lo que vale es esto.
-            </p>
-            <div class="input-row">
-                <select id="pad-curso"><option value="">Elegí un curso</option></select>
-                <button class="btn btn-primary" id="pad-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
-            </div>
-            <label class="pad-switch" for="pad-nacimiento" style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:.85rem; opacity:.8; cursor:pointer;">
-                <input type="checkbox" id="pad-nacimiento">
-                <span>Mostrar los datos de nacimiento (apagado para que no queden a la vista en una pantalla compartida)</span>
-            </label>
-            <div id="pad-msg"></div>
-            <div id="pad-lista" style="margin-top:14px; overflow-x:auto;"></div>
-        </div>
-
-        <div class="card">
-            <p class="card-title">Anotar a alguien a mano</p>
-            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
-                Para quien se anotó por WhatsApp o por teléfono y nunca pasó por el formulario.
-                El mail es opcional, pero sin mail no se le puede dar el acceso al aula.
-            </p>
-            <div class="input-row">
-                <input type="text" id="pad-nombre" placeholder="Nombre y apellido" maxlength="200">
-                <input type="email" id="pad-email" placeholder="Mail (opcional)" maxlength="200">
-            </div>
-            <div class="input-row" style="margin-top:8px;">
-                <input type="tel" id="pad-telefono" placeholder="Teléfono" maxlength="50">
-                <input type="text" id="pad-fecha" placeholder="Nacimiento DD/MM/AAAA" maxlength="20">
-                <input type="text" id="pad-hora" placeholder="Hora HH:MM" maxlength="20">
-            </div>
-            <div class="input-row" style="margin-top:8px;">
-                <input type="text" id="pad-lugar" placeholder="Lugar de nacimiento" maxlength="200">
-                <button class="btn btn-primary" id="pad-alta"><i class="fa-solid fa-user-plus"></i> Anotar</button>
-            </div>
-            <div id="pad-alta-msg"></div>
-        </div>
-    </div>
-
-    <!-- TAB: PENDIENTES -->
+    <!-- ===== GRUPO: PENDIENTES ===== -->
     <div id="tab-pendientes" class="tab-panel">
+    <!-- TAB: PENDIENTES -->
         <div class="card">
             <p class="card-title">Datos que no se pudieron procesar</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
@@ -605,7 +663,22 @@
             <div id="pe-lista" style="margin-top:14px;"></div>
             <div id="pe-msg"></div>
         </div>
+    <!-- TAB: COMPRAS -->
+        <div class="card">
+            <p class="card-title">Compras y de dónde vinieron</p>
+            <p style="font-size:0.8rem; color:var(--muted); margin:0 0 12px;">
+                Pagos de Mercado Pago y PayPal, pedidos del libro y transferencias avisadas (a confirmar).
+                El origen es la última campaña (utm / gclid) con la que la persona llegó al sitio en los 60 días previos; "directo" si no vino de ninguna.
+            </p>
+            <div class="input-row">
+                <button class="btn btn-primary" id="btn-cargar-compras">
+                    <i class="fa-solid fa-arrow-rotate-right"></i> Cargar
+                </button>
+            </div>
+        </div>
+        <div id="resultado-compras"></div>
     </div>
+
 
 </div>
 
@@ -619,7 +692,7 @@
         collection, getDocs, addDoc, Timestamp, orderBy, query, limit
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const ADMIN_EMAILS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com'];
+    const ADMIN_EMAILS = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
 
     function escapeHtml(str) {
         return String(str ?? '').replace(/[&<>"']/g, c => ({
@@ -685,6 +758,9 @@
         if (user && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
             overlay.style.display = 'none';
             content.style.display = 'block';
+            // La pestaña que ya viene abierta carga sola: sus datos se piden
+            // al apretar el boton, y ese click nunca ocurre al entrar.
+            document.querySelector('.tab-btn.active')?.click();
         } else if (user) {
             document.querySelector('.spinner').style.display = 'none';
             overlayText.textContent = 'Acceso denegado. Esta página es solo para administradores.';
@@ -709,7 +785,7 @@
     // registrarCompra). Todo lo que viene del navegador (utm, emails) se
     // escapa antes de mostrarse.
     document.getElementById('btn-cargar-compras').addEventListener('click', cargarCompras);
-    document.querySelector('[data-tab="compras"]').addEventListener('click', () => {
+    document.querySelector('[data-tab="pendientes"]').addEventListener('click', () => {
         if (!document.querySelector('#resultado-compras table')) cargarCompras();
     });
 
@@ -951,7 +1027,7 @@
             container.querySelectorAll('.btn-edit-user').forEach(btn => {
                 btn.addEventListener('click', () => {
                     // Ir a tab Buscar con ese email pre-cargado
-                    document.querySelector('[data-tab="buscar"]').click();
+                    document.querySelector('[data-tab="usuarios"]').click();
                     document.getElementById('inp-email').value = btn.dataset.email;
                     buscarUsuario();
                 });
@@ -1353,12 +1429,48 @@
             padError(padMsg, e);
         }
     }
-    document.querySelector('.tab-btn[data-tab="padron"]').addEventListener('click', cargarCursosDePadron);
+    // Al abrir la pestaña: los cursos del select y la vista rápida. Los
+    // cursos se piden una sola vez; el resumen también, porque es una
+    // lectura de todo el padrón y tiene su botón para actualizarlo.
+    let padResumenCargado = false;
+    document.querySelector('.tab-btn[data-tab="alumnos"]').addEventListener('click', () => {
+        cargarCursosDePadron();
+        if (!padResumenCargado) { padResumenCargado = true; cargarResumenDePadron(); }
+    });
+
+    // Las filas quedan en memoria para poder repintar la tabla sin volver a
+    // pedirla: cada pago guardado devuelve su fila ya recalculada.
+    let padFilas = [];
+    const padAbiertas = new Set();   // qué filas tienen el detalle desplegado
+
+    const PAD_MEDIOS = ['Transferencia', 'Mercado Pago', 'PayPal', 'Efectivo', 'Otro'];
+    const PAD_TIPOS = [
+        ['', 'Sin plan'],
+        ['anual', 'Anual, un pago'],
+        ['semestral', 'Semestral, 2 cuotas'],
+        ['mensual', 'Mensual, 8 cuotas'],
+    ];
+    const PAD_ESTADOS = {
+        pagado: 'pagado', al_dia: 'al día', atrasado: 'atrasado',
+        sin_plan: 'sin plan', sin_fecha: 'sin fecha de inicio',
+    };
+
+    function pesos(n) {
+        return (n === null || n === undefined || n === '') ? '—'
+            : '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+    }
+    function mesLindo(m) {
+        if (!m) return '—';
+        const [a, x] = String(m).split('-');
+        return `${x}/${a}`;
+    }
 
     async function cargarPadron() {
         const cursoId = padCursoSel.value;
         padMsg.innerHTML = '';
         if (!cursoId) {
+            padFilas = [];
+            document.getElementById('pad-totales').innerHTML = '';
             padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Elegí un curso.</p></div>';
             return;
         }
@@ -1369,14 +1481,106 @@
                 conNacimiento: padNacimiento.checked,
             });
             padColumnas = r.data.columnas || [];
-            pintarPadron(r.data.filas || []);
+            padFilas = r.data.filas || [];
+            pintarPadron();
         } catch (e) {
             padError(padLista, e);
         }
     }
 
-    function pintarPadron(filas) {
+    // El estado de la plata de una fila, tal como lo pidió Seba: anual y
+    // semestral se distinguen nada más que por color, y el mensual muestra
+    // cuántas cuotas van pagas y cuáles faltan, con su mes.
+    function celdaEstado(f) {
+        const d = f.deuda || {};
+        if (d.estado === 'sin_plan') {
+            return '<span class="pad-pill sin_plan">sin plan</span>';
+        }
+        if (d.estado === 'sin_fecha') {
+            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span>`
+                + '<div class="pad-mini">falta el mes de inicio</div>';
+        }
+        if (d.tipo !== 'mensual') {
+            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span> `
+                + `<span class="pad-pill ${escapeHtml(d.estado)}">${escapeHtml(PAD_ESTADOS[d.estado] || d.estado)}</span>`;
+        }
+        const vencidas = (d.cuotasPendientes || []).filter(p => p.vencida);
+        let html = `<span class="pad-pill ${escapeHtml(d.estado)}">${d.cuotasPagas}/${d.cuotas} pagas</span>`;
+        if (vencidas.length) {
+            html += `<div class="pad-mini">debe ${vencidas.length}: ${escapeHtml(vencidas.map(p => mesLindo(p.mes)).join(', '))}</div>`;
+        } else if ((d.cuotasPendientes || []).length) {
+            html += `<div class="pad-mini">próxima: ${escapeHtml(mesLindo(d.cuotasPendientes[0].mes))}</div>`;
+        }
+        return html;
+    }
+
+    function celdaEditable(f, key, valor) {
+        return `<input class="pad-edit" data-pad-fila="${escapeHtml(f.id)}" data-pad-key="${escapeHtml(key)}"`
+            + ` value="${escapeHtml(valor ?? '')}">`;
+    }
+
+    // El detalle de una fila: el plan arriba y los pagos abajo, cada uno con
+    // su renglón. El total nunca se escribe: es la suma de los renglones.
+    function filaDetalle(f, anchoTabla) {
+        const d = f.deuda || {};
+        const opcionesTipo = PAD_TIPOS.map(([v, t]) =>
+            `<option value="${escapeHtml(v)}"${(d.tipo || '') === v ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+        const opcionesMedio = PAD_MEDIOS.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+        const opcionesCuota = ['<option value="">suelto</option>']
+            .concat(Array.from({ length: d.cuotas || 1 }, (_, i) =>
+                `<option value="${i + 1}">cuota ${i + 1}</option>`)).join('');
+
+        const renglones = (f.pagos || []).length
+            ? (f.pagos || []).map(p => `<tr>
+                        <td>${escapeHtml(p.fecha || '')}</td>
+                        <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(p.monto))}</td>
+                        <td>${escapeHtml(p.medio || '')}</td>
+                        <td>${p.cuota ? 'cuota ' + escapeHtml(String(p.cuota)) : '<span style="opacity:.6">suelto</span>'}</td>
+                        <td>${escapeHtml(p.nota || '')}</td>
+                        <td><button class="btn-table" data-pad-borrar-pago="${escapeHtml(p.id || '')}" data-pad-fila="${escapeHtml(f.id)}" title="Borrar este pago">✕</button></td>
+                    </tr>`).join('')
+            : '<tr><td colspan="6" style="opacity:.6;">Todavía no hay pagos anotados.</td></tr>';
+
+        const pendientes = (d.cuotasPendientes || []).length
+            ? `<p class="pad-mini">Pendientes: ${escapeHtml((d.cuotasPendientes || []).map(p =>
+                `cuota ${p.cuota} (${mesLindo(p.mes)}${p.vencida ? ', vencida' : ''})`).join(' · '))}</p>`
+            : '<p class="pad-mini">No queda nada pendiente.</p>';
+
+        return `<tr class="pad-detalle" data-pad-detalle="${escapeHtml(f.id)}"><td colspan="${anchoTabla}">
+            <div class="pad-detalle-caja">
+                <section>
+                    <h5>Plan de pago</h5>
+                    <div class="pad-form-pago">
+                        <select data-pad-plan="tipo">${opcionesTipo}</select>
+                        <input type="number" data-pad-plan="total" placeholder="Total" min="0" step="1000" value="${escapeHtml(d.total ?? '')}">
+                        <input type="number" data-pad-plan="cuotas" placeholder="Cuotas" min="1" max="24" value="${escapeHtml(d.cuotas || '')}" style="width:80px;">
+                        <input type="month" data-pad-plan="desde" value="${escapeHtml(d.desde || '')}" title="Mes de la primera cuota">
+                        <button class="btn btn-secondary btn-sm" data-pad-guardar-plan="${escapeHtml(f.id)}">Guardar plan</button>
+                    </div>
+                    <p class="pad-mini">Sin mes de inicio nada figura atrasado: es lo que marca los vencimientos.</p>
+                    ${pendientes}
+                </section>
+                <section>
+                    <h5>Pagos — ${escapeHtml(pesos(d.pagado))} de ${escapeHtml(pesos(d.total))}${d.saldo !== null && d.saldo !== undefined ? ' · falta ' + escapeHtml(pesos(d.saldo)) : ''}</h5>
+                    <table class="pad-renglones"><tbody>${renglones}</tbody></table>
+                    <div class="pad-form-pago">
+                        <input type="number" data-pad-pago="monto" placeholder="Monto" min="1" step="1000">
+                        <input type="date" data-pad-pago="fecha">
+                        <select data-pad-pago="medio">${opcionesMedio}</select>
+                        <select data-pad-pago="cuota">${opcionesCuota}</select>
+                        <input type="text" data-pad-pago="nota" placeholder="Nota (opcional)" maxlength="300">
+                        <button class="btn btn-primary btn-sm" data-pad-sumar-pago="${escapeHtml(f.id)}">Anotar pago</button>
+                    </div>
+                </section>
+            </div>
+        </td></tr>`;
+    }
+
+    function pintarPadron() {
+        const filas = padFilas;
+        const totales = document.getElementById('pad-totales');
         if (!filas.length) {
+            totales.innerHTML = '';
             padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Todavía no hay nadie anotado en este curso.</p></div>';
             return;
         }
@@ -1384,18 +1588,37 @@
         const cabeceras = ['Alta', 'Nombre', 'Mail', 'Teléfono']
             .concat(padColumnas.map(c => c.label))
             .concat(conNac ? ['Nacimiento', 'Hora', 'Lugar'] : ['Carta'])
-            .concat(['Aula', '']);
+            .concat(['Plan', 'Pagado', 'Aula', '']);
+        const ancho = cabeceras.length;
+
+        // La vista rápida de esta formación, con la misma cuenta que hace el
+        // servidor para la vista general.
+        const activos = filas.filter(f => f.estado !== 'baja');
+        const cuenta = e => activos.filter(f => (f.deuda || {}).estado === e).length;
+        const anualPagado = activos.filter(f => (f.deuda || {}).estado === 'pagado' && (f.deuda || {}).tipo === 'anual').length;
+        const cobrado = activos.reduce((a, f) => a + ((f.deuda || {}).pagado || 0), 0);
+        const aCobrar = activos.reduce((a, f) => a + ((f.deuda || {}).total || 0), 0);
+        totales.innerHTML = `<div class="pad-tarjetas"><div class="pad-tarjeta"><h4>Esta formación</h4><dl>
+                <dt>Activos</dt><dd>${activos.length}</dd>
+                <dt>Al día</dt><dd>${cuenta('al_dia') + cuenta('pagado') - anualPagado}</dd>
+                <dt>Atrasados</dt><dd>${cuenta('atrasado')}</dd>
+                <dt>Anual pagado</dt><dd>${anualPagado}</dd>
+                <dt>Sin plan</dt><dd>${cuenta('sin_plan') + cuenta('sin_fecha')}</dd>
+                <dt>Cobrado</dt><dd>${escapeHtml(pesos(cobrado))}</dd>
+                <dt>A cobrar</dt><dd>${escapeHtml(aCobrar ? pesos(aCobrar) : '—')}</dd>
+            </dl></div></div>`;
 
         const cuerpo = filas.map(f => {
             const alta = f.alta ? new Date(f.alta).toLocaleDateString('es') : '—';
             const celdas = [
                 escapeHtml(alta),
-                `${escapeHtml(f.nombre || '—')}${f.estado === 'baja' ? ' <small style="opacity:.6;">(baja)</small>' : ''}`
-                    + `${f.origen === 'manual' ? ' <small style="opacity:.6;">(a mano)</small>' : ''}`,
+                celdaEditable(f, 'nombre', f.nombre)
+                    + (f.estado === 'baja' ? '<div class="pad-mini">de baja</div>' : '')
+                    + (f.origen === 'manual' ? '<div class="pad-mini">anotada a mano</div>' : ''),
                 escapeHtml(f.email || '—'),
-                escapeHtml(f.telefono || '—'),
+                celdaEditable(f, 'telefono', f.telefono),
             ];
-            for (const c of padColumnas) celdas.push(escapeHtml(f.campos?.[c.key] ?? '—'));
+            for (const c of padColumnas) celdas.push(celdaEditable(f, c.key, f.campos?.[c.key]));
             if (conNac) {
                 celdas.push(escapeHtml(f.nacimiento?.fecha || '—'));
                 celdas.push(escapeHtml(f.nacimiento?.hora || '—'));
@@ -1403,11 +1626,20 @@
             } else {
                 celdas.push(f.tieneCarta ? 'Sí' : 'No');
             }
+            celdas.push(celdaEstado(f));
+            celdas.push(`<button class="btn-table" data-pad-pagos="${escapeHtml(f.id)}">`
+                + `${escapeHtml(pesos((f.deuda || {}).pagado))} <small>(${(f.pagos || []).length})</small></button>`);
             celdas.push(f.aulaDada
                 ? '<span style="color:#249b95;font-weight:600;">dado</span>'
                 : `<button class="btn btn-secondary btn-sm" data-pad-aula="${escapeHtml(f.id)}"${f.email ? '' : ' disabled title="Sin mail no hay cuenta a la que darle el aula"'}>Dar acceso</button>`);
             celdas.push(`<button class="btn btn-secondary btn-sm" data-pad-baja="${escapeHtml(f.id)}">${f.estado === 'baja' ? 'Reactivar' : 'Dar de baja'}</button>`);
-            return `<tr${f.estado === 'baja' ? ' style="opacity:.55;"' : ''}><td>${celdas.join('</td><td>')}</td></tr>`;
+
+            const clases = [
+                f.estado === 'baja' ? '' : ((f.deuda || {}).estado === 'atrasado' ? 'pad-fila-atrasada' : ''),
+            ].filter(Boolean).join(' ');
+            return `<tr${clases ? ` class="${clases}"` : ''}${f.estado === 'baja' ? ' style="opacity:.55;"' : ''}>`
+                + `<td>${celdas.join('</td><td>')}</td></tr>`
+                + (padAbiertas.has(f.id) ? filaDetalle(f, ancho) : '');
         }).join('');
 
         padLista.innerHTML = `<p style="opacity:.7;font-size:.85rem;margin:0 0 8px;">${filas.length} ${filas.length === 1 ? 'persona' : 'personas'}</p>`
@@ -1418,17 +1650,133 @@
     padCursoSel.addEventListener('change', cargarPadron);
     padNacimiento.addEventListener('change', () => { if (padCursoSel.value) cargarPadron(); });
 
+    // Reemplaza una fila por la versión que devolvió el servidor, con la
+    // deuda ya recalculada, y repinta sin volver a pedir todo el curso.
+    function refrescarFila(fila) {
+        const i = padFilas.findIndex(f => f.id === fila.id);
+        if (i >= 0) padFilas[i] = fila; else padFilas.push(fila);
+        pintarPadron();
+    }
+
+    // Las celdas se guardan al salir del campo. Si el servidor rechaza el
+    // valor, el borde queda en rojo y el error se dice arriba: lo escrito no
+    // se borra, para no perder lo que se acababa de tipear.
+    padLista.addEventListener('change', async (ev) => {
+        const campo = ev.target.closest('.pad-edit[data-pad-key]');
+        if (!campo) return;
+        const fila = padFilas.find(f => f.id === campo.dataset.padFila);
+        const key = campo.dataset.padKey;
+        const previo = key === 'nombre' ? (fila?.nombre ?? '')
+            : key === 'telefono' ? (fila?.telefono ?? '')
+            : (fila?.campos?.[key] ?? '');
+        if (campo.value === previo) return;
+
+        campo.classList.remove('guardado');
+        campo.classList.add('guardando');
+        padMsg.innerHTML = '';
+        try {
+            const r = await padronApi({
+                accion: 'editarCampo',
+                filaId: campo.dataset.padFila, key, valor: campo.value,
+                conNacimiento: padNacimiento.checked,
+            });
+            campo.classList.remove('guardando');
+            campo.classList.add('guardado');
+            // Guardo la fila nueva en memoria sin repintar: repintar acá le
+            // sacaría el foco al teclado mientras se recorre la tabla.
+            const i = padFilas.findIndex(f => f.id === r.data.fila.id);
+            if (i >= 0) padFilas[i] = r.data.fila;
+        } catch (e) {
+            campo.classList.remove('guardando');
+            campo.style.borderColor = '#d64860';
+            padError(padMsg, e);
+        }
+    });
+
     padLista.addEventListener('click', async (ev) => {
-        const aula = ev.target.closest('[data-pad-aula]');
-        const baja = ev.target.closest('[data-pad-baja]');
-        const boton = aula || baja;
+        // Abrir o cerrar el detalle de pagos.
+        const pagos = ev.target.closest('[data-pad-pagos]');
+        if (pagos) {
+            const id = pagos.dataset.padPagos;
+            if (padAbiertas.has(id)) padAbiertas.delete(id); else padAbiertas.add(id);
+            pintarPadron();
+            return;
+        }
+
+        const detalle = ev.target.closest('.pad-detalle');
+        const boton = ev.target.closest('button');
         if (!boton) return;
+
+        // Guardar el plan de pago.
+        if (boton.dataset.padGuardarPlan) {
+            const caja = detalle;
+            const dato = n => caja.querySelector(`[data-pad-plan="${n}"]`).value.trim();
+            boton.disabled = true;
+            padMsg.innerHTML = '';
+            try {
+                const r = await padronApi({
+                    accion: 'guardarPlan', filaId: boton.dataset.padGuardarPlan,
+                    tipo: dato('tipo'), total: dato('total'), cuotas: dato('cuotas'), desde: dato('desde'),
+                    conNacimiento: padNacimiento.checked,
+                });
+                refrescarFila(r.data.fila);
+            } catch (e) {
+                boton.disabled = false;
+                padError(padMsg, e);
+            }
+            return;
+        }
+
+        // Anotar un pago.
+        if (boton.dataset.padSumarPago) {
+            const caja = detalle;
+            const dato = n => caja.querySelector(`[data-pad-pago="${n}"]`).value.trim();
+            if (!dato('monto')) { padError(padMsg, { message: 'Falta el monto del pago.' }); return; }
+            boton.disabled = true;
+            padMsg.innerHTML = '';
+            try {
+                const r = await padronApi({
+                    accion: 'registrarPago', filaId: boton.dataset.padSumarPago,
+                    monto: dato('monto'), fecha: dato('fecha'), medio: dato('medio'),
+                    cuota: dato('cuota'), nota: dato('nota'),
+                    conNacimiento: padNacimiento.checked,
+                });
+                refrescarFila(r.data.fila);
+            } catch (e) {
+                boton.disabled = false;
+                padError(padMsg, e);
+            }
+            return;
+        }
+
+        // Borrar un pago mal cargado. Se pregunta: es plata.
+        if (boton.dataset.padBorrarPago) {
+            if (!confirm('¿Borrar este pago? Queda registrado quién lo borró, pero sale de la cuenta.')) return;
+            boton.disabled = true;
+            padMsg.innerHTML = '';
+            try {
+                const r = await padronApi({
+                    accion: 'borrarPago', filaId: boton.dataset.padFila,
+                    pagoId: boton.dataset.padBorrarPago,
+                    conNacimiento: padNacimiento.checked,
+                });
+                refrescarFila(r.data.fila);
+            } catch (e) {
+                boton.disabled = false;
+                padError(padMsg, e);
+            }
+            return;
+        }
+
+        const aula = boton.dataset.padAula;
+        const baja = boton.dataset.padBaja;
+        if (!aula && !baja) return;
         boton.disabled = true;
         try {
             await padronApi({
                 accion: aula ? 'darAula' : 'baja',
                 cursoId: padCursoSel.value,
-                filaId: boton.dataset.padAula || boton.dataset.padBaja,
+                filaId: aula || baja,
             });
             await cargarPadron();
         } catch (e) {
@@ -1436,6 +1784,89 @@
             padError(padMsg, e);
         }
     });
+
+    // ── Columna nueva, sin deploy ─────────────────────────────────
+    document.getElementById('pad-col-crear').addEventListener('click', async () => {
+        const msg = document.getElementById('pad-col-msg');
+        const label = document.getElementById('pad-col-label').value.trim();
+        msg.innerHTML = '';
+        if (!padCursoSel.value) {
+            msg.innerHTML = '<div class="alert alert-error">Elegí primero la formación, en la planilla de arriba.</div>';
+            return;
+        }
+        if (!label) {
+            msg.innerHTML = '<div class="alert alert-error">Falta el título de la columna.</div>';
+            return;
+        }
+        const boton = document.getElementById('pad-col-crear');
+        boton.disabled = true;
+        try {
+            await padronApi({
+                accion: 'agregarColumna', cursoId: padCursoSel.value, label,
+                tipo: document.getElementById('pad-col-tipo').value,
+            });
+            document.getElementById('pad-col-label').value = '';
+            msg.innerHTML = '<div class="alert alert-success">Columna agregada.</div>';
+            await cargarPadron();
+        } catch (e) {
+            padError(msg, e);
+        } finally {
+            boton.disabled = false;
+        }
+    });
+
+    // ── Vista rápida: cada formación, y quién adeuda el mes ───────
+    // La cuenta la hace el servidor en una sola lectura del padrón: acá no
+    // se recalcula nada, justamente para que no pueda discrepar.
+    async function cargarResumenDePadron() {
+        const caja = document.getElementById('pad-resumen');
+        const lista = document.getElementById('pad-deudores');
+        caja.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        lista.innerHTML = '';
+        try {
+            const r = await padronApi({ accion: 'resumen' });
+            const cursos = r.data.cursos || [];
+            const deudores = r.data.deudores || [];
+
+            caja.innerHTML = cursos.length
+                ? '<div class="pad-tarjetas">' + cursos.map(c => `<div class="pad-tarjeta">
+                        <h4>${escapeHtml(c.nombreCurso)}</h4><dl>
+                        <dt>Activos</dt><dd>${c.activos}</dd>
+                        <dt>Al día</dt><dd>${c.alDia}</dd>
+                        <dt>Atrasados</dt><dd${c.atrasados ? ' style="color:#f2909f;font-weight:600;"' : ''}>${c.atrasados}</dd>
+                        <dt>Anual pagado</dt><dd>${c.anualPagado}</dd>
+                        <dt>Sin plan</dt><dd>${c.sinPlan + c.sinFecha}</dd>
+                        <dt>Cobrado</dt><dd>${escapeHtml(pesos(c.cobrado))}</dd>
+                        <dt>A cobrar</dt><dd>${escapeHtml(c.aCobrar ? pesos(c.aCobrar) : '—')}</dd>
+                        ${c.bajas ? `<dt>Bajas</dt><dd>${c.bajas}</dd>` : ''}
+                        </dl></div>`).join('') + '</div>'
+                : '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Todavía no hay nadie anotado en ninguna formación.</p></div>';
+
+            if (!deudores.length) {
+                lista.innerHTML = `<p style="opacity:.7;font-size:.85rem;">Nadie adeuda el mes (${escapeHtml(mesLindo(r.data.mes))}). `
+                    + 'Ojo: quien no tiene plan cargado no cuenta como deudor, porque no hay con qué compararlo.</p>';
+                return;
+            }
+            const filas = deudores.map(d => `<tr>
+                    <td>${escapeHtml(d.nombre || '—')}</td>
+                    <td>${escapeHtml(d.nombreCurso)}</td>
+                    <td><span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span></td>
+                    <td>${escapeHtml(d.cuotasVencidas.map(c => `${c.cuota} (${mesLindo(c.mes)})`).join(', ') || '—')}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(d.saldo))}</td>
+                    <td>${escapeHtml(d.telefono || '—')}</td>
+                    <td>${escapeHtml(d.email || '—')}</td>
+                </tr>`).join('');
+            lista.innerHTML = `<p style="opacity:.8;font-size:.85rem;margin:0 0 8px;">`
+                + `<strong>${deudores.length}</strong> ${deudores.length === 1 ? 'persona adeuda' : 'personas adeudan'} el mes de ${escapeHtml(mesLindo(r.data.mes))}, `
+                + 'ordenadas por el mes desde el que deben.</p>'
+                + '<table class="user-table"><thead><tr><th>Nombre</th><th>Formación</th><th>Plan</th>'
+                + '<th>Cuotas vencidas</th><th>Falta</th><th>Teléfono</th><th>Mail</th></tr></thead>'
+                + `<tbody>${filas}</tbody></table>`;
+        } catch (e) {
+            padError(caja, e);
+        }
+    }
+    document.getElementById('pad-resumen-cargar').addEventListener('click', cargarResumenDePadron);
 
     document.getElementById('pad-alta').addEventListener('click', async () => {
         const msg = document.getElementById('pad-alta-msg');
@@ -1645,7 +2076,7 @@
     let tcElegido = null;
     let tcNovedades = [];
 
-    document.querySelector('[data-tab="tucarta"]').addEventListener('click', () => {
+    document.querySelector('[data-tab="contenidos"]').addEventListener('click', () => {
         if (!document.querySelector('#tc-grilla .tc-celda')) { cargarTextosCarta(); cargarLinksCarta(); }
     });
 

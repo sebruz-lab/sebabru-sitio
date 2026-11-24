@@ -210,13 +210,58 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   `usuarios/{mail}.cursos` y `aulaDada` en un solo batch.
 - **Paso manual pendiente**, igual que el de `datos_sin_procesar`:
   `gcloud firestore fields ttls update expira --collection-group=padron_pendientes --enable-ttl`.
-- **PENDIENTE (etapa 2):** la grilla editable con los pagos mes a mes y los
-  totales (incluido el 10% a Clari), columnas agregables desde el panel, cobro
-  en línea, y la importación de las ~100 filas de 2026. Dos cosas ya medidas
-  que van a aparecer ahí: **TERCER AÑO tiene $255.000 de diferencia** entre la
-  suma de sus pagos ($1.175.000) y lo que declara el BALANCE GENERAL
-  ($920.000), y en Primer Año las columnas de meses no suman al `PAGO` en 8 de
-  26 filas.
+- **La planilla del panel es editable, y no es Google Sheets.** Cada celda es
+  un `<input class="pad-edit">` que guarda al salir del campo con
+  `accion: 'editarCampo'`. **El mail no se edita**: el id del documento se
+  deriva de él, así que cambiarlo sería crear otra fila y dejar la vieja dando
+  vueltas. Una columna nueva se agrega desde el panel
+  (`accion: 'agregarColumna'`, sin deploy) y su valor vive en `campos[key]`.
+- **Un pago es un renglón, nunca un número.** `pagos[]` guarda monto, fecha,
+  medio y a qué cuota corresponde (o `cuota: null`, un pago suelto que suma al
+  total y no cancela ninguna cuota). **`pagado` es un derivado y se recalcula
+  entero** en cada escritura, con `runTransaction` porque `pagos` es un arreglo
+  y dos pestañas abiertas se pisarían: un pago perdido es plata que la persona
+  pagó y que el panel dice que debe. Un total tipeado a mano es exactamente de
+  donde sale la diferencia de $255.000 de TERCER AÑO en la planilla de 2026.
+- **El estado de la plata lo calcula el servidor** (`deudaDeLaFila`), nunca el
+  navegador: si no, la grilla de un curso y la vista general de deudores
+  podrían decir cosas distintas. Devuelve siempre la misma forma, con plan o
+  sin plan.
+- **Sin `plan.desde` nada figura atrasado**, y está bien que sea así: no se
+  puede deber un mes que no se sabe cuándo venció. Esa fila sale como
+  `sin_fecha`, visible y aparte. El tipo de plan sale de `campos.formaPago` si
+  no se cargó a mano (anual / semestral / mensual, 1 · 2 · 8 cuotas).
+- Anual y semestral **se distinguen solo por color**; el mensual muestra
+  cuántas cuotas van pagas y cuáles faltan con su mes (pedido de Seba,
+  24/11/2026).
+- **PENDIENTE (etapa 2):** el 10% a Clari, el cobro en línea con Mercado Pago y
+  PayPal, y la importación de las ~100 filas de 2026 con verificación contra el
+  BALANCE GENERAL. Dos cosas ya medidas que van a aparecer ahí: **TERCER AÑO
+  tiene $255.000 de diferencia** entre la suma de sus pagos ($1.175.000) y lo
+  que declara el BALANCE GENERAL ($920.000), y en Primer Año las columnas de
+  meses no suman al `PAGO` en 8 de 26 filas.
+
+## El panel de la escuela
+
+- **Cinco grupos, no once pestañas** (reorganizado el 24/11/2026):
+  **Gestión de alumnos** (el padrón, antes "Inscripciones"), **Usuarios**
+  (buscar + todos), **Acceso a las aulas** (invitaciones, descuentos, migrar
+  acceso, enlace maestro), **Contenidos** (videos del curso arriba, Tu carta
+  abajo) y **Pendientes** (pendientes + compras). Cada grupo es un
+  `.tab-panel`; los paneles viejos quedaron adentro como `.card` sueltas, así
+  que mover una tarjeta de grupo es cortar y pegar.
+- **Varias tarjetas cargan sus datos recién al hacer clic en la pestaña.** Por
+  eso, después de que la sesión se valida, el panel hace
+  `document.querySelector('.tab-btn.active')?.click()`: la pestaña que ya viene
+  abierta nunca recibiría ese clic y se vería vacía.
+- **Quién administra sale de una sola lista**, `ADMINS_PANEL` en
+  `functions/index.js`. `crearEnlace` y `ADMINS_TUCARTA` tenían su propia copia
+  literal hasta el 24/11/2026 y ahora apuntan a esa: eran dos lugares donde
+  olvidarse de sumar a alguien. Afuera quedan **18 copias en
+  `firestore.rules`** (el resto del panel lee Firestore directo) y la de
+  `ADMIN_EMAILS` en el HTML, que es **solo cosmética**: decide si se ve el
+  panel, no si se puede hacer algo. Sumar un admin es tocar los tres lugares y
+  redeployar functions **y** reglas.
 
 ## Nunca perder un dato que alguien dejó
 
