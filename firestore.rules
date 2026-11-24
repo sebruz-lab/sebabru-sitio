@@ -102,6 +102,33 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // EL PADRON DE LA ESCUELA. Una fila por persona por curso: mail,
+    // telefono, datos de nacimiento y la plata de cada estudiante. Es la
+    // coleccion mas sensible de la escuela, asi que va cerrada de los dos
+    // lados aunque el resto del panel de la escuela lea Firestore directo:
+    // el mismo criterio que agenda_pedidos y titulos, un poco mas abajo.
+    // Todo pasa por la callable adminPadron, que verifica la sesion de admin
+    // del lado del servidor y deja auditoria en padron_movimientos.
+    match /padron/{id} {
+      allow read, write: if false;
+    }
+    // Las columnas de cada curso. Cerrada por lo mismo, aunque no tenga
+    // datos de nadie: si se pudiera escribir desde el navegador se podrian
+    // inventar columnas, y el valor de una columna vive en el padron.
+    match /padron_columnas/{cursoId} {
+      allow read, write: if false;
+    }
+    // Quien cambio que. No se lee ni se escribe desde el cliente: una
+    // auditoria que el auditado puede editar no es una auditoria.
+    match /padron_movimientos/{id} {
+      allow read, write: if false;
+    }
+    // La cola que llena el padron. Guarda la carga cruda del formulario, asi
+    // que tambien se borra sola a los 90 dias por el TTL sobre "expira".
+    match /padron_pendientes/{id} {
+      allow read, write: if false;
+    }
+
     // Cada cuánto ya se avisó de algo (hoy, que GeoNames dejó de atender):
     // lo escribe solo la Cloud Function.
     match /avisos/{id} {

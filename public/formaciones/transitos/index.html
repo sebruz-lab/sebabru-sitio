@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/origen.js?v=2"></script>
+<!-- Sin defer a proposito: lo usa inscripcion.js, y con defer sbBorrador
+     todavia no existiria cuando el modulo corre. -->
+<script src="/borrador.js?v=1"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
+<title>Cuarto año: Tránsitos y Revoluciones Solares | Seba Bru</title>
+<link rel="canonical" href="https://sebabru.com/formaciones/transitos/">
+<meta name="description" content="Cuarto año de la formación en astrología. Inscripciones abiertas para el ciclo 2027.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sebabru.com/formaciones/transitos/">
+<meta property="og:title" content="Cuarto año: Tránsitos y Revoluciones Solares">
+<meta property="og:description" content="Cuarto año de la formación en astrología. Inscripciones abiertas para el ciclo 2027.">
+<meta property="og:image" content="https://sebabru.com/escuela/img/estudia.webp">
+<meta property="og:site_name" content="Seba Bru Astrología">
+
+<link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+<link rel="stylesheet" href="/style.css?v=32">
+<link rel="stylesheet" href="/iconos.css?v=1">
+<link rel="stylesheet" href="/formaciones/inscripcion.css?v=1">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GDLRMR5D57');
+</script>
+</head>
+<body>
+
+<nav class="hamburger-menu">
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="menu-button">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </label>
+    <ul class="menu-list">
+        <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
+        <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
+        <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
+        <li><a href="https://sebabru.com/#podcast">CONTENIDO</a></li>
+        <li><a href="https://sebabru.com/signos/">SIGNOS</a></li>
+        <li><a href="https://sebabru.com/cartas/">CALCULADORA DE CARTAS</a></li>
+        <li><a href="https://sebabru.com/#bios">BIOS</a></li>
+        <li><a href="https://sebabru.com/suscribirse/">SUSCRIBITE</a></li>
+        <li><a href="https://sebabru.com/escuela/">ESCUELA</a></li>
+    </ul>
+</nav>
+
+<div class="content-wrapper">
+
+    <header class="main-header" id="top">
+        <h1>Cuarto año</h1>
+        <h3>Tránsitos y Revoluciones Solares</h3>
+    </header>
+
+    <main>
+
+        <!-- ========================================================
+             LA INFORMACION DE LA FORMACION
+
+             Vacio a proposito: lo completa Seba con el texto de este año.
+             Lo unico que no se puede mover de lugar es el <section id="form">
+             de abajo, porque hay enlaces que apuntan ahi (/formaciones/transitos/#form)
+             para ir derecho al formulario.
+             ======================================================== -->
+        <section class="section-container fade-in-element inscripcion-info">
+            <!-- TEXTO PENDIENTE -->
+        </section>
+
+        <section class="section-container fade-in-element" id="form">
+            <div class="inscripcion">
+
+                <div id="form-wrap">
+                    <h3 class="titulo-form">Inscripciones abiertas</h3>
+                    <div id="error-msg" class="error-msg"></div>
+
+                    <form id="form-inscripcion" data-form-id="transitos27" data-nombre="transitos27">
+
+                        <div class="form-group">
+                            <label for="inp-nombre">Nombre y apellido</label>
+                            <input type="text" id="inp-nombre" maxlength="200" autocomplete="name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-telefono">Número de teléfono</label>
+                            <input type="tel" id="inp-telefono" maxlength="50" autocomplete="tel" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-email">Dirección de mail</label>
+                            <input type="email" id="inp-email" maxlength="200" autocomplete="email" required>
+                        </div>
+
+                        <!-- Los tres datos de nacimiento son opcionales: quien
+                             ya curso con nosotros no los vuelve a cargar. Si
+                             los pone, le llega la carta natal en PDF con el
+                             mail de bienvenida. -->
+                        <div class="form-group">
+                            <label for="inp-fecha-nacimiento">Fecha de nacimiento <span class="opcional">(solo si no tengo tus datos; formato DD/MM/AAAA)</span></label>
+                            <input type="text" id="inp-fecha-nacimiento" placeholder="DD/MM/AAAA" maxlength="30" inputmode="numeric" autocomplete="bday" title="Por ejemplo 05/03/1990">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-hora-nacimiento">Hora de nacimiento <span class="opcional">(si no la sabés exacta, poné la más aproximada)</span></label>
+                            <input type="text" id="inp-hora-nacimiento" inputmode="numeric" placeholder="HH:MM" maxlength="20" autocomplete="off">
+                        </div>
+
+                        <div class="form-group campo-lugar">
+                            <label for="inp-lugar-nacimiento">Lugar de nacimiento <span class="opcional">(empezá a escribir la ciudad o el pueblo y elegilo de la lista)</span></label>
+                            <input type="text" id="inp-lugar-nacimiento" maxlength="200" autocomplete="off"
+                                role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias-lugar">
+                            <ul id="sugerencias-lugar" class="sugerencias" role="listbox" hidden></ul>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-conocimientos">¿Tenés conocimientos astrológicos?</label>
+                            <select id="inp-conocimientos" required>
+                                <option value="" selected disabled>Elegí una opción</option>
+                                <option value="Sí, estudié con ustedes">Sí, estudié con ustedes</option>
+                                <option value="Sí, estudié en otra escuela">Sí, estudié en otra escuela</option>
+                                <option value="No tengo estudios formales pero sí tengo conocimientos">No tengo estudios formales pero sí tengo conocimientos</option>
+                                <option value="No tengo conocimientos">No tengo conocimientos</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-modalidad">¿Cómo te gustaría cursar?</label>
+                            <select id="inp-modalidad" required>
+                                <option value="" selected disabled>Elegí una opción</option>
+                                <option value="Virtual por Zoom">Virtual, por Zoom</option>
+                                <option value="Presencial en Villa de las Rosas">Presencial, en Villa de las Rosas</option>
+                                <option value="A mi ritmo">A mi ritmo</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inp-forma-pago">¿De qué forma vas a abonar?</label>
+                            <select id="inp-forma-pago" required>
+                                <option value="" selected disabled>Elegí una opción</option>
+                                <option value="En un solo pago">En un solo pago</option>
+                                <option value="Por semestre, en dos cuotas">Por semestre, en dos cuotas</option>
+                                <option value="En 8 cuotas mensuales">En 8 cuotas mensuales</option>
+                            </select>
+                        </div>
+
+                        <!-- Viene desmarcado a proposito: la confirmacion de la
+                             inscripcion llega igual, esto es solo para la
+                             newsletter. -->
+                        <label class="form-novedades" for="inp-novedades">
+                            <input type="checkbox" id="inp-novedades">
+                            <span>Quiero recibir contenidos astrológicos gratuitos por mail. Me puedo dar de baja cuando quiera. <a href="/privacidad/" target="_blank" rel="noopener noreferrer">Cómo cuidamos tus datos</a>.</span>
+                        </label>
+
+                        <!-- La trampa para bots. Fuera de la pantalla, con su
+                             etiqueta, para que un lector de pantalla la
+                             anuncie y una persona no la complete por error. -->
+                        <div class="campo-trampa" aria-hidden="true">
+                            <label for="inp-hp">No completar</label>
+                            <input type="text" id="inp-hp" name="website" tabindex="-1" autocomplete="off">
+                        </div>
+
+                        <div id="captcha-wrap" style="display:none; margin: 4px 0 14px;"></div>
+
+                        <button type="submit" class="btn-enviar" id="btn-enviar">
+                            <i class="fa-solid fa-paper-plane"></i> Enviar mi inscripción
+                        </button>
+
+                        <!-- Aparece solo si el envio pasa de tres segundos, que
+                             es el arranque en frio de la funcion y le toca a
+                             quien manda el primer formulario del dia. Sin
+                             esto ve un boton quieto y recarga. No es un
+                             error: no va en la caja de errores. -->
+                        <p id="aviso-tarda">Estamos guardando tus datos, no cierres esta ventana.</p>
+                    </form>
+                </div>
+
+                <div id="listo">
+                    <span class="icono-listo"><i class="fa-solid fa-circle-check"></i></span>
+                    <p id="aviso-listo">¡Listo! Ya tengo tus datos. Revisá tu casilla: te mandé un mail con la confirmación y los pasos que siguen.</p>
+                    <p>Cualquier duda podés escribirle a Clari por <a href="https://wa.me/5493544584122" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="contact-info">
+            <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+        </div>
+        <div class="social-links">
+            <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fab fa-spotify"></i></a>
+            <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+            <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+        <p><a href="/privacidad/">Privacidad y datos</a></p>
+        <p>© 2026 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+    </footer>
+
+</div>
+
+<script src="/script.js"></script>
+<script type="module" src="/formaciones/inscripcion.js?v=1"></script>
+</body>
+</html>

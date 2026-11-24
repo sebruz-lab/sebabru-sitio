@@ -86,6 +86,8 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - Deploy: `firebase deploy --only hosting` desde `g:\Mi unidad\Seba Bru\SITIO`
 - Archivos en `public/`
 - Imágenes en `public/img/` — deben estar descargadas de Google Drive antes de deployar
+- **Las reglas de Firestore se deployan con `firebase deploy --only firestore:cursos`, no con `--only firestore:rules`.** La base no es la default (se llama `cursos`) y `firebase.json` la declara en un arreglo, así que `--only firestore:rules` **termina con "Deploy complete!" sin haber publicado nada**: no compila, no sube y no releasea. Falla en silencio, que es la peor forma de fallar. Con el nombre de la base la salida dice "rules file firestore.rules compiled successfully", "uploading rules" y "released rules": si no están esas tres líneas, no se deployó (comprobado el 24/11/2026).
+- **Un trigger nuevo con `retry: true` pide `--force`.** `firebase deploy --only functions:...` corta con "Pass the --force option to deploy functions with a failure policy" la primera vez que se crea. Con `--only functions:<nombres>` el `--force` no borra nada: no hay funciones de más en el plan.
 
 ## Mailing (Brevo)
 
@@ -166,6 +168,55 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - Los 4 certificados viejos (hechos a mano, PDF aplanados en `functions/certificados/`) siguen saliendo por `descargarCertificado`. Esa rama no se tocó.
 - **Los ocho seminarios usan la plantilla `seminario`** (desde 2026-11-16), que no trae el texto escrito en `hoja.html`: lo recibe en tres tramos (`antes`, `medio`, `cierre`) alrededor de la itálica, desde `cuerpo` en `FORMACIONES_TITULO`. Es así porque los ocho textos no son un molde con huecos: cambia la apertura y cuatro tienen cierre propio. Sumar un seminario es una entrada más, sin tocar la hoja.
 - **El progreso de clases todavía no llega al servidor.** "Clase reproducida" vive solo en `localStorage` (`visitadas_<pathname>`, en `escuela.js`): no cruza de dispositivo. Por eso los diplomas se habilitan por tener el aula y **no** por haber terminado la cursada. Cuando se abran las aulas de 2027 hay que escribirlo en `usuarios/{mail}.progreso.<slug>` y recién ahí el servidor puede exigir la última clase.
+
+## Inscripciones a las formaciones y el padrón
+
+- **Cada año de la formación es una entrada de configuración, no un endpoint.**
+  `registrarInscripcion` es un motor genérico manejado por
+  `FORMULARIOS_INSCRIPCION`; las cuatro formaciones las arma
+  `formacionDeAnio()` a partir del arreglo `FORMACIONES_ESCUELA`. Sumar un año
+  es una línea ahí. En vivo desde el 24/11/2026.
+- Los `cursoId` del ciclo 2027 son **`intro27`, `lectura27`, `pluton27` y
+  `transitos27`** (años 1 a 4), y son también el `formId` del formulario, la
+  clave del padrón y el slug del aula. Ojo con los pares de nombre parecido:
+  `pluton` es el seminario suelto y `pluton27` el tercer año; `lectura` es el
+  curso viejo y `lectura27` el segundo.
+- Las páginas son `/formaciones/{intro,lectura,pluton,transitos}/`, con el
+  texto arriba y el formulario tras un `id="form"` (hay enlaces que apuntan a
+  `/formaciones/intro/#form`). La lógica vive **una sola vez** en
+  `public/formaciones/inscripcion.js`, parametrizada con `data-form-id`.
+- **`columnasPorEncabezado: true` es lo que salva las columnas de Seba.** Con
+  esa opción `asegurarHojaInscripcion` no pisa la fila 1 de la pestaña y solo
+  agrega al final los títulos que falten, así `PAGO`, `NOTA` y los meses
+  cargados a mano sobreviven. Sin ella la fila 1 es nuestra y se reescribe.
+- **El padrón (`padron/{cursoId}__{mail}`) es la copia durable**, porque
+  `procesarPendiente` borra `valores` y `carta` al terminar y hasta el
+  24/11/2026 la única copia de una inscripción quedaba en Google Sheets. Lo
+  llena la cola `padron_pendientes` → trigger `escribirFilaPadron`, enganchada
+  como quinto efecto del `Promise.all` de `procesarPendiente`. El valor de
+  cada columna va en `campos[key]` y **nunca** como campo de primer nivel: por
+  eso agregar una columna no migra ningún documento.
+- **`encolarPadron` escribe `escrito: null` explícito.**
+  `where('escrito','==',null)` no matchea un documento donde el campo no
+  existe — es por eso que `filas_planilla` no se puede barrer así. Con el campo
+  puesto, una fila trabada aparece en el resumen de `revisarPendientes`.
+- `padron`, `padron_columnas`, `padron_movimientos` y `padron_pendientes` están
+  **cerradas de los dos lados** y todo pasa por la callable `adminPadron` con
+  `exigirAdmin`. Es la excepción al resto del panel de la escuela, que lee
+  Firestore directo: esta colección junta mail, teléfono, datos de nacimiento y
+  plata de todo el padrón, igual que `agenda_pedidos` y `titulos`.
+- **El acceso al aula no lo da la inscripción**, lo da el botón "Dar acceso" de
+  la pestaña Inscripciones del panel (`accion: 'darAula'`), que escribe
+  `usuarios/{mail}.cursos` y `aulaDada` en un solo batch.
+- **Paso manual pendiente**, igual que el de `datos_sin_procesar`:
+  `gcloud firestore fields ttls update expira --collection-group=padron_pendientes --enable-ttl`.
+- **PENDIENTE (etapa 2):** la grilla editable con los pagos mes a mes y los
+  totales (incluido el 10% a Clari), columnas agregables desde el panel, cobro
+  en línea, y la importación de las ~100 filas de 2026. Dos cosas ya medidas
+  que van a aparecer ahí: **TERCER AÑO tiene $255.000 de diferencia** entre la
+  suma de sus pagos ($1.175.000) y lo que declara el BALANCE GENERAL
+  ($920.000), y en Primer Año las columnas de meses no suman al `PAGO` en 8 de
+  26 filas.
 
 ## Nunca perder un dato que alguien dejó
 

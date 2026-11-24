@@ -2166,6 +2166,221 @@ exports.pendientes = functions.https.onCall(async (data, context) => {
 });
 
 // -------------------------------------------------------
+// adminPadron: el padron de estudiantes, para la pestana del panel.
+//
+// Va por callable y no por lectura directa de Firestore como el resto del
+// panel de la escuela, y es a proposito: `padron` es la unica coleccion que
+// junta mail, telefono, datos de nacimiento y (desde la etapa 2) la plata de
+// todo el padron. Es el mismo criterio con el que ya estan cerradas
+// agenda_pedidos ("abrirla al cliente seria publicar la lista de
+// consultantes") y titulos ("tendria el padron de egresadxs con DNI
+// incluido"). Abrirla ademas seria una copia mas de la lista de mails de
+// admin en las reglas; aca hay una sola, server-side.
+//
+// Tres acciones escriben, y las tres dejan rastro en padron_movimientos:
+// "quien puso esto en cero" tiene que tener respuesta.
+// -------------------------------------------------------
+async function anotarMovimientoDePadron(filaId, accion, antes, despues, quien) {
+  try {
+    await _db.collection('padron_movimientos').add({
+      filaId, accion, antes: antes ?? null, despues: despues ?? null,
+      quien, cuando: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    // La auditoria no puede voltear la operacion que estaba auditando.
+    functions.logger.error('No se pudo anotar el movimiento del padrón:', error.message);
+  }
+}
+
+// Lo que se manda al navegador. Los datos de nacimiento solo si se piden:
+// la grilla por omision no los transporta, asi una pantalla compartida en
+// clase no los muestra.
+function filaDePadronParaElPanel(doc, conNacimiento) {
+  const v = doc.data();
+  return {
+    id: doc.id,
+    cursoId: v.cursoId || '',
+    nombre: v.nombre || '',
+    email: v.email || '',
+    telefono: v.telefono || '',
+    alta: v.alta || '',
+    origen: v.origen || '',
+    estado: v.estado || 'activo',
+    campos: v.campos || {},
+    pagado: v.pagado || 0,
+    plan: v.plan ?? null,
+    aulaDada: Boolean(v.aulaDada),
+    tieneCarta: Boolean(v.nacimiento && v.nacimiento.fecha && v.nacimiento.hora),
+    nacimiento: conNacimiento ? (v.nacimiento || null) : null,
+  };
+}
+
+exports.adminPadron = functions.https.onCall(async (data, context) => {
+  const quien = exigirAdmin(context);
+  ensureInit();
+
+  // El tope existe porque cada "listar" devuelve mails y telefonos de todo
+  // un curso: una sesion robada no puede usarse de scraper.
+  if (context.rawRequest) {
+    const alcanza = await checkRateLimit('adminPadron', context.rawRequest, 300);
+    if (!alcanza) throw new functions.https.HttpsError('resource-exhausted', 'Demasiados pedidos seguidos.');
+  }
+
+  const accion = String(data?.accion || 'listar');
+
+  if (accion === 'cursos') {
+    const snap = await _db.collection('padron_columnas').get();
+    const cursos = snap.docs.map(d => ({
+      cursoId: d.id,
+      nombreCurso: d.data().nombreCurso || d.id,
+      columnas: (d.data().columnas || []).filter(c => !c.oculta),
+    }));
+    // Los cursos configurados en el codigo que todavia no tienen a nadie
+    // anotado: si no aparecieran, el panel se veria vacio el dia del
+    // lanzamiento y no se sabria si es que no hay nadie o es que algo fallo.
+    for (const f of FORMACIONES_ESCUELA) {
+      if (cursos.some(c => c.cursoId === f.cursoId)) continue;
+      cursos.push({ cursoId: f.cursoId, nombreCurso: f.nombre, columnas: [] });
+    }
+    cursos.sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es'));
+    return { ok: true, cursos };
+  }
+
+  if (accion === 'listar') {
+    const cursoId = String(data?.cursoId || '').trim();
+    if (!cursoId) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso.');
+    const conNacimiento = data?.conNacimiento === true;
+
+    const [filasSnap, colSnap] = await Promise.all([
+      // Un solo where y el orden en memoria, igual que en pendientes: asi no
+      // hace falta un indice compuesto, que es algo que falla en produccion.
+      _db.collection('padron').where('cursoId', '==', cursoId).limit(500).get(),
+      _db.collection('padron_columnas').doc(cursoId).get(),
+    ]);
+    const filas = filasSnap.docs
+      .map(d => filaDePadronParaElPanel(d, conNacimiento))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const columnas = (colSnap.exists ? (colSnap.data().columnas || []) : []).filter(c => !c.oculta);
+    return { ok: true, columnas, filas };
+  }
+
+  if (accion === 'altaManual') {
+    const cursoId = String(data?.cursoId || '').trim();
+    const nombre = sanitizeTexto(data?.nombre, 200);
+    if (!cursoId) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso.');
+    if (!nombre) throw new functions.https.HttpsError('invalid-argument', 'Falta el nombre.');
+
+    const email = sanitizeTexto(data?.email, 200);
+    const emailNorm = mailNormalizado(email);
+    if (email && !EMAIL_VALIDO.test(emailNorm)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese mail no parece un mail.');
+    }
+    const clave = claveDePadron(cursoId, emailNorm, nombre);
+    const filaRef = _db.collection('padron').doc(clave);
+    if ((await filaRef.get()).exists) {
+      throw new functions.https.HttpsError('already-exists', 'Esa persona ya está en este curso.');
+    }
+
+    // Si hay alguien con el mismo nombre escrito distinto, se avisa pero no
+    // se bloquea: dos personas pueden llamarse igual.
+    const nombreNorm = nombreNormalizado(nombre);
+    const mismos = await _db.collection('padron')
+      .where('cursoId', '==', cursoId).where('nombreNorm', '==', nombreNorm).limit(1).get();
+
+    await filaRef.set({
+      cursoId,
+      email, emailNorm,
+      nombre, nombreNorm,
+      telefono: sanitizeTexto(data?.telefono, 50),
+      nacimiento: {
+        fecha: sanitizeTexto(data?.nacimiento?.fecha, 20),
+        hora: sanitizeTexto(data?.nacimiento?.hora, 20),
+        lugar: sanitizeTexto(data?.nacimiento?.lugar, 200),
+      },
+      origen: 'manual',
+      formId: '', inscripcionId: '',
+      alta: new Date().toISOString(),
+      estado: 'activo',
+      campos: {},
+      pagos: [], plan: null, pagado: 0,
+      aulaDada: false,
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: quien,
+    });
+    await anotarMovimientoDePadron(clave, 'altaManual', null, { nombre, email }, quien);
+
+    // La planilla sigue siendo el respaldo: el alta a mano tambien va. Reusa
+    // la cola y el camino de siempre, con el cursoId como formId.
+    await encolarFilaPlanilla({
+      tipo: 'inscripcion', formId: cursoId,
+      valores: {
+        nombre, email, telefono: sanitizeTexto(data?.telefono, 50),
+        fechaNacimiento: sanitizeTexto(data?.nacimiento?.fecha, 20),
+        horaNacimiento: sanitizeTexto(data?.nacimiento?.hora, 20),
+        lugarNacimiento: sanitizeTexto(data?.nacimiento?.lugar, 200),
+      },
+      estadoCarta: 'No: alta a mano',
+      ahora: new Date().toISOString(),
+    });
+
+    const doc = await filaRef.get();
+    return { ok: true, fila: filaDePadronParaElPanel(doc, true), avisoDuplicado: !mismos.empty };
+  }
+
+  if (accion === 'darAula') {
+    const filaId = String(data?.filaId || '').trim();
+    if (!filaId) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila.');
+    const filaRef = _db.collection('padron').doc(filaId);
+    const fila = await filaRef.get();
+    if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+    const v = fila.data();
+    if (!v.emailNorm) {
+      throw new functions.https.HttpsError('failed-precondition', 'Sin dirección de mail no hay cuenta a la que darle el aula.');
+    }
+
+    // Las dos escrituras juntas o ninguna: si no, el panel diria que el
+    // acceso esta dado y la persona no entraria (o al reves).
+    const lote = _db.batch();
+    lote.set(_db.collection('usuarios').doc(v.emailNorm), {
+      cursos: admin.firestore.FieldValue.arrayUnion(v.cursoId),
+      nombre: v.nombre || '',
+      fechaRegistro: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    lote.set(filaRef, {
+      aulaDada: true,
+      aulaDadaEn: admin.firestore.FieldValue.serverTimestamp(),
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: quien,
+    }, { merge: true });
+    await lote.commit();
+    await anotarMovimientoDePadron(filaId, 'darAula', false, true, quien);
+    return { ok: true };
+  }
+
+  if (accion === 'baja') {
+    const filaId = String(data?.filaId || '').trim();
+    if (!filaId) throw new functions.https.HttpsError('invalid-argument', 'Falta la fila.');
+    const filaRef = _db.collection('padron').doc(filaId);
+    const fila = await filaRef.get();
+    if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
+    const antes = fila.data().estado || 'activo';
+    const despues = antes === 'baja' ? 'activo' : 'baja';
+    // Nunca un delete: una fila de menos es un dato que alguien dejo y que
+    // ya no esta en ningun lado.
+    await filaRef.set({
+      estado: despues,
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizadoPor: quien,
+    }, { merge: true });
+    await anotarMovimientoDePadron(filaId, 'baja', antes, despues, quien);
+    return { ok: true, estado: despues };
+  }
+
+  throw new functions.https.HttpsError('invalid-argument', `Acción desconocida: ${accion}`);
+});
+
+// -------------------------------------------------------
 // crearEnlace: admin crea un enlace maestro multi-uso
 // -------------------------------------------------------
 exports.crearEnlace = functions.https.onCall(async (data, context) => {
@@ -2329,6 +2544,116 @@ function parrafosDeConsulta(nombre, conCarta, modalidad, urlAgenda, segundoParra
   ].filter(Boolean);
 }
 
+// -------------------------------------------------------
+// LAS CUATRO FORMACIONES DE LA ESCUELA (ciclo 2027)
+//
+// Los cuatro anos son el mismo formulario con otro nombre, asi que la
+// config la arma un helper y sumar el ano que viene es una linea. Lo que
+// cambia de uno a otro es poco:
+//
+//   cursoId -> el slug del aula virtual (intro27, lectura27, ...). Es
+//              tambien el formId del formulario y la clave del padron.
+//   nombre  -> como se llama la formacion en el mail y en el aviso
+//   grupo   -> el grupo con el que se guardan las cartas en la calculadora
+//   hoja    -> la pestana de la planilla FORMACIONES (se crea sola)
+//
+// Tres cosas que no son decorativas:
+//
+//  1. columnasPorEncabezado: true hace que asegurarHojaInscripcion NO pise
+//     la fila 1 y solo agregue al final los titulos que falten, asi las
+//     columnas que Seba agrega a mano (PAGO, NOTA, los meses) quedan
+//     intactas. Es el mismo modo que usan las consultas.
+//  2. Los datos de nacimiento NO son requeridos, igual que en el Google
+//     Form que esto reemplaza ("solo si no tenemos tus datos"): si faltan,
+//     cartaDeInscripcion devuelve null, la columna Carta lo dice y el mail
+//     sale sin adjunto, pero la inscripcion entra igual.
+//  3. El orden de los campos es el orden de las columnas de la planilla
+//     (ver encabezadosDeFormulario): un campo nuevo va SIEMPRE al final,
+//     porque correr una columna que ya tiene datos seria un desastre.
+// -------------------------------------------------------
+const MODALIDADES_FORMACION = [
+  'Virtual por Zoom',
+  'Presencial en Villa de las Rosas',
+  'A mi ritmo',
+];
+
+const FORMAS_DE_PAGO_FORMACION = [
+  'En un solo pago',
+  'Por semestre, en dos cuotas',
+  'En 8 cuotas mensuales',
+];
+
+const CONOCIMIENTOS_FORMACION = [
+  'Sí, estudié con ustedes',
+  'Sí, estudié en otra escuela',
+  'No tengo estudios formales pero sí tengo conocimientos',
+  'No tengo conocimientos',
+];
+
+// El telefono de Clari para los pagos, el mismo que ya usa el mail de Tu
+// identidad en el cielo. El de "como llegar al presencial" es otro y ya
+// esta arriba, en AGENDA_WHATSAPP_CLARI.
+const CLARI_PAGOS = '+5493544584122';
+const CLARI_PRESENCIAL = '+5493544559877';
+
+const FORMACIONES_ESCUELA = [
+  { cursoId: 'intro27', grupo: 'Primer año 2027', hoja: 'INTRO 27',
+    nombre: 'Primer año: Introducción al lenguaje astrológico' },
+  { cursoId: 'lectura27', grupo: 'Segundo año 2027', hoja: 'LECTURA 27',
+    nombre: 'Segundo año' },
+  { cursoId: 'pluton27', grupo: 'Tercer año 2027', hoja: 'PLUTON 27',
+    nombre: 'Tercer año' },
+  { cursoId: 'transitos27', grupo: 'Cuarto año 2027', hoja: 'TRANSITOS 27',
+    nombre: 'Cuarto año' },
+];
+
+function formacionDeAnio({ cursoId, nombre, grupo, hoja }) {
+  return {
+    hoja,
+    columnasPorEncabezado: true,
+    columnaCarta: 'Carta',
+    nombreEvento: nombre,
+    camposFinales: [CAMPO_NOVEDADES],
+    brevoLista: 'alumnos',
+    campos: [
+      { key: 'nombre', label: 'Nombre y apellido', maxLen: 200, requerido: true },
+      { key: 'telefono', label: 'Teléfono', maxLen: 50, requerido: true },
+      { key: 'email', label: 'Email', maxLen: 200, requerido: true },
+      { key: 'fechaNacimiento', label: 'Fecha de nacimiento', maxLen: 20 },
+      { key: 'horaNacimiento', label: 'Hora de nacimiento', maxLen: 20 },
+      { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200 },
+      { key: 'conocimientos', label: 'Conocimientos astrológicos', maxLen: 80, requerido: true, opciones: CONOCIMIENTOS_FORMACION },
+      { key: 'modalidad', label: 'Modalidad', maxLen: 40, requerido: true, opciones: MODALIDADES_FORMACION },
+      { key: 'formaPago', label: 'Forma de pago', maxLen: 40, requerido: true, opciones: FORMAS_DE_PAGO_FORMACION },
+    ],
+    // La misma cuenta de la calculadora que ya usan los demas formularios:
+    // se lee de ahi para no tener la direccion escrita dos veces.
+    carta: { para: FORMULARIOS_INSCRIPCION['tu-identidad-en-el-cielo'].carta.para, grupo },
+    asuntoAviso: v => asuntoDeAviso(['Nueva inscripción', grupo, v.nombre]),
+    // Redaccion adaptada del mail de Tu identidad en el cielo, que es el
+    // unico formulario de la escuela que ya manda confirmacion. REVISAR con
+    // Seba antes de la primera inscripcion de verdad.
+    confirmacion: {
+      asunto: `Tu inscripción a ${grupo}`,
+      parrafos: (primerNombre, conCarta, modalidad) => [
+        primerNombre ? `Hola, ${primerNombre}:` : 'Hola:',
+        `¡Gracias por inscribirte a <em>${nombre}</em>! Ya tengo tus datos.`,
+        conCarta
+          ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.'
+          : '',
+        modalidad === 'Presencial en Villa de las Rosas'
+          ? `Pedile la información sobre cómo llegar a Clari: ${CLARI_PRESENCIAL}.`
+          : 'Antes de empezar te escribo con los enlaces y todo lo que necesitás para cursar.',
+        `Para datos del pago podés escribirle a Clari al ${CLARI_PAGOS}.`,
+        '¡Nos vemos pronto!<br>Seba',
+      ].filter(Boolean),
+    },
+    // Lo que hace que la inscripcion quede en el padron de Firestore y no
+    // solo en la planilla: ver encolarPadron / escribirFilaPadron.
+    padron: { cursoId },
+  };
+}
+
 const FORMULARIOS_INSCRIPCION = {
   'tu-identidad-en-el-cielo': {
     hoja: 'Identidad astral',
@@ -2447,6 +2772,13 @@ const FORMULARIOS_INSCRIPCION = {
     },
   },
 };
+
+// Las cuatro formaciones se suman despues de armar la tabla, y no adentro,
+// porque formacionDeAnio lee de ella la cuenta donde se guardan las cartas.
+// El formId de cada una es su cursoId.
+for (const f of FORMACIONES_ESCUELA) {
+  FORMULARIOS_INSCRIPCION[f.cursoId] = formacionDeAnio(f);
+}
 
 // Carta de una inscripcion para la calculadora (sebabru.com/cartas): con
 // el lugar elegido en el buscador del formulario (coordenadas y zona
@@ -2634,6 +2966,106 @@ async function encolarFilaPlanilla(datos) {
   }
 }
 
+// -------------------------------------------------------
+// EL PADRON DE LA ESCUELA
+//
+// Una fila por persona por curso, en `padron`, que sobrevive al borrado de
+// `valores` que hace procesarPendiente al terminar: hasta ahora la unica
+// copia de una inscripcion quedaba en la planilla de Google.
+//
+// El id es {cursoId}__{mail en minuscula} y no un autoId. El trigger que lo
+// escribe corre con retry y es at-least-once, asi que un id derivado hace la
+// escritura idempotente por construccion -- el mismo mecanismo que ya usan
+// los cuatro efectos de procesarPendiente. Y el mail es la clave de union
+// con usuarios/{email} y con Brevo.
+// -------------------------------------------------------
+const PADRON_PENDIENTE_DIAS = 90;
+
+function mailNormalizado(valor) {
+  return String(valor || '').trim().toLowerCase();
+}
+
+// Sin tildes y en minuscula, para ordenar y para encontrar un duplicado
+// escrito distinto. Nunca se muestra: para eso esta `nombre`, tal como lo
+// escribio la persona.
+function nombreNormalizado(valor) {
+  return String(valor || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// La clave de una fila. Sin mail (el alta a mano de alguien que se anoto por
+// telefono) se deriva del nombre y es estable, asi cargarlo dos veces no
+// hace dos filas. El separador es '__' y ningun cursoId lo contiene, asi que
+// partir en el primero seria inequivoco -- aunque nadie parsea el id:
+// cursoId y emailNorm van repetidos como campos.
+function claveDePadron(cursoId, emailNorm, nombre) {
+  if (emailNorm) return `${cursoId}__${emailNorm}`;
+  const base = nombreNormalizado(nombre).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'sin-nombre';
+  const hash = crypto.createHash('sha256').update(`${cursoId}|${base}`).digest('hex').slice(0, 6);
+  return `${cursoId}__sinmail-${base.slice(0, 40)}-${hash}`;
+}
+
+// La cola del padron. Como encolarFilaPlanilla, encolarMail y
+// encolarContactoBrevo: un solo set() y nunca tira. Lo fragil (leer la
+// config, normalizar, mergear) lo hace el trigger, que reintenta por dias y
+// deja un documento a la vista.
+async function encolarPadron(datos) {
+  try {
+    const { id, ...resto } = datos;
+    const destino = id
+      ? _db.collection('padron_pendientes').doc(String(id))
+      : _db.collection('padron_pendientes').doc();
+    await destino.set({
+      ...resto,
+      // Explicito y no ausente: where('escrito','==',null) NO matchea un
+      // documento donde el campo no existe, y es por eso que filas_planilla
+      // hoy no se puede barrer asi. Con esto revisarPendientes lo ve.
+      escrito: null,
+      creado: new Date().toISOString(),
+      // Adentro hay mail, telefono y datos de nacimiento, asi que no se
+      // queda para siempre. El TTL sobre `expira` se habilita a mano, igual
+      // que el de datos_sin_procesar (ver CLAUDE.md).
+      expira: admin.firestore.Timestamp.fromMillis(
+        Date.now() + PADRON_PENDIENTE_DIAS * 24 * 60 * 60 * 1000),
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo encolar la fila del padrón:', error.message);
+    // Un logger.error no le avisa a nadie. Si ni siquiera se pudo encolar,
+    // los datos de la persona se guardan crudos y sale un mail.
+    await custodiar({
+      endpoint: 'padron',
+      motivo: 'no_se_encolo',
+      gravedad: 'grave',
+      datos: { cursoId: datos.cursoId, formId: datos.formId, valores: datos.valores },
+      contacto: { email: (datos.valores || {}).email, nombre: (datos.valores || {}).nombre },
+    });
+  }
+}
+
+// Las columnas de un curso, derivadas de la config de su formulario. Se
+// escriben una sola vez, la primera vez que entra alguien: desde la etapa 2
+// Seba puede agregar columnas propias desde el panel, y por eso el valor de
+// cada una vive en `campos[key]` y nunca como campo de primer nivel (agregar
+// una columna no tiene que migrar ningun documento).
+function columnasDeFormulario(config) {
+  const fijos = ['nombre', 'telefono', 'email', 'fechaNacimiento', 'horaNacimiento', 'lugarNacimiento'];
+  const columnas = [];
+  let orden = 0;
+  for (const c of [...(config.campos || []), ...(config.camposFinales || [])]) {
+    if (fijos.includes(c.key)) continue;
+    columnas.push({
+      key: c.key,
+      label: c.label,
+      tipo: c.opciones ? 'opciones' : (c.maxLen > 200 ? 'nota' : 'texto'),
+      opciones: c.opciones || [],
+      orden: orden++,
+      oculta: false,
+    });
+  }
+  return columnas;
+}
+
 async function asegurarHojaInscripcion(sheets, spreadsheetId, nombreHoja, encabezados, porEncabezado) {
   const clave = spreadsheetId + '|' + nombreHoja;
 
@@ -2701,6 +3133,19 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   ensureInit();
+
+  // La trampa para bots: un campo que esta fuera de la pantalla y que una
+  // persona no ve. Si viene lleno, se contesta como si todo hubiera salido
+  // bien y no se hace nada -- y NO se custodia, porque no hay dato de nadie
+  // que cuidar y la bandeja de pendientes se llenaria de basura (ver
+  // CLAUDE.md). Los formularios de las formaciones lo mandan; los de
+  // consultas no lo tienen y les da igual.
+  if (sanitizeTexto(req.body?.hp, 200)) {
+    functions.logger.info('Inscripción descartada por el honeypot', {
+      formId: sanitizeTexto(req.body?.formId, 100),
+    });
+    return res.json({ ok: true });
+  }
 
   // La decision se toma aca, como siempre. Lo que se posterga es solo
   // anotar el envio en el contador: eso viaja abajo, junto con la escritura
@@ -3940,6 +4385,19 @@ async function procesarPendiente(event) {
     guardarCartaYAvisar,
     pedirConfirmacion,
     altaEnElMailing,
+    // El padron de la escuela. Solo los formularios que lo declaran (las
+    // formaciones): consultas y el libro siguen igual que siempre.
+    (async () => {
+      if (!config.padron) return;
+      await encolarPadron({
+        id: `inscripcion-${ref.id}`,
+        cursoId: config.padron.cursoId,
+        formId: d.formId,
+        inscripcionId: ref.id,
+        valores,
+        ahora: d.ahora || '',
+      });
+    })(),
   ]);
 
   // Recien ahora se apaga la marca: si algo de arriba tira, el reintento
@@ -3992,6 +4450,129 @@ exports.escribirFilaPlanilla = onDocumentCreated({
 
   await ref.update({ escrito: new Date().toISOString() });
 });
+
+// -------------------------------------------------------
+// escribirFilaPadron: el que vacia la cola padron_pendientes y arma la fila
+// durable de cada inscripcion.
+//
+// retry en true y se vuelve a leer el documento antes de trabajar: los
+// triggers son at-least-once. La idempotencia real la da el id derivado de
+// la fila ({cursoId}__{mail}), asi que entrar dos veces reescribe la misma.
+// -------------------------------------------------------
+exports.escribirFilaPadron = onDocumentCreated({
+  document: 'padron_pendientes/{id}',
+  database: 'cursos',
+  region: 'us-central1',
+  retry: true,
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+  if (!event.data) return;
+  const ref = event.data.ref;
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const trabajo = snap.data();
+  if (trabajo.escrito) {
+    functions.logger.info('La fila del padrón ya estaba escrita, no se repite', { id: ref.id });
+    return;
+  }
+
+  const cursoId = String(trabajo.cursoId || '').trim();
+  if (!cursoId) {
+    // Sin curso no hay fila posible, y no hay reintento que lo arregle: se
+    // custodia para que el dato no se pierda y alguien lo cargue a mano.
+    functions.logger.error('Fila de padrón sin curso', { id: ref.id });
+    await custodiar({
+      endpoint: 'padron',
+      motivo: 'fila_sin_curso',
+      gravedad: 'grave',
+      datos: trabajo.valores || {},
+      contacto: { email: (trabajo.valores || {}).email, nombre: (trabajo.valores || {}).nombre },
+    });
+    await ref.update({ escrito: new Date().toISOString(), error: 'fila_sin_curso' });
+    return;
+  }
+
+  const config = FORMULARIOS_INSCRIPCION[trabajo.formId] || { campos: [] };
+  const valores = trabajo.valores || {};
+  const emailNorm = mailNormalizado(valores.email);
+  const clave = claveDePadron(cursoId, emailNorm, valores.nombre);
+  const filaRef = _db.collection('padron').doc(clave);
+
+  await asegurarColumnasDePadron(cursoId, trabajo.formId, config);
+
+  // Solo las columnas que trae el formulario. Van como objeto anidado y no
+  // con rutas punteadas porque set() no interpreta las rutas: con
+  // merge:true el mapa se mergea igual, asi que lo que Seba cargo a mano en
+  // otra columna no se toca.
+  const campos = {};
+  for (const col of columnasDeFormulario(config)) {
+    if (valores[col.key] === undefined) continue;
+    campos[col.key] = valores[col.key];
+  }
+
+  const yaEstaba = (await filaRef.get()).exists;
+  const payload = {
+    cursoId,
+    email: valores.email || '',
+    emailNorm,
+    nombre: valores.nombre || '',
+    nombreNorm: nombreNormalizado(valores.nombre),
+    telefono: valores.telefono || '',
+    nacimiento: {
+      fecha: valores.fechaNacimiento || '',
+      hora: valores.horaNacimiento || '',
+      lugar: valores.lugarNacimiento || '',
+    },
+    formId: trabajo.formId || '',
+    inscripcionId: trabajo.inscripcionId || '',
+    alta: trabajo.ahora || '',
+    campos,
+    actualizado: admin.firestore.FieldValue.serverTimestamp(),
+    actualizadoPor: 'formulario',
+  };
+  // Una reinscripcion actualiza el contacto y nada mas: la plata, el estado
+  // y el acceso al aula son de quien los cargo, no del formulario.
+  if (!yaEstaba) {
+    Object.assign(payload, {
+      origen: 'formulario',
+      estado: 'activo',
+      pagos: [],
+      plan: null,
+      pagado: 0,
+      aulaDada: false,
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+  await filaRef.set(payload, { merge: true });
+
+  await ref.update({ escrito: new Date().toISOString() });
+  functions.logger.info('Fila de padrón escrita', { cursoId, nueva: !yaEstaba });
+});
+
+// Las columnas de un curso se escriben una sola vez, la primera vez que
+// entra alguien. Desde la etapa 2 Seba puede agregar las suyas desde el
+// panel, asi que aca NO se tocan si el documento ya existe.
+async function asegurarColumnasDePadron(cursoId, formId, config) {
+  try {
+    const ref = _db.collection('padron_columnas').doc(cursoId);
+    if ((await ref.get()).exists) return;
+    await ref.set({
+      cursoId,
+      formId: formId || '',
+      nombreCurso: config.nombreEvento || cursoId,
+      hojaPlanilla: config.hoja || '',
+      columnas: columnasDeFormulario(config),
+      meses: [],
+      plan: { total: null, cuotas: null },
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    // Que falte la config de columnas no puede impedir que la fila se
+    // guarde: el panel sabe pintar una fila sin columnas declaradas.
+    functions.logger.error('No se pudieron crear las columnas del padrón:', error.message);
+  }
+}
 
 // La fila de un formulario. Es lo que hacia registrarInscripcion antes de
 // contestar.
@@ -6372,6 +6953,13 @@ async function contarPendientes() {
     _db.collection('envios_titulo').where('enviado', '==', null).limit(30).get(),
     siempre,
     d => `${d.id}`);
+
+  // El padron. encolarPadron escribe "escrito: null" explicito justamente
+  // para que esta consulta lo encuentre: un campo ausente no matchea.
+  await mirar('Filas del padrón sin escribir',
+    _db.collection('padron_pendientes').where('escrito', '==', null).limit(30).get(),
+    siempre,
+    d => `${d.data().cursoId || 'sin curso'} — ${d.data().valores?.email || 'sin mail'}`);
 
   // "fallo" es una marca de tiempo, no un booleano: se filtra por presencia.
   // La coleccion se vacia sola en el camino bueno, asi que es chica.

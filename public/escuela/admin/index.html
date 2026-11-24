@@ -254,6 +254,9 @@
         <button class="tab-btn" data-tab="usuarios">
             <i class="fa-solid fa-users"></i> Todos los Usuarios
         </button>
+        <button class="tab-btn" data-tab="padron">
+            <i class="fa-solid fa-list-check"></i> Inscripciones
+        </button>
         <button class="tab-btn" data-tab="invitaciones">
             <i class="fa-solid fa-link"></i> Invitaciones
         </button>
@@ -539,6 +542,54 @@
         </div>
     </div>
 
+    <!-- TAB: PADRON (inscripciones por curso)
+         Los datos NO se leen de Firestore desde acá: la colección está
+         cerrada en las reglas a propósito (mail, teléfono, datos de
+         nacimiento y la plata de todo el padrón). Todo pasa por la callable
+         adminPadron, que verifica la sesión del lado del servidor. -->
+    <div id="tab-padron" class="tab-panel">
+        <div class="card">
+            <p class="card-title">Inscripciones por curso</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Cada persona que se inscribió por el formulario del sitio, más las que cargues a mano.
+                Esto es lo que antes vivía solo en la planilla de Google: la planilla sigue recibiendo
+                cada alta como respaldo, pero lo que vale es esto.
+            </p>
+            <div class="input-row">
+                <select id="pad-curso"><option value="">Elegí un curso</option></select>
+                <button class="btn btn-primary" id="pad-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
+            </div>
+            <label class="pad-switch" for="pad-nacimiento" style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:.85rem; opacity:.8; cursor:pointer;">
+                <input type="checkbox" id="pad-nacimiento">
+                <span>Mostrar los datos de nacimiento (apagado para que no queden a la vista en una pantalla compartida)</span>
+            </label>
+            <div id="pad-msg"></div>
+            <div id="pad-lista" style="margin-top:14px; overflow-x:auto;"></div>
+        </div>
+
+        <div class="card">
+            <p class="card-title">Anotar a alguien a mano</p>
+            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                Para quien se anotó por WhatsApp o por teléfono y nunca pasó por el formulario.
+                El mail es opcional, pero sin mail no se le puede dar el acceso al aula.
+            </p>
+            <div class="input-row">
+                <input type="text" id="pad-nombre" placeholder="Nombre y apellido" maxlength="200">
+                <input type="email" id="pad-email" placeholder="Mail (opcional)" maxlength="200">
+            </div>
+            <div class="input-row" style="margin-top:8px;">
+                <input type="tel" id="pad-telefono" placeholder="Teléfono" maxlength="50">
+                <input type="text" id="pad-fecha" placeholder="Nacimiento DD/MM/AAAA" maxlength="20">
+                <input type="text" id="pad-hora" placeholder="Hora HH:MM" maxlength="20">
+            </div>
+            <div class="input-row" style="margin-top:8px;">
+                <input type="text" id="pad-lugar" placeholder="Lugar de nacimiento" maxlength="200">
+                <button class="btn btn-primary" id="pad-alta"><i class="fa-solid fa-user-plus"></i> Anotar</button>
+            </div>
+            <div id="pad-alta-msg"></div>
+        </div>
+    </div>
+
     <!-- TAB: PENDIENTES -->
     <div id="tab-pendientes" class="tab-panel">
         <div class="card">
@@ -577,6 +628,13 @@
     }
 
     const CURSOS = [
+        // Las cuatro formaciones del ciclo 2027. Ojo con los pares de nombre
+        // parecido: 'pluton' es el seminario y 'pluton27' el tercer año;
+        // 'lectura' es el curso viejo y 'lectura27' el segundo año.
+        { id: 'intro27',      nombre: 'Primer año 2027 (Introducción)' },
+        { id: 'lectura27',    nombre: 'Segundo año 2027' },
+        { id: 'pluton27',     nombre: 'Tercer año 2027' },
+        { id: 'transitos27',  nombre: 'Cuarto año 2027' },
         { id: 'pluton',       nombre: 'Seminario Plutón' },
         { id: 'introduccion', nombre: 'Introducción' },
         { id: 'lunas26',      nombre: 'La Luna en la carta natal 2026' },
@@ -1258,6 +1316,167 @@
     }
 
     document.getElementById('pe-cargar').addEventListener('click', cargarPendientes);
+
+    // ── TAB: PADRON (inscripciones por curso) ─────────────────────
+    // Todo por la callable adminPadron: la coleccion esta cerrada en las
+    // reglas y no se lee desde el navegador. Cada interpolacion va con
+    // escapeHtml sin excepcion -- esta tabla pinta nombres, mails y notas
+    // que escribio otra gente.
+    const padCursoSel = document.getElementById('pad-curso');
+    const padLista = document.getElementById('pad-lista');
+    const padMsg = document.getElementById('pad-msg');
+    const padNacimiento = document.getElementById('pad-nacimiento');
+    let padColumnas = [];
+
+    function padronApi(datos) {
+        const fns = getFunctions(getApp(), 'us-central1');
+        return httpsCallable(fns, 'adminPadron')(datos);
+    }
+
+    function padError(donde, e) {
+        donde.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
+    }
+
+    // Los cursos los da el servidor (los que tienen gente anotada, mas los
+    // que estan configurados y todavia no): asi el panel no miente el dia
+    // del lanzamiento, cuando todavia no hay nadie.
+    let padCursosCargados = false;
+    async function cargarCursosDePadron() {
+        if (padCursosCargados) return;
+        try {
+            const r = await padronApi({ accion: 'cursos' });
+            padCursoSel.innerHTML = '<option value="">Elegí un curso</option>'
+                + (r.data.cursos || []).map(c =>
+                    `<option value="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso)}</option>`).join('');
+            padCursosCargados = true;
+        } catch (e) {
+            padError(padMsg, e);
+        }
+    }
+    document.querySelector('.tab-btn[data-tab="padron"]').addEventListener('click', cargarCursosDePadron);
+
+    async function cargarPadron() {
+        const cursoId = padCursoSel.value;
+        padMsg.innerHTML = '';
+        if (!cursoId) {
+            padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Elegí un curso.</p></div>';
+            return;
+        }
+        padLista.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+            const r = await padronApi({
+                accion: 'listar', cursoId,
+                conNacimiento: padNacimiento.checked,
+            });
+            padColumnas = r.data.columnas || [];
+            pintarPadron(r.data.filas || []);
+        } catch (e) {
+            padError(padLista, e);
+        }
+    }
+
+    function pintarPadron(filas) {
+        if (!filas.length) {
+            padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Todavía no hay nadie anotado en este curso.</p></div>';
+            return;
+        }
+        const conNac = padNacimiento.checked;
+        const cabeceras = ['Alta', 'Nombre', 'Mail', 'Teléfono']
+            .concat(padColumnas.map(c => c.label))
+            .concat(conNac ? ['Nacimiento', 'Hora', 'Lugar'] : ['Carta'])
+            .concat(['Aula', '']);
+
+        const cuerpo = filas.map(f => {
+            const alta = f.alta ? new Date(f.alta).toLocaleDateString('es') : '—';
+            const celdas = [
+                escapeHtml(alta),
+                `${escapeHtml(f.nombre || '—')}${f.estado === 'baja' ? ' <small style="opacity:.6;">(baja)</small>' : ''}`
+                    + `${f.origen === 'manual' ? ' <small style="opacity:.6;">(a mano)</small>' : ''}`,
+                escapeHtml(f.email || '—'),
+                escapeHtml(f.telefono || '—'),
+            ];
+            for (const c of padColumnas) celdas.push(escapeHtml(f.campos?.[c.key] ?? '—'));
+            if (conNac) {
+                celdas.push(escapeHtml(f.nacimiento?.fecha || '—'));
+                celdas.push(escapeHtml(f.nacimiento?.hora || '—'));
+                celdas.push(escapeHtml(f.nacimiento?.lugar || '—'));
+            } else {
+                celdas.push(f.tieneCarta ? 'Sí' : 'No');
+            }
+            celdas.push(f.aulaDada
+                ? '<span style="color:#249b95;font-weight:600;">dado</span>'
+                : `<button class="btn btn-secondary btn-sm" data-pad-aula="${escapeHtml(f.id)}"${f.email ? '' : ' disabled title="Sin mail no hay cuenta a la que darle el aula"'}>Dar acceso</button>`);
+            celdas.push(`<button class="btn btn-secondary btn-sm" data-pad-baja="${escapeHtml(f.id)}">${f.estado === 'baja' ? 'Reactivar' : 'Dar de baja'}</button>`);
+            return `<tr${f.estado === 'baja' ? ' style="opacity:.55;"' : ''}><td>${celdas.join('</td><td>')}</td></tr>`;
+        }).join('');
+
+        padLista.innerHTML = `<p style="opacity:.7;font-size:.85rem;margin:0 0 8px;">${filas.length} ${filas.length === 1 ? 'persona' : 'personas'}</p>`
+            + `<table class="user-table"><thead><tr><th>${cabeceras.map(escapeHtml).join('</th><th>')}</th></tr></thead><tbody>${cuerpo}</tbody></table>`;
+    }
+
+    document.getElementById('pad-cargar').addEventListener('click', cargarPadron);
+    padCursoSel.addEventListener('change', cargarPadron);
+    padNacimiento.addEventListener('change', () => { if (padCursoSel.value) cargarPadron(); });
+
+    padLista.addEventListener('click', async (ev) => {
+        const aula = ev.target.closest('[data-pad-aula]');
+        const baja = ev.target.closest('[data-pad-baja]');
+        const boton = aula || baja;
+        if (!boton) return;
+        boton.disabled = true;
+        try {
+            await padronApi({
+                accion: aula ? 'darAula' : 'baja',
+                cursoId: padCursoSel.value,
+                filaId: boton.dataset.padAula || boton.dataset.padBaja,
+            });
+            await cargarPadron();
+        } catch (e) {
+            boton.disabled = false;
+            padError(padMsg, e);
+        }
+    });
+
+    document.getElementById('pad-alta').addEventListener('click', async () => {
+        const msg = document.getElementById('pad-alta-msg');
+        const cursoId = padCursoSel.value;
+        msg.innerHTML = '';
+        if (!cursoId) {
+            msg.innerHTML = '<div class="alert alert-error">Elegí primero el curso, arriba.</div>';
+            return;
+        }
+        const nombre = document.getElementById('pad-nombre').value.trim();
+        if (!nombre) {
+            msg.innerHTML = '<div class="alert alert-error">Falta el nombre.</div>';
+            return;
+        }
+        const boton = document.getElementById('pad-alta');
+        boton.disabled = true;
+        try {
+            const r = await padronApi({
+                accion: 'altaManual',
+                cursoId,
+                nombre,
+                email: document.getElementById('pad-email').value.trim(),
+                telefono: document.getElementById('pad-telefono').value.trim(),
+                nacimiento: {
+                    fecha: document.getElementById('pad-fecha').value.trim(),
+                    hora: document.getElementById('pad-hora').value.trim(),
+                    lugar: document.getElementById('pad-lugar').value.trim(),
+                },
+            });
+            ['pad-nombre', 'pad-email', 'pad-telefono', 'pad-fecha', 'pad-hora', 'pad-lugar']
+                .forEach(id => { document.getElementById(id).value = ''; });
+            msg.innerHTML = r.data.avisoDuplicado
+                ? '<div class="alert alert-error">Quedó anotada, pero ojo: ya hay alguien con un nombre muy parecido en este curso.</div>'
+                : '<div class="alert alert-success">Anotada.</div>';
+            await cargarPadron();
+        } catch (e) {
+            padError(msg, e);
+        } finally {
+            boton.disabled = false;
+        }
+    });
 
     document.getElementById('pe-lista').addEventListener('click', async (ev) => {
         const boton = ev.target.closest('[data-resolver]');
