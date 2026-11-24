@@ -1,0 +1,85 @@
+/* Estilos propios de /programa/.
+
+   Son dos cosas: el desplegable "Detalle de las clases" de cada curso y el
+   aire entre un curso y el siguiente.
+
+   Por que un archivo aparte y no style.css: style.css lo cargan las 61
+   paginas del sitio, asi que tocarlo obliga a subir el ?v= en todas. Esto lo
+   necesita una sola pagina.
+
+   El desplegable es el mismo patron que usa la escuela
+   (public/escuela/escuela.css, .material-desplegable), copiado aca porque
+   /programa/ no carga escuela.css. style.css no define nada para <details>:
+   sin esto saldria con el triangulito nativo del navegador.
+
+   Sin comillas tipograficas: rompen los atributos (ver CLAUDE.md). */
+
+/* --- EL DESPLEGABLE DEL DETALLE DE CLASES --- */
+.material-desplegable {
+    max-width: 680px;
+    margin: 30px auto 0;
+}
+
+.material-desplegable summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 15px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
+    list-style: none;
+    color: #e0e0e0;
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    align-items: center;
+    transition: background 0.3s;
+}
+
+.material-desplegable summary:hover { background: rgba(255,255,255,0.05); }
+
+/* Ocultar el triangulo nativo del browser */
+.material-desplegable summary::-webkit-details-marker { display: none; }
+.material-desplegable summary::marker { display: none; }
+
+/* Chevron que rota al abrir, dibujado con mask-image */
+.material-desplegable summary::after {
+    content: '';
+    display: inline-block;
+    width: 0.63rem;
+    height: 0.63rem;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z'/%3E%3C/svg%3E") no-repeat center / contain;
+    margin-left: auto;
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: transform 0.25s ease, opacity 0.2s;
+}
+
+.material-desplegable[open] > summary::after {
+    transform: rotate(180deg);
+    opacity: 0.9;
+}
+
+.contenido-desplegable {
+    padding: 20px 4px;
+    text-align: left;
+}
+
+/* El detalle de clases es una lista larga de renglones cortos: con el
+   interlineado de los parrafos de texto corrido queda desarmado. */
+.contenido-desplegable .clase {
+    margin: 0 0 6px;
+    line-height: 1.6;
+}
+
+.contenido-desplegable h5,
+.contenido-desplegable h6 { margin-top: 1.6rem; }
+
+/* --- EL RITMO DE LA PAGINA --- */
+/* Cada curso es un bloque: titulo, texto, desplegable y formulario. El aire
+   de arriba separa un curso del anterior. */
+.curso { margin-top: 120px; }
+
+.curso .material-desplegable { margin-bottom: 55px; }

@@ -1,6 +1,11 @@
 /* Formulario de inscripcion a las formaciones.
-   Compartido por las cuatro paginas (/formaciones/intro/, /lectura/,
-   /seminarios3/, /transitos/): una sola copia, un solo lugar donde arreglar.
+   Compartido por las cinco paginas que lo muestran: las cuatro de
+   /formaciones/ (intro, lectura, seminarios3, transitos) y /programa/, que
+   lleva cuatro formularios, uno debajo de cada curso. Una sola copia, un
+   solo lugar donde arreglar.
+
+   Nada se estiliza por id, justamente por /programa/: ahi los id se repetirian
+   cuatro veces. El markup lo arma formulario.js.
 
    Sale del formulario de consultas (public/consultas/formulario.html), que
    vive dentro de un iframe; aca las paginas son paginas de verdad, asi que
@@ -14,6 +19,9 @@
     padding: 0 20px;
     box-sizing: border-box;
 }
+
+/* Cuando hay varios en la misma pagina (/programa/), que no se peguen. */
+.inscripcion + .inscripcion { margin-top: 55px; }
 
 .inscripcion .titulo-form {
     color: #fff;
@@ -203,7 +211,7 @@
     display: none;
 }
 
-#aviso-tarda {
+.aviso-tarda {
     display: none;
     margin: 12px 0 0;
     font-size: 0.82rem;
@@ -213,15 +221,15 @@
 }
 
 /* La pantalla de despues de enviar. */
-#listo { display: none; text-align: center; }
-#listo.visible { display: block; }
-#listo .icono-listo {
+.listo { display: none; text-align: center; }
+.listo.visible { display: block; }
+.listo .icono-listo {
     color: #f7d239;
     font-size: 1.93rem;
     margin-bottom: 14px;
     display: block;
 }
-#listo p {
+.listo p {
     color: #cccac3;
     text-align: center;
     font-size: 0.95rem;

@@ -1,12 +1,23 @@
 // Formulario de inscripcion a las formaciones de la escuela.
 //
-// Uno solo para las cuatro paginas (/formaciones/intro/, /lectura/,
-// /seminarios3/, /transitos/): la logica es idéntica y cuatro copias serian
-// cuatro lugares donde arreglar el mismo bug. Cada pagina lo parametriza
-// con dos atributos en el <form>:
+// Uno solo para las cinco paginas que lo muestran: las cuatro de
+// /formaciones/ (intro, lectura, seminarios3, transitos) y /programa/, que
+// lleva cuatro formularios en la misma pagina, uno debajo de cada curso. La
+// logica es identica y cinco copias serian cinco lugares donde arreglar el
+// mismo bug. El markup vive en formulario.js, tambien una sola vez.
+//
+// Cada pagina escribe solo el hueco, con tres atributos:
 //
 //     data-form-id   el formId del servidor, que es el cursoId (intro27...)
-//     data-nombre    como se llama en los eventos de Analytics
+//     data-nombre    como se llama en los eventos de Analytics (opcional)
+//     data-titulo    el encabezado del formulario (opcional)
+//
+//     <div class="inscripcion" data-form-id="intro27"></div>
+//
+// NADA SE BUSCA POR ID. Con cuatro formularios en /programa/, un
+// document.getElementById('inp-nombre') devolveria siempre el del primero:
+// la persona completa el tercer formulario y los datos salen del de arriba.
+// Cada instancia busca lo suyo adentro de su propia caja.
 //
 // Sale del formulario de consultas (public/consultas/formulario.html), que
 // es el unico del sitio que ya postea a registrarInscripcion. Lo que se
@@ -30,25 +41,128 @@
 // inscripcion entra igual y la carta se hace a mano.
 
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.14.0';
+import { crearFormulario } from '/formaciones/formulario.js?v=1';
 
 const ENDPOINT = 'https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion';
 const TURNSTILE_SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
 const SIN_RESULTADOS = 'No encontramos ese lugar. Si está bien escrito, envialo así.';
 
-const form = document.getElementById('form-inscripcion');
-if (form) arrancar(form);
+// ---- Fecha y hora, desde lo que venga ----
+// Copia de normalizarFecha / completarFecha / completarHora de la
+// calculadora (C:\dev\tucarta\ui\fecha.js, con sus tests), igual que en
+// el formulario de consultas: si cambian alla, cambiarlas en los dos.
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const sinTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const dos = (n) => String(n).padStart(2, '0');
 
-function arrancar(form) {
-    const formId = form.dataset.formId;
-    const nombreGa = form.dataset.nombre || formId;
-    const btn = document.getElementById('btn-enviar');
-    const errorMsg = document.getElementById('error-msg');
-    const avisoTarda = document.getElementById('aviso-tarda');
-    const captchaWrap = document.getElementById('captcha-wrap');
-    const inpFecha = document.getElementById('inp-fecha-nacimiento');
-    const inpHora = document.getElementById('inp-hora-nacimiento');
-    const inpLugar = document.getElementById('inp-lugar-nacimiento');
-    const listaLugar = document.getElementById('sugerencias-lugar');
+function normalizarFecha(valor, escribiendo) {
+    if (/[a-zñ]/i.test(sinTildes(String(valor)))) return valor;
+    const campos = ['', '', ''];
+    let i = 0;
+    for (const c of String(valor)) {
+        if (c >= '0' && c <= '9') {
+            if (i < 2 && campos[i].length === 2) i++;
+            if (i === 2 && campos[2].length === 4) break;
+            campos[i] += c;
+        } else if (/[\s./-]/.test(c) && i < 2 && campos[i]) {
+            campos[i] = campos[i].padStart(2, '0');
+            i++;
+        }
+    }
+    let res = campos[0];
+    if (i >= 1) res += '/' + campos[1];
+    if (i >= 2) res += '/' + campos[2];
+    if (escribiendo && i < 2 && campos[i].length === 2) res += '/';
+    return res;
+}
+
+function anioCompleto(texto) {
+    return texto.replace(/^(\d{1,2}\/\d{1,2}\/)(\d{2})$/, (_, dm, aa) => dm + (+aa <= 40 ? '20' : '19') + aa);
+}
+
+function completarFecha(texto) {
+    const t = sinTildes(String(texto)).trim();
+    if (!t) return '';
+    const mes = MESES.findIndex((m) => new RegExp('(^|[^a-z])' + m + '[a-z]*').test(t)) + 1
+        || (/(^|[^a-z])set[a-z]*/.test(t) ? 9 : 0);
+    if (mes) {
+        const nums = t.replace(/[a-z]+/g, ' ').match(/\d+/g) || [];
+        const anio = nums.find((n) => n.length === 4) || (nums.length > 1 ? nums[nums.length - 1] : '');
+        const dia = nums.find((n) => n !== anio && n.length <= 2);
+        if (!dia || !anio) return texto.trim();
+        return anioCompleto(dos(dia) + '/' + dos(mes) + '/' + anio);
+    }
+    const nums = t.match(/\d+/g) || [];
+    const dig = t.replace(/\D/g, '');
+    const candidatos = [];
+    if (nums.length >= 3) candidatos.push(nums[0].length === 4 ? [nums[2], nums[1], nums[0]] : nums.slice(0, 3));
+    if (dig.length === 8) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)], [dig.slice(6), dig.slice(4, 6), dig.slice(0, 4)]);
+    if (dig.length === 6) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)]);
+    const sirve = ([d, m, a]) => d.length <= 2 && m.length <= 2 && (a.length === 2 || a.length === 4)
+        && +m >= 1 && +m <= 12 && +d >= 1 && +d <= 31;
+    const elegido = candidatos.find(sirve);
+    if (!elegido) return normalizarFecha(texto, false);
+    return anioCompleto(dos(elegido[0]) + '/' + dos(elegido[1]) + '/' + elegido[2]);
+}
+
+function completarHora(texto) {
+    const t = sinTildes(String(texto)).trim();
+    if (!t) return '';
+    if (/mediodia/.test(t)) return '12:00';
+    if (/medianoche/.test(t)) return '00:00';
+    const tarde = /(^|[^a-z])(pm|p\.m|tarde|noche)/.test(t);
+    const manana = /(^|[^a-z])(am|a\.m|manana|madrugada)/.test(t);
+    const media = /(y\s*)?media/.test(t) && !/mediodia|medianoche/.test(t);
+    const cuarto = /(y\s*)?cuarto/.test(t);
+    const nums = t.match(/\d+/g) || [];
+    if (!nums.length) return texto.trim();
+    let h;
+    let m = 0;
+    if (nums.length >= 2) {
+        h = +nums[0];
+        m = +nums[1];
+    } else {
+        const d = nums[0];
+        if (d.length === 4) { h = +d.slice(0, 2); m = +d.slice(2); }
+        else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
+        else { h = +d; }
+    }
+    if (media && !m) m = 30;
+    if (cuarto && !m) m = 15;
+    if (!Number.isFinite(h) || !Number.isFinite(m) || m > 59) return texto.trim();
+    if (tarde && h < 12) h += 12;
+    if (manana && h === 12) h = 0;
+    if (h > 23) return texto.trim();
+    return dos(h) + ':' + dos(m);
+}
+
+// El cache de GeoNames es de la pagina, no de cada formulario: en /programa/
+// hay cuatro y quien escribe el mismo pueblo en dos de ellos no tiene por que
+// esperar dos veces.
+const cacheRespaldo = new Map();
+
+document.querySelectorAll('.inscripcion[data-form-id]').forEach(arrancar);
+
+function arrancar(caja) {
+    const formId = caja.dataset.formId;
+    const nombreGa = caja.dataset.nombre || formId;
+
+    caja.innerHTML = crearFormulario(formId, { titulo: caja.dataset.titulo, nombre: nombreGa });
+
+    const form = caja.querySelector('form');
+    const campo = (nombre) => form.querySelector('[data-campo="' + nombre + '"]');
+
+    const formWrap = caja.querySelector('.form-wrap');
+    const listo = caja.querySelector('.listo');
+    const avisoListo = caja.querySelector('.aviso-listo');
+    const btn = form.querySelector('.btn-enviar');
+    const errorMsg = caja.querySelector('.error-msg');
+    const avisoTarda = form.querySelector('.aviso-tarda');
+    const captchaWrap = form.querySelector('.captcha-wrap');
+    const inpFecha = campo('fecha');
+    const inpHora = campo('hora');
+    const inpLugar = campo('lugar');
+    const listaLugar = form.querySelector('.sugerencias');
 
     const borrador = window.sbBorrador ? window.sbBorrador.cuidar(form, formId) : null;
 
@@ -81,7 +195,7 @@ function arrancar(form) {
         if (window.gtag) {
             gtag('event', 'inscripcion_error', {
                 formulario: nombreGa,
-                motivo: 'falta_' + (e.target.id || '').replace(/^inp-/, ''),
+                motivo: 'falta_' + (e.target.dataset.campo || ''),
             });
         }
     }, true);
@@ -109,95 +223,6 @@ function arrancar(form) {
         });
     }
 
-    // ---- Fecha y hora, desde lo que venga ----
-    // Copia de normalizarFecha / completarFecha / completarHora de la
-    // calculadora (C:\dev\tucarta\ui\fecha.js, con sus tests), igual que en
-    // el formulario de consultas: si cambian alla, cambiarlas en los dos.
-    const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    const sinTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const dos = (n) => String(n).padStart(2, '0');
-
-    function normalizarFecha(valor, escribiendo) {
-        if (/[a-zñ]/i.test(sinTildes(String(valor)))) return valor;
-        const campos = ['', '', ''];
-        let i = 0;
-        for (const c of String(valor)) {
-            if (c >= '0' && c <= '9') {
-                if (i < 2 && campos[i].length === 2) i++;
-                if (i === 2 && campos[2].length === 4) break;
-                campos[i] += c;
-            } else if (/[\s./-]/.test(c) && i < 2 && campos[i]) {
-                campos[i] = campos[i].padStart(2, '0');
-                i++;
-            }
-        }
-        let res = campos[0];
-        if (i >= 1) res += '/' + campos[1];
-        if (i >= 2) res += '/' + campos[2];
-        if (escribiendo && i < 2 && campos[i].length === 2) res += '/';
-        return res;
-    }
-
-    function anioCompleto(texto) {
-        return texto.replace(/^(\d{1,2}\/\d{1,2}\/)(\d{2})$/, (_, dm, aa) => dm + (+aa <= 40 ? '20' : '19') + aa);
-    }
-
-    function completarFecha(texto) {
-        const t = sinTildes(String(texto)).trim();
-        if (!t) return '';
-        const mes = MESES.findIndex((m) => new RegExp('(^|[^a-z])' + m + '[a-z]*').test(t)) + 1
-            || (/(^|[^a-z])set[a-z]*/.test(t) ? 9 : 0);
-        if (mes) {
-            const nums = t.replace(/[a-z]+/g, ' ').match(/\d+/g) || [];
-            const anio = nums.find((n) => n.length === 4) || (nums.length > 1 ? nums[nums.length - 1] : '');
-            const dia = nums.find((n) => n !== anio && n.length <= 2);
-            if (!dia || !anio) return texto.trim();
-            return anioCompleto(dos(dia) + '/' + dos(mes) + '/' + anio);
-        }
-        const nums = t.match(/\d+/g) || [];
-        const dig = t.replace(/\D/g, '');
-        const candidatos = [];
-        if (nums.length >= 3) candidatos.push(nums[0].length === 4 ? [nums[2], nums[1], nums[0]] : nums.slice(0, 3));
-        if (dig.length === 8) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)], [dig.slice(6), dig.slice(4, 6), dig.slice(0, 4)]);
-        if (dig.length === 6) candidatos.push([dig.slice(0, 2), dig.slice(2, 4), dig.slice(4)]);
-        const sirve = ([d, m, a]) => d.length <= 2 && m.length <= 2 && (a.length === 2 || a.length === 4)
-            && +m >= 1 && +m <= 12 && +d >= 1 && +d <= 31;
-        const elegido = candidatos.find(sirve);
-        if (!elegido) return normalizarFecha(texto, false);
-        return anioCompleto(dos(elegido[0]) + '/' + dos(elegido[1]) + '/' + elegido[2]);
-    }
-
-    function completarHora(texto) {
-        const t = sinTildes(String(texto)).trim();
-        if (!t) return '';
-        if (/mediodia/.test(t)) return '12:00';
-        if (/medianoche/.test(t)) return '00:00';
-        const tarde = /(^|[^a-z])(pm|p\.m|tarde|noche)/.test(t);
-        const manana = /(^|[^a-z])(am|a\.m|manana|madrugada)/.test(t);
-        const media = /(y\s*)?media/.test(t) && !/mediodia|medianoche/.test(t);
-        const cuarto = /(y\s*)?cuarto/.test(t);
-        const nums = t.match(/\d+/g) || [];
-        if (!nums.length) return texto.trim();
-        let h;
-        let m = 0;
-        if (nums.length >= 2) {
-            h = +nums[0];
-            m = +nums[1];
-        } else {
-            const d = nums[0];
-            if (d.length === 4) { h = +d.slice(0, 2); m = +d.slice(2); }
-            else if (d.length === 3) { h = +d.slice(0, 1); m = +d.slice(1); }
-            else { h = +d; }
-        }
-        if (media && !m) m = 30;
-        if (cuarto && !m) m = 15;
-        if (!Number.isFinite(h) || !Number.isFinite(m) || m > 59) return texto.trim();
-        if (tarde && h < 12) h += 12;
-        if (manana && h === 12) h = 0;
-        if (h > 23) return texto.trim();
-        return dos(h) + ':' + dos(m);
-    }
-
     inpFecha.addEventListener('input', (e) => {
         inpFecha.value = normalizarFecha(inpFecha.value, !e.inputType || e.inputType.startsWith('insert'));
     });
@@ -209,9 +234,7 @@ function arrancar(form) {
     // España enteros, y del resto del mundo solo lo de mas de 1000
     // habitantes), se lo preguntamos a GeoNames por nuestra funcion. Si no
     // contesta, el buscador se queda como estaba.
-    const cacheRespaldo = new Map();
-
-    function respaldoPara(campo, lista) {
+    function respaldoPara(campoLugar, lista) {
         return async function (texto) {
             const clave = texto.trim().toLowerCase();
             if (!clave) return [];
@@ -221,8 +244,8 @@ function arrancar(form) {
             lista.hidden = false;
             // GeoNames da 1.000 consultas por hora para todo el sitio, asi
             // que no vamos a la red en cada tecla: esperamos a que frene.
-            await new Promise((listo) => setTimeout(listo, 350));
-            if (campo.value.trim().toLowerCase() !== clave) return [];
+            await new Promise((listoYa) => setTimeout(listoYa, 350));
+            if (campoLugar.value.trim().toLowerCase() !== clave) return [];
 
             try {
                 const r = await fetch('https://us-central1-sebabru-e5563.cloudfunctions.net/buscarLugar?q=' + encodeURIComponent(texto));
@@ -316,19 +339,19 @@ function arrancar(form) {
                 body: JSON.stringify({
                     formId,
                     campos: {
-                        nombre: document.getElementById('inp-nombre').value.trim(),
-                        telefono: document.getElementById('inp-telefono').value.trim(),
-                        email: document.getElementById('inp-email').value.trim(),
+                        nombre: campo('nombre').value.trim(),
+                        telefono: campo('telefono').value.trim(),
+                        email: campo('email').value.trim(),
                         fechaNacimiento: fecha,
                         horaNacimiento: hora,
                         lugarNacimiento: lugar,
-                        conocimientos: document.getElementById('inp-conocimientos').value,
-                        modalidad: document.getElementById('inp-modalidad').value,
-                        formaPago: document.getElementById('inp-forma-pago').value,
-                        novedades: document.getElementById('inp-novedades').checked ? 'Sí' : 'No',
+                        conocimientos: campo('conocimientos').value,
+                        modalidad: campo('modalidad').value,
+                        formaPago: campo('formaPago').value,
+                        novedades: campo('novedades').checked ? 'Sí' : 'No',
                     },
                     lugar: algunoDeNacimiento ? (lugarElegido || null) : null,
-                    hp: document.getElementById('inp-hp').value,
+                    hp: campo('hp').value,
                     captchaToken: captchaToken || undefined,
                 }),
             });
@@ -353,11 +376,11 @@ function arrancar(form) {
             // guardada pero no se pudo terminar de procesar, y la termina
             // Seba a mano. Se dice, en vez de mostrar el mensaje de siempre
             // como si todo hubiera salido bien.
-            if (data.aviso) document.getElementById('aviso-listo').textContent = data.aviso;
+            if (data.aviso) avisoListo.textContent = data.aviso;
 
-            document.getElementById('form-wrap').style.display = 'none';
-            document.getElementById('listo').classList.add('visible');
-            document.getElementById('listo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            formWrap.style.display = 'none';
+            listo.classList.add('visible');
+            listo.scrollIntoView({ behavior: 'smooth', block: 'center' });
             if (window.gtag) gtag('event', 'inscripcion', { formulario: nombreGa });
         } catch (err) {
             mostrarError(err.message || 'No pudimos registrar tu inscripción. Probá de nuevo.', 'servidor');
