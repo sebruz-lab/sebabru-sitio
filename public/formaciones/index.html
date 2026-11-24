@@ -2,16 +2,19 @@
 <html lang="es">
 <head>
 <script src="/origen.js?v=2"></script>
+<!-- Sin defer a proposito: lo usa inscripcion.js, y con defer sbBorrador
+     todavia no existiria cuando el modulo corre. -->
+<script src="/borrador.js?v=1"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudiar astrología: formaciones, cursos y seminarios</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
+    <title>Formación en Astrología 2027: los cuatro años | Seba Bru</title>
     <link rel="canonical" href="https://sebabru.com/formaciones/">
-    <meta name="description" content="Todas las formas de estudiar astrología conmigo: la formación de cuatro años, los cursos sueltos de la formación abierta y los seminarios.">
+    <meta name="description" content="Los cuatro años de la formación en astrología, con inscripciones abiertas para 2027: introducción al lenguaje, lectura de cartas natales, los seminarios y los tránsitos.">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sebabru.com/formaciones/">
-    <meta property="og:title" content="Estudiar astrología: formaciones, cursos y seminarios">
-    <meta property="og:description" content="Todas las formas de estudiar astrología conmigo: la formación de cuatro años, los cursos sueltos de la formación abierta y los seminarios.">
+    <meta property="og:title" content="Formación en Astrología 2027: los cuatro años">
+    <meta property="og:description" content="Los cuatro años de la formación en astrología, con inscripciones abiertas para 2027: introducción al lenguaje, lectura de cartas natales, los seminarios y los tránsitos.">
     <meta property="og:image" content="https://sebabru.com/escuela/img/estudia.webp">
     <meta property="og:site_name" content="Seba Bru Astrología">
 
@@ -58,29 +61,16 @@ a:hover{text-decoration:underline}
 .color-1{width:32vw;height:32vw;background-color:var(--primary-color);top:-5%;left:-5%;animation-delay:0s}
 .color-2{width:38vw;height:38vw;background-color:var(--consultas-color);bottom:-10%;right:-5%;animation-delay:-5s;animation-direction:alternate-reverse}
 @keyframes movimientoLiquido{0%{transform:translate(0,0) scale(1) rotate(0deg)}33%{transform:translate(15vw,15vh) scale(1.2) rotate(90deg)}66%{transform:translate(-10vw,25vh) scale(.8) rotate(180deg)}100%{transform:translate(10vw,-15vh) scale(1.1) rotate(270deg)}}
-.main-sections{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:60px}
-a.section-block{background-color:rgba(255,255,255,.03);padding:45px 30px;border-radius:16px;border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-align:center;transition:transform .25s,background-color .25s,border-color .25s,box-shadow .25s;background-repeat:no-repeat;background-position:center;background-size:contain;display:flex;flex-direction:column;align-items:center;justify-content:center}
-a.section-block:hover{transform:translateY(-3px);text-decoration:none;background-color:rgba(255,255,255,.06);border-color:var(--section-c);box-shadow:inset 0 0 40px -20px var(--section-c),0 12px 28px rgba(0,0,0,.35)}
-a.section-block h3{font-size:1.2em;position:relative;z-index:2;transition:color .2s;font-family:'Outfit',sans-serif;font-weight:300;margin:0}
-a.block-formaciones{--section-c:var(--primary-color)}a.block-contenido{--section-c:var(--contenido-color)}a.block-consultas{--section-c:var(--consultas-color)}a.block-bios{--section-c:var(--secondary-color)}
-a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover h3{color:var(--contenido-color)}a.block-consultas:hover h3{color:var(--consultas-color)}a.block-bios:hover h3{color:var(--secondary-color)}
-@media(max-width:768px){.main-sections{grid-template-columns:repeat(2,1fr);gap:10px}}
-.fade-in-element{opacity:0;transform:scale(.85) translateY(30px);filter:blur(5px);transition:opacity 1.2s ease-out,transform 1.2s cubic-bezier(.23,1,.32,1),filter 1s ease-out;will-change:transform,opacity}
-.fade-in-element.is-visible{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}
-.btn-inscribirse{display:inline-block;margin-top:20px;padding:14px 30px;background-color:var(--primary-color);color:#07070a!important;font-family:'Outfit',sans-serif;font-weight:600;font-size:0.88rem;text-transform:uppercase;letter-spacing:2px;border-radius:8px;text-decoration:none!important;transition:opacity .2s,transform .2s}
-.btn-inscribirse:hover{opacity:.85;transform:translateY(-2px);text-decoration:none!important}
-.btn-wsp{display:inline-block;margin-top:12px;padding:12px 26px;background-color:#25D366;color:#07070a!important;font-family:'Outfit',sans-serif;font-weight:600;font-size: 0.875rem;text-transform:uppercase;letter-spacing:2px;border-radius:8px;text-decoration:none!important;transition:opacity .2s}
-.btn-wsp:hover{opacity:.85;text-decoration:none!important}
-.precio-box{margin-top:24px;padding:20px 24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px}
-.precio-box h4{color:var(--secondary-color);margin-bottom:10px}
-.precio-box ul{padding-left:18px;margin:0}
-.precio-box li{margin-bottom:6px}
     </style>
 
     <link rel="preload" href="../fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/formaciones/anios.css?v=1">
+    <link rel="stylesheet" href="/formaciones/inscripcion.css?v=2">
+    <link rel="stylesheet" href="/iconos.css?v=1">
     <link rel="preload" href="../style.css?v=32" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="../style.css?v=32"></noscript>
     <link rel="icon" type="image/x-icon" href="../img/favicon.ico">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-GDLRMR5D57"></script>
 <script>
@@ -107,8 +97,10 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
         <span class="bar"></span>
     </label>
     <ul class="menu-list">
-        <li><a href="#escucha">ESCUCHA ASTROLOGICA</a></li>
-        <li><a href="#saturno">SATURNO Y LA LUNA</a></li>
+        <li><a href="#primer-anio">1° AÑO · INTRODUCCIÓN</a></li>
+        <li><a href="#segundo-anio">2° AÑO · LECTURA DE CARTAS</a></li>
+        <li><a href="#tercer-anio">3° AÑO · SEMINARIOS</a></li>
+        <li><a href="#cuarto-anio">4° AÑO · TRÁNSITOS</a></li>
         <li><a href="https://sebabru.com/#formaciones">FORMACIONES</a></li>
         <li><a href="https://sebabru.com/escuela/abierta/">FORMACIÓN ABIERTA</a></li>
         <li><a href="https://sebabru.com/#consultas">CONSULTAS</a></li>
@@ -121,161 +113,282 @@ a.block-formaciones:hover h3{color:var(--primary-color)}a.block-contenido:hover 
     </ul>
 </nav>
 
-<header class="main-header">
-    <h1>Formaciones</h1>
+<header class="main-header" id="top">
+    <h1>Formación en Astrología 2027</h1>
     <h3>Seba Bru Astrología</h3>
 </header>
 
 <!-- ========================================================
-     SECCION 1: INICIO — Estudio astrologia
+     PRESENTACION
      ======================================================== -->
-<section class="efecto-shrink-container" id="inicio">
-    <div class="efecto-shrink-sticky">
+<section class="anio-bloque presentacion" id="presentacion">
+    <div class="anio-media">
+        <img src="../escuela/img/estudia.webp" alt="Estudiá astrología" loading="lazy">
+    </div>
+    <div class="anio-texto">
+        <h2>Inscripciones abiertas</h2>
 
-        <img src="../escuela/img/estudia.webp" alt="Estudiá astrología" class="efecto-imagen" loading="lazy">
+        <p>Este año abro los cuatro años de mi formación, así que puedo acompañar tu camino, donde sea que estés.</p>
 
-        <div class="efecto-texto">
-            <h2>Estudiá astrología</h2>
+        <p>Tu algoritmo te trajo hasta aquí porque hay una sed en vos.</p>
 
-            <p>Profundizá, iniciate o reforzá tu práctica profesional.<br>
-            En esta escuela hay espacio para todxs.</p>
+        <p>Una pregunta curiosa que no tiene respuesta. Quizás solo una pequeña intuición: el cielo puede ayudarte a nombrar lo que todavía no tiene palabras.</p>
 
-            <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:30px 0;">
+        <p>Si estás leyendo esto, hay algo que late adentro tuyo con el mismo ritmo del cielo. Hay una melodía que acompaña tus días y que no podés dejar de escuchar.</p>
 
-            <h3>Para quienes ya tienen base</h3>
+        <p>La astrología te permite sonreír frente a la incertidumbre y confiar en que, de un modo u otro, algo de lo que sos aparecerá finalmente, y podrás reconocerte.</p>
 
-            <p>Si sabés leer e interpretar cartas natales, tenemos formaciones para ofrecerte.</p>
+        <p>Aprender este lenguaje es expandir tu realidad ampliando lo que sos capaz de concebir y entender, de imaginar y producir. La creatividad se abre y el mundo se vuelve un lugar diferente. Es cierto que algo de esto pasa cuando estudiás cualquier cosa, pero es más cierto aún cuando estudiás un arte como este, o como el tarot.</p>
 
-            <ol>
-                <li style="margin-bottom:16px;">
-                    En el seminario de <a href="#escucha">Escucha Astrológica</a> podés incorporar más herramientas para profundizar tus sesiones unx a unx.
-                </li>
-                <li style="margin-bottom:16px;">
-                    El seminario de <a href="#saturno">Saturno, la Luna y las defensas emocionales</a> te permite comprender con más profundidad el funcionamiento del psiquismo humano y cómo se construye la estructura de nuestra subjetividad.
-                </li>
-                <li style="margin-bottom:16px;">
-                    Más adelante, en este mismo semestre, vamos a estar abriendo el seminario de <a href="https://sebabru.com/#seminario-linaje">Linaje, Clan y Genealogía</a> para que comprendas con más profundidad la relación de la individualidad y la ancestralidad.
-                </li>
-                <li style="margin-bottom:16px;">
-                    Y también el seminario <a href="https://sebabru.com/#seminario-singularidad">El viaje de la singularidad: Urano, Neptuno y Quirón en la carta natal</a>.
-                </li>
-            </ol>
+        <p>Aunque este arte no pueda explicarlo todo, puede traerte el alivio de saber que sos parte de algo más grande que te contiene, con la sencilla evidencia de que el cielo tiene mucho para decir de vos y de las personas que tenés alrededor.</p>
 
-            <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:30px 0;">
+        <p>La astrología se basa en el principio de correspondencia: como es arriba es abajo, como es adentro es afuera. No sabemos por qué, pero sabemos que al mismo tiempo que una cosa sucede, la otra también. Aprender astrología es aprender a reconocer esa identidad misteriosa entre el arriba y el abajo.</p>
 
-            <h3>Para quienes están empezando</h3>
+        <p><strong>Todos los encuentros son en vivo:</strong> virtuales por Zoom o presenciales en Villa de las Rosas. En todos los años se comparte una amplia bibliografía en PDF para acompañar tu curiosidad y complementar tu formación.</p>
 
-            <p>Si estás dando tus primeros pasos y querés aprender, también hay espacio para vos.</p>
+        <p><strong>Descuentos especiales si te anotás hasta el 24 de diciembre, y un descuento extra si ya sos parte de la escuela.</strong> Están en el bloque de cada año.</p>
 
-            <ol>
-                <li style="margin-bottom:16px;">
-                    En la formación regular que estoy dando vamos a ver <a href="https://sebabru.com/programa" target="_blank" rel="noopener">Planetas y luminarias</a>, que si tenés una base de signos y casas podés sumarte.<br>
-                    <em>Disponible en 2027</em>
-                </li>
-                <li style="margin-bottom:16px;">
-                    Podés aprender todo sobre los signos del zodíaco y las casas astrológicas en nuestra <a href="https://sebabru.com/escuela/abierta/" target="_blank" rel="noopener">formación abierta</a>.<br>
-                    <em>Estudiás a tu ritmo a través de videos y con acceso permanente a espacios de consulta y acompañamiento.</em>
-                </li>
-                <li style="margin-bottom:16px;">
-                    Podés incursionar en el funcionamiento de los mecanismos emocionales a través del curso de <a href="https://sebabru.com/#taller-luna">la Luna en la carta natal</a>. Se cursa a tu ritmo en la <a href="https://sebabru.com/escuela/abierta/" target="_blank" rel="noopener">formación abierta</a>.
-                </li>
-                <li style="margin-bottom:16px;">
-                    Podés autoconocerte a través del curso <strong>Tu identidad astral</strong>, en donde te contamos más sobre tu sol, tu ascendente y tu luna natal.
-                </li>
-            </ol>
+        <p class="anio-mas">Los cuatro años, uno por uno:
+            <a href="#primer-anio">1°</a> · <a href="#segundo-anio">2°</a> · <a href="#tercer-anio">3°</a> · <a href="#cuarto-anio">4°</a>
+        </p>
+    </div>
+</section>
 
-            <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:30px 0;">
+<!-- ========================================================
+     1° · INTRODUCCIÓN AL LENGUAJE ASTROLÓGICO
+     ======================================================== -->
+<section class="anio-bloque" id="primer-anio">
+    <div class="anio-media">
+        <img src="/escuela/img/intro.webp" alt="Primer año: Introducción al lenguaje astrológico" loading="lazy">
+    </div>
+    <div class="anio-texto">
+        <h2>1° · Introducción al Lenguaje Astrológico</h2>
 
-            <h3>Todas las formaciones incluyen</h3>
+        <p>Un recorrido por los signos, las casas y los planetas, los elementos centrales del lenguaje astrológico. Las primeras herramientas para comprender la relación entre la tierra y el cielo, entre el adentro y el afuera.</p>
 
+        <p>En el primer cuatrimestre recorremos los modos, los elementos, los 12 signos y el sistema de casas, con el trabajo sobre los ascendentes. En el segundo, la función de cada planeta y luminaria en la Carta Natal, sus mitos y arquetipos, y una introducción a los aspectos.</p>
+
+        <p>Al finalizar el curso, vas a poder entender en profundidad los componentes principales del lenguaje astrológico, ampliando tu capacidad de verte y de ver a lxs demás.</p>
+
+        <p><strong>No se requieren conocimientos previos.</strong></p>
+
+        <h3>Cursada</h3>
+        <ul>
+            <li>Viernes de 18 a 20.</li>
+            <li>Comienzo: viernes 19 de marzo.</li>
+            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+            <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
+        </ul>
+
+        <div class="precio-box">
+            <h4>Aranceles 2027</h4>
+            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
+            <p>Descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
             <ul>
-                <li>Materiales de lectura complementarios en PDF</li>
-                <li>Aula virtual exclusiva en nuestra plataforma online</li>
-                <li>Diploma de participación</li>
-                <li>Cuotas y precios accesibles</li>
-                <li>Descuentos y promos</li>
+                <li>Año completo: 35% off, te queda en $520.000.</li>
+                <li>Cuatrimestre completo: 30% off, $280.000.</li>
+                <li>En cuotas: 10% off, $90.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+            </ul>
+            <p>Si preferís pagar por Mercado Pago, también tenés descuento hasta el 24 de diciembre:</p>
+            <ul>
+                <li>Año completo: 25% off, $600.000.</li>
+                <li>Cuatrimestre completo: 20% off, $320.000.</li>
+                <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
             </ul>
         </div>
+
+        <p class="anio-mas"><a href="/formaciones/intro/">Ver el programa completo</a></p>
     </div>
+</section>
+
+<section class="anio-form" id="form-intro">
+    <div class="inscripcion" data-form-id="intro27" data-titulo="Inscribirme al primer año"></div>
 </section>
 
 <!-- ========================================================
-     SECCION 2: ESCUCHA ASTROLOGICA
+     2° · LECTURA E INTERPRETACIÓN DE CARTAS NATALES
      ======================================================== -->
-<section class="efecto-shrink-container" id="escucha">
-    <div class="efecto-shrink-sticky">
-
-        <img src="../escuela/img/escucha.jpg" alt="Seminario Escucha Astrológica" class="efecto-imagen" loading="lazy">
-
-        <div class="efecto-texto">
-            <h2>Escucha Astrológica</h2>
-            <p style="opacity:.7;font-size:.9em;text-transform:uppercase;letter-spacing:1px;">Técnicas avanzadas de interpretación y acompañamiento en la consulta astrológica</p>
-
-            <p>En este espacio expandiremos la posibilidad de escuchar a nuestrxs consultantes desde el corazón de nuestra disciplina, traduciendo lo que nos comparten en sus palabras al lenguaje astrológico.</p>
-
-            <p>Nos detendremos a pensar dinámicas posibles para abordar el acompañamiento de los emergentes en las sesiones uno a uno. Las herramientas para escuchar también nos ayudan a sostener una distancia saludable — para nosotrxs como profesionales y para quienes nos consultan. Cuando algo se abre en una sesión astrológica, a veces la tentación es responder con las herramientas subjetivas con las que contamos; en este espacio aprenderemos a seguir trabajando con lo que escuchamos desde nuestro rol.</p>
-
-            <p>Ahondaremos en marcos conceptuales que nos permitan entender procesos subjetivos como el duelo, la culpa y la exigencia, elaborando posibles estrategias para trabajar astrológicamente estos temas transversalmente humanos. Observaremos también algunos recursos para acompañar las crisis que se suceden en la vida de toda persona.</p>
-
-            <p>También abordaremos conceptos profundos para comprender la forma en la que las personas reaccionan al trauma y los distintos tipos de trauma. Desde ahí, trabajaremos la escucha de discursos quironianos y saturninos, y la distinción entre discursos defensivos y discursos creativos.</p>
-
-            <p>Dentro de la cursada, abriremos un espacio para comprender los indicadores astrológicos que nos hablan del propósito, el destino y la forma en la que la vida nos convoca.</p>
-
-            <p>Finalmente, aprenderemos a detectar la necesidad de profundizar en ciertos temas o nudos — y desde ahí, identificar posibles derivaciones a otras disciplinas y formas de trabajo con los contenidos que emerjan en el proceso.</p>
-
-            <div class="precio-box">
-                <h4>Intercambio</h4>
-                <ul>
-                    <li>Son <strong>8 encuentros</strong> de dos horas.</li>
-                    <li>Incluye materiales de lectura complementarios, un certificado de asistencia y acceso a las clases grabadas durante un año.</li>
-                    <li><em>La idea es que el dinero no sea un impedimento, sino un medio de intercambio. Si no llegás con el dinero, escuchamos tu propuesta.</em></li>
-                </ul>
-            </div>
-
-            <p><strong>Disponible en 2027.</strong> Pronto abrimos las inscripciones y confirmamos precios.<br>
-            Mientras tanto podés cursar a tu ritmo en la <a href="../escuela/abierta/">Escuela Abierta</a>, o <a href="https://sebabru.com/#comunidad-banner">dejarme tu mail</a> y te aviso cuando abra.</p>
-        </div>
+<section class="anio-bloque" id="segundo-anio">
+    <div class="anio-media">
+        <img src="/escuela/img/lectura.jpg" alt="Segundo año: Lectura e interpretación de Cartas Natales" loading="lazy">
     </div>
+    <div class="anio-texto">
+        <h2>2° · Lectura e interpretación de Cartas Natales</h2>
+
+        <p>Aprendés a leer una Carta Natal completa: cada planeta en su signo, su casa y sus aspectos, hasta llegar a una lectura del mapa del cielo como un todo.</p>
+
+        <p>Está orientado al ejercicio de la astrología como disciplina, pero es enriquecedor como espacio de autoconocimiento y de reconocimiento de las particularidades de la individualidad humana. También vamos a aprender técnicas para ordenar la lectura de una carta, para organizar la devolución y para acompañar las preguntas más frecuentes en una consulta.</p>
+
+        <p>Y empezamos los seminarios: Saturno y la Luna; Neptuno, Quirón y Urano.</p>
+
+        <ul>
+            <li>Primer cuatrimestre: Aprendiendo a leer la Carta Natal (16 clases).</li>
+            <li>Segundo cuatrimestre: Seminario Saturno-Luna (5 clases) y Seminario El camino de la singularidad: Neptuno, Urano y Quirón (11 clases).</li>
+        </ul>
+
+        <p><strong>Para sumarte a este año,</strong> es necesario que conozcas los signos, los planetas y las casas. Si querés, te puedo pasar algunos materiales para nivelarte con tus compañerxs.</p>
+
+        <h3>Cursada</h3>
+        <ul>
+            <li>Miércoles de 18 a 20.</li>
+            <li>Comienzo: miércoles 17 de marzo.</li>
+            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+            <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
+        </ul>
+
+        <div class="precio-box">
+            <h4>Aranceles 2027</h4>
+            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
+            <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
+            <ul>
+                <li>Año completo: 30% off, te queda en $448.000.</li>
+                <li>Cuatrimestre completo: 25% off, $240.000.</li>
+                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+            </ul>
+            <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
+            <ul>
+                <li>Año completo: 20% off, $512.000.</li>
+                <li>Cuatrimestre completo: 15% off, $272.000.</li>
+                <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
+            </ul>
+            <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
+        </div>
+
+        <p class="anio-mas"><a href="/formaciones/lectura/">Ver el programa completo</a></p>
+    </div>
+</section>
+
+<section class="anio-form" id="form-lectura">
+    <div class="inscripcion" data-form-id="lectura27" data-titulo="Inscribirme al segundo año"></div>
 </section>
 
 <!-- ========================================================
-     SECCION 3: SATURNO, LA LUNA Y LAS DEFENSAS EMOCIONALES
+     3° · SEMINARIOS
      ======================================================== -->
-<section class="efecto-shrink-container" id="saturno">
-    <div class="efecto-shrink-sticky">
+<section class="anio-bloque" id="tercer-anio">
+    <div class="anio-media">
+        <img src="/escuela/img/pluton.webp" alt="Tercer año: los seminarios" loading="lazy">
+    </div>
+    <div class="anio-texto">
+        <h2>3° · Seminarios</h2>
 
-        <img src="../escuela/img/saturno.webp" alt="Seminario Saturno, la Luna y las defensas emocionales" class="efecto-imagen" loading="lazy">
+        <p>Vamos a indagar en la interpretación a través de cuatro seminarios que nos posibilitan mirar muchas capas de lectura en una Carta Natal, transformando el mapa astral en una cartografía tridimensional en la que podemos encontrar muchísima y diversa información.</p>
 
-        <div class="efecto-texto">
-            <h2>Saturno, la Luna y las defensas emocionales</h2>
-            <p style="opacity:.7;font-size:.9em;text-transform:uppercase;letter-spacing:1px;">5 encuentros — Disponible en 2027</p>
+        <ul>
+            <li>El espíritu se mueve: Plutón y los Nodos Lunares (9 clases).</li>
+            <li>La Luna Negra: Lilith en la Carta Natal (7 clases).</li>
+            <li>Linaje, Clan y Genealogía a través de las casas (6 clases).</li>
+            <li>Escucha astrológica: técnicas avanzadas de interpretación y acompañamiento en la consulta (8 clases).</li>
+            <li>Espacio de práctica colectiva: interpretación colectiva de Cartas Natales (2 clases).</li>
+        </ul>
 
-            <p>En este espacio trabajaremos la construcción de la estructura psíquica desde una perspectiva astrológica y sus posibles formas de reelaboración a lo largo del tiempo. Veremos los ciclos conjuntos de estos puntos astrológicos y recorreremos las claves del proceso de construcción de identidad.</p>
+        <p>Al terminar este año, vas a poder dar una devolución enriquecedora de una Carta Natal y acompañar a tus consultantes con precisión y claridad a reconocerse en su cielo natal.</p>
 
-            <p>Abordaremos la función materna y la función paterna y la relación entre los personajes, las funciones y esos puntos astrológicos.</p>
+        <p><strong>Para quién es:</strong> estos seminarios están destinados a personas que ya leen Cartas Natales y quieren profundizar sus devoluciones en lecturas o ampliar sus conocimientos astrológicos.</p>
 
-            <p>Las clases quedan grabadas para su repaso o por si algún día no podés asistir.</p>
+        <h3>Cursada</h3>
+        <ul>
+            <li>Jueves de 18 a 20.</li>
+            <li>Comienzo: jueves 18 de marzo.</li>
+            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+            <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
+        </ul>
 
-            <div class="precio-box">
-                <h4>Intercambio</h4>
-                <ul>
-                    <li>Son <strong>5 encuentros</strong>.</li>
-                    <li>Incluye materiales de lectura complementarios y acceso a las clases grabadas.</li>
-                    <li><em>La idea es que el dinero no sea un impedimento, sino un medio de intercambio. Si no llegás con el dinero, escuchamos tu propuesta.</em></li>
-                </ul>
-            </div>
-
-            <p><strong>Disponible en 2027.</strong> Pronto abrimos las inscripciones y confirmamos precios.<br>
-            Mientras tanto podés cursar a tu ritmo en la <a href="../escuela/abierta/">Escuela Abierta</a>, o <a href="https://sebabru.com/#comunidad-banner">dejarme tu mail</a> y te aviso cuando abra.</p>
-
-            <br>
-
-            <a href="http://wa.me/5493544559877" target="_blank" rel="noopener" class="btn-wsp" style="margin-top:12px;">
-                Consultar por WhatsApp
-            </a>
+        <div class="precio-box">
+            <h4>Aranceles 2027</h4>
+            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
+            <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
+            <ul>
+                <li>Año completo: 30% off, te queda en $448.000.</li>
+                <li>Cuatrimestre completo: 25% off, $240.000.</li>
+                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+            </ul>
+            <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
+            <ul>
+                <li>Año completo: 20% off, $512.000.</li>
+                <li>Cuatrimestre completo: 15% off, $272.000.</li>
+                <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
+            </ul>
+            <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
         </div>
+
+        <p class="anio-mas"><a href="/formaciones/seminarios3/">Ver el programa completo</a></p>
     </div>
 </section>
+
+<section class="anio-form" id="form-seminarios3">
+    <div class="inscripcion" data-form-id="pluton27" data-titulo="Inscribirme al tercer año"></div>
+</section>
+
+<!-- ========================================================
+     4° · TRÁNSITOS, REVOLUCIONES SOLARES Y CARTA PROGRESADA
+     ======================================================== -->
+<section class="anio-bloque" id="cuarto-anio">
+    <div class="anio-media">
+        <img src="/escuela/img/transitos.webp" alt="Cuarto año: Tránsitos, Revoluciones Solares y Carta Progresada" loading="lazy">
+    </div>
+    <div class="anio-texto">
+        <h2>4° · Tránsitos, Revoluciones Solares y Carta Progresada</h2>
+
+        <p>Vamos a investigar cómo el movimiento en el cielo activa, transforma y le da sustancia a lo que podemos ver en una Carta Natal. Buscaremos observar y comprender los temas que traen los tránsitos planetarios, el clima interno que generan y las sensibilidades que afectan en sus diferentes ciclos.</p>
+
+        <p>También vamos a interpretar la revolución solar en sí misma y en su relación con el cielo natal, y a introducirnos en la carta progresada, que muestra las transformaciones internas que se producen a lo largo de los años.</p>
+
+        <ul>
+            <li>Primer cuatrimestre: Los tránsitos planetarios (16 clases).</li>
+            <li>Segundo cuatrimestre: cierre de tránsitos, Revoluciones Solares (7 clases), Carta Progresada (3 clases) y clases prácticas.</li>
+        </ul>
+
+        <p><strong>Para quién es:</strong> este curso está destinado a personas que ya leen Cartas Natales y quieren profundizar sus devoluciones en lecturas o ampliar sus conocimientos astrológicos a través de la incorporación de tránsitos.</p>
+
+        <h3>Cursada</h3>
+        <ul>
+            <li>Sábados de 11 a 13.</li>
+            <li>Comienzo: sábado 20 de marzo.</li>
+            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+            <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
+        </ul>
+
+        <div class="precio-box">
+            <h4>Aranceles 2027</h4>
+            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
+            <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
+            <ul>
+                <li>Año completo: 30% off, te queda en $448.000.</li>
+                <li>Cuatrimestre completo: 25% off, $240.000.</li>
+                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+            </ul>
+            <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
+            <ul>
+                <li>Año completo: 20% off, $512.000.</li>
+                <li>Cuatrimestre completo: 15% off, $272.000.</li>
+                <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
+            </ul>
+            <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
+        </div>
+
+        <p class="anio-mas"><a href="/formaciones/transitos/">Ver el programa completo</a></p>
+    </div>
+</section>
+
+<section class="anio-form" id="form-transitos">
+    <div class="inscripcion" data-form-id="transitos27" data-titulo="Inscribirme al cuarto año"></div>
+</section>
+
+<footer class="main-footer">
+    <div class="contact-info">
+        <p>Contacto: <a href="mailto:info@sebabru.com">info@sebabru.com</a></p>
+    </div>
+    <div class="social-links">
+        <a href="https://www.youtube.com/channel/UCq8JIRys2f2H0-rzH58tR3w" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="https://www.instagram.com/sebabru.astrologia/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://open.spotify.com/show/3pUBeAtMJw2WY3ykB82Tw3" target="_blank" rel="noopener noreferrer" aria-label="Spotify"><i class="fab fa-spotify"></i></a>
+        <a href="https://t.me/sebastianbru" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+        <a href="https://wa.me/5493544559877" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    </div>
+    <p><a href="/privacidad/">Privacidad y datos</a></p>
+    <p>© 2026 Seba Bru Astrología. Todos los derechos y los izquierdos también.</p>
+</footer>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -305,32 +418,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.preventDefault();
                     var menuToggle = document.getElementById('menu-toggle');
                     if (menuToggle && menuToggle.checked) menuToggle.checked = false;
-                    var header = document.querySelector('.main-header');
-                    var offset = target.getBoundingClientRect().top + window.pageYOffset - (header ? header.offsetHeight : 0);
-                    window.scrollTo({ top: offset, behavior: 'smooth' });
+                    window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - 20, behavior: 'smooth' });
                 }
             }
         });
     });
 
-    // Efecto shrink scroll
-    var shrinkTick = false;
-    window.addEventListener('scroll', function() {
-        if (!shrinkTick) {
-            window.requestAnimationFrame(function() {
-                document.querySelectorAll('.efecto-shrink-container').forEach(function(c) {
-                    var r = c.getBoundingClientRect();
-                    var p = Math.max(0, Math.min(1, -r.top / (r.height - window.innerHeight)));
-                    c.style.setProperty('--scroll-progress', p);
-                });
-                shrinkTick = false;
-            });
-            shrinkTick = true;
-        }
-    });
-
 });
 </script>
-
+<script type="module" src="/formaciones/inscripcion.js?v=2"></script>
 </body>
 </html>
