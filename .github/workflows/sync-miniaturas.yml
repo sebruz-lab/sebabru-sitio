@@ -20,8 +20,10 @@ on:
       - '.github/workflows/sync-miniaturas.yml'
       - '.github/scripts/sync-miniaturas.mjs'
 
+# El GITHUB_TOKEN de este job solo clona. El push va con el GH_PAT, a mano y
+# en su propio paso, asi que aca no hace falta permiso de escritura.
 permissions:
-  contents: write
+  contents: read
 
 # Si quedo una corrida anterior colgada, no arrancar dos a la vez sobre main.
 concurrency:
@@ -32,22 +34,22 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      # Con el GITHUB_TOKEN por defecto, el commit que hace esta Action NO
-      # dispara el workflow de deploy: GitHub no encadena workflows para evitar
-      # recursion. Resultado: el cambio quedaba en el repo y no llegaba al
-      # sitio hasta el siguiente push a mano. Con el PAT, el push es de una
-      # persona y el deploy corre.
+      # persist-credentials: false para que el token del push NO quede escrito
+      # en .git/config, donde lo podria leer cualquier paso posterior. Se pasa
+      # a mano y solo en los dos pasos que hablan con el remoto.
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_PAT }}
+          persist-credentials: false
 
-      # El GH_PAT nace con "Secrets: write" y el push necesita ademas
-      # "Contents: write". Si falta, el 403 aparecia al final, despues de
-      # renovar el token y bajar las imagenes (paso el 23/11/2026). Esto lo
-      # corta en cinco segundos y dice que hacer.
+      # El GH_PAT necesita "Contents: write" para el push. Si falta, el 403
+      # aparecia al final, despues de instalar ffmpeg y bajar las miniaturas
+      # (paso el 23/11/2026 en el sync de Instagram, que comparte el token).
+      # Esto lo corta en cinco segundos y dice que permiso falta.
       - name: Verificar que el token pueda pushear
+        env:
+          GIT_REMOTE: https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
         run: |
-          git push --dry-run origin HEAD:main || {
+          git push --dry-run "$GIT_REMOTE" HEAD:main || {
             echo "::error::El GH_PAT no puede pushear a main. Darle Contents: Read and write en https://github.com/settings/personal-access-tokens"
             exit 1
           }
@@ -68,8 +70,20 @@ jobs:
       - name: Bajar miniaturas de YouTube y Spotify, y el poster del mp4
         run: node .github/scripts/sync-miniaturas.mjs
 
-      - name: Commitear solo si alguna imagen cambio
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: actualizar miniaturas del podcast"
-          file_pattern: public/img/kit-youtube.jpg public/img/kit-spotify.jpg public/img/formaciones2026-poster.jpg
+      # Esto hacia stefanzweifel/git-auto-commit-action@v5, que son seis lineas
+      # de git y una etiqueta movil de un tercero corriendo en un job que tiene
+      # el PAT a mano. El push con el PAT (y no con el GITHUB_TOKEN) es lo que
+      # dispara el workflow de deploy.
+      - name: Commitear y pushear solo si alguna imagen cambio
+        env:
+          GIT_REMOTE: https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+        run: |
+          git add public/img/kit-youtube.jpg public/img/kit-spotify.jpg public/img/formaciones2026-poster.jpg
+          if git diff --cached --quiet; then
+            echo "Ninguna miniatura cambio: no hay nada que commitear."
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'chore: actualizar miniaturas del podcast'
+          git push "$GIT_REMOTE" HEAD:main

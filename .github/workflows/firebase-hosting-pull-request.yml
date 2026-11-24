@@ -19,7 +19,10 @@ jobs:
           mkdir -p public/cartas
           curl -sSfL "https://github.com/sebruz-lab/tucarta/releases/download/$v/tucarta-dist.tar.gz" | tar -xz -C public/cartas
           test -f public/cartas/index.html
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      # Clavada al SHA de v0 (23/11/2026) y no a la etiqueta: "v0" es movil, y
+      # esta action recibe el service account del hosting. Para subirla hay que
+      # releer el diff de la action, no solo mover el numero.
+      - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SEBABRU_E5563 }}
