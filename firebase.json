@@ -65,6 +65,15 @@
         ]
       },
       {
+        "source": "/img/@(kit-youtube|kit-spotify).jpg",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400"
+          }
+        ]
+      },
+      {
         "source": "**/*.@(css|js)",
         "headers": [
           {
