@@ -20,8 +20,8 @@ on:
       - '.github/workflows/sync-miniaturas.yml'
       - '.github/scripts/sync-miniaturas.mjs'
 
-# El GITHUB_TOKEN de este job solo clona. El push va con el GH_PAT, a mano y
-# en su propio paso, asi que aca no hace falta permiso de escritura.
+# El GITHUB_TOKEN de este job solo clona. El push va con el token de la App, a
+# mano y en su propio paso, asi que aca no hace falta permiso de escritura.
 permissions:
   contents: read
 
@@ -36,21 +36,37 @@ jobs:
     steps:
       # persist-credentials: false para que el token del push NO quede escrito
       # en .git/config, donde lo podria leer cualquier paso posterior. Se pasa
-      # a mano y solo en los dos pasos que hablan con el remoto.
+      # a mano y solo en los pasos que lo necesitan.
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      # El GH_PAT necesita "Contents: write" para el push. Si falta, el 403
-      # aparecia al final, despues de instalar ffmpeg y bajar las miniaturas
-      # (paso el 23/11/2026 en el sync de Instagram, que comparte el token).
-      # Esto lo corta en cinco segundos y dice que permiso falta.
+      # El token de la App sebabru-sitio-sync vive una hora y muere con el job,
+      # en vez del PAT que vivia meses guardado como secreto y habia que
+      # renovar a mano (si vencia, los dos syncs se caian).
+      #
+      # Un push hecho con token de App SI dispara el workflow de deploy: la
+      # regla de GitHub de no encadenar workflows es del GITHUB_TOKEN, no de
+      # las Apps. Es lo que hace que la miniatura llegue al sitio y no se quede
+      # en el repo.
+      #
+      # Clavada al SHA de v2 y no a la etiqueta: esta action recibe la llave
+      # privada de la App.
+      - name: Pedir un token a la App
+        id: token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      # Si el token no puede pushear, cortar ahora: el 23/11/2026 el 403
+      # aparecia al final, despues de instalar ffmpeg y bajar las miniaturas.
       - name: Verificar que el token pueda pushear
         env:
-          GIT_REMOTE: https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+          GIT_REMOTE: https://x-access-token:${{ steps.token.outputs.token }}@github.com/${{ github.repository }}
         run: |
           git push --dry-run "$GIT_REMOTE" HEAD:main || {
-            echo "::error::El GH_PAT no puede pushear a main. Darle Contents: Read and write en https://github.com/settings/personal-access-tokens"
+            echo "::error::El token de la App no puede pushear a main. Revisar que sebabru-sitio-sync tenga Contents: Read and write y este instalada en este repo."
             exit 1
           }
 
@@ -72,11 +88,10 @@ jobs:
 
       # Esto hacia stefanzweifel/git-auto-commit-action@v5, que son seis lineas
       # de git y una etiqueta movil de un tercero corriendo en un job que tiene
-      # el PAT a mano. El push con el PAT (y no con el GITHUB_TOKEN) es lo que
-      # dispara el workflow de deploy.
+      # el token a mano.
       - name: Commitear y pushear solo si alguna imagen cambio
         env:
-          GIT_REMOTE: https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}
+          GIT_REMOTE: https://x-access-token:${{ steps.token.outputs.token }}@github.com/${{ github.repository }}
         run: |
           git add public/img/kit-youtube.jpg public/img/kit-spotify.jpg public/img/formaciones2026-poster.jpg
           if git diff --cached --quiet; then
