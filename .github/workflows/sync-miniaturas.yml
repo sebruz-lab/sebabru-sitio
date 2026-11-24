@@ -2,14 +2,17 @@ name: Sync miniaturas del podcast
 
 on:
   schedule:
-    # Martes 15:00 UTC = 12:00 en Argentina. Seba sube el video del Kit los
-    # martes a la manana, asi que al mediodia del martes ya esta publicado y
-    # la miniatura del facade queda al dia por el resto de la semana.
+    # Martes 14:00 UTC = 11:00 en Argentina, que es cuando Seba actualiza el
+    # resto del podcast (pedido del 24/11/2026; antes corria a las 12:00).
     #
-    # Si alguna semana el video sale despues del mediodia, la miniatura
-    # espera hasta el martes siguiente: para eso esta "Run workflow", que
-    # hace exactamente lo mismo a mano.
-    - cron: '0 15 * * 2'
+    # GitHub NO respeta la hora: las corridas agendadas entran en una cola y
+    # se demoran cuando la plataforma esta cargada — el 23/11/2026 una salio
+    # con 12 horas de atraso. Las 11:00 son una aspiracion, no una garantia.
+    #
+    # Si el video sale despues de que corrio, la miniatura espera al martes
+    # siguiente: no hay reintento. Para eso esta "Run workflow", que hace
+    # exactamente lo mismo a mano.
+    - cron: '0 14 * * 2'
   workflow_dispatch:
   # Correr tambien cuando se toca este mismo archivo. Es lo que permite
   # probarlo sin depender del boton "Run workflow", y de paso cada edicion
