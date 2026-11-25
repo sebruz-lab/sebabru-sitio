@@ -286,7 +286,39 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **Sin `plan.desde` nada figura atrasado**, y está bien que sea así: no se
   puede deber un mes que no se sabe cuándo venció. Esa fila sale como
   `sin_fecha`, visible y aparte. El tipo de plan sale de `campos.formaPago` si
-  no se cargó a mano (anual / semestral / mensual, 1 · 2 · 8 cuotas).
+  no se cargó a mano (anual / semestral / mensual, 1 · 2 · 10 cuotas).
+- **El inicio de clases de cada año vive en `padron_columnas/{cursoId}`**
+  (`cursada` y `plan`), y la semilla está en `FORMACIONES_ESCUELA`: viernes
+  19/03/2027 para `intro27`, miércoles 17 para `lectura27`, jueves 18 para
+  `pluton27` y sábado 20 para `transitos27`, 10 cuotas desde `2027-03`. Sale de
+  las páginas de `/formaciones/`, que son la fuente.
+  `asegurarColumnasDePadron` completa lo que falte y **no pisa** lo cargado a
+  mano, igual que con las columnas; desde el panel se edita, y un campo vacío
+  vuelve al valor del código.
+- **Una fila nueva nace con plan** (`planInicialDePadron`), tanto del
+  formulario como del alta a mano: sin eso quedaba en `sin_plan` hasta que
+  alguien la abriera una por una, y la columna "Atrasados" de la vista rápida
+  era un cero estructural. **`total` nunca se siembra**: los $80.000 × 10 son
+  el precio de lista y los descuentos son personales, así que un total de lista
+  pondría en falsa deuda a casi todo el padrón.
+- **`aplicarPlanCurso` completa las filas viejas**, solo lo que falta, sin
+  tocar `total` ni `pagos`, y no escribe si no cambia nada. Es el botón
+  "Aplicar a las filas que no lo tienen".
+- **Ordenar son dos cosas distintas y conviene no confundirlas.** El orden de
+  las **columnas** es configuración de la formación y se guarda
+  (`guardarColumnas`: reescribe `orden`, aplica `label` y `oculta`, preserva
+  `tipo` y `opciones`, ignora las keys que no existen y deja al final las que
+  no vinieron, para que una columna caída de la lista no se lleve los
+  `campos[key]` de cada fila). El orden de las **filas** es una vista, vive en
+  el navegador y se cambia con un clic en la cabecera. `listar` devuelve
+  **todas** las columnas ordenadas por `orden`, también las ocultas: el panel
+  necesita saber que existen para volver a mostrarlas, y filtra él.
+- **`alta` no siempre es una fecha ISO.** La del formulario es la misma que va
+  a la planilla de Sheets, en formato argentino (`25/11/2026, 14:30:05`), y
+  `new Date()` sobre eso daba "Invalid Date" en la columna Alta; la de un alta
+  a mano sí es ISO. Lo resuelve `fechaDeAlta()` en el panel, que entiende las
+  dos y, si no entiende, muestra el texto tal cual antes que una fecha
+  inventada.
 - Anual y semestral **se distinguen solo por color**; el mensual muestra
   cuántas cuotas van pagas y cuáles faltan con su mes (pedido de Seba,
   24/11/2026).
@@ -306,6 +338,11 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   abajo) y **Pendientes** (pendientes + compras). Cada grupo es un
   `.tab-panel`; los paneles viejos quedaron adentro como `.card` sueltas, así
   que mover una tarjeta de grupo es cortar y pegar.
+- **El panel no tiene tope de ancho** (se sacó el `max-width: 900px` de
+  `.tab-panel` el 25/11/2026): la planilla del padrón es la tabla más ancha del
+  sitio. Lo que sí lleva medida es el texto largo — `.card > p`, los `textarea`
+  y los párrafos de los ajustes —, porque una línea de prosa cruzando 2500 px
+  no se lee. Las tablas quedan afuera de esa regla a propósito.
 - **Varias tarjetas cargan sus datos recién al hacer clic en la pestaña.** Por
   eso, después de que la sesión se valida, el panel hace
   `document.querySelector('.tab-btn.active')?.click()`: la pestaña que ya viene
