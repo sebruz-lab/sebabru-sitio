@@ -110,18 +110,32 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   devuelve cuatro estados en vez de un sí/no: sólo `rechazado` (un token
   forjado) cierra la puerta; `sin_token` y `sin_config` van a un carril que
   encola `doi: true` y deja que Brevo mande el mail de confirmación, sin
-  `upsertContacto` ni bienvenida en línea. **Si falta `BREVO_DOI_TEMPLATE_ID`
-  ese carril falla cerrado**, porque un carril degradado sin su único control
-  es un endpoint abierto.
-- **El ebook queda fuera del carril con confirmación**, y hay que acordarse de
-  por qué: la rama `if (pedido.doi)` del trigger ignora `pedido.plantilla`, así
-  que un alta del libro por ahí confirmaría la suscripción y nunca entregaría
-  el libro. Es el mismo bug que ya pasó y se arregló el 2026-11-18.
-- **PENDIENTE (pedido de Seba, 21/11/2026): que el mail de confirmación lleve
-  contenido propio** y cuente como un correo con valor, no como un trámite de
-  un clic. Hoy es la plantilla DOI pelada de Brevo. Cuando se haga, el ebook
-  puede volver al carril (su plantilla de confirmación llevaría el libro) y
-  `plantillaDeAlta()` necesita su equivalente para el DOI.
+  `upsertContacto` ni bienvenida en línea. **Si falta la plantilla de
+  confirmación de ese origen, el carril falla cerrado**, porque un carril
+  degradado sin su único control es un endpoint abierto.
+- **`redirectionUrl` no es opcional en el doble opt-in.** Sin ella
+  `/contacts/doubleOptinConfirmation` contesta 400 "Redirection url is
+  missing", y como es un 4xx el trigger lo toma por permanente, lo anota y no
+  reintenta: **el alta se pierde sin que nadie se entere** mientras la página
+  le dice a la persona que revise su casilla. Pasó entre el 21/11 y el
+  25/11/2026 y dejó a dos personas afuera. Ahora la URL de vuelta la fija
+  `confirmacionDeAlta()` y `pedirDobleOptin` tira si no la recibe, en vez de
+  gastar un pedido que Brevo va a rechazar seguro.
+- **El ebook entró al carril el 25/11/2026, con plantilla propia.** Antes
+  quedaba afuera y se rechazaba, y el motivo valía: la rama `if (pedido.doi)`
+  del trigger ignoraba `pedido.plantilla`, así que confirmar daba el alta y el
+  libro **no llegaba nunca** (el bug del 2026-11-18). Lo que lo arregla es que
+  esa rama ahora sí pasa `pedido.plantilla` y que el ebook tiene su propia
+  plantilla de confirmación (id 10), donde **un solo botón confirma y entrega**:
+  el `redirectUrl` del pedido deja a la persona en la página del libro. Por eso
+  esa plantilla **no** lleva un enlace directo al ebook — si lo llevara, el
+  libro se entregaría sin confirmar y el canje no sería canje. Si alguna vez se
+  saca el `plantilla: pedido.plantilla` del trigger, el regalo deja de llegar
+  otra vez.
+- **Quién decide qué plantilla y qué vuelta es `confirmacionDeAlta(origen)`**,
+  el equivalente de `plantillaDeAlta()` para el carril. Un origen nuevo que
+  tenga que entregar algo necesita su entrada ahí, su plantilla y su
+  `BREVO_DOI_*_TEMPLATE_ID`; si no la tiene, usa la general y está bien.
 - **El captcha no es la única barrera, pero casi.** Conviene tenerlo claro
   antes de aflojar algo más: el honeypot no corre contra un POST directo al
   endpoint (un bot no manda el campo `hp`), y `dominioRecibeCorreo()` mira el
