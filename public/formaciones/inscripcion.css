@@ -244,3 +244,99 @@
     .form-group label { font-size: 0.75rem; margin-bottom: 5px; }
     .inscripcion .btn-enviar { padding: 12px 22px; font-size: 0.92rem; }
 }
+
+/* =========================================================
+   LA VENTANA EMERGENTE
+   =========================================================
+   El formulario no vive en la pagina: vive en una emergente que abre un
+   boton, porque el texto de cada año esta en una caja de scrolleo de alto
+   fijo y once campos adentro de esa caja quedan comprimidos. El detalle de
+   por que la emergente va afuera de .section-container esta en
+   emergente.js.
+
+   El lenguaje visual es el de la emergente de la escuela
+   (public/escuela/escuela.css, .modal-overlay): fondo oscuro con blur y la
+   ventana que entra desde abajo. Esta no reusa esa clase porque estas
+   paginas no cargan escuela.css. */
+.emergente-inscripcion {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 16px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.emergente-inscripcion.activa { display: flex; }
+
+.emergente-caja {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    margin: auto;
+    padding: 46px 26px 30px;
+    box-sizing: border-box;
+    background: #101016;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    animation: emergente-entra 0.3s ease-out;
+}
+
+@keyframes emergente-entra {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .emergente-caja { animation: none; }
+}
+
+.emergente-cerrar {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.emergente-cerrar:hover { color: #fff; }
+
+/* Adentro de la emergente el formulario ya tiene su ancho y su padding. */
+.emergente-caja .inscripcion {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* El boton que la abre, adentro de la caja de texto del año. Va en un
+   .grupo-botones-sutiles, que es el que pone el aire de arriba y el gap
+   cuando son dos (el segundo curso lleva dos años). El display inline-flex
+   es contra la segunda definicion de .btn-sutil en style.css, que lo pone
+   en flex de bloque: asi ocupa todo el ancho y el texto no se centra (ver
+   CLAUDE.md, la trampa 2 del centrado). */
+.abrir-inscripcion {
+    display: inline-flex;
+    justify-content: center;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .emergente-inscripcion { padding: 0; }
+    .emergente-caja {
+        min-height: 100%;
+        border: none;
+        border-radius: 0;
+        padding: 52px 18px 40px;
+    }
+}

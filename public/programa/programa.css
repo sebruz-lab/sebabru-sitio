@@ -77,9 +77,17 @@
 .contenido-desplegable h5,
 .contenido-desplegable h6 { margin-top: 1.6rem; }
 
-/* --- EL RITMO DE LA PAGINA --- */
-/* Cada curso es un bloque: titulo, texto, desplegable y formulario. El aire
-   de arriba separa un curso del anterior. */
-.curso { margin-top: 120px; }
-
-.curso .material-desplegable { margin-bottom: 55px; }
+/* --- LOS TITULOS, UN 20% MAS GRANDES --- */
+/* Pedido de Seba (24/11/2026). En esta pagina los encabezados bajan hasta el
+   <h6> (los "Estructura de las clases teoricas:" del detalle de clases), y
+   style.css solo le pone tamaño al h1 y al h2: del h3 al h6 queda el que
+   trae el navegador por defecto, que para el h6 es 0.67em -- mas chico que
+   el texto que lo sigue. Aca van los seis, cada uno un 20% por encima de su
+   valor de base, que va anotado al lado. */
+.main-header h1 { font-size: 3.6em; }    /* base 3em */
+.main-header h3 { font-size: 1.02em; }   /* base 0.85em */
+h2 { font-size: 2.4em; }                 /* base 2em */
+h3 { font-size: 1.404em; }               /* base 1.17em, del navegador */
+h4 { font-size: 1.2em; }                 /* base 1em */
+h5 { font-size: 0.996em; }               /* base 0.83em */
+h6 { font-size: 0.804em; }               /* base 0.67em */

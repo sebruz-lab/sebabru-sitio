@@ -21,8 +21,8 @@
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/style.css?v=32">
 <link rel="stylesheet" href="/iconos.css?v=1">
-<link rel="stylesheet" href="/formaciones/anios.css?v=1">
-<link rel="stylesheet" href="/formaciones/inscripcion.css?v=2">
+<link rel="stylesheet" href="/formaciones/anios.css?v=2">
+<link rel="stylesheet" href="/formaciones/inscripcion.css?v=3">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <!-- Google tag (gtag.js) -->
@@ -73,57 +73,71 @@
              mismo que arma el bloque de este año en /formaciones/. Si cambia
              alla, cambiarlo en los dos lugares.
 
-             Lo unico que no se puede mover de lugar es el <section id="form">
-             de abajo, porque hay enlaces que apuntan ahi
-             (/formaciones/transitos/#form) para ir derecho al formulario.
+             El id="form" no se mueve: hay enlaces que apuntan ahi
+             (/formaciones/transitos/#form) para ir derecho al formulario. Ahora
+             lo lleva el boton que abre la emergente, y emergente.js la abre
+             sola cuando se llega con ese hash.
              ======================================================== -->
-        <section class="anio-bloque fade-in-element">
-            <div class="anio-media">
-                <img src="/escuela/img/transitos.webp" alt="Cuarto año: Tránsitos, Revoluciones Solares y Carta Progresada" loading="lazy">
-            </div>
-            <div class="anio-texto">
-                <p>Vamos a investigar cómo el movimiento en el cielo activa, transforma y le da sustancia a lo que podemos ver en una Carta Natal. Buscaremos observar y comprender los temas que traen los tránsitos planetarios, el clima interno que generan y las sensibilidades que afectan en sus diferentes ciclos.</p>
+        <section class="section-container section-formaciones fade-in-element">
+            <div class="layout-wrapper layout-media-left">
 
-                <p>También vamos a interpretar la revolución solar en sí misma y en su relación con el cielo natal, y a introducirnos en la carta progresada, que muestra las transformaciones internas que se producen a lo largo de los años.</p>
+                <div class="media-column">
+                    <img src="/escuela/img/transitos.webp" width="1080" height="1350" alt="Cuarto año: Tránsitos, Revoluciones Solares y Carta Progresada"
+                         class="static-image" loading="lazy">
+                </div>
 
-                <ul>
-                    <li>Primer cuatrimestre: Los tránsitos planetarios (16 clases).</li>
-                    <li>Segundo cuatrimestre: cierre de tránsitos, Revoluciones Solares (7 clases), Carta Progresada (3 clases) y clases prácticas.</li>
-                </ul>
+                <div class="text-column">
+                    <!-- La caja de scrolleo, igual que los bloques de la
+                         home: alto fijo y el texto adentro. El formulario
+                         no entra aca, lo abre el boton en una emergente
+                         (ver emergente.js). -->
+                    <div class="subsection">
+                        <p>Vamos a investigar cómo el movimiento en el cielo activa, transforma y le da sustancia a lo que podemos ver en una Carta Natal. Buscaremos observar y comprender los temas que traen los tránsitos planetarios, el clima interno que generan y las sensibilidades que afectan en sus diferentes ciclos.</p>
 
-                <p><strong>Para quién es:</strong> este curso está destinado a personas que ya leen Cartas Natales y quieren profundizar sus devoluciones en lecturas o ampliar sus conocimientos astrológicos a través de la incorporación de tránsitos.</p>
+                        <p>También vamos a interpretar la revolución solar en sí misma y en su relación con el cielo natal, y a introducirnos en la carta progresada, que muestra las transformaciones internas que se producen a lo largo de los años.</p>
 
-                <h3>Cursada</h3>
-                <ul>
-                    <li>Sábados de 11 a 13.</li>
-                    <li>Comienzo: sábado 20 de marzo.</li>
-                    <li>Dos cuatrimestres de 16 clases de dos horas.</li>
-                    <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
-                </ul>
+                        <ul>
+                            <li>Primer cuatrimestre: Los tránsitos planetarios (16 clases).</li>
+                            <li>Segundo cuatrimestre: cierre de tránsitos, Revoluciones Solares (7 clases), Carta Progresada (3 clases) y clases prácticas.</li>
+                        </ul>
 
-                <div class="precio-box">
-                    <h4>Aranceles 2027</h4>
-                    <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
-                    <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
-                    <ul>
-                        <li>Año completo: 30% off, te queda en $448.000.</li>
-                        <li>Cuatrimestre completo: 25% off, $240.000.</li>
-                        <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
-                    </ul>
-                    <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
-                    <ul>
-                        <li>Año completo: 20% off, $512.000.</li>
-                        <li>Cuatrimestre completo: 15% off, $272.000.</li>
-                        <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
-                    </ul>
-                    <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
+                        <p><strong>Para quién es:</strong> este curso está destinado a personas que ya leen Cartas Natales y quieren profundizar sus devoluciones en lecturas o ampliar sus conocimientos astrológicos a través de la incorporación de tránsitos.</p>
+
+                        <h3>Cursada</h3>
+                        <ul>
+                            <li>Sábados de 11 a 13.</li>
+                            <li>Comienzo: sábado 20 de marzo.</li>
+                            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+                            <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
+                        </ul>
+
+                        <div class="precio-box">
+                            <h4>Aranceles 2027</h4>
+                            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
+                            <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
+                            <ul>
+                                <li>Año completo: 30% off, te queda en $448.000.</li>
+                                <li>Cuatrimestre completo: 25% off, $240.000.</li>
+                                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+                            </ul>
+                            <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
+                            <ul>
+                                <li>Año completo: 20% off, $512.000.</li>
+                                <li>Cuatrimestre completo: 15% off, $272.000.</li>
+                                <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
+                            </ul>
+                            <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
+                        </div>
+                        <div class="grupo-botones-sutiles" id="form">
+                            <button type="button" class="abrir-inscripcion btn-sutil"
+                                    data-abre="transitos27">Inscribite al cuarto año</button>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="anio-form fade-in-element" id="form">
-            <div class="inscripcion" data-form-id="transitos27"></div>
-        </section>
 
     </main>
 
@@ -146,5 +160,22 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/formaciones/inscripcion.js?v=2"></script>
+<script type="module" src="/formaciones/emergente.js?v=1"></script>
+<!-- LAS EMERGENTES DE INSCRIPCION
+     El boton que las abre esta adentro de la caja de texto de su año;
+     el formulario de adentro lo arma inscripcion.js como cualquier
+     otro.
+
+     Van aca, al final del body, y no al lado de su boton: las
+     secciones tienen transform: scale(1.05) en style.css, y un
+     transform hace que el position:fixed de sus descendientes se mida
+     contra la seccion y no contra la pantalla. -->
+<div class="emergente-inscripcion" id="emergente-transitos27" role="dialog" aria-modal="true" aria-label="Inscribite al cuarto año">
+    <div class="emergente-caja">
+        <button type="button" class="emergente-cerrar" aria-label="Cerrar">&times;</button>
+        <div class="inscripcion" data-form-id="transitos27" data-nombre="transitos27" data-titulo="Inscribite al cuarto año"></div>
+    </div>
+</div>
+
 </body>
 </html>

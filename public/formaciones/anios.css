@@ -1,68 +1,42 @@
-/* El bloque de cada año de la formacion: la imagen al costado y el texto al
-   lado, con la caja de aranceles al final.
+/* Lo propio de los bloques de cada año de la formacion.
 
-   Lo usan las cinco paginas: /formaciones/ (la presentacion y los cuatro
-   años, uno abajo del otro) y las cuatro de cada año, donde el mismo bloque
-   va arriba del formulario. Una sola copia para que el bloque se vea igual
-   en los dos lados.
+   El layout NO esta aca: estas paginas usan el bloque de la home
+   (.section-container .section-formaciones, con .layout-wrapper,
+   .media-column y la caja de scrolleo .subsection), que vive en
+   public/style.css. Hasta el 24/11/2026 habia aca un .anio-bloque propio,
+   con la imagen al costado y el texto al lado sin caja: se saco para que
+   estas paginas se vean como el resto del sitio, que es lo que pidio Seba.
 
-   Esto es el contenido; el formulario que va debajo se viste con
-   inscripcion.css.
+   Lo que queda es la tipografia de los titulos de adentro de la caja y los
+   aranceles. Lo usan las cinco paginas: /formaciones/ (la presentacion y los
+   cuatro años) y las cuatro de cada año.
+
+   El formulario se viste con inscripcion.css, que tambien trae la emergente.
 
    Sin comillas tipograficas: rompen los atributos (ver CLAUDE.md). */
 
-.anio-bloque {
-    max-width: 1120px;
-    margin: 0 auto 60px;
-    padding: 0 20px;
-    display: grid;
-    grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
-    gap: 46px;
-    align-items: start;
-    box-sizing: border-box;
-}
-
-/* La imagen acompaña la lectura del bloque en vez de irse para arriba. */
-.anio-media { position: sticky; top: 40px; }
-
-.anio-media img {
-    width: 100%;
-    display: block;
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-
-.anio-texto {
-    color: #cccac3;
-    line-height: 1.8;
-    /* El texto manda sobre el centrado del contenedor: las reglas de base
-       de style.css le ponen text-align:left a cada p y a cada encabezado,
-       asi que aca se declara una sola vez y vale para todo el bloque. */
-    text-align: left;
-}
-
-.anio-texto h2 {
+/* El titulo del bloque, afuera de la caja. El color lo pone
+   .section-formaciones h2 en style.css. */
+.section-formaciones > h2 {
     font-weight: 300;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 1.5em;
     margin: 0 0 1.2rem;
-    text-align: left;
 }
 
-.anio-texto h3 {
+/* El texto de adentro de la caja. Los "Cursada" y los subtitulos del año. */
+.subsection h3 {
     color: #fff;
     font-size: 0.88rem;
     font-weight: 400;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     margin: 32px 0 10px;
-    text-align: left;
 }
 
-.anio-texto p { margin: 0 0 15px; text-align: left; }
-.anio-texto ul { padding-left: 20px; margin: 0 0 15px; }
-.anio-texto li { margin-bottom: 7px; }
+.subsection ul { padding-left: 20px; margin: 0 0 15px; }
+.subsection li { margin-bottom: 7px; }
 
 /* Los aranceles, que son lo que mas se busca en la pagina. */
 .precio-box {
@@ -90,16 +64,6 @@
 .anio-mas { margin-top: 24px; font-size: 0.92rem; }
 .anio-mas a { color: #3bc2bc; }
 
-/* El formulario de abajo del bloque. El ancho lo pone .inscripcion. */
-.anio-form { margin: 0 auto 90px; }
-
 @media (max-width: 900px) {
-    .anio-bloque {
-        grid-template-columns: 1fr;
-        gap: 24px;
-        margin-bottom: 40px;
-    }
-    .anio-media { position: static; max-width: 420px; }
-    .anio-texto h2 { font-size: 1.3em; }
-    .anio-form { margin-bottom: 60px; }
+    .section-formaciones > h2 { font-size: 1.3em; }
 }
