@@ -234,11 +234,16 @@ async function obtenerContacto(email) {
 //
 // soloRateLimit: este pedido manda un mail, asi que no se reintenta ante un
 // 500 ni ante un timeout. Quien llama tiene su propio plan B.
-async function pedirDobleOptin({ email, nombre, atributos, listas, redirectUrl } = {}) {
+async function pedirDobleOptin({ email, nombre, atributos, listas, redirectUrl, plantilla } = {}) {
   if (!email) return null;
   if (!brevoConfigurado()) return avisarSinLlave('/contacts/doubleOptinConfirmation');
 
-  const templateId = Number(process.env.BREVO_DOI_TEMPLATE_ID);
+  // La plantilla puede venir en el pedido: el carril del ebook usa una
+  // propia, donde el boton confirma Y lleva al libro. Sin eso, la unica
+  // plantilla posible era la general y una confirmacion del ebook daba de
+  // alta sin entregar nunca el regalo — que es por lo que el ebook estuvo
+  // afuera del carril hasta el 25/11/2026. Si no viene, la de siempre.
+  const templateId = Number(plantilla || process.env.BREVO_DOI_TEMPLATE_ID);
   if (!templateId) {
     throw new BrevoError('BREVO_DOI_TEMPLATE_ID no configurado: no se puede mandar el doble opt-in.', { code: 'sin_plantilla' });
   }
@@ -246,6 +251,15 @@ async function pedirDobleOptin({ email, nombre, atributos, listas, redirectUrl }
   const ids = idsDeListas(listas && listas.length ? listas : ['suscriptores']);
   if (!ids.length) {
     throw new BrevoError('Ninguna lista valida para el doble opt-in.', { code: 'sin_lista' });
+  }
+
+  // Sin redirectUrl Brevo contesta 400 "Redirection url is missing", y como
+  // es un 4xx el trigger lo toma por permanente, lo anota y no reintenta: el
+  // alta se pierde. Mejor fallar aca, con un mensaje que dice que falta, que
+  // gastar el pedido para que lo rechacen seguro. Mismo criterio que
+  // sin_plantilla y sin_lista.
+  if (!redirectUrl) {
+    throw new BrevoError('Falta redirectUrl: el doble opt-in no se puede mandar sin la URL de vuelta.', { code: 'sin_redireccion' });
   }
 
   return pedirBrevo('POST', '/contacts/doubleOptinConfirmation', {
