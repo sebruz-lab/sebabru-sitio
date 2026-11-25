@@ -318,6 +318,34 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **`aplicarPlanCurso` completa las filas viejas**, solo lo que falta, sin
   tocar `total` ni `pagos`, y no escribe si no cambia nada. Es el botón
   "Aplicar a las filas que no lo tienen".
+- **Todas las columnas se ordenan y se ocultan, también Alta, Nombre, Mail,
+  Teléfono, Plan, Pagado y Aula** (desde el 25/11/2026). Esas doce no salen de
+  un formulario: las pinta un renderer propio, y hasta esa fecha estaban
+  escritas a mano tres veces en `pintarPadron()` (cabeceras, celdas y claves de
+  orden, las tres en el mismo orden), lo que las volvía las únicas inamovibles
+  y encajonaba a las columnas propias en el medio de la tabla. Ahora:
+  `COLUMNAS_FIJAS_PADRON` en `functions/index.js` es la lista blanca,
+  `PAD_FIJAS` en el panel tiene el renderer de cada una, y el `<thead>` y cada
+  fila se arman con **una sola** pasada por la lista de columnas.
+- **El orden de las fijas vive en `padron_columnas.estructura`, aparte de
+  `columnas`, y tiene que seguir así.** `editarCampo` manda cualquier key que
+  no conoce a `campos[key]`, y `asegurarColumnasDePadron` agrega al final las
+  del formulario que falten: meter las fijas en el mismo arreglo crearía
+  columnas fantasma con datos que nadie volvería a ver. El `orden` sí es uno
+  solo — `guardarColumnas` renumera las dos listas con un contador único y
+  `columnasFusionadas()` las vuelve a unir por ese número —, y es lo que
+  permite poner una columna propia primera o entre dos fijas.
+- **`agregarColumna` rechaza las keys fijas.** Deriva la key del título, así
+  que una columna llamada "Plan" generaría `plan` y chocaría con la fija: dos
+  columnas con la misma key y un valor en `campos.plan` que no se vería nunca.
+- **El mail se puede ocultar y mover, pero no editar**: el nombre del
+  documento de la fila se deriva de él. El editor lo dice al lado.
+- **Se puede ocultar todo**, y entonces la planilla lo avisa en vez de mostrar
+  una tabla vacía: el editor lista también las ocultas, así que siempre hay
+  camino de vuelta.
+- Se sacó la regla `@media` que escondía `:nth-child(3)` en pantalla chica.
+  Servía cuando la tercera columna era siempre el mail; con las columnas
+  ordenables tapaba un dato cualquiera.
 - **Ordenar son dos cosas distintas y conviene no confundirlas.** El orden de
   las **columnas** es configuración de la formación y se guarda
   (`guardarColumnas`: reescribe `orden`, aplica `label` y `oculta`, preserva
@@ -336,31 +364,132 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - Anual y semestral **se distinguen solo por color**; el mensual muestra
   cuántas cuotas van pagas y cuáles faltan con su mes (pedido de Seba,
   24/11/2026).
-- **PENDIENTE (etapa 2):** el 10% a Clari, el cobro en línea con Mercado Pago y
-  PayPal, y la importación de las ~100 filas de 2026 con verificación contra el
-  BALANCE GENERAL. Dos cosas ya medidas que van a aparecer ahí: **TERCER AÑO
-  tiene $255.000 de diferencia** entre la suma de sus pagos ($1.175.000) y lo
-  que declara el BALANCE GENERAL ($920.000), y en Primer Año las columnas de
-  meses no suman al `PAGO` en 8 de 26 filas.
+- **PENDIENTE (etapa 2):** el cobro en línea de las cuotas con Mercado Pago y
+  PayPal. El 10% a Clari y la importación de 2026 se hicieron el 25/11/2026
+  (ver las secciones "Finanzas" y "El archivo de 2026"); la diferencia de
+  $255.000 de TERCER AÑO quedó confirmada y sin corregir.
+
+## El archivo de 2026
+
+- **Las 82 filas de la planilla FORMACIONES 2026 están en el padrón** (migradas
+  el 25/11/2026). Son cursos de archivo: `FORMACIONES_ARCHIVO` en
+  `functions/index.js`, con `cursoId` `a26_*` y una entrada por pestaña de la
+  planilla. El prefijo no es decorativo: `linaje26` y `pluton26` ya son slugs
+  de aulas, y un `cursoId` repetido mezclaría dos padrones.
+- **Suman a Finanzas y no a la vista rápida.** `accion: 'resumen'` saltea los
+  cursos de archivo, y las filas nacen con `plan: null`, así que nada puede
+  figurar atrasado: 2026 está cerrado y reclamar una cuota de marzo de 2026 no
+  es lo que el panel tiene que recordar todos los días.
+- **Gana la columna PAGO, no los meses** (decisión de Seba). Entra como **un**
+  renglón de `pagos[]` fechado al 31/12/2026, con la nota que aclara que es el
+  total del año y no un cobro de ese día. Las columnas de meses de PRIMER AÑO
+  se guardan igual en `campos`, así que el detalle no se perdió.
+- El importador es `C:\dev\herramientas-sebabru\padron-2026.js`: lee la
+  planilla por la API REST de Sheets con las credenciales de `functions/.env`,
+  mapea los encabezados **por alias** (cada hoja tiene los suyos; ESCUCHA
+  escribe `pago` en minúscula) y lo que no matchea ningún alias lo guarda como
+  columna propia con su título original. Simula por omisión; escribe con
+  `--confirmar`; `--rehacer` reescribe lo ya importado.
+- **Cuidado con las filas "TOTAL" de cada hoja.** Varias pestañas cierran con
+  una, sin mail, y al importarla duplicaba exactamente lo cobrado del curso
+  (ESCUCHA, LINAJE, SATURNO, REVOSOLAR y PLUTON daban el doble del BALANCE).
+  `esFilaDeTotales()` las saltea, y pide que no tengan mail: si alguien se
+  llamara "Total" y tuviera mail, es una persona.
+- **Un valor con barra no puede ser el id de un documento: la barra es el
+  separador de la ruta.** En SEGUNDO AÑO hay una fila con las columnas
+  corridas y la fecha de nacimiento en la columna del mail
+  (`31/08/1989`). Como el id se deriva del mail, el documento se escribió en
+  `padron/a26_segundo__31/08/1989`, o sea un documento de una subcolección
+  colgada de un documento que no existe: invisible para el panel y para
+  cualquier consulta de `padron`. Se perdió una fila de $150.000 **sin un solo
+  error en la salida**. Ahora un valor que no pasa `MAIL_VALIDO` no se usa como
+  clave y se guarda como dato, y hay una red que corta cualquier id con barra.
+  Vale para cualquier migración futura.
+- **El control es la hoja BALANCE 2026**, y el importador lo imprime hoja por
+  hoja. Hoy 11 de las 12 coinciden al peso. La única diferencia es la de
+  **TERCER AÑO**, que ya estaba medida y quedó confirmada por dos fuentes
+  independientes: los pagos de las ocho personas suman $1.175.000 y el BALANCE
+  declara $920.000. **No se corrigió**: queda a la vista para decidirla a mano.
+  (El otro número viejo de ese pendiente, "los meses no suman al PAGO en 8 de
+  26 filas de Primer Año", sigue sin tocarse porque gana el PAGO.)
+- **`SUMA TOTAL` del BALANCE era $12.310.400 y el padrón suma $12.565.400**: la
+  diferencia es exactamente la de TERCER AÑO.
+
+## Finanzas
+
+- **Pestaña Finanzas del panel**, con cuatro subpestañas: Ingresos de la
+  escuela, Pagos a Clari, Consultas e Ingresos totales. Todo pasa por la
+  callable **`adminFinanzas`**, y las cuatro colecciones (`finanzas_clari`,
+  `finanzas_ingresos`, `finanzas_config`, `finanzas_movimientos`) están
+  cerradas de los dos lados: una sola alcanza para reconstruir cuánto factura
+  la escuela.
+- **ARS y USD nunca se suman.** PayPal cobra en dólares y Mercado Pago en
+  pesos; un total único sería un número que no existe. Cada agregado lleva las
+  dos monedas en renglones separados.
+- **Lo no confirmado va aparte.** Una compra con estado "transferencia avisada
+  (a confirmar)" es alguien que dijo que pagó, no plata que entró.
+- **El 10% de Clari se calcula sobre los pagos del padrón** (las formaciones),
+  no sobre los cursos grabados ni las consultas. El porcentaje vive en
+  `finanzas_config/clari` y se edita desde el panel: cambiarlo no es un deploy.
+  Por omisión no cuenta 2026; hay una casilla para incluirlo. El BALANCE 2026
+  calculaba "PAGAR A CLARI" como el 10% de **todo** lo ingresado, así que si
+  alguna vez hay que reproducir ese número, es con esa casilla prendida.
+- **Un pago a Clari es un renglón, nunca un número tipeado**, igual que los
+  pagos del padrón: el saldo es derivado.
+- **El número de consultas es un piso, y la pantalla lo dice.** Sólo está lo
+  que pasó por el sitio (Mercado Pago y PayPal, en `compras` con
+  `producto: 'consulta'`). La columna "Pago" de la planilla de consultas está
+  vacía en las 9 filas que hay, y una consulta que se paga por transferencia a
+  Clari no queda registrada en ningún lado. Para eso está el alta de ingreso a
+  mano (`finanzas_ingresos`), que es lo que hace que "Ingresos totales" pueda
+  incluir lo del agendador.
+- **`barrerColeccion()` pagina de verdad** con `startAfter`. Los `limit` del
+  resto del panel son topes duros, y acá un total silenciosamente incompleto
+  sería peor que un error. El rango de fechas de `compras` se filtra en
+  memoria para no necesitar un índice compuesto el día que haya que cruzarlo
+  con el producto o el estado.
 
 ## El panel de la escuela
 
-- **Cinco grupos, no once pestañas** (reorganizado el 24/11/2026):
-  **Gestión de alumnos** (el padrón, antes "Inscripciones"), **Usuarios**
-  (buscar + todos), **Acceso a las aulas** (invitaciones, descuentos, migrar
-  acceso, enlace maestro), **Contenidos** (videos del curso arriba, Tu carta
-  abajo) y **Pendientes** (pendientes + compras). Cada grupo es un
-  `.tab-panel`; los paneles viejos quedaron adentro como `.card` sueltas, así
-  que mover una tarjeta de grupo es cortar y pegar.
+- **Seis grupos, no once pestañas** (reorganizado el 24/11/2026, Finanzas
+  sumada el 25/11/2026): **Gestión de alumnos** (el padrón, antes
+  "Inscripciones"), **Usuarios** (buscar + todos), **Acceso a las aulas**
+  (invitaciones, descuentos, migrar acceso, enlace maestro), **Contenidos**
+  (videos del curso arriba, Tu carta abajo), **Finanzas** y **Pendientes**
+  (pendientes + compras). Cada grupo es un `.tab-panel`; los paneles viejos
+  quedaron adentro como `.card` sueltas, así que mover una tarjeta de grupo es
+  cortar y pegar.
+- **Las pestañas son de tres niveles y cada barra apaga sólo su grupo.** Cada
+  `.tabs` declara un `data-grupo` y cada `.tab-panel` el suyo; la falta del
+  atributo cuenta como el grupo `raiz`, y por eso el primer nivel no se tocó.
+  El listener viejo apagaba **todos** los `.tab-panel` del documento, así que
+  abrir una subpestaña cerraba la pestaña que la contenía: no alcanzaba con
+  anidar el HTML. El listener es delegado en `document` para que la barra de
+  2026, que la arma el servidor, no tenga que registrar nada.
+- **Las subpestañas del padrón no duplican nada: sólo cambian el curso.**
+  `#pad-curso` sigue existiendo (oculto) y sigue siendo el que manda; cada
+  subpestaña de año hace `padCursoSel.value = cursoId` y dispara su `change`,
+  que es el que ya llamaba a `cargarPadron()`. Las tres vistas (Planilla,
+  Pagos y deuda, Columnas) son tres `.tab-panel` sobre **un solo** bloque de
+  planilla, no tres copias. Mover el nodo con `appendChild` también habría
+  funcionado (los listeners viajan con él), pero no hacía falta.
+- **El alta a mano tiene su propio selector de curso** (`#pad-alta-curso`).
+  Antes tomaba el de la planilla, y desde que están en subpestañas distintas
+  eso sería anotar a alguien en un curso que no se ve en pantalla.
 - **El panel no tiene tope de ancho** (se sacó el `max-width: 900px` de
   `.tab-panel` el 25/11/2026): la planilla del padrón es la tabla más ancha del
   sitio. Lo que sí lleva medida es el texto largo — `.card > p`, los `textarea`
   y los párrafos de los ajustes —, porque una línea de prosa cruzando 2500 px
   no se lee. Las tablas quedan afuera de esa regla a propósito.
 - **Varias tarjetas cargan sus datos recién al hacer clic en la pestaña.** Por
-  eso, después de que la sesión se valida, el panel hace
-  `document.querySelector('.tab-btn.active')?.click()`: la pestaña que ya viene
-  abierta nunca recibiría ese clic y se vería vacía.
+  eso, después de que la sesión se valida, el panel llama a `abrirActivas()`,
+  que recorre las barras **de afuera hacia adentro** y clickea el
+  `.tab-btn.active` de cada una que esté a la vista (`barra.offsetParent`): la
+  pestaña que ya viene abierta nunca recibiría ese clic y se vería vacía. Sólo
+  las visibles, porque clickear la subpestaña de un grupo cerrado pediría
+  datos que nadie está mirando. Antes era un único
+  `document.querySelector('.tab-btn.active')?.click()`, que con tres niveles
+  sólo abría el primero.
 - **Quién administra sale de una sola lista**, `ADMINS_PANEL` en
   `functions/index.js`. `crearEnlace` y `ADMINS_TUCARTA` tenían su propia copia
   literal hasta el 24/11/2026 y ahora apuntan a esa: eran dos lugares donde

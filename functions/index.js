@@ -2377,15 +2377,77 @@ async function anotarMovimientoDePadron(filaId, accion, antes, despues, quien) {
   }
 }
 
-// Las columnas de un curso en el orden configurado. El `orden` y el `oculta`
-// existieron desde el primer dia en los documentos y nadie los miraba: hasta
-// el 25/11/2026 la planilla pintaba las columnas en el orden en que las habia
-// creado el formulario. El empate cae en el orden del arreglo, que es estable.
+// Las doce columnas que no salen de un formulario: las arma el panel con un
+// renderer propio (una fecha, un boton, una pastilla de estado) y por eso
+// hasta el 25/11/2026 estaban escritas a mano en pintarPadron(), fuera de la
+// lista de columnas. Eso las volvia las unicas que no se podian ni mover ni
+// ocultar, y encajonaba a las columnas propias en el medio de la tabla.
+//
+// Ahora viajan al panel como pseudo-columnas con `fija: true`. Su orden y su
+// `oculta` se guardan en `padron_columnas.estructura`, aparte de `columnas`,
+// y es a proposito: `editarCampo` manda cualquier key que no conoce a
+// `campos[key]` y `asegurarColumnasDePadron` agrega al final las del
+// formulario que falten, asi que meterlas en el mismo arreglo crearia
+// columnas fantasma con datos que nadie volveria a ver.
+//
+// `orden` aca es solo la semilla, y reproduce el orden que la tabla tenia en
+// pantalla: las cuatro de identificacion primero (negativos), las del
+// formulario en el medio (0..N, el que ya traen) y el resto al final (1000+).
+// Cuando el panel guarda, todo se renumera con un contador unico.
+const COLUMNAS_FIJAS_PADRON = [
+  { key: 'alta', label: 'Alta', orden: -1004 },
+  { key: 'nombre', label: 'Nombre', orden: -1003 },
+  { key: 'email', label: 'Mail', orden: -1002 },
+  { key: 'telefono', label: 'Teléfono', orden: -1001 },
+  { key: 'nacimiento', label: 'Nacimiento', orden: 1001 },
+  { key: 'horaNacimiento', label: 'Hora', orden: 1002 },
+  { key: 'lugarNacimiento', label: 'Lugar', orden: 1003 },
+  { key: 'carta', label: 'Carta', orden: 1004 },
+  { key: 'plan', label: 'Plan', orden: 1005 },
+  { key: 'pagado', label: 'Pagado', orden: 1006 },
+  { key: 'aula', label: 'Aula', orden: 1007 },
+  { key: 'baja', label: 'Baja', orden: 1008 },
+];
+const KEYS_FIJAS_PADRON = new Set(COLUMNAS_FIJAS_PADRON.map((c) => c.key));
+
+// Las columnas de un curso en el orden configurado, las del formulario y las
+// fijas en una sola lista. El `orden` y el `oculta` existieron desde el primer
+// dia en los documentos y nadie los miraba: hasta el 25/11/2026 la planilla
+// pintaba las columnas en el orden en que las habia creado el formulario. El
+// empate cae en el orden del arreglo, que es estable.
+function columnasFusionadas(estructura, columnas) {
+  const guardadas = (columnas || []).slice()
+    .map((c, i) => ({
+      ...c,
+      fija: false,
+      orden: Number.isFinite(c.orden) ? c.orden : i,
+      oculta: Boolean(c.oculta),
+    }));
+  // Lo guardado de una fija gana sobre la semilla; una fija que todavia no
+  // esta en `estructura` entra con su orden de origen y visible.
+  const puesto = new Map(
+    (estructura || [])
+      .filter((c) => c && KEYS_FIJAS_PADRON.has(c.key))
+      .map((c) => [c.key, c]),
+  );
+  const fijas = COLUMNAS_FIJAS_PADRON.map((base) => {
+    const v = puesto.get(base.key) || {};
+    return {
+      key: base.key,
+      label: v.label || base.label,
+      tipo: 'fija',
+      opciones: [],
+      fija: true,
+      orden: Number.isFinite(v.orden) ? v.orden : base.orden,
+      oculta: Boolean(v.oculta),
+    };
+  });
+  return fijas.concat(guardadas).sort((a, b) => a.orden - b.orden);
+}
+
 function columnasOrdenadas(docSnap) {
-  const columnas = (docSnap && docSnap.exists ? (docSnap.data().columnas || []) : []).slice();
-  return columnas
-    .map((c, i) => ({ ...c, orden: Number.isFinite(c.orden) ? c.orden : i, oculta: Boolean(c.oculta) }))
-    .sort((a, b) => a.orden - b.orden);
+  const datos = docSnap && docSnap.exists ? docSnap.data() : {};
+  return columnasFusionadas(datos.estructura, datos.columnas);
 }
 
 // La cursada y el arancel de un curso: lo guardado, completado con la semilla
@@ -2457,16 +2519,21 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       cursoId: d.id,
       nombreCurso: d.data().nombreCurso || d.id,
       columnas: (d.data().columnas || []).filter(c => !c.oculta),
+      archivo: CURSOS_ARCHIVO.has(d.id),
     }));
     // Los cursos configurados en el codigo que todavia no tienen a nadie
     // anotado: si no aparecieran, el panel se veria vacio el dia del
     // lanzamiento y no se sabria si es que no hay nadie o es que algo fallo.
     for (const f of FORMACIONES_ESCUELA) {
       if (cursos.some(c => c.cursoId === f.cursoId)) continue;
-      cursos.push({ cursoId: f.cursoId, nombreCurso: f.nombre, columnas: [] });
+      cursos.push({ cursoId: f.cursoId, nombreCurso: f.nombre, columnas: [], archivo: false });
     }
     cursos.sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es'));
-    return { ok: true, cursos };
+    // El panel los agrupa: los de archivo van a su propia subpestaña y no
+    // entre los cuatro años en curso.
+    const archivo = FORMACIONES_ARCHIVO
+      .map(f => ({ ...(cursos.find(c => c.cursoId === f.cursoId) || { cursoId: f.cursoId, columnas: [] }), nombreCurso: f.nombre, archivo: true }));
+    return { ok: true, cursos: cursos.filter(c => !c.archivo), archivo };
   }
 
   if (accion === 'listar') {
@@ -2788,6 +2855,12 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
 
     const key = nombreNormalizado(label).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
     if (!key) throw new functions.https.HttpsError('invalid-argument', 'Ese título no sirve como columna.');
+    // Una columna titulada "Plan" o "Alta" derivaria la key de una fija: dos
+    // columnas con la misma key, y lo que se escribiera en campos[key] no se
+    // veria nunca porque la fija pinta su propio renderer.
+    if (KEYS_FIJAS_PADRON.has(key)) {
+      throw new functions.https.HttpsError('already-exists', 'Ya hay una columna con ese título.');
+    }
 
     const colRef = _db.collection('padron_columnas').doc(cursoId);
     await _db.runTransaction(async (tx) => {
@@ -2796,7 +2869,12 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       if (columnas.some(c => c.key === key)) {
         throw new functions.https.HttpsError('already-exists', 'Ya hay una columna con ese título.');
       }
-      const orden = columnas.reduce((a, c) => Math.max(a, c.orden || 0), 0) + 1;
+      // El maximo sale de las dos listas: desde que las fijas tambien se
+      // ordenan, un orden sacado solo de `columnas` dejaria la columna nueva
+      // en el medio de la tabla en vez de al final.
+      const estructura = doc.exists ? (doc.data().estructura || []) : [];
+      const orden = estructura.concat(columnas)
+        .reduce((a, c) => Math.max(a, Number(c.orden) || 0), 0) + 1;
       columnas.push({ key, label, tipo, opciones: [], orden, oculta: false });
       tx.set(colRef, { cursoId, columnas }, { merge: true });
     });
@@ -2819,16 +2897,43 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     let despues = [];
     await _db.runTransaction(async (tx) => {
       const doc = await tx.get(colRef);
-      if (!doc.exists) throw new functions.https.HttpsError('not-found', 'Ese curso no tiene columnas todavía.');
-      const actuales = doc.data().columnas || [];
+      // Antes esto cortaba con not-found. Desde que las columnas fijas
+      // tambien se ordenan, un curso sin nadie anotado todavia no tiene
+      // documento y igual tiene doce columnas que se pueden acomodar: cortar
+      // seria no dejar preparar la planilla antes de la primera inscripcion.
+      const actuales = doc.exists ? (doc.data().columnas || []) : [];
       const porKey = new Map(actuales.map(c => [c.key, c]));
+      const fijasPuestas = new Map(
+        ((doc.exists ? doc.data().estructura : null) || [])
+          .filter(c => c && KEYS_FIJAS_PADRON.has(c.key))
+          .map(c => [c.key, c]),
+      );
 
       // `tipo` y `opciones` salen del documento: el navegador no los manda y
       // no tiene por que poder cambiarlos.
+      //
+      // El contador de orden es uno solo para las dos listas: es lo que
+      // permite intercalar una columna propia entre dos fijas. Las fijas van
+      // a `estructura` y las del formulario a `columnas`, y al leer se
+      // fusionan por ese `orden` en columnasOrdenadas().
       const nuevas = [];
+      const estructura = [];
       let orden = 0;
       for (const p of pedidas) {
-        const vieja = porKey.get(String(p?.key || ''));
+        const key = String(p?.key || '');
+        if (KEYS_FIJAS_PADRON.has(key)) {
+          const base = COLUMNAS_FIJAS_PADRON.find(c => c.key === key);
+          const vieja = fijasPuestas.get(key) || {};
+          fijasPuestas.delete(key);
+          estructura.push({
+            key,
+            label: sanitizeTexto(p?.label, 80) || vieja.label || base.label,
+            oculta: p?.oculta === true,
+            orden: orden++,
+          });
+          continue;
+        }
+        const vieja = porKey.get(key);
         // Una key que no existe se ignora, no se crea: las columnas se crean
         // por agregarColumna o por la config del formulario.
         if (!vieja) continue;
@@ -2845,8 +2950,21 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       for (const sobrante of porKey.values()) {
         nuevas.push({ ...sobrante, orden: orden++ });
       }
-      tx.update(colRef, { columnas: nuevas });
-      despues = nuevas;
+      // Una fija que no vino en la lista tampoco se pierde: vuelve al final
+      // visible, porque una columna que no se puede recuperar desde el panel
+      // seria un dato escondido para siempre.
+      for (const base of COLUMNAS_FIJAS_PADRON) {
+        if (estructura.some(c => c.key === base.key)) continue;
+        const vieja = fijasPuestas.get(base.key) || {};
+        estructura.push({
+          key: base.key,
+          label: vieja.label || base.label,
+          oculta: Boolean(vieja.oculta),
+          orden: orden++,
+        });
+      }
+      tx.set(colRef, { cursoId, columnas: nuevas, estructura }, { merge: true });
+      despues = columnasFusionadas(estructura, nuevas);
     });
 
     await anotarMovimientoDePadron(`columnas:${cursoId}`, 'guardarColumnas', null,
@@ -2972,6 +3090,9 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     for (const d of snap.docs) {
       const v = d.data();
       const cursoId = v.cursoId || 'sin_curso';
+      // El archivo de 2026 no entra en la vista rapida: suma a Finanzas, pero
+      // no tiene por que aparecer todos los dias entre quienes deben el mes.
+      if (CURSOS_ARCHIVO.has(cursoId)) continue;
       const c = porCurso[cursoId] || (porCurso[cursoId] = {
         cursoId, nombreCurso: nombres[cursoId] || cursoId,
         total: 0, activos: 0, bajas: 0, alDia: 0, atrasados: 0,
@@ -3014,6 +3135,276 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
 
   throw new functions.https.HttpsError('invalid-argument', `Acción desconocida: ${accion}`);
 });
+
+// -------------------------------------------------------
+// adminFinanzas: lo que entra, y lo que le toca a Clari
+// -------------------------------------------------------
+//
+// Va por callable y con las colecciones cerradas de los dos lados, por el
+// mismo motivo que `padron`: aca esta junta toda la plata de la escuela, y
+// una lectura directa desde el navegador seria una copia mas de la lista de
+// admins en las reglas.
+//
+// Tres criterios que no son obvios y conviene no deshacer:
+//
+//  1. **ARS y USD nunca se suman.** PayPal cobra en dolares y Mercado Pago en
+//     pesos; un total unico seria un numero que no existe. Cada agregado
+//     lleva las dos monedas por separado.
+//  2. **Lo no confirmado va aparte.** Una compra con estado "transferencia
+//     avisada (a confirmar)" es alguien que dijo que pago, no plata que
+//     entro. Suma en su propio renglon y no en el total.
+//  3. **Un pago a Clari es un renglon, nunca un numero tipeado**, igual que
+//     los pagos del padron: el saldo es derivado y se recalcula entero.
+const MES_CERO_FINANZAS = '2020-01-01';
+
+function mesDeFecha(valor) {
+  const s = String(valor || '');
+  return /^\d{4}-\d{2}/.test(s) ? s.slice(0, 7) : '';
+}
+
+// Las fechas de `compras` son Timestamp de servidor; las de `pagos[]` y las de
+// los ingresos a mano son 'YYYY-MM-DD'. Esto las deja todas en lo segundo.
+function fechaDeTimestamp(ts) {
+  try {
+    const d = ts && typeof ts.toDate === 'function' ? ts.toDate() : null;
+    if (!d) return '';
+    return d.toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Cordoba' });
+  } catch (error) {
+    return '';
+  }
+}
+
+// Recorre una coleccion en paginas de verdad. Los `limit` del resto del panel
+// son topes duros: aca no sirven, porque un total silenciosamente incompleto
+// es peor que un error.
+async function barrerColeccion(query, porDoc, tam = 500) {
+  let ultimo = null;
+  for (let vuelta = 0; vuelta < 200; vuelta++) {
+    let q = query.limit(tam);
+    if (ultimo) q = q.startAfter(ultimo);
+    const snap = await q.get();
+    if (snap.empty) return;
+    for (const d of snap.docs) porDoc(d);
+    if (snap.size < tam) return;
+    ultimo = snap.docs[snap.docs.length - 1];
+  }
+}
+
+function sumarEn(destino, moneda, monto) {
+  const m = moneda === 'USD' ? 'USD' : 'ARS';
+  destino[m] = (destino[m] || 0) + monto;
+}
+
+exports.adminFinanzas = functions.https.onCall(async (data, context) => {
+  const quien = exigirAdmin(context);
+  ensureInit();
+
+  if (context.rawRequest) {
+    const alcanza = await checkRateLimit('adminFinanzas', context.rawRequest, 300);
+    if (!alcanza) throw new functions.https.HttpsError('resource-exhausted', 'Demasiados pedidos seguidos.');
+  }
+
+  const accion = String(data?.accion || 'resumen');
+  const unDia = (v, porOmision) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : porOmision);
+  const desde = unDia(data?.desde, MES_CERO_FINANZAS);
+  const hasta = unDia(data?.hasta, hoyEnArgentina());
+
+  async function configDeClari() {
+    const doc = await _db.collection('finanzas_config').doc('clari').get();
+    const v = doc.exists ? doc.data() : {};
+    const p = Number(v.porcentaje);
+    return {
+      porcentaje: Number.isFinite(p) && p >= 0 && p <= 100 ? p : 10,
+      desdeMes: mesValido(v.desdeMes) ? v.desdeMes : '',
+      incluirArchivo: v.incluirArchivo === true,
+    };
+  }
+
+  // Un solo barrido del padron y uno de compras, y de ahi salen todas las
+  // vistas: los ingresos por fuente, los de las formaciones curso por curso y
+  // la base del porcentaje de Clari.
+  async function juntarTodo() {
+    const porMes = {};          // mes -> fuente -> { ARS, USD }
+    const porFuente = {};       // fuente -> { ARS, USD }
+    const porCurso = {};        // cursoId -> { nombreCurso, archivo, ARS }
+    const aConfirmar = {};
+    let baseFormaciones = 0;    // pesos de formaciones en curso (la base de Clari)
+    let baseArchivo = 0;
+
+    const anotar = (mes, fuente, moneda, monto) => {
+      if (!monto) return;
+      const m = porMes[mes] || (porMes[mes] = {});
+      sumarEn(m[fuente] || (m[fuente] = {}), moneda, monto);
+      sumarEn(porFuente[fuente] || (porFuente[fuente] = {}), moneda, monto);
+    };
+
+    const nombres = Object.fromEntries(FORMACIONES_ESCUELA.map(f => [f.cursoId, f.nombre]));
+    for (const f of FORMACIONES_ARCHIVO) nombres[f.cursoId] = f.nombre;
+
+    await barrerColeccion(_db.collection('padron').orderBy('__name__'), (d) => {
+      const v = d.data();
+      const cursoId = v.cursoId || 'sin_curso';
+      const esArchivo = CURSOS_ARCHIVO.has(cursoId);
+      for (const p of (Array.isArray(v.pagos) ? v.pagos : [])) {
+        const monto = Number(p?.monto) || 0;
+        const fecha = String(p?.fecha || '');
+        if (monto <= 0 || fecha < desde || fecha > hasta) continue;
+        anotar(mesDeFecha(fecha), esArchivo ? 'archivo2026' : 'formaciones', 'ARS', monto);
+        const c = porCurso[cursoId] || (porCurso[cursoId] = {
+          cursoId, nombreCurso: nombres[cursoId] || cursoId, archivo: esArchivo, ARS: 0,
+        });
+        c.ARS += monto;
+        if (esArchivo) baseArchivo += monto; else baseFormaciones += monto;
+      }
+    });
+
+    // `compras` guarda la fecha como Timestamp: el rango se filtra en memoria
+    // para no necesitar un indice compuesto el dia que haya que cruzarlo con
+    // el producto o el estado.
+    await barrerColeccion(_db.collection('compras').orderBy('fecha', 'desc'), (d) => {
+      const v = d.data();
+      const fecha = fechaDeTimestamp(v.fecha);
+      if (!fecha || fecha < desde || fecha > hasta) return;
+      const monto = Number(v.monto) || 0;
+      if (monto <= 0) return;
+      const moneda = v.moneda === 'USD' ? 'USD' : 'ARS';
+      const fuente = v.producto === 'consulta' ? 'consultas'
+        : v.tipo === 'libro' ? 'libro' : 'cursos';
+      if (String(v.estado || '').startsWith('transferencia avisada')) {
+        sumarEn(aConfirmar, moneda, monto);
+        return;
+      }
+      anotar(mesDeFecha(fecha), fuente, moneda, monto);
+    });
+
+    await barrerColeccion(_db.collection('finanzas_ingresos').orderBy('__name__'), (d) => {
+      const v = d.data();
+      const fecha = String(v.fecha || '');
+      const monto = Number(v.monto) || 0;
+      if (monto <= 0 || fecha < desde || fecha > hasta) return;
+      anotar(mesDeFecha(fecha), v.fuente === 'consultas' ? 'consultas' : 'manual',
+        v.moneda === 'USD' ? 'USD' : 'ARS', monto);
+    });
+
+    const general = {};
+    for (const f of Object.values(porFuente)) {
+      sumarEn(general, 'ARS', f.ARS || 0);
+      sumarEn(general, 'USD', f.USD || 0);
+    }
+    return {
+      meses: Object.keys(porMes).sort().map(mes => ({ mes, fuentes: porMes[mes] })),
+      porFuente, general, aConfirmar,
+      cursos: Object.values(porCurso).sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es')),
+      baseFormaciones, baseArchivo,
+    };
+  }
+
+  if (accion === 'resumen') {
+    const todo = await juntarTodo();
+    return { ok: true, desde, hasta, ...todo };
+  }
+
+  // Lo que le corresponde a Clari y lo que ya se le pago. El porcentaje sale
+  // de la configuracion y no del codigo: cambiarlo no puede pedir un deploy.
+  if (accion === 'clari') {
+    const [config, todo, pagosSnap] = await Promise.all([
+      configDeClari(),
+      juntarTodo(),
+      _db.collection('finanzas_clari').orderBy('fecha', 'desc').limit(500).get(),
+    ]);
+    const base = todo.baseFormaciones + (config.incluirArchivo ? todo.baseArchivo : 0);
+    const pagos = pagosSnap.docs
+      .map(d => ({ id: d.id, ...d.data(), creado: undefined }))
+      .filter(p => !config.desdeMes || mesDeFecha(p.fecha) >= config.desdeMes);
+    const pagado = pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+    const corresponde = Math.round(base * config.porcentaje / 100);
+    return {
+      ok: true, desde, hasta, config,
+      base, corresponde, pagado, saldo: corresponde - pagado,
+      pagos, porCurso: todo.cursos.filter(c => !c.archivo || config.incluirArchivo),
+    };
+  }
+
+  // Los ingresos cargados a mano, para poder revisarlos y borrar uno mal
+  // tipeado. Van aparte del resumen porque ahi entran sumados.
+  if (accion === 'ingresos') {
+    const snap = await _db.collection('finanzas_ingresos').orderBy('fecha', 'desc').limit(300).get();
+    return {
+      ok: true,
+      ingresos: snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(i => i.fecha >= desde && i.fecha <= hasta),
+    };
+  }
+
+  if (accion === 'clariConfig') {
+    const p = Number(data?.porcentaje);
+    if (!Number.isFinite(p) || p < 0 || p > 100) {
+      throw new functions.https.HttpsError('invalid-argument', 'El porcentaje tiene que estar entre 0 y 100.');
+    }
+    const desdeMes = mesValido(data?.desdeMes) ? String(data.desdeMes) : '';
+    const config = { porcentaje: p, desdeMes, incluirArchivo: data?.incluirArchivo === true };
+    await _db.collection('finanzas_config').doc('clari').set(config, { merge: true });
+    await anotarMovimientoDeFinanzas('clari:config', 'clariConfig', null, config, quien);
+    return { ok: true, config };
+  }
+
+  if (accion === 'clariRegistrar' || accion === 'ingresoRegistrar') {
+    const esClari = accion === 'clariRegistrar';
+    const monto = Number(data?.monto);
+    if (!Number.isFinite(monto) || monto <= 0 || monto > 1e12) {
+      throw new functions.https.HttpsError('invalid-argument', 'El monto no parece un monto.');
+    }
+    const fecha = unDia(data?.fecha, hoyEnArgentina());
+    const medio = MEDIOS_PAGO.includes(data?.medio) ? data.medio : 'Otro';
+    const nota = sanitizeTexto(data?.nota, 300);
+    const renglon = {
+      monto: Math.round(monto), fecha, medio, nota, por: quien,
+      creado: new Date().toISOString(),
+    };
+    if (!esClari) {
+      renglon.concepto = sanitizeTexto(data?.concepto, 200);
+      if (!renglon.concepto) {
+        throw new functions.https.HttpsError('invalid-argument', 'Falta el concepto del ingreso.');
+      }
+      renglon.fuente = ['consultas', 'formaciones', 'cursos', 'otro'].includes(data?.fuente)
+        ? data.fuente : 'otro';
+      renglon.moneda = data?.moneda === 'USD' ? 'USD' : 'ARS';
+    }
+    const ref = await _db.collection(esClari ? 'finanzas_clari' : 'finanzas_ingresos').add(renglon);
+    await anotarMovimientoDeFinanzas(`${esClari ? 'clari' : 'ingreso'}:${ref.id}`,
+      accion, null, renglon, quien);
+    return { ok: true, id: ref.id };
+  }
+
+  if (accion === 'clariBorrar' || accion === 'ingresoBorrar') {
+    const esClari = accion === 'clariBorrar';
+    const id = String(data?.id || '').trim();
+    if (!id) throw new functions.https.HttpsError('invalid-argument', 'Falta el renglón.');
+    const ref = _db.collection(esClari ? 'finanzas_clari' : 'finanzas_ingresos').doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) throw new functions.https.HttpsError('not-found', 'Ese renglón ya no está.');
+    await ref.delete();
+    await anotarMovimientoDeFinanzas(`${esClari ? 'clari' : 'ingreso'}:${id}`,
+      accion, doc.data(), null, quien);
+    return { ok: true };
+  }
+
+  throw new functions.https.HttpsError('invalid-argument', `Acción desconocida: ${accion}`);
+});
+
+// Misma idea que anotarMovimientoDePadron, y el mismo criterio: la auditoria
+// no puede voltear la operacion que estaba auditando.
+async function anotarMovimientoDeFinanzas(ref, accion, antes, despues, quien) {
+  try {
+    await _db.collection('finanzas_movimientos').add({
+      ref, accion, antes: antes ?? null, despues: despues ?? null,
+      quien, cuando: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo anotar el movimiento de finanzas:', error.message);
+  }
+}
 
 // -------------------------------------------------------
 // crearEnlace: admin crea un enlace maestro multi-uso
@@ -3281,6 +3672,32 @@ const FORMACIONES_ESCUELA = [
     cursada: { dia: 'sábados', horario: '11 a 13', inicio: '2027-03-20' },
     arancel: { tipo: 'mensual', cuotas: 10, desde: '2027-03', total: null } },
 ];
+
+// Los cursos de 2026, importados de la planilla FORMACIONES 2026 para que lo
+// cobrado el año pasado deje de vivir solo en Google Sheets. Son archivo: se
+// pueden mirar y suman a Finanzas, pero no entran en la vista rapida de
+// deudores, porque el año esta cerrado y reclamar una cuota de marzo de 2026
+// no es lo que el panel tiene que recordar todos los dias.
+//
+// El prefijo `a26_` no es decorativo: los slugs de las aulas ya usan nombres
+// como `linaje26` y `pluton26`, y un cursoId repetido mezclaria dos padrones.
+// `hoja` es el nombre exacto de la pestaña en la planilla, que es lo que lee
+// el importador (padron-2026.js en C:\dev\herramientas-sebabru).
+const FORMACIONES_ARCHIVO = [
+  { cursoId: 'a26_primero', hoja: 'PRIMER AÑO', nombre: '2026 · Primer año' },
+  { cursoId: 'a26_segundo', hoja: 'SEGUNDO AÑO', nombre: '2026 · Segundo año' },
+  { cursoId: 'a26_tercero', hoja: 'TERCER AÑO', nombre: '2026 · Tercer año' },
+  { cursoId: 'a26_cuarto', hoja: 'CUARTO AÑO', nombre: '2026 · Cuarto año' },
+  { cursoId: 'a26_escucha', hoja: 'ESCUCHA', nombre: '2026 · Escucha' },
+  { cursoId: 'a26_linaje', hoja: 'LINAJE', nombre: '2026 · Linaje' },
+  { cursoId: 'a26_lunanegra', hoja: 'LUNA NEGRA', nombre: '2026 · Luna Negra' },
+  { cursoId: 'a26_revosolar', hoja: 'REVOSOLAR', nombre: '2026 · Revolución solar' },
+  { cursoId: 'a26_saturno', hoja: 'SATURNO', nombre: '2026 · Saturno' },
+  { cursoId: 'a26_pluton', hoja: 'Pluton Seminario suelto', nombre: '2026 · Plutón, seminario suelto' },
+  { cursoId: 'a26_neptunoquiron', hoja: 'NEPTUNO QUIRON', nombre: '2026 · Neptuno y Quirón' },
+  { cursoId: 'a26_abierta', hoja: 'ESCUELA ABIERTA', nombre: '2026 · Escuela abierta' },
+];
+const CURSOS_ARCHIVO = new Set(FORMACIONES_ARCHIVO.map(f => f.cursoId));
 
 // La cursada y el arancel de una formacion, por cursoId. Devuelve una forma
 // completa siempre, para que quien la use no tenga que preguntar.

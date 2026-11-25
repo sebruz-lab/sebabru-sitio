@@ -129,6 +129,24 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // FINANZAS. Lo que entra a la escuela, lo que le toca a Clari y los
+    // ingresos que no pasaron por el sitio. Cerradas de los dos lados por lo
+    // mismo que el padron, y con mas razon: una sola de estas colecciones
+    // alcanza para reconstruir cuanto factura la escuela. Todo pasa por la
+    // callable adminFinanzas, que deja auditoria en finanzas_movimientos.
+    match /finanzas_clari/{id} {
+      allow read, write: if false;
+    }
+    match /finanzas_ingresos/{id} {
+      allow read, write: if false;
+    }
+    match /finanzas_config/{id} {
+      allow read, write: if false;
+    }
+    match /finanzas_movimientos/{id} {
+      allow read, write: if false;
+    }
+
     // Cada cuánto ya se avisó de algo (hoy, que GeoNames dejó de atender):
     // lo escribe solo la Cloud Function.
     match /avisos/{id} {

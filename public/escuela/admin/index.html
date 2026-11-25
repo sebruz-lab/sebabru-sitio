@@ -85,6 +85,24 @@
         .tab-btn:hover { color: var(--text); }
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
+        /* Las barras anidadas: pastillas, no solapas, para que se lea de un
+           golpe qué nivel es cada fila de botones. */
+        .tabs[data-nivel="2"], .tabs[data-nivel="3"] {
+            padding: 0; border-bottom: none; flex-wrap: wrap;
+            gap: 6px; margin-bottom: 18px;
+        }
+        .tabs[data-nivel="2"] .tab-btn, .tabs[data-nivel="3"] .tab-btn {
+            border: 1px solid var(--border); border-radius: 999px;
+            margin-bottom: 0; padding: 7px 15px;
+        }
+        .tabs[data-nivel="3"] .tab-btn { font-size: 0.78rem; padding: 5px 13px; }
+        .tabs[data-nivel="2"] .tab-btn.active, .tabs[data-nivel="3"] .tab-btn.active {
+            background: var(--primary); border-color: var(--primary); color: #16131d;
+        }
+        /* Un panel anidado no vuelve a pagar el padding del panel que lo
+           contiene. */
+        .tab-panel .tab-panel { padding: 0; }
+
         /* PANELS
            Sin tope de ancho: la planilla del padron es la tabla mas ancha del
            sitio y en 900px se leia en un scroll horizontal con media pantalla
@@ -295,6 +313,7 @@
         .alert { padding: 11px 15px; border-radius: 8px; margin-top: 12px; font-size: 0.87rem; }
         .alert-success { background: rgba(36,155,149,0.12); border: 1px solid var(--primary); color: #6dd5cf; }
         .alert-error   { background: rgba(220,80,80,0.12);  border: 1px solid #e05555; color: #f08080; }
+        .alert-warning { background: rgba(240,197,22,0.10); border: 1px solid var(--secondary); color: #e8d27a; }
 
         /* EMPTY */
         .empty-state {
@@ -319,8 +338,11 @@
             .tab-panel { padding: 16px; }
             .tc-grilla { grid-template-columns: 5.5em repeat(3, 1fr); }
             .user-info { grid-template-columns: 1fr; }
-            .user-table th:nth-child(3),
-            .user-table td:nth-child(3) { display: none; }
+            /* Antes acá se escondía la tercera columna en pantalla chica,
+               porque la tercera siempre era el mail. Desde que las columnas
+               se ordenan, la tercera es la que Seba haya puesto tercera:
+               esconderla a ciegas tapaba un dato cualquiera. Para no verla,
+               ahora se oculta la columna desde el panel. */
         }
     </style>
 </head>
@@ -353,6 +375,9 @@
         <button class="tab-btn" data-tab="contenidos">
             <i class="fa-solid fa-folder-open"></i> Contenidos
         </button>
+        <button class="tab-btn" data-tab="finanzas">
+            <i class="fa-solid fa-wallet"></i> Finanzas
+        </button>
         <button class="tab-btn" data-tab="pendientes">
             <i class="fa-solid fa-inbox"></i> Pendientes
         </button>
@@ -370,6 +395,28 @@
          este archivo: así la vista general de deudores y la planilla de un
          curso no pueden decir cosas distintas. -->
 
+        <!-- Nivel 2. Los seis botones de curso (los cuatro años y 2026)
+             apuntan al MISMO panel: la planilla es un solo bloque de DOM con
+             un solo estado, y cambiar de año es cambiar el curso cargado.
+             Duplicarla por año serían cuatro copias del estado y del
+             borrador. -->
+        <div class="tabs" data-nivel="2" data-grupo="alumnos">
+            <button class="tab-btn active" data-tab="al-vista">
+                <i class="fa-solid fa-gauge-high"></i> Vista rápida
+            </button>
+            <button class="tab-btn" data-tab="al-curso" data-curso="intro27">Primer año</button>
+            <button class="tab-btn" data-tab="al-curso" data-curso="lectura27">Segundo año</button>
+            <button class="tab-btn" data-tab="al-curso" data-curso="pluton27">Tercer año</button>
+            <button class="tab-btn" data-tab="al-curso" data-curso="transitos27">Cuarto año</button>
+            <button class="tab-btn" data-tab="al-curso" data-archivo="1">
+                <i class="fa-solid fa-box-archive"></i> 2026
+            </button>
+            <button class="tab-btn" data-tab="al-mano">
+                <i class="fa-solid fa-user-plus"></i> Anotar a mano
+            </button>
+        </div>
+
+        <div id="tab-al-vista" class="tab-panel active" data-grupo="alumnos">
         <!-- Lo primero que se ve: cómo viene cada formación y quién debe. -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
@@ -384,29 +431,60 @@
             <div id="pad-resumen" style="margin-top:14px;"></div>
             <div id="pad-deudores" style="margin-top:18px; overflow-x:auto;"></div>
         </div>
+        </div>
 
+        <div id="tab-al-curso" class="tab-panel" data-grupo="alumnos">
         <div class="card">
-            <p class="card-title">Planilla por formación</p>
+            <p class="card-title" id="pad-titulo">Planilla</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
                 Se edita acá mismo: toco una celda, escribo y al salir se guarda. Los pagos se abren
                 con el botón de cada fila, y van uno por uno con monto, fecha y medio — el total lo
                 suma el sistema y no se tipea nunca.
             </p>
-            <div class="input-row">
+
+            <!-- El select sigue acá, oculto, y sigue siendo el que manda: las
+                 subpestañas sólo le cambian el valor y disparan su `change`.
+                 Sacarlo habría obligado a reescribir las doce llamadas que
+                 leen su valor, sin ganar nada. -->
+            <div class="input-row" id="pad-caja-curso" style="display:none;">
                 <select id="pad-curso"><option value="">Elegí un curso</option></select>
-                <button class="btn btn-primary" id="pad-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Cargar</button>
             </div>
+
+            <!-- Nivel 3 de 2026: una planilla por pestaña de la planilla
+                 vieja. Se llena desde el servidor. -->
+            <div class="tabs" data-nivel="3" data-grupo="pad-archivo" id="pad-barra-archivo" style="display:none;"></div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <!-- Nivel 3: las tres vistas de una misma formación. -->
+                <div class="tabs" data-nivel="3" data-grupo="pad-vista" style="margin-bottom:0;">
+                    <button class="tab-btn active" data-tab="pad-v-planilla">Planilla</button>
+                    <button class="tab-btn" data-tab="pad-v-plata">Pagos y deuda</button>
+                    <button class="tab-btn" data-tab="pad-v-columnas">Columnas</button>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="pad-cargar"><i class="fa-solid fa-arrow-rotate-right"></i> Actualizar</button>
+            </div>
+
             <label class="pad-switch" for="pad-nacimiento" style="display:flex; gap:8px; align-items:center; margin-top:12px; font-size:.85rem; opacity:.8; cursor:pointer;">
                 <input type="checkbox" id="pad-nacimiento">
                 <span>Mostrar los datos de nacimiento (apagado para que no queden a la vista en una pantalla compartida)</span>
             </label>
-            <!-- El inicio de clases es lo que hace que los vencimientos
-                 existan: sin mes de primera cuota nada puede figurar
-                 atrasado. Vive en padron_columnas/{cursoId}, no en cada
-                 fila. -->
-            <div id="pad-cursada" class="pad-cursada" style="display:none;"></div>
+            <!-- VISTA: PLANILLA -->
+            <div id="tab-pad-v-planilla" class="tab-panel active" data-grupo="pad-vista">
+                <!-- El inicio de clases es lo que hace que los vencimientos
+                     existan: sin mes de primera cuota nada puede figurar
+                     atrasado. Vive en padron_columnas/{cursoId}, no en cada
+                     fila. -->
+                <div id="pad-cursada" class="pad-cursada" style="display:none;"></div>
+                <div id="pad-msg"></div>
+                <div id="pad-totales" style="margin-top:14px;"></div>
+                <div id="pad-lista" style="margin-top:10px; overflow-x:auto;"></div>
+            </div>
 
-            <details id="pad-ajustes-caja" style="margin-top:12px; display:none;">
+            <!-- VISTA: PAGOS Y DEUDA -->
+            <div id="tab-pad-v-plata" class="tab-panel" data-grupo="pad-vista">
+                <div id="pad-plata" style="margin-bottom:16px;"></div>
+
+            <details id="pad-ajustes-caja" open style="margin-top:12px; display:none;">
                 <summary style="cursor:pointer; font-size:.83rem; color:var(--primary);">
                     Inicio de clases y arancel de esta formación
                 </summary>
@@ -447,49 +525,46 @@
                 </div>
                 <div id="pad-aj-msg"></div>
             </details>
+            </div>
 
-            <details id="pad-cols-caja" style="margin-top:8px; display:none;">
-                <summary style="cursor:pointer; font-size:.83rem; color:var(--primary);">
-                    Columnas de la planilla
-                </summary>
-                <p style="opacity:.7; font-size:.8rem; margin:10px 0;">
+            <!-- VISTA: COLUMNAS -->
+            <div id="tab-pad-v-columnas" class="tab-panel" data-grupo="pad-vista">
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
                     El orden y los títulos quedan guardados para esta formación. Ocultar una columna
                     no borra nada: lo cargado sigue ahí y vuelve a aparecer si la mostrás de nuevo.
-                    Alta, Nombre, Mail, Teléfono, Plan, Pagado y Aula son la estructura de la planilla
-                    y no se mueven.
+                    Se mueven y se ocultan todas, también Alta, Nombre, Mail, Teléfono, Plan, Pagado
+                    y Aula. El mail es lo único que no se puede editar en la planilla: el nombre del
+                    documento de cada fila se deriva de él.
                 </p>
                 <div class="pad-cols" id="pad-cols"></div>
                 <div style="margin-top:10px;">
                     <button class="btn btn-primary btn-sm" id="pad-cols-guardar">Guardar el orden</button>
                 </div>
                 <div id="pad-cols-msg"></div>
-            </details>
 
-            <div id="pad-msg"></div>
-            <div id="pad-totales" style="margin-top:14px;"></div>
-            <div id="pad-lista" style="margin-top:10px; overflow-x:auto;"></div>
-        </div>
-
-        <!-- Una columna nueva no necesita deploy: queda en padron_columnas y
-             el valor de cada fila vive en campos[key]. -->
-        <div class="card">
-            <p class="card-title">Agregar una columna</p>
-            <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
-                Se suma al final de la planilla de la formación elegida arriba, y queda editable como
-                las demás. El título se puede cambiar después sin perder lo cargado.
-            </p>
-            <div class="input-row">
-                <input type="text" id="pad-col-label" placeholder="Título de la columna" maxlength="80">
-                <select id="pad-col-tipo">
-                    <option value="texto">Texto corto</option>
-                    <option value="numero">Número</option>
-                    <option value="nota">Nota larga</option>
-                </select>
-                <button class="btn btn-primary" id="pad-col-crear"><i class="fa-solid fa-plus"></i> Agregar</button>
+                <!-- Una columna nueva no necesita deploy: queda en
+                     padron_columnas y el valor de cada fila vive en
+                     campos[key]. -->
+                <p class="card-title" style="margin-top:26px;">Agregar una columna</p>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    Se suma al final de la planilla de esta formación, y queda editable como las
+                    demás. El título se puede cambiar después sin perder lo cargado.
+                </p>
+                <div class="input-row">
+                    <input type="text" id="pad-col-label" placeholder="Título de la columna" maxlength="80">
+                    <select id="pad-col-tipo">
+                        <option value="texto">Texto corto</option>
+                        <option value="numero">Número</option>
+                        <option value="nota">Nota larga</option>
+                    </select>
+                    <button class="btn btn-primary" id="pad-col-crear"><i class="fa-solid fa-plus"></i> Agregar</button>
+                </div>
+                <div id="pad-col-msg"></div>
             </div>
-            <div id="pad-col-msg"></div>
+        </div>
         </div>
 
+        <div id="tab-al-mano" class="tab-panel" data-grupo="alumnos">
         <div class="card">
             <p class="card-title">Anotar a alguien a mano</p>
             <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
@@ -497,6 +572,9 @@
                 El mail es opcional, pero sin mail no se le puede dar el acceso al aula.
             </p>
             <div class="input-row">
+                <select id="pad-alta-curso"><option value="">¿A qué formación?</option></select>
+            </div>
+            <div class="input-row" style="margin-top:8px;">
                 <input type="text" id="pad-nombre" placeholder="Nombre y apellido" maxlength="200">
                 <input type="email" id="pad-email" placeholder="Mail (opcional)" maxlength="200">
             </div>
@@ -510,6 +588,130 @@
                 <button class="btn btn-primary" id="pad-alta"><i class="fa-solid fa-user-plus"></i> Anotar</button>
             </div>
             <div id="pad-alta-msg"></div>
+        </div>
+        </div>
+    </div>
+
+    <!-- ===== GRUPO: FINANZAS =====
+         Nada de esto se lee de Firestore desde acá: las cuatro colecciones de
+         finanzas están cerradas de los dos lados y todo pasa por la callable
+         adminFinanzas. Dos cosas que la pantalla repite a propósito, porque
+         son fáciles de olvidar al leer un total: los pesos y los dólares no
+         se suman nunca, y una transferencia avisada no es plata que entró. -->
+    <div id="tab-finanzas" class="tab-panel">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div class="pad-ajustes" style="margin:0;">
+                    <label>Desde
+                        <input type="date" id="fin-desde">
+                    </label>
+                    <label>Hasta
+                        <input type="date" id="fin-hasta">
+                    </label>
+                    <button class="btn btn-primary btn-sm" id="fin-cargar">
+                        <i class="fa-solid fa-arrow-rotate-right"></i> Actualizar
+                    </button>
+                </div>
+                <div class="tabs" data-nivel="2" data-grupo="finanzas" style="margin-bottom:0;">
+                    <button class="tab-btn active" data-tab="fin-escuela">Ingresos de la escuela</button>
+                    <button class="tab-btn" data-tab="fin-clari">Pagos a Clari</button>
+                    <button class="tab-btn" data-tab="fin-consultas">Consultas</button>
+                    <button class="tab-btn" data-tab="fin-total">Ingresos totales</button>
+                </div>
+            </div>
+            <div id="fin-msg"></div>
+        </div>
+
+        <div id="tab-fin-escuela" class="tab-panel active" data-grupo="finanzas">
+            <div class="card">
+                <p class="card-title">Ingresos de la escuela</p>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    Los pagos cargados en las planillas de las formaciones y las compras de los
+                    cursos grabados. El archivo de 2026 va en su propio renglón.
+                </p>
+                <div id="fin-escuela-cuerpo"></div>
+            </div>
+        </div>
+
+        <div id="tab-fin-clari" class="tab-panel" data-grupo="finanzas">
+            <div class="card">
+                <p class="card-title">Pagos a Clari</p>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    El porcentaje se calcula sobre lo cobrado de las formaciones, no sobre los cursos
+                    grabados ni las consultas. Cada pago es un renglón con su fecha: el saldo es la
+                    resta, y no se tipea nunca.
+                </p>
+                <div id="fin-clari-cuerpo"></div>
+            </div>
+        </div>
+
+        <div id="tab-fin-consultas" class="tab-panel" data-grupo="finanzas">
+            <div class="card">
+                <p class="card-title">Ingresos por consultas</p>
+                <div class="alert alert-warning" style="margin-bottom:14px;">
+                    Este número es un piso, no el total. Lo que se ve acá es lo que pasó por el sitio
+                    (Mercado Pago y PayPal). Una consulta que se paga por transferencia a Clari no
+                    queda registrada en ningún lado: para esas está el alta de abajo.
+                </div>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    La agenda, los turnos y los pedidos se manejan en
+                    <a href="../../consultas/admin/" target="_blank" rel="noopener noreferrer">el panel de consultas</a>.
+                </p>
+                <div id="fin-consultas-cuerpo"></div>
+            </div>
+            <div class="card">
+                <p class="card-title">Anotar un ingreso a mano</p>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    Para lo que se cobró fuera del sitio. Queda con su fecha y suma a los ingresos
+                    totales.
+                </p>
+                <div class="pad-ajustes">
+                    <label>Concepto
+                        <input type="text" id="fin-ing-concepto" maxlength="200" placeholder="Consulta de X">
+                    </label>
+                    <label>Monto
+                        <input type="number" id="fin-ing-monto" min="0" step="1000">
+                    </label>
+                    <label>Moneda
+                        <select id="fin-ing-moneda">
+                            <option value="ARS">pesos</option>
+                            <option value="USD">dólares</option>
+                        </select>
+                    </label>
+                    <label>Fecha
+                        <input type="date" id="fin-ing-fecha">
+                    </label>
+                    <label>De dónde
+                        <select id="fin-ing-fuente">
+                            <option value="consultas">Consultas</option>
+                            <option value="formaciones">Formaciones</option>
+                            <option value="cursos">Cursos grabados</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </label>
+                    <label>Medio
+                        <select id="fin-ing-medio"></select>
+                    </label>
+                    <label>Nota
+                        <input type="text" id="fin-ing-nota" maxlength="300">
+                    </label>
+                    <button class="btn btn-primary btn-sm" id="fin-ing-sumar">Anotar</button>
+                </div>
+                <div id="fin-ing-msg"></div>
+                <div id="fin-ing-lista" style="margin-top:14px;"></div>
+            </div>
+        </div>
+
+        <div id="tab-fin-total" class="tab-panel" data-grupo="finanzas">
+            <div class="card">
+                <p class="card-title">Ingresos totales</p>
+                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
+                    Todo junto, mes por mes: formaciones, cursos grabados, el libro, consultas y lo
+                    anotado a mano. Los pesos y los dólares van en renglones separados porque no son
+                    la misma plata.
+                </p>
+                <div id="fin-total-cuerpo"></div>
+            </div>
         </div>
     </div>
 
@@ -857,9 +1059,9 @@
         if (user && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
             overlay.style.display = 'none';
             content.style.display = 'block';
-            // La pestaña que ya viene abierta carga sola: sus datos se piden
-            // al apretar el boton, y ese click nunca ocurre al entrar.
-            document.querySelector('.tab-btn.active')?.click();
+            // Las pestañas que ya vienen abiertas cargan solas: sus datos se
+            // piden al apretar el boton, y ese click nunca ocurre al entrar.
+            abrirActivas();
         } else if (user) {
             document.querySelector('.spinner').style.display = 'none';
             overlayText.textContent = 'Acceso denegado. Esta página es solo para administradores.';
@@ -870,13 +1072,348 @@
     });
 
     // ── TABS ──────────────────────────────────────────────────────
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    // Tres niveles. Cada barra `.tabs` declara su `data-grupo` y apaga sólo
+    // los botones de esa barra y los paneles de ese grupo: el listener de una
+    // sola lista que había antes apagaba TODOS los .tab-panel del documento,
+    // así que al abrir una subpestaña se cerraba la pestaña que la contenía.
+    // Las barras y los paneles del primer nivel no llevan el atributo, y por
+    // eso la falta de `data-grupo` cuenta como el grupo "raiz".
+    //
+    // El listener es delegado para que una barra que se arma por JS (la de
+    // 2026, que sale del servidor) no tenga que registrar nada.
+    function grupoDe(el) { return el?.dataset?.grupo || 'raiz'; }
+
+    document.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.tab-btn');
+        if (!btn) return;
+        const barra = btn.closest('.tabs');
+        if (!barra) return;
+        const grupo = grupoDe(barra);
+        barra.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => {
+            if (grupoDe(p) === grupo) p.classList.remove('active');
         });
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab)?.classList.add('active');
+    });
+
+    // Las pestañas que ya vienen abiertas nunca reciben un clic, y varias
+    // cargan sus datos justamente al recibirlo: sin esto se ven vacías. Se
+    // recorre de afuera hacia adentro y sólo las barras que están a la vista,
+    // porque clickear la subpestaña de un grupo cerrado pediría datos que
+    // nadie está mirando.
+    function abrirActivas() {
+        for (let vuelta = 0; vuelta < 4; vuelta++) {
+            let hubo = false;
+            document.querySelectorAll('.tabs').forEach(barra => {
+                if (barra.dataset.listo === '1') return;
+                if (!barra.offsetParent) return;          // su panel está cerrado
+                barra.dataset.listo = '1';
+                barra.querySelector('.tab-btn.active')?.click();
+                hubo = true;
+            });
+            if (!hubo) return;
+        }
+    }
+
+    // ── TAB: FINANZAS ─────────────────────────────────────────────
+    // Todo por la callable adminFinanzas: las cuatro colecciones de finanzas
+    // están cerradas de los dos lados, igual que el padrón.
+    //
+    // Dos reglas que la pantalla respeta en todos lados, porque un total que
+    // miente es peor que no tener el total: los pesos y los dólares van
+    // separados, y una transferencia que alguien avisó pero nadie confirmó no
+    // suma.
+    const FIN_FUENTES = {
+        formaciones: 'Formaciones 2027',
+        archivo2026: 'Formaciones 2026 (archivo)',
+        cursos: 'Cursos grabados',
+        libro: 'Libro',
+        consultas: 'Consultas',
+        manual: 'Anotado a mano',
+    };
+
+    function finApi(datos) {
+        const fns = getFunctions(getApp(), 'us-central1');
+        return httpsCallable(fns, 'adminFinanzas')(datos);
+    }
+
+    function finPlata(montos) {
+        const partes = [];
+        if (montos?.ARS) partes.push(pesos(montos.ARS));
+        if (montos?.USD) partes.push('US$ ' + Math.round(montos.USD).toLocaleString('es-AR'));
+        return partes.length ? partes.join(' + ') : '—';
+    }
+
+    function finRango() {
+        return {
+            desde: document.getElementById('fin-desde').value,
+            hasta: document.getElementById('fin-hasta').value,
+        };
+    }
+
+    // Una tabla de mes por fuente. Las fuentes que no tuvieron nada en el
+    // período no aparecen: una columna de guiones no informa nada.
+    function finTablaPorMes(meses, fuentes) {
+        const usadas = fuentes.filter(k => meses.some(m => m.fuentes[k]));
+        if (!usadas.length) return '<p style="opacity:.7;font-size:.85rem;">No hay ingresos en este período.</p>';
+        const total = {};
+        const filas = meses.map(m => {
+            const celdas = usadas.map(k => {
+                const v = m.fuentes[k];
+                if (v) {
+                    const t = total[k] || (total[k] = {});
+                    t.ARS = (t.ARS || 0) + (v.ARS || 0);
+                    t.USD = (t.USD || 0) + (v.USD || 0);
+                }
+                return `<td>${escapeHtml(finPlata(v))}</td>`;
+            }).join('');
+            return `<tr><td>${escapeHtml(mesLindo(m.mes))}</td>${celdas}</tr>`;
+        }).join('');
+        return `<div style="overflow-x:auto;"><table class="user-table"><thead><tr><th>Mes</th>`
+            + usadas.map(k => `<th>${escapeHtml(FIN_FUENTES[k] || k)}</th>`).join('')
+            + `</tr></thead><tbody>${filas}</tbody>`
+            + `<tfoot><tr><th>Total</th>${usadas.map(k => `<th>${escapeHtml(finPlata(total[k]))}</th>`).join('')}</tr></tfoot>`
+            + '</table></div>';
+    }
+
+    let finDatos = null;
+    async function cargarFinanzas() {
+        const msg = document.getElementById('fin-msg');
+        msg.innerHTML = '<p style="opacity:.7;font-size:.85rem;">Sumando…</p>';
+        try {
+            const r = await finApi({ accion: 'resumen', ...finRango() });
+            finDatos = r.data;
+            msg.innerHTML = '';
+            pintarFinEscuela();
+            pintarFinConsultas();
+            pintarFinTotal();
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
+        }
+    }
+
+    function pintarFinEscuela() {
+        const caja = document.getElementById('fin-escuela-cuerpo');
+        if (!finDatos) { caja.innerHTML = ''; return; }
+        const d = finDatos;
+        const fuentes = ['formaciones', 'archivo2026', 'cursos', 'libro'];
+        let html = finTablaPorMes(d.meses, fuentes);
+        if (d.cursos?.length) {
+            html += '<p class="card-title" style="margin-top:24px;">Curso por curso</p>'
+                + '<div style="overflow-x:auto;"><table class="user-table"><thead><tr><th>Formación</th><th>Cobrado</th></tr></thead><tbody>'
+                + d.cursos.map(c => `<tr><td>${escapeHtml(c.nombreCurso)}${c.archivo ? ' <span class="pad-mini">archivo</span>' : ''}</td><td>${escapeHtml(pesos(c.ARS))}</td></tr>`).join('')
+                + '</tbody></table></div>';
+        }
+        caja.innerHTML = html;
+    }
+
+    function pintarFinConsultas() {
+        const caja = document.getElementById('fin-consultas-cuerpo');
+        if (!finDatos) { caja.innerHTML = ''; return; }
+        const porMes = finDatos.meses
+            .filter(m => m.fuentes.consultas)
+            .map(m => `<tr><td>${escapeHtml(mesLindo(m.mes))}</td><td>${escapeHtml(finPlata(m.fuentes.consultas))}</td></tr>`).join('');
+        caja.innerHTML = `<div class="pad-tarjetas"><div class="pad-tarjeta"><h4>En el período</h4><dl>
+                <dt>Cobrado por el sitio</dt><dd>${escapeHtml(finPlata(finDatos.porFuente.consultas))}</dd>
+                <dt>Avisado sin confirmar</dt><dd>${escapeHtml(finPlata(finDatos.aConfirmar))}</dd>
+            </dl></div></div>`
+            + (porMes ? `<div style="overflow-x:auto;margin-top:14px;"><table class="user-table"><thead><tr><th>Mes</th><th>Consultas</th></tr></thead><tbody>${porMes}</tbody></table></div>`
+                : '<p style="opacity:.7;font-size:.85rem;margin-top:14px;">No hay consultas cobradas por el sitio en este período.</p>');
+        cargarIngresosManuales();
+    }
+
+    function pintarFinTotal() {
+        const caja = document.getElementById('fin-total-cuerpo');
+        if (!finDatos) { caja.innerHTML = ''; return; }
+        const d = finDatos;
+        caja.innerHTML = `<div class="pad-tarjetas"><div class="pad-tarjeta"><h4>Total del período</h4><dl>
+                <dt>Entró</dt><dd>${escapeHtml(finPlata(d.general))}</dd>
+                <dt>Avisado sin confirmar</dt><dd>${escapeHtml(finPlata(d.aConfirmar))}</dd>
+            </dl></div>`
+            + Object.keys(FIN_FUENTES).filter(k => d.porFuente[k]).map(k =>
+                `<div class="pad-tarjeta"><h4>${escapeHtml(FIN_FUENTES[k])}</h4><dl><dt>En el período</dt><dd>${escapeHtml(finPlata(d.porFuente[k]))}</dd></dl></div>`).join('')
+            + '</div>'
+            + '<div style="margin-top:18px;">' + finTablaPorMes(d.meses, Object.keys(FIN_FUENTES)) + '</div>';
+    }
+
+    async function cargarIngresosManuales() {
+        const caja = document.getElementById('fin-ing-lista');
+        try {
+            const r = await finApi({ accion: 'ingresos', ...finRango() });
+            const lista = r.data.ingresos || [];
+            caja.innerHTML = lista.length
+                ? `<div style="overflow-x:auto;"><table class="user-table"><thead><tr>
+                        <th>Fecha</th><th>Concepto</th><th>De dónde</th><th>Monto</th><th>Medio</th><th></th>
+                    </tr></thead><tbody>`
+                    + lista.map(i => `<tr>
+                        <td>${escapeHtml(i.fecha || '—')}</td>
+                        <td>${escapeHtml(i.concepto || '—')}${i.nota ? `<div class="pad-mini">${escapeHtml(i.nota)}</div>` : ''}</td>
+                        <td>${escapeHtml(FIN_FUENTES[i.fuente] || i.fuente || '—')}</td>
+                        <td>${escapeHtml(finPlata({ [i.moneda === 'USD' ? 'USD' : 'ARS']: Number(i.monto) || 0 }))}</td>
+                        <td>${escapeHtml(i.medio || '—')}</td>
+                        <td><button class="btn-table" data-fin-borrar-ingreso="${escapeHtml(i.id)}">Borrar</button></td>
+                    </tr>`).join('')
+                    + '</tbody></table></div>'
+                : '<p style="opacity:.7;font-size:.85rem;">Todavía no hay ingresos anotados a mano en este período.</p>';
+        } catch (e) {
+            caja.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
+        }
+    }
+
+    // ── Pagos a Clari ─────────────────────────────────────────────
+    async function cargarClari() {
+        const caja = document.getElementById('fin-clari-cuerpo');
+        caja.innerHTML = '<p style="opacity:.7;font-size:.85rem;">Calculando…</p>';
+        try {
+            const r = await finApi({ accion: 'clari', ...finRango() });
+            const d = r.data;
+            caja.innerHTML = `<div class="pad-tarjetas">
+                    <div class="pad-tarjeta"><h4>En el período</h4><dl>
+                        <dt>Cobrado de formaciones</dt><dd>${escapeHtml(pesos(d.base))}</dd>
+                        <dt>Le corresponde (${d.config.porcentaje}%)</dt><dd>${escapeHtml(pesos(d.corresponde))}</dd>
+                        <dt>Ya se le pagó</dt><dd>${escapeHtml(pesos(d.pagado))}</dd>
+                        <dt>Saldo</dt><dd>${escapeHtml(pesos(d.saldo))}</dd>
+                    </dl></div>
+                </div>
+
+                <div class="pad-ajustes" style="margin-top:18px;">
+                    <label>Monto
+                        <input type="number" id="fin-cl-monto" min="0" step="1000">
+                    </label>
+                    <label>Fecha
+                        <input type="date" id="fin-cl-fecha" value="${escapeHtml(hoyISO())}">
+                    </label>
+                    <label>Medio
+                        <select id="fin-cl-medio">${PAD_MEDIOS.map(m => `<option>${escapeHtml(m)}</option>`).join('')}</select>
+                    </label>
+                    <label>Nota
+                        <input type="text" id="fin-cl-nota" maxlength="300">
+                    </label>
+                    <button class="btn btn-primary btn-sm" id="fin-cl-sumar">Anotar el pago</button>
+                </div>
+                <div id="fin-cl-msg"></div>
+
+                ${d.pagos.length ? `<div style="overflow-x:auto;margin-top:16px;"><table class="user-table"><thead><tr>
+                        <th>Fecha</th><th>Monto</th><th>Medio</th><th>Nota</th><th></th>
+                    </tr></thead><tbody>`
+                    + d.pagos.map(p => `<tr>
+                        <td>${escapeHtml(p.fecha || '—')}</td>
+                        <td>${escapeHtml(pesos(p.monto))}</td>
+                        <td>${escapeHtml(p.medio || '—')}</td>
+                        <td>${escapeHtml(p.nota || '')}</td>
+                        <td><button class="btn-table" data-fin-borrar-clari="${escapeHtml(p.id)}">Borrar</button></td>
+                    </tr>`).join('')
+                    + '</tbody></table></div>'
+                  : '<p style="opacity:.7;font-size:.85rem;margin-top:16px;">Todavía no hay pagos anotados.</p>'}
+
+                <details style="margin-top:20px;">
+                    <summary style="cursor:pointer;font-size:.83rem;color:var(--primary);">El porcentaje y desde cuándo</summary>
+                    <p style="opacity:.7;font-size:.8rem;margin:10px 0;">
+                        El porcentaje se guarda y no hace falta tocar el código para cambiarlo. "Desde"
+                        sirve para no contar los pagos que ya se liquidaron antes de empezar a usar esta
+                        pantalla.
+                    </p>
+                    <div class="pad-ajustes">
+                        <label>Porcentaje
+                            <input type="number" id="fin-cl-pct" min="0" max="100" step="0.5" value="${d.config.porcentaje}" style="width:90px;">
+                        </label>
+                        <label>Contar desde
+                            <input type="month" id="fin-cl-desde" value="${escapeHtml(d.config.desdeMes || '')}">
+                        </label>
+                        <label style="flex-direction:row;align-items:center;gap:8px;">
+                            <input type="checkbox" id="fin-cl-archivo"${d.config.incluirArchivo ? ' checked' : ''}>
+                            <span>Incluir también 2026</span>
+                        </label>
+                        <button class="btn btn-secondary btn-sm" id="fin-cl-guardar">Guardar</button>
+                    </div>
+                </details>`;
+        } catch (e) {
+            caja.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
+        }
+    }
+
+    function hoyISO() {
+        return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Cordoba' });
+    }
+
+    // Un solo listener delegado para toda la pestaña: los formularios de
+    // Clari se repintan enteros después de cada cambio, así que registrar los
+    // handlers sobre sus nodos los dejaría colgando del nodo viejo.
+    document.getElementById('tab-finanzas').addEventListener('click', async (ev) => {
+        const borrarClari = ev.target.closest('[data-fin-borrar-clari]');
+        const borrarIngreso = ev.target.closest('[data-fin-borrar-ingreso]');
+        const sumarClari = ev.target.closest('#fin-cl-sumar');
+        const guardarConfig = ev.target.closest('#fin-cl-guardar');
+        const sumarIngreso = ev.target.closest('#fin-ing-sumar');
+        if (!borrarClari && !borrarIngreso && !sumarClari && !guardarConfig && !sumarIngreso) return;
+
+        const msgClari = document.getElementById('fin-cl-msg');
+        const msgIng = document.getElementById('fin-ing-msg');
+        try {
+            if (borrarClari) {
+                if (!confirm('¿Borrar este pago a Clari?')) return;
+                await finApi({ accion: 'clariBorrar', id: borrarClari.dataset.finBorrarClari });
+                await cargarClari();
+            } else if (borrarIngreso) {
+                if (!confirm('¿Borrar este ingreso?')) return;
+                await finApi({ accion: 'ingresoBorrar', id: borrarIngreso.dataset.finBorrarIngreso });
+                await cargarFinanzas();
+            } else if (sumarClari) {
+                await finApi({
+                    accion: 'clariRegistrar',
+                    monto: Number(document.getElementById('fin-cl-monto').value),
+                    fecha: document.getElementById('fin-cl-fecha').value,
+                    medio: document.getElementById('fin-cl-medio').value,
+                    nota: document.getElementById('fin-cl-nota').value.trim(),
+                });
+                await cargarClari();
+            } else if (guardarConfig) {
+                await finApi({
+                    accion: 'clariConfig',
+                    porcentaje: Number(document.getElementById('fin-cl-pct').value),
+                    desdeMes: document.getElementById('fin-cl-desde').value,
+                    incluirArchivo: document.getElementById('fin-cl-archivo').checked,
+                });
+                await cargarClari();
+            } else if (sumarIngreso) {
+                await finApi({
+                    accion: 'ingresoRegistrar',
+                    concepto: document.getElementById('fin-ing-concepto').value.trim(),
+                    monto: Number(document.getElementById('fin-ing-monto').value),
+                    moneda: document.getElementById('fin-ing-moneda').value,
+                    fecha: document.getElementById('fin-ing-fecha').value,
+                    fuente: document.getElementById('fin-ing-fuente').value,
+                    medio: document.getElementById('fin-ing-medio').value,
+                    nota: document.getElementById('fin-ing-nota').value.trim(),
+                });
+                ['fin-ing-concepto', 'fin-ing-monto', 'fin-ing-nota'].forEach(id => { document.getElementById(id).value = ''; });
+                await cargarFinanzas();
+            }
+        } catch (e) {
+            const donde = (borrarIngreso || sumarIngreso) ? msgIng : msgClari;
+            if (donde) donde.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
+        }
+    });
+
+    document.getElementById('fin-cargar').addEventListener('click', () => {
+        cargarFinanzas();
+        if (document.getElementById('tab-fin-clari').classList.contains('active')) cargarClari();
+    });
+    document.querySelector('.tab-btn[data-tab="fin-clari"]').addEventListener('click', cargarClari);
+
+    // Al abrir la pestaña: el año en curso, que es lo que se mira el 99% de
+    // las veces.
+    let finCargado = false;
+    document.querySelector('.tab-btn[data-tab="finanzas"]').addEventListener('click', () => {
+        if (finCargado) return;
+        finCargado = true;
+        const hoy = hoyISO();
+        document.getElementById('fin-desde').value = hoy.slice(0, 4) + '-01-01';
+        document.getElementById('fin-hasta').value = hoy;
+        document.getElementById('fin-ing-fecha').value = hoy;
+        document.getElementById('fin-ing-medio').innerHTML = PAD_MEDIOS.map(m => `<option>${escapeHtml(m)}</option>`).join('');
+        cargarFinanzas();
     });
 
     // ── TAB: COMPRAS ──────────────────────────────────────────────
@@ -1516,18 +2053,40 @@
     // que estan configurados y todavia no): asi el panel no miente el dia
     // del lanzamiento, cuando todavia no hay nadie.
     let padCursosCargados = false;
+    let padArchivo = [];
     async function cargarCursosDePadron() {
         if (padCursosCargados) return;
         try {
             const r = await padronApi({ accion: 'cursos' });
-            padCursoSel.innerHTML = '<option value="">Elegí un curso</option>'
-                + (r.data.cursos || []).map(c =>
-                    `<option value="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso)}</option>`).join('');
+            const todos = (r.data.cursos || []).concat(r.data.archivo || []);
+            const opciones = (lista) => lista.map(c =>
+                `<option value="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso)}</option>`).join('');
+            padCursoSel.innerHTML = '<option value="">Elegí un curso</option>' + opciones(todos);
+            // El alta a mano tiene su propio selector: está en otra
+            // subpestaña, así que heredar el curso de la planilla sería
+            // anotar a alguien en un curso que no se ve en pantalla.
+            document.getElementById('pad-alta-curso').innerHTML =
+                '<option value="">¿A qué formación?</option>' + opciones(r.data.cursos || []);
+            // La barra de 2026 sale del servidor: sumar un curso de archivo
+            // es una entrada en FORMACIONES_ARCHIVO y nada de HTML.
+            padArchivo = r.data.archivo || [];
+            document.getElementById('pad-barra-archivo').innerHTML = padArchivo.map((c, i) =>
+                `<button class="tab-btn${i === 0 ? ' active' : ''}" data-tab="al-curso" data-curso="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso.replace(/^2026 · /, ''))}</button>`).join('');
             padCursosCargados = true;
         } catch (e) {
             padError(padMsg, e);
         }
     }
+
+    // Cambiar de subpestaña es cambiar el curso del select, que es el que
+    // manda en todas las acciones. Si ya está cargado no se vuelve a pedir:
+    // volver a una pestaña ya vista no tiene por qué costar una lectura.
+    function elegirCursoDePadron(cursoId) {
+        if (!cursoId || padCursoSel.value === cursoId) return;
+        padCursoSel.value = cursoId;
+        padCursoSel.dispatchEvent(new Event('change'));
+    }
+
     // Al abrir la pestaña: los cursos del select y la vista rápida. Los
     // cursos se piden una sola vez; el resumen también, porque es una
     // lectura de todo el padrón y tiene su botón para actualizarlo.
@@ -1535,6 +2094,27 @@
     document.querySelector('.tab-btn[data-tab="alumnos"]').addEventListener('click', () => {
         cargarCursosDePadron();
         if (!padResumenCargado) { padResumenCargado = true; cargarResumenDePadron(); }
+    });
+
+    // Los botones de curso: los cuatro años tienen el curso puesto en el
+    // HTML, y el de 2026 abre su barra y toma el primero de la lista.
+    document.addEventListener('click', async (ev) => {
+        const btn = ev.target.closest('.tab-btn[data-tab="al-curso"]');
+        if (!btn) return;
+        await cargarCursosDePadron();
+        const esArchivo = btn.dataset.archivo === '1' || padArchivo.some(c => c.cursoId === btn.dataset.curso);
+        const barra = document.getElementById('pad-barra-archivo');
+        barra.style.display = esArchivo ? 'flex' : 'none';
+        const titulo = document.getElementById('pad-titulo');
+        let curso = btn.dataset.curso;
+        if (btn.dataset.archivo === '1') {
+            // Entrar a 2026 por el botón de arriba: queda elegido el que la
+            // barra muestra como activo, para que la pantalla y el dato no
+            // digan cosas distintas.
+            curso = barra.querySelector('.tab-btn.active')?.dataset.curso || padArchivo[0]?.cursoId;
+        }
+        titulo.textContent = esArchivo ? 'Planilla de 2026 (archivo)' : 'Planilla';
+        elegirCursoDePadron(curso);
     });
 
     // Las filas quedan en memoria para poder repintar la tabla sin volver a
@@ -1720,16 +2300,58 @@
     // ordena por Plan. Primero lo que reclama atencion.
     const PAD_RANGO_ESTADO = { atrasado: 0, sin_fecha: 1, sin_plan: 2, al_dia: 3, pagado: 4 };
 
+    // Las columnas que no salen de un formulario: cada una con cómo se pinta
+    // su celda y con qué se ordena. Hasta el 25/11/2026 esto estaba escrito
+    // tres veces en pintarPadron() (las cabeceras, las celdas y las claves de
+    // orden, los tres en el mismo orden y a mano), y eran justamente las
+    // únicas columnas que no se podían mover ni ocultar. Ahora el servidor las
+    // manda como pseudo-columnas con `fija: true` y acá sólo está lo que el
+    // navegador tiene que saber: el renderer.
+    //
+    // `orden: null` es una columna por la que no se puede ordenar la tabla
+    // (no hay un criterio sensato para "Aula" ni para un botón).
+    const PAD_FIJAS = {
+        alta: {
+            orden: f => altaComparable(f.alta),
+            celda: f => escapeHtml(fechaDeAlta(f.alta)),
+        },
+        nombre: {
+            orden: f => f.nombre || '',
+            celda: f => celdaEditable(f, 'nombre', f.nombre)
+                + (f.estado === 'baja' ? '<div class="pad-mini">de baja</div>' : '')
+                + (f.origen === 'manual' ? '<div class="pad-mini">anotada a mano</div>' : '')
+                + (f.origen === 'planilla2026' ? '<div class="pad-mini">de la planilla 2026</div>' : ''),
+        },
+        // El mail no es editable: el nombre del documento de la fila se deriva
+        // de él, así que cambiarlo sería crear otra fila y dejar la vieja.
+        email: { orden: f => f.email || '', celda: f => escapeHtml(f.email || '—') },
+        telefono: { orden: f => f.telefono || '', celda: f => celdaEditable(f, 'telefono', f.telefono) },
+        nacimiento: { orden: null, celda: f => escapeHtml(f.nacimiento?.fecha || '—'), soloConNacimiento: true },
+        horaNacimiento: { orden: null, celda: f => escapeHtml(f.nacimiento?.hora || '—'), soloConNacimiento: true },
+        lugarNacimiento: { orden: null, celda: f => escapeHtml(f.nacimiento?.lugar || '—'), soloConNacimiento: true },
+        carta: { orden: f => (f.tieneCarta ? 0 : 1), celda: f => (f.tieneCarta ? 'Sí' : 'No') },
+        plan: { orden: f => PAD_RANGO_ESTADO[(f.deuda || {}).estado] ?? 9, celda: f => celdaEstado(f) },
+        pagado: {
+            orden: f => Number((f.deuda || {}).pagado) || 0,
+            celda: f => `<button class="btn-table" data-pad-pagos="${escapeHtml(f.id)}">`
+                + `${escapeHtml(pesos((f.deuda || {}).pagado))} <small>(${(f.pagos || []).length})</small></button>`,
+        },
+        aula: {
+            orden: null,
+            celda: f => (f.aulaDada
+                ? '<span style="color:#249b95;font-weight:600;">dado</span>'
+                : `<button class="btn btn-secondary btn-sm" data-pad-aula="${escapeHtml(f.id)}"${f.email ? '' : ' disabled title="Sin mail no hay cuenta a la que darle el aula"'}>Dar acceso</button>`),
+        },
+        baja: {
+            orden: null,
+            celda: f => `<button class="btn btn-secondary btn-sm" data-pad-baja="${escapeHtml(f.id)}">${f.estado === 'baja' ? 'Reactivar' : 'Dar de baja'}</button>`,
+        },
+    };
+
     function valorParaOrdenar(f, col) {
-        const d = f.deuda || {};
-        if (col === 'alta') return altaComparable(f.alta);
-        if (col === 'nombre') return f.nombre || '';
-        if (col === 'email') return f.email || '';
-        if (col === 'telefono') return f.telefono || '';
-        if (col === 'pagado') return Number(d.pagado) || 0;
-        if (col === 'plan') return PAD_RANGO_ESTADO[d.estado] ?? 9;
         if (col.startsWith('campo:')) return f.campos?.[col.slice(6)] ?? '';
-        return '';
+        const fija = PAD_FIJAS[col];
+        return fija && fija.orden ? fija.orden(f) : '';
     }
 
     function filasOrdenadas() {
@@ -1753,9 +2375,23 @@
     }
 
     // Lo que se pinta: las ocultas quedan fuera de la grilla pero siguen
-    // existiendo en padColumnas para el editor de columnas.
+    // existiendo en padColumnas para el editor de columnas. Las tres de
+    // nacimiento además dependen del switch, que es lo que decide si esos
+    // datos viajan desde el servidor: pedirlas sin él daría tres columnas de
+    // guiones.
     function padColumnasVisibles() {
-        return padColumnas.filter(c => !c.oculta);
+        const conNac = padNacimiento.checked;
+        return padColumnas.filter(c => {
+            if (c.oculta) return false;
+            if (c.fija && PAD_FIJAS[c.key]?.soloConNacimiento) return conNac;
+            return true;
+        });
+    }
+
+    // La clave con la que se ordena por esta columna, o '' si no se ordena.
+    function claveDeOrden(c) {
+        if (!c.fija) return 'campo:' + c.key;
+        return PAD_FIJAS[c.key]?.orden ? c.key : '';
     }
 
     function pintarPadron() {
@@ -1763,17 +2399,12 @@
         const totales = document.getElementById('pad-totales');
         if (!filas.length) {
             totales.innerHTML = '';
+            document.getElementById('pad-plata').innerHTML = '';
             padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Todavía no hay nadie anotado en este curso.</p></div>';
             return;
         }
-        const conNac = padNacimiento.checked;
         const visibles = padColumnasVisibles();
-        // [titulo, clave para ordenar] — sin clave, la cabecera no ordena.
-        const cabeceras = [['Alta', 'alta'], ['Nombre', 'nombre'], ['Mail', 'email'], ['Teléfono', 'telefono']]
-            .concat(visibles.map(c => [c.label, 'campo:' + c.key]))
-            .concat(conNac ? [['Nacimiento', ''], ['Hora', ''], ['Lugar', '']] : [['Carta', '']])
-            .concat([['Plan', 'plan'], ['Pagado', 'pagado'], ['Aula', ''], ['', '']]);
-        const ancho = cabeceras.length;
+        const ancho = visibles.length;
 
         // La vista rápida de esta formación, con la misma cuenta que hace el
         // servidor para la vista general.
@@ -1793,29 +2424,11 @@
             </dl></div></div>`;
 
         const cuerpo = filas.map(f => {
-            const celdas = [
-                escapeHtml(fechaDeAlta(f.alta)),
-                celdaEditable(f, 'nombre', f.nombre)
-                    + (f.estado === 'baja' ? '<div class="pad-mini">de baja</div>' : '')
-                    + (f.origen === 'manual' ? '<div class="pad-mini">anotada a mano</div>' : ''),
-                escapeHtml(f.email || '—'),
-                celdaEditable(f, 'telefono', f.telefono),
-            ];
-            for (const c of visibles) celdas.push(celdaEditable(f, c.key, f.campos?.[c.key]));
-            if (conNac) {
-                celdas.push(escapeHtml(f.nacimiento?.fecha || '—'));
-                celdas.push(escapeHtml(f.nacimiento?.hora || '—'));
-                celdas.push(escapeHtml(f.nacimiento?.lugar || '—'));
-            } else {
-                celdas.push(f.tieneCarta ? 'Sí' : 'No');
-            }
-            celdas.push(celdaEstado(f));
-            celdas.push(`<button class="btn-table" data-pad-pagos="${escapeHtml(f.id)}">`
-                + `${escapeHtml(pesos((f.deuda || {}).pagado))} <small>(${(f.pagos || []).length})</small></button>`);
-            celdas.push(f.aulaDada
-                ? '<span style="color:#249b95;font-weight:600;">dado</span>'
-                : `<button class="btn btn-secondary btn-sm" data-pad-aula="${escapeHtml(f.id)}"${f.email ? '' : ' disabled title="Sin mail no hay cuenta a la que darle el aula"'}>Dar acceso</button>`);
-            celdas.push(`<button class="btn btn-secondary btn-sm" data-pad-baja="${escapeHtml(f.id)}">${f.estado === 'baja' ? 'Reactivar' : 'Dar de baja'}</button>`);
+            // Una sola pasada por la lista de columnas: las fijas con su
+            // renderer, las del formulario editables.
+            const celdas = visibles.map(c => (c.fija
+                ? (PAD_FIJAS[c.key]?.celda(f) ?? '')
+                : celdaEditable(f, c.key, f.campos?.[c.key])));
 
             const clases = [
                 f.estado === 'baja' ? '' : ((f.deuda || {}).estado === 'atrasado' ? 'pad-fila-atrasada' : ''),
@@ -1825,8 +2438,51 @@
                 + (padAbiertas.has(f.id) ? filaDetalle(f, ancho) : '');
         }).join('');
 
+        pintarPlataDelCurso(activos);
+        const cabeceras = visibles.map(c => cabecera(c.label, claveDeOrden(c))).join('');
         padLista.innerHTML = `<p style="opacity:.7;font-size:.85rem;margin:0 0 8px;">${filas.length} ${filas.length === 1 ? 'persona' : 'personas'}</p>`
-            + `<table class="user-table"><thead><tr>${cabeceras.map(([t, c]) => cabecera(t, c)).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>`;
+            + (ancho ? `<table class="user-table"><thead><tr>${cabeceras}</tr></thead><tbody>${cuerpo}</tbody></table>`
+                : '<div class="empty-state"><p>Están todas las columnas ocultas. Mostrá alguna en la pestaña Columnas.</p></div>');
+    }
+
+    // Quién debe, en esta formación. Sale de las filas que ya están en
+    // memoria (cada una trae su `deuda` calculada por el servidor): no hay
+    // una lectura más por abrir la pestaña, y no puede discrepar con la
+    // planilla ni con la vista rápida, que hacen la misma cuenta del mismo
+    // lado.
+    function pintarPlataDelCurso(activos) {
+        const caja = document.getElementById('pad-plata');
+        if (!caja) return;
+        const deben = activos
+            .filter(f => (f.deuda || {}).estado === 'atrasado')
+            .map(f => ({ f, vencidas: (f.deuda.cuotasPendientes || []).filter(p => p.vencida) }))
+            .sort((a, b) => (a.vencidas[0]?.mes || '9999').localeCompare(b.vencidas[0]?.mes || '9999'));
+        const cobrado = activos.reduce((a, f) => a + ((f.deuda || {}).pagado || 0), 0);
+        const aCobrar = activos.reduce((a, f) => a + ((f.deuda || {}).total || 0), 0);
+
+        let html = `<div class="pad-tarjetas"><div class="pad-tarjeta"><h4>La plata de esta formación</h4><dl>
+                <dt>Cobrado</dt><dd>${escapeHtml(pesos(cobrado))}</dd>
+                <dt>A cobrar</dt><dd>${escapeHtml(aCobrar ? pesos(aCobrar) : '—')}</dd>
+                <dt>Falta</dt><dd>${escapeHtml(aCobrar ? pesos(Math.max(0, aCobrar - cobrado)) : '—')}</dd>
+                <dt>Atrasados</dt><dd>${deben.length}</dd>
+            </dl></div></div>`;
+        if (!deben.length) {
+            html += '<p style="opacity:.7;font-size:.85rem;margin-top:14px;">Nadie figura atrasado en esta formación.</p>';
+        } else {
+            html += `<div style="overflow-x:auto;margin-top:14px;"><table class="user-table"><thead><tr>
+                    <th>Nombre</th><th>Plan</th><th>Cuotas vencidas</th><th>Pagado</th><th>Falta</th><th>Teléfono</th>
+                </tr></thead><tbody>`
+                + deben.map(({ f, vencidas }) => `<tr>
+                    <td>${escapeHtml(f.nombre || '—')}</td>
+                    <td>${escapeHtml(f.deuda.tipo || '—')}</td>
+                    <td>${escapeHtml(vencidas.map(p => mesLindo(p.mes)).join(', ') || '—')}</td>
+                    <td>${escapeHtml(pesos(f.deuda.pagado))}</td>
+                    <td>${escapeHtml(f.deuda.saldo === null || f.deuda.saldo === undefined ? '—' : pesos(f.deuda.saldo))}</td>
+                    <td>${escapeHtml(f.telefono || '—')}</td>
+                </tr>`).join('')
+                + '</tbody></table></div>';
+        }
+        caja.innerHTML = html;
     }
 
     // ── El inicio de clases de la formación ───────────────────────
@@ -1844,12 +2500,13 @@
     function pintarCursada() {
         const caja = document.getElementById('pad-cursada');
         const ajustes = document.getElementById('pad-ajustes-caja');
-        const cols = document.getElementById('pad-cols-caja');
+        // El editor de columnas ya no es una caja que se abre: es una
+        // subpestaña, y vive siempre.
         if (!padCursoSel.value) {
-            caja.style.display = ajustes.style.display = cols.style.display = 'none';
+            caja.style.display = ajustes.style.display = 'none';
             return;
         }
-        ajustes.style.display = cols.style.display = '';
+        ajustes.style.display = '';
 
         const c = padCursada || {};
         const p = padPlanCurso || {};
@@ -1930,6 +2587,8 @@
                 <button class="btn-table" data-pad-mover="abajo" title="Bajar"${i === padColumnas.length - 1 ? ' disabled' : ''}>▼</button>
                 <input type="text" value="${escapeHtml(c.label || c.key)}" maxlength="80" data-pad-col-label>
                 <label><input type="checkbox" data-pad-col-oculta${c.oculta ? ' checked' : ''}> ocultar</label>
+                ${c.fija ? '<span class="pad-mini">estructura</span>' : ''}
+                ${c.key === 'email' ? '<span class="pad-mini">no se edita</span>' : ''}
             </div>`).join('');
     }
 
@@ -2215,10 +2874,10 @@
 
     document.getElementById('pad-alta').addEventListener('click', async () => {
         const msg = document.getElementById('pad-alta-msg');
-        const cursoId = padCursoSel.value;
+        const cursoId = document.getElementById('pad-alta-curso').value;
         msg.innerHTML = '';
         if (!cursoId) {
-            msg.innerHTML = '<div class="alert alert-error">Elegí primero el curso, arriba.</div>';
+            msg.innerHTML = '<div class="alert alert-error">Elegí a qué formación se anota.</div>';
             return;
         }
         const nombre = document.getElementById('pad-nombre').value.trim();
@@ -2246,7 +2905,9 @@
             msg.innerHTML = r.data.avisoDuplicado
                 ? '<div class="alert alert-error">Quedó anotada, pero ojo: ya hay alguien con un nombre muy parecido en este curso.</div>'
                 : '<div class="alert alert-success">Anotada.</div>';
-            await cargarPadron();
+            // Sólo tiene sentido recargar si es el curso que está cargado en
+            // la planilla: el alta vive en su propia subpestaña.
+            if (padCursoSel.value === cursoId) await cargarPadron();
         } catch (e) {
             padError(msg, e);
         } finally {
