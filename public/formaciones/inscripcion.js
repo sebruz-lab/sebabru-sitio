@@ -41,9 +41,10 @@
 // inscripcion entra igual y la carta se hace a mano.
 
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.14.0';
-import { crearFormulario } from '/formaciones/formulario.js?v=2';
+import { crearFormulario } from '/formaciones/formulario.js?v=3';
 
 const ENDPOINT = 'https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion';
+const ENDPOINT_CUPON = 'https://us-central1-sebabru-e5563.cloudfunctions.net/validarDescuento';
 const TURNSTILE_SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';
 const SIN_RESULTADOS = 'No encontramos ese lugar. Si está bien escrito, envialo así.';
 
@@ -168,6 +169,64 @@ function arrancar(caja) {
 
     let captchaToken = '';
     let captchaWidgetId = null;
+
+    // ---- El cupon ----
+    // Chequear el codigo es opcional y nunca frena el envio: el servidor lo
+    // revalida igual y, si no vale, la inscripcion entra con el codigo anotado
+    // tal como lo escribio. Esto es solo para que quien tiene un codigo vea
+    // antes de mandar que es de verdad y cuanto descuenta.
+    const inpCodigo = campo('codigoDescuento');
+    const btnCupon = form.querySelector('.btn-cupon');
+    const cuponMsg = form.querySelector('.cupon-msg');
+    let cuponChequeado = '';
+
+    function decirCupon(texto, clase) {
+        cuponMsg.textContent = texto;
+        cuponMsg.className = 'cupon-msg' + (clase ? ' ' + clase : '');
+    }
+
+    async function chequearCupon() {
+        const codigo = inpCodigo.value.trim().toUpperCase();
+        inpCodigo.value = codigo;
+        if (!codigo) { cuponChequeado = ''; decirCupon('', ''); return; }
+        if (codigo === cuponChequeado) return;   // ya lo dijimos
+        cuponChequeado = codigo;
+        decirCupon('Chequeando...', '');
+        try {
+            const resp = await fetch(ENDPOINT_CUPON
+                + '?codigo=' + encodeURIComponent(codigo)
+                + '&curso=' + encodeURIComponent(formId));
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !('valido' in data)) {
+                // No se pudo chequear: no es lo mismo que no valer, y decirle
+                // que su codigo no existe cuando el problema es nuestro seria
+                // mentirle. Se manda igual y el servidor decide.
+                decirCupon('No pudimos chequearlo ahora. Mandá la inscripción igual: lo revisamos nosotros.', '');
+                return;
+            }
+            if (data.valido) {
+                decirCupon(data.descuento + '% de descuento. Te lo aplicamos al pasarte los datos del pago.', 'ok');
+            } else {
+                decirCupon('No encontramos ese código. Podés mandar la inscripción igual y lo revisamos.', 'aviso');
+            }
+        } catch (err) {
+            decirCupon('No pudimos chequearlo ahora. Mandá la inscripción igual: lo revisamos nosotros.', '');
+        }
+    }
+
+    btnCupon.addEventListener('click', chequearCupon);
+    inpCodigo.addEventListener('blur', chequearCupon);
+    // Enter adentro del campo chequea, no manda el formulario: a esa altura
+    // todavia falta el captcha y un envio a medias seria peor.
+    inpCodigo.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        chequearCupon();
+    });
+    // Si lo edita despues de chequear, el cartel viejo deja de valer.
+    inpCodigo.addEventListener('input', () => {
+        if (inpCodigo.value.trim().toUpperCase() !== cuponChequeado) decirCupon('', '');
+    });
 
     // La lista de sugerencias dice en que estamos: si tiene el aviso de "no
     // encontramos", el lugar no existe en ningun lado y la inscripcion se
@@ -349,6 +408,7 @@ function arrancar(caja) {
                         modalidad: campo('modalidad').value,
                         formaPago: campo('formaPago').value,
                         novedades: campo('novedades').checked ? 'Sí' : 'No',
+                        codigoDescuento: inpCodigo.value.trim().toUpperCase(),
                     },
                     lugar: algunoDeNacimiento ? (lugarElegido || null) : null,
                     hp: campo('hp').value,

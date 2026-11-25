@@ -128,6 +128,61 @@
 .form-novedades input { margin: 3px 0 0; flex-shrink: 0; accent-color: #fff; }
 .form-novedades a { color: inherit; text-decoration: underline; }
 
+/* EL CUPON
+   El campo y el boton "Aplicar" en la misma fila. El input va con flex:1 y
+   min-width:0 porque un input trae un ancho propio de ~170px que, sin eso,
+   desborda la fila en pantallas chicas en vez de encogerse. */
+.form-cupon .cupon-fila {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.form-cupon .cupon-fila input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* El placeholder es una frase, no un codigo: va en la tipografia del resto. */
+.form-cupon .cupon-fila input::placeholder {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 0.85rem;
+}
+
+.btn-cupon {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btn-cupon:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+
+/* Sin texto no ocupa lugar: :empty evita el hueco de un margen vacio. */
+.cupon-msg {
+    margin: 7px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #cccac3;
+}
+
+.cupon-msg:empty { display: none; }
+.cupon-msg.ok { color: #3bc2bc; }
+.cupon-msg.aviso { color: #e0a040; }
+
 /* La trampa para bots. Fuera de la pantalla y no display:none, para que un
    lector de pantalla lo anuncie y una persona no lo complete por error. */
 .campo-trampa {

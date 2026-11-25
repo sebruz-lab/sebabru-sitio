@@ -236,6 +236,34 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **El acceso al aula no lo da la inscripción**, lo da el botón "Dar acceso" de
   la pestaña Inscripciones del panel (`accion: 'darAula'`), que escribe
   `usuarios/{mail}.cursos` y `aulaDada` en un solo batch.
+- **El cupón de descuento no descuenta nada solo.** Las formaciones no se
+  cobran en el sitio, así que el código queda anotado en el padrón
+  (`campos.codigoDescuento` y `campos.descuentoCodigo`) y lo aplica Clari al
+  cotizar. El formulario lo chequea en vivo contra `codigos_descuento` por la
+  function `validarDescuento`, que es un `onRequest` y no una lectura directa
+  de Firestore porque el formulario no trae el SDK y sumarlo serían 100 KB de
+  más en seis páginas. **Un código que no valida no corta el envío**: queda
+  escrito tal como lo tipeó, con `descuentoCodigo: 'no validó'`.
+- **El porcentaje lo resuelve el servidor, nunca el navegador.** La página
+  muestra el cartel por cortesía, pero `registrarInscripcion` vuelve a llamar a
+  `validarCodigo()` y lo que queda en el padrón sale de ahí.
+- **`maxUsos` no se descuenta en una inscripción.** `contarUsoDescuento()` está
+  atado a un pago, y acá no hay pago: un código de un solo uso se puede usar
+  todas las veces que quieran. Si hace falta limitarlo de verdad, hay que
+  desactivarlo a mano desde el panel.
+- **Un código sin `cursos` vale para todo**, incluidas las formaciones y los
+  cursos grabados. Para que valga solo para un año hay que elegirlo en el
+  desplegable del creador de códigos del panel, que ya lista los cuatro.
+- **`delServidor: true` en un campo** es una columna que calcula el servidor:
+  el bucle de validación de `registrarInscripcion` ignora lo que mande el
+  navegador para esa clave. Hoy lo usa `descuentoCodigo`.
+- **`asegurarColumnasDePadron` agrega las columnas que falten** en vez de
+  cortar si el documento ya existe, con la misma lógica que
+  `columnasPorEncabezado` en la planilla y por la misma razón: lo que Seba
+  configuró ahí (orden, ocultas, columnas propias) no se pisa. Antes cortaba, y
+  eso dejaba un bug callado: un campo nuevo en la config se guardaba en
+  `campos[key]` de cada fila pero el panel no lo mostraba nunca. **Agregar un
+  campo a un formulario del padrón pide revisar esto.**
 - **Paso manual pendiente**, igual que el de `datos_sin_procesar`:
   `gcloud firestore fields ttls update expira --collection-group=padron_pendientes --enable-ttl`.
 - **La planilla del panel es editable, y no es Google Sheets.** Cada celda es

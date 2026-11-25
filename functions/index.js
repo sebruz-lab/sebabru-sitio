@@ -730,6 +730,54 @@ async function validarCodigo(codigo, cursoId) {
 }
 
 // -------------------------------------------------------
+// validarDescuento: dice si un codigo existe y cuanto descuenta.
+//
+// La usa el formulario de inscripcion a las formaciones, que NO cobra en
+// linea: ahi el codigo no baja ningun precio solo. Queda anotado en el padron
+// y lo aplica Clari al cotizar. Lo que esta funcion da es la confirmacion en
+// pantalla de que el codigo que le dieron a la persona es de verdad, antes de
+// que mande la inscripcion.
+//
+// No expone nada nuevo: `codigos_descuento` ya se lee desde el navegador en
+// los checkouts (`allow get: if true` en firestore.rules) y listar la
+// coleccion sigue siendo solo de admins. Es una function y no una lectura
+// directa de Firestore porque el formulario de inscripcion no trae el SDK, y
+// sumarlo por un campo opcional serian 100 KB de mas en seis paginas.
+//
+// Siempre contesta 200 cuando pudo chequear: un codigo que no vale no es un
+// error de la persona, y el formulario necesita distinguirlo de "no se pudo
+// chequear" para no decirle que su codigo es falso cuando el problema es
+// nuestro.
+// -------------------------------------------------------
+exports.validarDescuento = functions.https.onRequest(async (req, res) => {
+  setCors(req, res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  ensureInit();
+
+  // Aca no hay captcha, asi que sin tope el endpoint seria un probador de
+  // codigos a mansalva.
+  if (!(await checkRateLimit('validarDescuento', req, 30))) {
+    return res.status(429).json({ error: 'probaste_muchos' });
+  }
+
+  const codigo = sanitizeTexto(req.query.codigo, 40).toUpperCase();
+  const cursoId = sanitizeTexto(req.query.curso, 100);
+  if (!codigo) return res.status(400).json({ error: 'falta_codigo' });
+
+  try {
+    const datos = await validarCodigo(codigo, cursoId);
+    return res.status(200).json(datos
+      ? { valido: true, codigo, descuento: datos.descuento }
+      : { valido: false, codigo });
+  } catch (error) {
+    functions.logger.error('Error en validarDescuento:', error);
+    return res.status(503).json({ error: 'no_se_pudo' });
+  }
+});
+
+// -------------------------------------------------------
 // obtenerMuestra: expone SOLO el primer video de un curso (la clase
 // gratis), sin requerir login. El resto de "cursos/{id}.videos" sigue
 // protegido por las reglas de Firestore (solo dueños del curso).
@@ -2987,6 +3035,19 @@ const FORMAS_DE_PAGO_VIEJAS = [
   'En 8 cuotas mensuales',
 ];
 
+// El cupon. `codigoDescuento` es lo que escribio la persona; `descuentoCodigo`
+// lo llena el servidor (de ahi el `delServidor`, que hace que el bucle de
+// validacion no lo lea del navegador) con lo que el codigo dice de verdad. Son
+// dos campos y no uno porque la columna del padron tiene que poder leerse sin
+// ir a buscar el codigo a otra coleccion, y porque el valor validado no puede
+// venir del cliente.
+//
+// Van al final de `camposFinales`, despues de novedades: el orden de los
+// campos es el orden de las columnas de la planilla y correr una columna que
+// ya tiene datos seria un desastre.
+const CAMPO_CODIGO_DESCUENTO = { key: 'codigoDescuento', label: 'Código de descuento', maxLen: 40 };
+const CAMPO_DESCUENTO_APLICADO = { key: 'descuentoCodigo', label: 'Descuento del código', maxLen: 20, delServidor: true };
+
 const CONOCIMIENTOS_FORMACION = [
   'Sí, estudié con ustedes',
   'Sí, estudié en otra escuela',
@@ -3017,7 +3078,7 @@ function formacionDeAnio({ cursoId, nombre, grupo, hoja }) {
     columnasPorEncabezado: true,
     columnaCarta: 'Carta',
     nombreEvento: nombre,
-    camposFinales: [CAMPO_NOVEDADES],
+    camposFinales: [CAMPO_NOVEDADES, CAMPO_CODIGO_DESCUENTO, CAMPO_DESCUENTO_APLICADO],
     brevoLista: 'alumnos',
     campos: [
       { key: 'nombre', label: 'Nombre y apellido', maxLen: 200, requerido: true },
@@ -3625,6 +3686,9 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
   const camposRecibidos = (req.body?.campos && typeof req.body.campos === 'object') ? req.body.campos : {};
   const valores = {};
   for (const campo of [...config.campos, ...(config.camposFinales || [])]) {
+    // Un campo `delServidor` es una columna que calculamos nosotros: lo que
+    // mande el navegador para esa clave se ignora.
+    if (campo.delServidor) continue;
     const valor = sanitizeTexto(camposRecibidos[campo.key], campo.maxLen);
     if (campo.requerido && !valor) {
       return res.status(400).json({ error: `Falta el campo obligatorio: ${campo.label}` });
@@ -3637,6 +3701,18 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
       return res.status(400).json({ error: `Elegí una opción en: ${campo.label}` });
     }
     valores[campo.key] = valor;
+  }
+
+  // EL CUPON LO VALIDA EL SERVIDOR, NO EL NAVEGADOR
+  // La pagina ya le mostro a la persona un cartel con el porcentaje, pero eso
+  // es cortesia: lo que queda escrito en el padron tiene que salir de
+  // `codigos_descuento` y no de lo que vino en el POST. Un codigo que no
+  // valida no corta nada -- queda anotado tal como lo escribio, con la marca
+  // de que no validó, y lo mira Seba.
+  if (valores.codigoDescuento) {
+    valores.codigoDescuento = valores.codigoDescuento.toUpperCase();
+    const cupon = await validarCodigo(valores.codigoDescuento, config.padron?.cursoId || formId);
+    valores.descuentoCodigo = cupon ? `${cupon.descuento}%` : 'no validó';
   }
 
   // El enlace al agendador, si el formulario lo usa. Se arma despues de
@@ -4959,22 +5035,50 @@ exports.escribirFilaPadron = onDocumentCreated({
   functions.logger.info('Fila de padrón escrita', { cursoId, nueva: !yaEstaba });
 });
 
-// Las columnas de un curso se escriben una sola vez, la primera vez que
-// entra alguien. Desde la etapa 2 Seba puede agregar las suyas desde el
-// panel, asi que aca NO se tocan si el documento ya existe.
+// Las columnas de un curso, la primera vez que entra alguien.
+//
+// Si el documento YA existe, no se reescribe: solo se agregan al final las
+// columnas del formulario que falten. Es la misma idea que
+// `columnasPorEncabezado: true` en la planilla, y por la misma razon: desde la
+// etapa 2 Seba configura sus propias columnas aca (el orden, las ocultas, las
+// que agrega a mano desde el panel) y pisar eso seria perder su trabajo.
+//
+// Antes cortaba y se iba si el documento existia. Eso dejaba un bug callado:
+// un campo nuevo en la config aparecia en `campos[key]` de cada fila -- el
+// dato se guardaba -- pero el panel no lo mostraba nunca, porque la columna no
+// existia. Paso la primera vez con el codigo de descuento.
+//
+// Va en transaccion porque dos inscripciones a la vez leerian las mismas
+// columnas y la segunda escritura se comeria lo que agrego la primera.
 async function asegurarColumnasDePadron(cursoId, formId, config) {
   try {
     const ref = _db.collection('padron_columnas').doc(cursoId);
-    if ((await ref.get()).exists) return;
-    await ref.set({
-      cursoId,
-      formId: formId || '',
-      nombreCurso: config.nombreEvento || cursoId,
-      hojaPlanilla: config.hoja || '',
-      columnas: columnasDeFormulario(config),
-      meses: [],
-      plan: { total: null, cuotas: null },
-      creado: admin.firestore.FieldValue.serverTimestamp(),
+    const delFormulario = columnasDeFormulario(config);
+    await _db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) {
+        tx.set(ref, {
+          cursoId,
+          formId: formId || '',
+          nombreCurso: config.nombreEvento || cursoId,
+          hojaPlanilla: config.hoja || '',
+          columnas: delFormulario,
+          meses: [],
+          plan: { total: null, cuotas: null },
+          creado: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return;
+      }
+      const columnas = doc.data().columnas || [];
+      const faltan = delFormulario.filter(c => !columnas.some(x => x.key === c.key));
+      if (!faltan.length) return;
+      let orden = columnas.reduce((max, c) => Math.max(max, Number(c.orden) || 0), 0);
+      tx.update(ref, {
+        columnas: columnas.concat(faltan.map(c => ({ ...c, orden: ++orden }))),
+      });
+      functions.logger.info('Columnas nuevas en el padrón', {
+        cursoId, agregadas: faltan.map(c => c.key),
+      });
     });
   } catch (error) {
     // Que falte la config de columnas no puede impedir que la fila se

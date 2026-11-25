@@ -125,6 +125,24 @@ export function crearFormulario(formId, opts) {
                 </select>
             </div>
 
+            <!-- EL CUPON
+                 Opcional, y el formulario se manda igual si no valida: lo que
+                 escribio queda anotado en el padron con la marca de que no
+                 validó, y lo mira Seba. Las formaciones no se cobran en el
+                 sitio, asi que esto no baja ningun precio solo: el descuento
+                 lo aplica Clari al cotizar. El cartel es para que quien tiene
+                 un codigo sepa, antes de mandar, que es de verdad. -->
+            <div class="form-group form-cupon">
+                <label for="${id('inp-codigo')}">¿Tenés un código de descuento?</label>
+                <div class="cupon-fila">
+                    <input type="text" id="${id('inp-codigo')}" data-campo="codigoDescuento"
+                           maxlength="40" autocomplete="off" spellcheck="false"
+                           placeholder="Si no tenés, dejalo vacío">
+                    <button type="button" class="btn-cupon">Aplicar</button>
+                </div>
+                <p class="cupon-msg" role="status" aria-live="polite"></p>
+            </div>
+
             <!-- Viene desmarcado a proposito: la confirmacion de la
                  inscripcion llega igual, esto es solo para la newsletter. -->
             <label class="form-novedades" for="${id('inp-novedades')}">
