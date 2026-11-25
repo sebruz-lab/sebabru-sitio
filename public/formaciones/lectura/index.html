@@ -21,7 +21,7 @@
 <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
 <link rel="stylesheet" href="/style.css?v=32">
 <link rel="stylesheet" href="/iconos.css?v=1">
-<link rel="stylesheet" href="/formaciones/anios.css?v=2">
+<link rel="stylesheet" href="/formaciones/anios.css?v=3">
 <link rel="stylesheet" href="/formaciones/inscripcion.css?v=3">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
@@ -74,9 +74,10 @@
              alla, cambiarlo en los dos lugares.
 
              El id="form" no se mueve: hay enlaces que apuntan ahi
-             (/formaciones/lectura/#form) para ir derecho al formulario. Ahora
-             lo lleva el boton que abre la emergente, y emergente.js la abre
-             sola cuando se llega con ese hash.
+             (/formaciones/lectura/#form) para ir derecho al formulario. Lo
+             lleva la seccion .anio-form de abajo, que es donde el formulario
+             vive de verdad; el boton de adentro de la caja es un enlace a ese
+             mismo ancla.
              ======================================================== -->
         <section class="section-container section-formaciones fade-in-element">
             <div class="layout-wrapper layout-media-left">
@@ -88,9 +89,10 @@
 
                 <div class="text-column">
                     <!-- La caja de scrolleo, igual que los bloques de la
-                         home: alto fijo y el texto adentro. El formulario
-                         no entra aca, lo abre el boton en una emergente
-                         (ver emergente.js). -->
+                         home: alto fijo y el texto adentro. El formulario no
+                         entra aca: once campos adentro de 70vh quedan
+                         comprimidos. Va suelto abajo, y el boton baja hasta
+                         ahi. -->
                     <div class="subsection">
                         <p>Aprendés a leer una Carta Natal completa: cada planeta en su signo, su casa y sus aspectos, hasta llegar a una lectura del mapa del cielo como un todo.</p>
 
@@ -99,8 +101,8 @@
                         <p>Y empezamos los seminarios: Saturno y la Luna; Neptuno, Quirón y Urano.</p>
 
                         <ul>
-                            <li>Primer cuatrimestre: Aprendiendo a leer la Carta Natal (16 clases).</li>
-                            <li>Segundo cuatrimestre: Seminario Saturno-Luna (5 clases) y Seminario El camino de la singularidad: Neptuno, Urano y Quirón (11 clases).</li>
+                            <li>Primer semestre: Aprendiendo a leer la Carta Natal (15 clases).</li>
+                            <li>Segundo semestre: Seminario Saturno-Luna (5 clases) y Seminario El camino de la singularidad: Neptuno, Urano y Quirón (10 clases).</li>
                         </ul>
 
                         <p><strong>Para sumarte a este año,</strong> es necesario que conozcas los signos, los planetas y las casas. Si querés, te puedo pasar algunos materiales para nivelarte con tus compañerxs.</p>
@@ -109,30 +111,28 @@
                         <ul>
                             <li>Miércoles de 18 a 20.</li>
                             <li>Comienzo: miércoles 17 de marzo.</li>
-                            <li>Dos cuatrimestres de 16 clases de dos horas.</li>
+                            <li>Dos semestres de 15 clases de dos horas.</li>
                             <li>Virtual por Zoom o presencial en Villa de las Rosas.</li>
                         </ul>
 
                         <div class="precio-box">
                             <h4>Aranceles 2027</h4>
-                            <p>8 cuotas de $100.000 (de marzo a junio y de agosto a noviembre).</p>
-                            <p><strong>Si ya sos parte de la escuela, tenés un 20% de descuento: la cuota te queda en $80.000.</strong> Y sobre ese valor, descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
+                            <p>10 cuotas de $80.000 (de marzo a diciembre).</p>
+                            <p>Descuentos especiales si te anotás hasta el 24 de diciembre, pagando por transferencia:</p>
                             <ul>
-                                <li>Año completo: 30% off, te queda en $448.000.</li>
-                                <li>Cuatrimestre completo: 25% off, $240.000.</li>
-                                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer cuatrimestre.</li>
+                                <li>Año completo: 35% off, te queda en $520.000.</li>
+                                <li>Semestre completo: 30% off, $280.000.</li>
+                                <li>En cuotas: 10% off, $72.000 por mes. Y si pagás la primera cuota, congelás el precio del primer semestre.</li>
                             </ul>
-                            <p>Por Mercado Pago, hasta el 24 de diciembre:</p>
+                            <p>Si preferís pagar por Mercado Pago, también tenés descuento hasta el 24 de diciembre:</p>
                             <ul>
-                                <li>Año completo: 20% off, $512.000.</li>
-                                <li>Cuatrimestre completo: 15% off, $272.000.</li>
+                                <li>Año completo: 30% off, $560.000.</li>
+                                <li>Semestre completo: 25% off, $300.000.</li>
                                 <li>Las cuotas mensuales por Mercado Pago no tienen descuento.</li>
                             </ul>
-                            <p>Si te sumás desde otra escuela, tenés los mismos descuentos que en el 1° año: año completo $520.000, cuatrimestre $280.000 o cuotas de $90.000 por transferencia; año completo $600.000 o cuatrimestre $320.000 por Mercado Pago.</p>
                         </div>
-                        <div class="grupo-botones-sutiles" id="form">
-                            <button type="button" class="abrir-inscripcion btn-sutil"
-                                    data-abre="lectura27">Inscribite al segundo año</button>
+                        <div class="grupo-botones-sutiles">
+                            <a href="#form" class="btn-sutil">Inscribite al segundo año</a>
                         </div>
 
                     </div>
@@ -140,6 +140,13 @@
             </div>
         </section>
 
+
+        <!-- El formulario, suelto y a lo ancho de la pagina. Lleva el id="form"
+             porque es el destino de los enlaces de afuera (mailings,
+             Instagram) y del boton de arriba. -->
+        <section class="anio-form fade-in-element" id="form">
+            <div class="inscripcion" data-form-id="lectura27" data-nombre="lectura27" data-titulo="Inscribite al segundo año"></div>
+        </section>
 
     </main>
 
@@ -161,23 +168,6 @@
 </div>
 
 <script src="/script.js"></script>
-<script type="module" src="/formaciones/inscripcion.js?v=2"></script>
-<script type="module" src="/formaciones/emergente.js?v=1"></script>
-<!-- LAS EMERGENTES DE INSCRIPCION
-     El boton que las abre esta adentro de la caja de texto de su año;
-     el formulario de adentro lo arma inscripcion.js como cualquier
-     otro.
-
-     Van aca, al final del body, y no al lado de su boton: las
-     secciones tienen transform: scale(1.05) en style.css, y un
-     transform hace que el position:fixed de sus descendientes se mida
-     contra la seccion y no contra la pantalla. -->
-<div class="emergente-inscripcion" id="emergente-lectura27" role="dialog" aria-modal="true" aria-label="Inscribite al segundo año">
-    <div class="emergente-caja">
-        <button type="button" class="emergente-cerrar" aria-label="Cerrar">&times;</button>
-        <div class="inscripcion" data-form-id="lectura27" data-nombre="lectura27" data-titulo="Inscribite al segundo año"></div>
-    </div>
-</div>
-
+<script type="module" src="/formaciones/inscripcion.js?v=3"></script>
 </body>
 </html>

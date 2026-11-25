@@ -2183,10 +2183,13 @@ const MEDIOS_PAGO = ['Transferencia', 'Mercado Pago', 'PayPal', 'Efectivo', 'Otr
 const TIPOS_DE_PLAN = ['anual', 'semestral', 'mensual'];
 
 // Cuantas cuotas tiene cada tipo y cada cuantos meses vence una.
+// Desde 2027 la cursada va de marzo a diciembre: diez cuotas seguidas, sin el
+// salto de julio que tenia el esquema de ocho. Y el semestre son cinco meses,
+// no seis, asi que la segunda cuota del plan semestral vence en agosto.
 const FORMA_DEL_PLAN = {
   anual: { cuotas: 1, cada: 0 },
-  semestral: { cuotas: 2, cada: 6 },
-  mensual: { cuotas: 8, cada: 1 },
+  semestral: { cuotas: 2, cada: 5 },
+  mensual: { cuotas: 10, cada: 1 },
 };
 
 // Lo que eligio en el formulario, traducido a un plan. Es solo el punto de
@@ -2195,6 +2198,8 @@ function planSegunLaFormaDePago(formaPago) {
   const f = String(formaPago || '');
   if (f.startsWith('En un solo pago')) return 'anual';
   if (f.startsWith('Por semestre')) return 'semestral';
+  if (f.startsWith('En 10 cuotas')) return 'mensual';
+  // El texto de 2026, que puede llegar de una pagina cacheada.
   if (f.startsWith('En 8 cuotas')) return 'mensual';
   return '';
 }
@@ -2970,6 +2975,15 @@ const MODALIDADES_FORMACION = [
 const FORMAS_DE_PAGO_FORMACION = [
   'En un solo pago',
   'Por semestre, en dos cuotas',
+  'En 10 cuotas mensuales',
+];
+
+// Textos que ya no se ofrecen pero siguen siendo validos: una pagina abierta
+// antes del deploy todavia los manda, y el rechazo de un campo con opciones
+// contesta 400 sin custodiar nada, asi que seria una inscripcion perdida. No
+// van en `opciones` para que no aparezcan en el desplegable del panel. El de
+// las ocho cuotas es el esquema de 2026 y se puede sacar en marzo de 2027.
+const FORMAS_DE_PAGO_VIEJAS = [
   'En 8 cuotas mensuales',
 ];
 
@@ -3014,7 +3028,8 @@ function formacionDeAnio({ cursoId, nombre, grupo, hoja }) {
       { key: 'lugarNacimiento', label: 'Lugar de nacimiento', maxLen: 200 },
       { key: 'conocimientos', label: 'Conocimientos astrológicos', maxLen: 80, requerido: true, opciones: CONOCIMIENTOS_FORMACION },
       { key: 'modalidad', label: 'Modalidad', maxLen: 40, requerido: true, opciones: MODALIDADES_FORMACION },
-      { key: 'formaPago', label: 'Forma de pago', maxLen: 40, requerido: true, opciones: FORMAS_DE_PAGO_FORMACION },
+      { key: 'formaPago', label: 'Forma de pago', maxLen: 40, requerido: true,
+        opciones: FORMAS_DE_PAGO_FORMACION, opcionesViejas: FORMAS_DE_PAGO_VIEJAS },
     ],
     // La misma cuenta de la calculadora que ya usan los demas formularios:
     // se lee de ahi para no tener la direccion escrita dos veces.
@@ -3614,7 +3629,11 @@ exports.registrarInscripcion = functions.runWith({ memory: '512MB' }).https.onRe
     if (campo.requerido && !valor) {
       return res.status(400).json({ error: `Falta el campo obligatorio: ${campo.label}` });
     }
-    if (campo.opciones && valor && !campo.opciones.includes(valor)) {
+    // Las `opcionesViejas` son textos que el formulario ya no ofrece pero que
+    // una pagina cacheada todavia puede mandar: se aceptan tal como vinieron.
+    if (campo.opciones && valor
+        && !campo.opciones.includes(valor)
+        && !(campo.opcionesViejas || []).includes(valor)) {
       return res.status(400).json({ error: `Elegí una opción en: ${campo.label}` });
     }
     valores[campo.key] = valor;

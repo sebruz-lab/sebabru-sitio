@@ -64,6 +64,15 @@
 .anio-mas { margin-top: 24px; font-size: 0.92rem; }
 .anio-mas a { color: #3bc2bc; }
 
+/* EL FORMULARIO SUELTO DE LAS SUBPAGINAS
+   En /formaciones/{intro,lectura,seminarios3,transitos}/ el formulario no va
+   adentro de la caja de scrolleo: va abajo, a lo ancho de la pagina, en una
+   seccion propia con el id="form". El boton de arriba es un enlace a ese
+   ancla. La landing no usa esta clase: ahi los cuatro años conviven en una
+   sola pagina y cada uno abre su emergente. */
+.anio-form { margin: 0 auto 90px; }
+
 @media (max-width: 900px) {
     .section-formaciones > h2 { font-size: 1.3em; }
+    .anio-form { margin-bottom: 60px; }
 }

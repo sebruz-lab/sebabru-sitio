@@ -181,10 +181,38 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   clave del padrón y el slug del aula. Ojo con los pares de nombre parecido:
   `pluton` es el seminario suelto y `pluton27` el tercer año; `lectura` es el
   curso viejo y `lectura27` el segundo.
-- Las páginas son `/formaciones/{intro,lectura,pluton,transitos}/`, con el
+- Las páginas son `/formaciones/{intro,lectura,seminarios3,transitos}/`, con el
   texto arriba y el formulario tras un `id="form"` (hay enlaces que apuntan a
   `/formaciones/intro/#form`). La lógica vive **una sola vez** en
   `public/formaciones/inscripcion.js`, parametrizada con `data-form-id`.
+- **En las cuatro subpáginas el formulario es uno y está suelto abajo**, en
+  una `section.anio-form` con el `id="form"`; el botón de adentro de la caja de
+  scrolleo es un `<a href="#form">`, no abre nada. En la landing y en
+  `/programa/`, donde conviven los cuatro años, el formulario **sí** va en una
+  emergente (`emergente.js`), porque ahí no hay un "abajo" propio de cada año.
+  No duplicar el formulario en una misma página: `sbBorrador` usa el `formId`
+  como clave, así que dos instancias del mismo año se pisarían el borrador.
+- **El arancel 2027 son 10 cuotas de $80.000, de marzo a diciembre**, igual
+  para los cuatro años. El descuento de quienes continúan la formación **no se
+  publica**: Seba se lo dice a cada persona (decisión del 25/11/2026, antes
+  estaba escrito como un 20% en la página). Los precios viven solo en
+  `public/formaciones/` — `/programa/` no tiene ninguno.
+- **La mitad del año se llama semestre, no cuatrimestre**, y son 15 clases:
+  con diez cuotas de marzo a diciembre cada mitad dura cinco meses. El detalle
+  clase por clase de `/programa/` sale de
+  `G:\Mi unidad\Seba Bru\Textos difusión escuela\programa.md`, que es la
+  fuente: el HTML se alinea a ese archivo y no al revés.
+- **`FORMA_DEL_PLAN.mensual` son 10 cuotas `cada: 1`** (marzo a diciembre, sin
+  el salto de julio que tenía el esquema de ocho) y **`semestral` vence
+  `cada: 5`**, para que la segunda cuota caiga en agosto. Es solo el punto de
+  partida: el plan de cada fila se edita en el panel.
+- **`opcionesViejas` en un campo de `FORMULARIOS_INSCRIPCION` acepta textos que
+  el formulario ya no ofrece.** Hoy lo usa `formaPago` con
+  `'En 8 cuotas mensuales'`, el texto de 2026. Existe porque el rechazo de un
+  campo con `opciones` contesta 400 **sin custodiar nada**: una página abierta
+  antes del deploy mandaría el texto viejo y se perdería la inscripción. No van
+  en `opciones` para que no aparezcan en el desplegable del panel, que lee esa
+  misma lista. Se puede sacar en marzo de 2027.
 - **`columnasPorEncabezado: true` es lo que salva las columnas de Seba.** Con
   esa opción `asegurarHojaInscripcion` no pisa la fila 1 de la pestaña y solo
   agrega al final los títulos que falten, así `PAGO`, `NOTA` y los meses

@@ -41,7 +41,7 @@
 // inscripcion entra igual y la carta se hace a mano.
 
 import { conectarBuscador } from '/cartas/buscador-lugares.js?v=1.14.0';
-import { crearFormulario } from '/formaciones/formulario.js?v=1';
+import { crearFormulario } from '/formaciones/formulario.js?v=2';
 
 const ENDPOINT = 'https://us-central1-sebabru-e5563.cloudfunctions.net/registrarInscripcion';
 const TURNSTILE_SITEKEY = '0x4AAAAAAFwEydZNkPMtSb8Q';

@@ -39,7 +39,7 @@ const OPCIONES_MODALIDAD = [
 const OPCIONES_PAGO = [
     'En un solo pago',
     'Por semestre, en dos cuotas',
-    'En 8 cuotas mensuales',
+    'En 10 cuotas mensuales',
 ];
 
 function opciones(lista) {
