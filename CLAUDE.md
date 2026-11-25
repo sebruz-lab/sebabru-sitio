@@ -516,11 +516,34 @@ Lo que hay que hacer en cada endpoint nuevo que reciba datos de una persona:
 - **`custodiar({ endpoint, motivo, gravedad, datos, contacto, req })`** en vez
   de un `return res.status(...)` seco. Escribe en `datos_sin_procesar` y nunca
   tira, como `encolarContactoBrevo` y `encolarMail`.
-- **`gravedad: 'grave'`** para plata cobrada o configuración nuestra rota: sale
-  un mail al toque a `AVISOS_INSCRIPCION`, con la ventana anti-repetición de
-  `avisos/{motivo}`. Con `avisarSiempre: true` no se agrupa — es lo que
+- **Toda custodia avisa por mail, desde el 25/11/2026.** Antes avisaban sólo
+  las graves y el resto esperaba al resumen de la mañana siguiente: eso fue lo
+  que dejó a cuatro personas sin suscripción durante tres días. Lo que evita la
+  inundación no es callarse, es la ventana anti-repetición de `avisos/{motivo}`,
+  que agrupa por motivo. **`gravedad: 'grave'`** (plata cobrada o configuración
+  nuestra rota) más **`avisarSiempre: true`** saltea la ventana — es lo que
   corresponde cuando hay plata, porque dos pagos sin entregar son dos
-  problemas. **`'normal'`** entra en el resumen diario de `revisarPendientes`.
+  problemas. `'normal'` entra además en el resumen diario.
+- **`custodiar()` escribe en TRES lugares, y ninguno cuelga del anterior.**
+  Firestore (`datos_sin_procesar`, con TTL de 90 días, es el que alimenta el
+  panel), la **pestaña `BITACORA`** de la planilla, y el mail. Van en un
+  `Promise.allSettled` a propósito: el aviso y la planilla se intentan **aunque
+  Firestore haya fallado**, que es justo el caso para el que existen.
+- **La bitácora es el único canal que sobrevive a un Firestore caído.** Todo lo
+  demás vive ahí: el dato, la ventana anti-repetición, y hasta el mail de
+  alarma, que se encola en `mails_salientes`. La planilla es otro sistema, con
+  otra autenticación. Usa la cuenta de servicio y los helpers que ya tenían los
+  formularios (`getSheetsClient`, `asegurarHojaInscripcion` con
+  `porEncabezado: true`, así una columna que agregue Seba no se pisa).
+  **Ahí va el payload COMPLETO y una planilla no vence**: lo que en Firestore
+  se borra a los 90 días, en la planilla queda para siempre, DNI y datos de
+  nacimiento incluidos (decisión de Seba del 25/11/2026). Sale de
+  `SHEETS_SPREADSHEET_BITACORA`, con la planilla principal como respaldo:
+  moverla a un archivo con menos gente adentro no es un cambio de código.
+- **El campo `bitacora` del documento dice si la fila salió.** Sin eso no había
+  forma de saber que el segundo canal andaba sin abrir la planilla a mano. Si
+  fallan los dos, queda un `dato_perdido` en el log con todo lo que escribió la
+  persona, que es el último lugar donde mirar.
 - **Nunca custodiar un bot**: ni el honeypot, ni el veredicto `rechazado` del
   captcha (token forjado). Hay además un tope de 20 custodias por IP por día.
   Sin esa regla la bandeja se llena de basura, Seba deja de leerla, y no sirve
@@ -536,14 +559,25 @@ envío sale bien. Guarda en `localStorage` mientras se escribe y lo ofrece al
 volver. **Nunca guarda contraseñas ni el honeypot**, y se carga **sin `defer`**
 cuando lo usa un script en línea.
 
-Dos cosas que conviene recordar porque no son obvias:
+Cuatro cosas que conviene recordar porque no son obvias:
 
 - **Un `logger.error` no le avisa a nadie.** Hay más de 80 en `index.js` y no
   existe ninguna alerta configurada sobre los logs. Toda alarma sale por
   `mails.encolarMail`, nunca por Brevo y nunca confiando en el log.
 - **`envios_carta` y `envios_titulo` corren sin `retry`.** Un fallo deja el
-  documento con `enviado: null`; eso ahora lo levanta `revisarPendientes`, que
-  es el único barrido de colas que existe.
+  documento con `enviado: null`; eso lo levanta `revisarPendientes`, que es el
+  único barrido de colas que existe. Desde el 25/11/2026 además **custodian**
+  (`grave` + `avisarSiempre`) y siguen tirando, para que el documento quede en
+  `null` y el barrido lo siga viendo: marcarlo enviado sería mentir.
+- **Los fallos de las colas también custodian, no sólo los endpoints.** Era el
+  agujero grande: `sincronizarContactoBrevo` anotaba el error en el documento y
+  se callaba, así que un rechazo de Brevo no salía por mail ni aparecía en el
+  panel, y lo único que lo nombraba era el resumen del día siguiente. Un
+  trigger nuevo que pueda dejar a alguien sin lo que pidió lleva su
+  `custodiar()`.
+- **Ojo con custodiar desde `enviarMailEncolado`**: la custodia manda un mail
+  por esa misma cola, así que sería un bucle. Esa cola la cubre el resumen
+  diario y nada más.
 
 La bandeja se ve en el panel de la escuela, pestaña **Pendientes**, que lee por
 la callable `pendientes` (la colección está cerrada en las reglas: adentro hay

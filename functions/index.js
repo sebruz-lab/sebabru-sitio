@@ -601,7 +601,7 @@ function datosLimpios(valor, profundidad = 0) {
 // El aviso de que algo cayo en la bandeja. Copia el patron de
 // avisarGeoNamesCaido: una transaccion contra "avisos" decide si toca avisar,
 // asi dos instancias en paralelo no mandan dos mails.
-async function avisarDeCustodia({ id, endpoint, motivo, contacto, ventanaMs }) {
+async function avisarDeCustodia({ id, endpoint, motivo, contacto, ventanaMs, sinFirestore }) {
   try {
     // ventanaMs 0 = avisar siempre. Es lo que corresponde cuando hay plata
     // cobrada: dos pagos sin entregar son dos problemas distintos, y juntarlos
@@ -630,8 +630,13 @@ async function avisarDeCustodia({ id, endpoint, motivo, contacto, ventanaMs }) {
         pedido no se pudo completar, así que quedaron guardados en vez de perderse.</p>
         <p>Motivo: <strong>${escapeHtml(motivo)}</strong><br>
         Contacto: ${escapeHtml(contacto?.nombre || 'sin nombre')} &lt;${escapeHtml(contacto?.email || 'sin mail')}&gt;</p>
-        <p>Están en el panel de la escuela, en la pestaña <strong>Pendientes</strong>,
-        con todo lo que escribió para cargarlo a mano.</p>
+        ${sinFirestore
+          ? `<p><strong>Ojo: esta vez no se pudo guardar en Firestore</strong>, así que
+             en el panel no va a estar. Lo que escribió quedó en la planilla,
+             en la pestaña <strong>BITACORA</strong>.</p>`
+          : `<p>Están en el panel de la escuela, en la pestaña <strong>Pendientes</strong>,
+             con todo lo que escribió para cargarlo a mano. También quedó anotado en la
+             pestaña <strong>BITACORA</strong> de la planilla.</p>`}
       </div>`,
     });
   } catch (error) {
@@ -640,15 +645,99 @@ async function avisarDeCustodia({ id, endpoint, motivo, contacto, ventanaMs }) {
   }
 }
 
-// gravedad: 'grave'  -> mail al toque (plata cobrada, o configuracion nuestra
-//                       rota, que afecta a todo el mundo hasta que se arregle)
-//           'normal' -> entra en el resumen diario de revisarPendientes
+// LA BITACORA: el canal que no depende de Firestore.
+//
+// Todo lo demas de la red de seguridad vive en Firestore: el dato en
+// "datos_sin_procesar", la ventana anti-repeticion en "avisos", y hasta el
+// mail de alarma, que se encola en "mails_salientes". O sea que un Firestore
+// que no acepta escrituras se lleva los tres de una vez y nadie se entera de
+// nada.
+//
+// Esta fila va a una planilla de Google, por la cuenta de servicio que ya
+// usan los formularios. Es otro sistema, con otra autenticacion y otra
+// infraestructura: para perder un dato ahora tienen que caerse los dos a la
+// vez. Es tambien el unico lugar donde Seba lo puede leer desde el telefono
+// sin entrar al panel.
+//
+// Dos cosas a tener presentes:
+//
+// 1. ACA VA EL PAYLOAD COMPLETO, por decision de Seba del 25/11/2026, y una
+//    planilla NO vence: lo que en "datos_sin_procesar" se borra a los 90 dias
+//    por el TTL, aca queda para siempre. Eso incluye DNI, direcciones y datos
+//    de nacimiento. Quien tenga acceso a la planilla los tiene. Por eso la
+//    planilla sale de su propia variable: mover la bitacora a un archivo con
+//    menos gente adentro es cambiar SHEETS_SPREADSHEET_BITACORA, sin deploy.
+// 2. porEncabezado en true: la fila 1 es de Seba. Si agrega una columna NOTA
+//    o LISTO, no se la pisamos. Mismo criterio que el padron.
+const BITACORA_HOJA = 'BITACORA';
+const BITACORA_COLUMNAS = [
+  'FECHA', 'ENDPOINT', 'MOTIVO', 'GRAVEDAD', 'NOMBRE', 'MAIL',
+  'LO QUE ESCRIBIO', 'ID EN FIRESTORE',
+];
+
+async function anotarEnBitacora({ endpoint, motivo, gravedad, nombre, email, datos, id }) {
+  const spreadsheetId = process.env.SHEETS_SPREADSHEET_BITACORA
+    || process.env.SHEETS_SPREADSHEET_ID;
+  if (!spreadsheetId) {
+    functions.logger.warn('Sin planilla para la bitácora: el dato queda solo en Firestore.');
+    return false;
+  }
+
+  const sheets = getSheetsClient();
+  const columnas = await asegurarHojaInscripcion(
+    sheets, spreadsheetId, BITACORA_HOJA, BITACORA_COLUMNAS, true,
+  );
+
+  // La fila se arma por nombre de columna y no por posicion: si Seba movio
+  // las columnas o metio una propia en el medio, cada valor sigue cayendo
+  // donde tiene que caer.
+  const valor = {
+    'FECHA': new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Cordoba' }),
+    'ENDPOINT': String(endpoint || 'desconocido'),
+    'MOTIVO': String(motivo || 'sin-motivo'),
+    'GRAVEDAD': gravedad === 'grave' ? 'GRAVE' : 'normal',
+    'NOMBRE': nombre || '',
+    'MAIL': email || '',
+    // Una celda de Sheets aguanta 50.000 caracteres y datosLimpios ya acota
+    // el payload (2.000 por texto, 50 claves, 4 niveles), asi que entra. El
+    // slice es el cinturon: una celda rechazada tiraria la fila entera.
+    'LO QUE ESCRIBIO': JSON.stringify(datos || {}).slice(0, 45000),
+    'ID EN FIRESTORE': id || '(no se pudo guardar en Firestore)',
+  };
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${BITACORA_HOJA}!A1`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [columnas.map(c => valor[c] ?? '')] },
+  });
+  return true;
+}
+
+// gravedad: 'grave'  -> mail al toque, sin agrupar si ademas va avisarSiempre
+//                       (plata cobrada, o configuracion nuestra rota)
+//           'normal' -> mail agrupado por motivo, y el resumen diario
+//
+// Desde el 25/11/2026 TODA custodia avisa por mail. Antes solo avisaban las
+// graves y el resto esperaba al resumen de la manana siguiente: eso fue
+// exactamente lo que dejo a cuatro personas sin suscripcion durante tres
+// dias. Lo que evita la inundacion no es callarse, es la ventana
+// anti-repeticion por motivo.
 //
 // avisarSiempre: salta la ventana anti-repeticion. Para la plata.
 async function custodiar({ endpoint, motivo, gravedad, datos, contacto, req, avisarSiempre }) {
-  try {
-    // El tope por IP. Va primero: si se paso, no se escribe nada.
-    if (req) {
+  const esGrave = gravedad === 'grave';
+  const limpio = datosLimpios(datos);
+  const email = sanitizeTexto(contacto?.email, 200).toLowerCase();
+  const nombre = sanitizeTexto(contacto?.nombre, 200);
+
+  // El tope por IP, que es lo que mantiene la bandeja legible. Si no se puede
+  // consultar, se deja pasar: el tope existe para que un script no llene la
+  // bandeja de basura, no para tirar el dato de una persona el dia que
+  // Firestore no contesta.
+  if (req) {
+    try {
       const alcanza = await checkRateLimit('custodia', req, TOPE_CUSTODIA_IP_DIA, {
         clave: `custodia_${ipHasheada(req) || 'sin-ip'}`,
         ventanaMs: VENTANA_CUSTODIA_MS,
@@ -657,14 +746,16 @@ async function custodiar({ endpoint, motivo, gravedad, datos, contacto, req, avi
         functions.logger.warn('Tope de custodia por conexión alcanzado: no se guarda.', { endpoint, motivo });
         return null;
       }
+    } catch (error) {
+      functions.logger.error('No se pudo consultar el tope de custodia, se guarda igual:', error.message);
     }
+  }
 
-    const esGrave = gravedad === 'grave';
+  // Firestore: el dato completo, con su vencimiento a los 90 dias. Es el que
+  // alimenta el panel.
+  let id = null;
+  try {
     const ahora = Date.now();
-    const limpio = datosLimpios(datos);
-    const email = sanitizeTexto(contacto?.email, 200).toLowerCase();
-    const nombre = sanitizeTexto(contacto?.nombre, 200);
-
     const ref = await _db.collection('datos_sin_procesar').add({
       endpoint: String(endpoint || 'desconocido'),
       motivo: String(motivo || 'sin-motivo'),
@@ -681,23 +772,62 @@ async function custodiar({ endpoint, motivo, gravedad, datos, contacto, req, avi
       ipHash: req ? ipHasheada(req) : '',
       uaClase: req ? claseDeUa(req) : '',
     });
-
+    id = ref.id;
     functions.logger.info('dato_custodiado', {
-      evento: 'dato_custodiado', endpoint, motivo, gravedad: esGrave ? 'grave' : 'normal', id: ref.id,
+      evento: 'dato_custodiado', endpoint, motivo, gravedad: esGrave ? 'grave' : 'normal', id,
     });
-
-    if (esGrave) {
-      await avisarDeCustodia({
-        id: ref.id, endpoint, motivo, contacto: { email, nombre },
-        ventanaMs: avisarSiempre ? 0 : AVISO_CUSTODIA_CADA_MS,
-      });
-    }
-    return ref.id;
   } catch (error) {
-    // Lo ultimo que puede pasar es que la red de seguridad rompa el flujo.
-    functions.logger.error('No se pudo custodiar el dato:', error.message, { endpoint, motivo });
-    return null;
+    functions.logger.error('No se pudo guardar el dato en Firestore:', error.message, { endpoint, motivo });
   }
+
+  // Los otros dos canales NO cuelgan del anterior: se lanzan igual aunque
+  // Firestore haya fallado, que es justo el caso para el que existen. Van en
+  // paralelo porque los dos son viajes de red y nadie los esta esperando.
+  // allSettled y no all: que uno falle no puede impedir el otro.
+  const resultados = await Promise.allSettled([
+    anotarEnBitacora({ endpoint, motivo, gravedad, nombre, email, datos: limpio, id }),
+    avisarDeCustodia({
+      // Sin id de Firestore el mail necesita igual una clave estable para no
+      // encolarse dos veces si esto se reintenta.
+      id: id || `sin-id-${claveDireccion(email || motivo)}`,
+      endpoint, motivo, contacto: { email, nombre },
+      ventanaMs: (esGrave && avisarSiempre) ? 0 : AVISO_CUSTODIA_CADA_MS,
+      sinFirestore: !id,
+    }),
+  ]);
+
+  const bitacora = resultados[0].status === 'fulfilled' && resultados[0].value === true;
+  if (resultados[0].status === 'rejected') {
+    functions.logger.error('No se pudo anotar en la bitácora:', resultados[0].reason?.message, { endpoint, motivo });
+  }
+
+  // Queda anotado en el propio documento si el segundo canal funciono. Dos
+  // motivos: desde el panel se ve de un vistazo si ese dato esta en un solo
+  // lugar o en dos, y sin esto no habia forma de saber que la bitacora andaba
+  // sin abrir la planilla a mano. Es diagnostico, asi que si falla no importa.
+  if (id) {
+    try {
+      await _db.collection('datos_sin_procesar').doc(id).update({
+        bitacora,
+        bitacoraError: resultados[0].status === 'rejected'
+          ? String(resultados[0].reason?.message || 'sin detalle').slice(0, 300)
+          : null,
+      });
+    } catch (error) {
+      functions.logger.warn('No se pudo anotar el resultado de la bitácora:', error.message);
+    }
+  }
+
+  // El unico caso que de verdad pierde el dato: los dos canales abajo. Queda
+  // en el log con todo lo que escribio la persona, que es el ultimo lugar
+  // donde mirar.
+  if (!id && !bitacora) {
+    functions.logger.error('DATO PERDIDO: fallaron Firestore y la bitácora.', {
+      evento: 'dato_perdido', endpoint, motivo, nombre, email, datos: limpio,
+    });
+  }
+
+  return id;
 }
 
 // Los cursos de un usuario como texto, que es lo que entiende Brevo (no
@@ -3086,6 +3216,26 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     const porCurso = {};
     const deudores = [];
     const nombres = Object.fromEntries(FORMACIONES_ESCUELA.map(f => [f.cursoId, f.nombre]));
+    for (const f of FORMACIONES_ARCHIVO) nombres[f.cursoId] = f.nombre;
+
+    // El archivo de 2026, todos los cursos juntos. Va aparte de `cursos`
+    // porque no comparte las cuentas: esas filas no tienen plan, asi que no
+    // hay "atrasado" ni saldo que calcular.
+    //
+    // La deuda de 2026 en pesos NO existe en ninguna parte: la planilla
+    // llevaba dos columnas, `resta` en PRIMER AÑO y `faltan` en SEGUNDO, y lo
+    // que tienen son CUOTAS que faltaban (valores de 0 a 10), no importes. El
+    // BALANCE 2026 declara TOTAL DEBEN $0. Asi que se devuelven las cuotas
+    // como cuotas y la pantalla lo aclara: inventar un monto multiplicandolas
+    // por un arancel seria fabricar una deuda que nadie registro.
+    const archivo = { cursos: {}, filas: 0, cobrado: 0, cuotas: 0, filasConCuotas: 0 };
+    const cuotasQueFaltan = (v) => {
+      for (const key of ['resta', 'faltan']) {
+        const crudo = String((v.campos || {})[key] ?? '').replace(/[^\d]/g, '');
+        if (crudo !== '') return Number(crudo);
+      }
+      return null;
+    };
 
     for (const d of snap.docs) {
       const v = d.data();
@@ -4555,21 +4705,46 @@ exports.enviarCartaInscripcion = onDocumentCreated({
   // El cuarto dato es el enlace al agendador: va en el mail para quien
   // cerro la pestaña antes de elegir el dia.
   const parrafos = config.confirmacion.parrafos(nombre, Boolean(pdf), envio.modalidad, envio.urlAgenda || null);
-  await transporter.sendMail({
-    from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-    to: envio.email,
-    subject: config.confirmacion.asunto,
-    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
-      ${parrafos.map((p) => `<p>${p}</p>`).join('')}
-      ${pieDeMail()}
-    </div>`,
-    text: textoDeParrafos(parrafos),
-    attachments: pdf ? [{
-      filename: `Carta natal - ${(envio.nombre || 'Tu carta').replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'Tu carta'}.pdf`,
-      content: pdf,
-      contentType: 'application/pdf',
-    }] : [],
-  });
+  // Este trigger corre SIN retry: si el envio falla, no hay segunda vuelta.
+  // Antes el fallo se iba por el aire y lo unico que lo nombraba era el
+  // resumen diario, mirando los documentos con enviado en null. Ahora se
+  // custodia: la persona se inscribio y no recibio nada, asi que es grave y
+  // avisa siempre — dos inscripciones sin confirmar son dos problemas, no un
+  // problema agrupado.
+  try {
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: envio.email,
+      subject: config.confirmacion.asunto,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+        ${pieDeMail()}
+      </div>`,
+      text: textoDeParrafos(parrafos),
+      attachments: pdf ? [{
+        filename: `Carta natal - ${(envio.nombre || 'Tu carta').replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'Tu carta'}.pdf`,
+        content: pdf,
+        contentType: 'application/pdf',
+      }] : [],
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo mandar la confirmación de la inscripción:', error.message);
+    await custodiar({
+      endpoint: 'enviarCarta',
+      motivo: 'confirmacion_no_enviada',
+      gravedad: 'grave',
+      avisarSiempre: true,
+      datos: {
+        formId: envio.formId, email: envio.email, nombre: envio.nombre,
+        modalidad: envio.modalidad || null, conCarta: Boolean(pdf),
+        error: String(error.message).slice(0, 500),
+      },
+      contacto: { email: envio.email, nombre: envio.nombre },
+    });
+    // Se sigue tirando: el documento queda con enviado en null, que es lo que
+    // lo deja visible en revisarPendientes. Marcarlo enviado seria mentir.
+    throw error;
+  }
 
   if (!pdf) {
     await transporter.sendMail({
@@ -5971,6 +6146,26 @@ exports.sincronizarContactoBrevo = onDocumentCreated({
       await event.data.ref.update({
         error: String(error.message).slice(0, 500),
         fallo: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Y ademas se custodia, que es lo que faltaba. El documento con el
+      // error se quedaba en la cola y el unico que lo nombraba era el
+      // resumen de la manana siguiente: ni mail en el momento, ni aparicion
+      // en el panel. Asi estuvo roto el carril con confirmacion del 21 al
+      // 25/11/2026 y cuatro personas esperaron tres dias.
+      //
+      // No tira nunca y no lleva req, asi que no le corre el tope por IP:
+      // esto no lo origina una conexion, lo origina un fallo nuestro.
+      await custodiar({
+        endpoint: 'sincronizarContactoBrevo',
+        motivo: `brevo_rechazo_${error.code || error.status || 'desconocido'}`,
+        datos: {
+          email: pedido.email, nombre: pedido.nombre, listas: pedido.listas,
+          atributos: pedido.atributos, doi: pedido.doi || false,
+          plantilla: pedido.plantilla || null, motivoDelPedido: pedido.motivo || null,
+          error: String(error.message).slice(0, 500),
+        },
+        contacto: { email: pedido.email, nombre: pedido.nombre },
       });
       return;
     }
@@ -8209,8 +8404,14 @@ async function contarPendientes() {
 
   // "fallo" es una marca de tiempo, no un booleano: se filtra por presencia.
   // La coleccion se vacia sola en el camino bueno, asi que es chica.
+  // El where va en la consulta y no en el filtro de memoria, a diferencia de
+  // los de arriba: aca la igualdad es sobre el mismo campo y no pide indice
+  // compuesto. Antes era un limit(100) sin orden sobre la coleccion entera y
+  // se filtraba despues, con un punto ciego real: los ids son hashes, asi que
+  // esos 100 eran arbitrarios y el dia que la cola pasara de 100 documentos un
+  // fallo podia no aparecer nunca en el resumen.
   await mirar('Contactos de Brevo que fallaron',
-    _db.collection('brevo_contactos').limit(100).get(),
+    _db.collection('brevo_contactos').orderBy('fallo', 'desc').limit(50).get(),
     d => Boolean(d.data().fallo),
     d => `${d.data().email || d.id} — ${d.data().error || 'sin detalle'}`);
 
@@ -10010,23 +10211,47 @@ exports.enviarTitulo = onDocumentCreated({
     service: 'gmail',
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
   });
-  await transporter.sendMail({
-    from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
-    to: envio.email,
-    subject: envio.reemision
-      ? `Tu título corregido — ${formacion.curso}`
-      : `Tu título — ${formacion.curso}`,
-    html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
-      ${parrafos.map((p) => `<p>${p}</p>`).join('')}
-      ${pieDeMail()}
-    </div>`,
-    text: textoDeParrafos(parrafos),
-    attachments: pdf ? [{
-      filename: nombreDeArchivoTitulo(envio),
-      content: pdf,
-      contentType: 'application/pdf',
-    }] : [],
-  });
+  // Igual que enviarCarta: este trigger corre SIN retry, asi que un fallo de
+  // Gmail no tiene segunda vuelta. La persona emitio su titulo y no le llego:
+  // es grave y avisa siempre. El PDF no se adjunta a la custodia (es
+  // determinístico y se regenera desde el registro de "titulos"), pero si el
+  // numero, que es lo que hace falta para reenviarlo.
+  try {
+    await transporter.sendMail({
+      from: `"Seba Bru Astrología" <${process.env.GMAIL_USER}>`,
+      to: envio.email,
+      subject: envio.reemision
+        ? `Tu título corregido — ${formacion.curso}`
+        : `Tu título — ${formacion.curso}`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.6;">
+        ${parrafos.map((p) => `<p>${p}</p>`).join('')}
+        ${pieDeMail()}
+      </div>`,
+      text: textoDeParrafos(parrafos),
+      attachments: pdf ? [{
+        filename: nombreDeArchivoTitulo(envio),
+        content: pdf,
+        contentType: 'application/pdf',
+      }] : [],
+    });
+  } catch (error) {
+    functions.logger.error('No se pudo mandar el título:', error.message);
+    await custodiar({
+      endpoint: 'enviarTitulo',
+      motivo: 'titulo_no_enviado',
+      gravedad: 'grave',
+      avisarSiempre: true,
+      datos: {
+        numero: envio.numero, email: envio.email, nombre: envio.nombre,
+        formacion: formacion.curso, reemision: Boolean(envio.reemision),
+        conPdf: Boolean(pdf), error: String(error.message).slice(0, 500),
+      },
+      contacto: { email: envio.email, nombre: envio.nombre },
+    });
+    // Se sigue tirando: el documento queda con enviado en null y lo levanta
+    // revisarPendientes. El titulo ya existe y se puede bajar de la escuela.
+    throw error;
+  }
 
   await ref.update({
     enviado: new Date().toISOString(),
