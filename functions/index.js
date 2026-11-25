@@ -2377,6 +2377,39 @@ async function anotarMovimientoDePadron(filaId, accion, antes, despues, quien) {
   }
 }
 
+// Las columnas de un curso en el orden configurado. El `orden` y el `oculta`
+// existieron desde el primer dia en los documentos y nadie los miraba: hasta
+// el 25/11/2026 la planilla pintaba las columnas en el orden en que las habia
+// creado el formulario. El empate cae en el orden del arreglo, que es estable.
+function columnasOrdenadas(docSnap) {
+  const columnas = (docSnap && docSnap.exists ? (docSnap.data().columnas || []) : []).slice();
+  return columnas
+    .map((c, i) => ({ ...c, orden: Number.isFinite(c.orden) ? c.orden : i, oculta: Boolean(c.oculta) }))
+    .sort((a, b) => a.orden - b.orden);
+}
+
+// La cursada y el arancel de un curso: lo guardado, completado con la semilla
+// de FORMACIONES_ESCUELA. Lo cargado a mano gana.
+function ajustesDelCurso(cursoId, docSnap) {
+  const semilla = cursadaDeFormacion(cursoId);
+  const v = docSnap && docSnap.exists ? docSnap.data() : {};
+  // Un spread plano no sirve: los documentos creados antes de que existiera
+  // la cursada traen `plan: { total: null, cuotas: null }`, y ese null taparia
+  // las 10 cuotas de la semilla. Lo guardado gana solo si tiene valor.
+  const conValor = (base, puesto) => {
+    const salida = { ...base };
+    for (const [k, val] of Object.entries(puesto || {})) {
+      if (val !== null && val !== undefined && val !== '') salida[k] = val;
+    }
+    return salida;
+  };
+  return {
+    cursada: conValor(semilla.cursada, v.cursada),
+    plan: conValor(semilla.plan, v.plan),
+    nombreCurso: v.nombreCurso || cursoId,
+  };
+}
+
 // Lo que se manda al navegador. Los datos de nacimiento solo si se piden:
 // la grilla por omision no los transporta, asi una pantalla compartida en
 // clase no los muestra.
@@ -2450,8 +2483,12 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     const filas = filasSnap.docs
       .map(d => filaDePadronParaElPanel(d, conNacimiento))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-    const columnas = (colSnap.exists ? (colSnap.data().columnas || []) : []).filter(c => !c.oculta);
-    return { ok: true, columnas, filas };
+    // Van TODAS las columnas, ordenadas, con su `oculta`: el panel tiene que
+    // poder volver a mostrar una que se escondio, y para eso necesita saber
+    // que existe.
+    const columnas = columnasOrdenadas(colSnap);
+    const ajustes = ajustesDelCurso(cursoId, colSnap);
+    return { ok: true, columnas, filas, cursada: ajustes.cursada, plan: ajustes.plan };
   }
 
   if (accion === 'altaManual') {
@@ -2492,7 +2529,9 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       alta: new Date().toISOString(),
       estado: 'activo',
       campos: {},
-      pagos: [], plan: null, pagado: 0,
+      // Con el plan del curso puesto, igual que una fila del formulario: un
+      // alta a mano tambien tiene que figurar en los vencimientos.
+      pagos: [], plan: await planInicialDePadron(cursoId, ''), pagado: 0,
       aulaDada: false,
       creado: admin.firestore.FieldValue.serverTimestamp(),
       actualizado: admin.firestore.FieldValue.serverTimestamp(),
@@ -2763,8 +2802,163 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     });
 
     await anotarMovimientoDePadron(`columnas:${cursoId}`, 'agregarColumna', null, { key, label, tipo }, quien);
-    const doc = await colRef.get();
-    return { ok: true, columnas: (doc.data().columnas || []).filter(c => !c.oculta) };
+    return { ok: true, columnas: columnasOrdenadas(await colRef.get()) };
+  }
+
+  // Mover, renombrar y ocultar columnas. El orden de las columnas es
+  // configuracion de la formacion y se guarda; el orden de las filas es una
+  // vista y vive en la pantalla del panel.
+  if (accion === 'guardarColumnas') {
+    const cursoId = String(data?.cursoId || '').trim();
+    if (!cursoId) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso.');
+    const pedidas = Array.isArray(data?.columnas) ? data.columnas : [];
+    if (!pedidas.length) throw new functions.https.HttpsError('invalid-argument', 'No vino ninguna columna.');
+    if (pedidas.length > 100) throw new functions.https.HttpsError('invalid-argument', 'Demasiadas columnas.');
+
+    const colRef = _db.collection('padron_columnas').doc(cursoId);
+    let despues = [];
+    await _db.runTransaction(async (tx) => {
+      const doc = await tx.get(colRef);
+      if (!doc.exists) throw new functions.https.HttpsError('not-found', 'Ese curso no tiene columnas todavía.');
+      const actuales = doc.data().columnas || [];
+      const porKey = new Map(actuales.map(c => [c.key, c]));
+
+      // `tipo` y `opciones` salen del documento: el navegador no los manda y
+      // no tiene por que poder cambiarlos.
+      const nuevas = [];
+      let orden = 0;
+      for (const p of pedidas) {
+        const vieja = porKey.get(String(p?.key || ''));
+        // Una key que no existe se ignora, no se crea: las columnas se crean
+        // por agregarColumna o por la config del formulario.
+        if (!vieja) continue;
+        porKey.delete(vieja.key);
+        nuevas.push({
+          ...vieja,
+          label: sanitizeTexto(p?.label, 80) || vieja.label || vieja.key,
+          oculta: p?.oculta === true,
+          orden: orden++,
+        });
+      }
+      // Lo que no vino queda al final y con su dato intacto: una columna que
+      // se cae de la lista no puede llevarse los campos[key] de cada fila.
+      for (const sobrante of porKey.values()) {
+        nuevas.push({ ...sobrante, orden: orden++ });
+      }
+      tx.update(colRef, { columnas: nuevas });
+      despues = nuevas;
+    });
+
+    await anotarMovimientoDePadron(`columnas:${cursoId}`, 'guardarColumnas', null,
+      { orden: despues.map(c => c.key), ocultas: despues.filter(c => c.oculta).map(c => c.key) }, quien);
+    return { ok: true, columnas: despues };
+  }
+
+  // El inicio de clases y el arancel de una formacion. Sin mes de inicio no
+  // hay vencimientos, asi que este dato es el que hace que "atrasado"
+  // signifique algo.
+  if (accion === 'guardarAjustesCurso') {
+    const cursoId = String(data?.cursoId || '').trim();
+    if (!cursoId) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso.');
+
+    const inicio = String(data?.inicio || '').trim();
+    if (inicio && !/^\d{4}-\d{2}-\d{2}$/.test(inicio)) {
+      throw new functions.https.HttpsError('invalid-argument', 'La fecha de inicio va como 2027-03-19.');
+    }
+    const desde = String(data?.desde || '').trim();
+    if (desde && !mesValido(desde)) {
+      throw new functions.https.HttpsError('invalid-argument', 'El mes de la primera cuota va como 2027-03.');
+    }
+    const tipo = String(data?.tipo || '').trim();
+    if (tipo && !TIPOS_DE_PLAN.includes(tipo)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese tipo de plan no existe.');
+    }
+    const total = data?.total === null || data?.total === '' || data?.total === undefined ? null : Number(data.total);
+    if (total !== null && (!Number.isFinite(total) || total < 0 || total > 1e12)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Ese total no es un número.');
+    }
+    const cuotas = data?.cuotas === null || data?.cuotas === '' || data?.cuotas === undefined ? null : Number(data.cuotas);
+    if (cuotas !== null && (!Number.isInteger(cuotas) || cuotas < 1 || cuotas > 24)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Las cuotas van de 1 a 24.');
+    }
+
+    const cursada = {
+      dia: sanitizeTexto(data?.dia, 40),
+      horario: sanitizeTexto(data?.horario, 40),
+      inicio,
+    };
+    const plan = { tipo, cuotas, desde, total };
+
+    const colRef = _db.collection('padron_columnas').doc(cursoId);
+    const antes = await colRef.get();
+    await colRef.set({
+      cursoId,
+      nombreCurso: (antes.exists ? antes.data().nombreCurso : '')
+        || (FORMACIONES_ESCUELA.find(f => f.cursoId === cursoId)?.nombre) || cursoId,
+      cursada, plan,
+    }, { merge: true });
+    await anotarMovimientoDePadron(`columnas:${cursoId}`, 'guardarAjustesCurso',
+      antes.exists ? { cursada: antes.data().cursada ?? null, plan: antes.data().plan ?? null } : null,
+      { cursada, plan }, quien);
+
+    const ajustes = ajustesDelCurso(cursoId, await colRef.get());
+    return { ok: true, cursada: ajustes.cursada, plan: ajustes.plan };
+  }
+
+  // Completar el plan de las filas que no lo tienen. Es lo que arregla de una
+  // vez las inscripciones que entraron antes de que el curso tuviera cargado
+  // su inicio de clases.
+  //
+  // Nunca toca `total` ni `pagos`: completa solo lo que falta. Un plan que ya
+  // esta cargado es una decision de alguien y no se discute.
+  if (accion === 'aplicarPlanCurso') {
+    const cursoId = String(data?.cursoId || '').trim();
+    if (!cursoId) throw new functions.https.HttpsError('invalid-argument', 'Falta el curso.');
+
+    const colSnap = await _db.collection('padron_columnas').doc(cursoId).get();
+    const base = ajustesDelCurso(cursoId, colSnap).plan;
+    if (!mesValido(base.desde)) {
+      throw new functions.https.HttpsError('failed-precondition',
+        'Primero cargá el mes de la primera cuota de esta formación.');
+    }
+
+    // El mismo where y el mismo limit que listar: 500 es tambien el tope de
+    // un batch de Firestore, asi que las dos cosas cierran.
+    const snap = await _db.collection('padron').where('cursoId', '==', cursoId).limit(500).get();
+    const lote = _db.batch();
+    let tocadas = 0;
+    for (const d of snap.docs) {
+      const v = d.data();
+      if ((v.estado || 'activo') === 'baja') continue;
+      const guardado = v.plan && typeof v.plan === 'object' ? v.plan : {};
+      const tipo = TIPOS_DE_PLAN.includes(guardado.tipo)
+        ? guardado.tipo
+        : (planSegunLaFormaDePago(v.campos?.formaPago)
+          || (TIPOS_DE_PLAN.includes(base.tipo) ? base.tipo : ''));
+      if (!tipo) continue;
+      const cuotas = Number.isInteger(guardado.cuotas) && guardado.cuotas > 0
+        ? Math.min(guardado.cuotas, 24)
+        : ((tipo === base.tipo && Number.isInteger(base.cuotas) && base.cuotas > 0)
+          ? Math.min(base.cuotas, 24) : FORMA_DEL_PLAN[tipo].cuotas);
+      const desde = mesValido(guardado.desde) ? guardado.desde : base.desde;
+      const total = Number.isFinite(guardado.total) && guardado.total > 0 ? guardado.total : null;
+
+      // Si ya decia exactamente esto, no se escribe: una escritura de mas es
+      // un `actualizado` movido sin motivo.
+      if (guardado.tipo === tipo && guardado.cuotas === cuotas
+        && (guardado.desde || '') === desde && (guardado.total ?? null) === total) continue;
+
+      lote.set(d.ref, {
+        plan: { tipo, cuotas, desde, total },
+        actualizado: admin.firestore.FieldValue.serverTimestamp(),
+        actualizadoPor: quien,
+      }, { merge: true });
+      tocadas++;
+    }
+    if (tocadas) await lote.commit();
+    await anotarMovimientoDePadron(`columnas:${cursoId}`, 'aplicarPlanCurso', null,
+      { tocadas, desde: base.desde }, quien);
+    return { ok: true, tocadas };
   }
 
   // La vista rapida. Dos preguntas en una sola lectura: como viene cada
@@ -3060,16 +3254,76 @@ const CONOCIMIENTOS_FORMACION = [
 // Hubo dos constantes aca y una guardaba el celular de Seba, asi que los
 // mails decian "escribile a Clari" con el numero equivocado.
 
+// `cursada` y `arancel` son la semilla de lo que el panel muestra y edita
+// despues: los escribe asegurarColumnasDePadron en padron_columnas/{cursoId} y
+// desde ahi una inscripcion nueva nace con el plan puesto. Sin el mes de
+// inicio nada puede figurar atrasado, asi que este dato no es decorativo.
+//
+// Salen de las paginas de /formaciones/, que son la fuente. El `total` va en
+// null a proposito: los $80.000 x 10 son el precio de lista y los descuentos
+// son personales, asi que un total de lista puesto a todos pondria en falsa
+// deuda a casi todo el padron.
 const FORMACIONES_ESCUELA = [
   { cursoId: 'intro27', grupo: 'Primer año 2027', hoja: 'INTRO 27',
-    nombre: 'Primer año: Introducción al lenguaje astrológico' },
+    nombre: 'Primer año: Introducción al lenguaje astrológico',
+    cursada: { dia: 'viernes', horario: '18 a 20', inicio: '2027-03-19' },
+    arancel: { tipo: 'mensual', cuotas: 10, desde: '2027-03', total: null } },
   { cursoId: 'lectura27', grupo: 'Segundo año 2027', hoja: 'LECTURA 27',
-    nombre: 'Segundo año' },
+    nombre: 'Segundo año',
+    cursada: { dia: 'miércoles', horario: '18 a 20', inicio: '2027-03-17' },
+    arancel: { tipo: 'mensual', cuotas: 10, desde: '2027-03', total: null } },
   { cursoId: 'pluton27', grupo: 'Tercer año 2027', hoja: 'PLUTON 27',
-    nombre: 'Tercer año' },
+    nombre: 'Tercer año',
+    cursada: { dia: 'jueves', horario: '18 a 20', inicio: '2027-03-18' },
+    arancel: { tipo: 'mensual', cuotas: 10, desde: '2027-03', total: null } },
   { cursoId: 'transitos27', grupo: 'Cuarto año 2027', hoja: 'TRANSITOS 27',
-    nombre: 'Cuarto año' },
+    nombre: 'Cuarto año',
+    cursada: { dia: 'sábados', horario: '11 a 13', inicio: '2027-03-20' },
+    arancel: { tipo: 'mensual', cuotas: 10, desde: '2027-03', total: null } },
 ];
+
+// La cursada y el arancel de una formacion, por cursoId. Devuelve una forma
+// completa siempre, para que quien la use no tenga que preguntar.
+function cursadaDeFormacion(cursoId) {
+  const f = FORMACIONES_ESCUELA.find(x => x.cursoId === cursoId);
+  return {
+    cursada: { dia: '', horario: '', inicio: '', ...(f?.cursada || {}) },
+    plan: { tipo: '', cuotas: null, desde: '', total: null, ...(f?.arancel || {}) },
+  };
+}
+
+// El plan con el que nace una fila del padron: lo que eligio en el formulario
+// para el tipo, y el inicio de clases del curso para los vencimientos.
+//
+// Antes nacia en null y quedaba "sin plan" hasta que alguien la abriera una
+// por una, con el efecto de que la columna "Atrasados" de la vista rapida era
+// un cero estructural. Si el curso no tiene mes de inicio cargado, devuelve
+// null como antes: un plan sin vencimientos no agrega nada.
+async function planInicialDePadron(cursoId, formaPago) {
+  try {
+    const doc = await _db.collection('padron_columnas').doc(cursoId).get();
+    const base = {
+      tipo: '', cuotas: null, desde: '', total: null,
+      ...(doc.exists ? (doc.data().plan || {}) : {}),
+    };
+    const tipo = planSegunLaFormaDePago(formaPago)
+      || (TIPOS_DE_PLAN.includes(base.tipo) ? base.tipo : '');
+    if (!tipo) return null;
+    const desde = mesValido(base.desde) ? base.desde : '';
+    if (!desde) return null;
+    // Las cuotas del curso valen solo si el tipo es el mismo: quien paga el
+    // año de una no tiene diez cuotas porque el curso las tenga.
+    const cuotas = (tipo === base.tipo && Number.isInteger(base.cuotas) && base.cuotas > 0)
+      ? Math.min(base.cuotas, 24)
+      : FORMA_DEL_PLAN[tipo].cuotas;
+    const total = Number.isFinite(base.total) && base.total > 0 ? base.total : null;
+    return { tipo, cuotas, desde, total };
+  } catch (error) {
+    // Un plan que no se pudo armar no puede voltear una inscripcion.
+    functions.logger.error('No se pudo armar el plan inicial del padrón:', error.message);
+    return null;
+  }
+}
 
 function formacionDeAnio({ cursoId, nombre, grupo, hoja }) {
   return {
@@ -5030,7 +5284,9 @@ exports.escribirFilaPadron = onDocumentCreated({
       origen: 'formulario',
       estado: 'activo',
       pagos: [],
-      plan: null,
+      // Nace con el plan del curso: el tipo que eligio y el mes de inicio de
+      // clases, que es lo que hace que los vencimientos existan.
+      plan: await planInicialDePadron(cursoId, valores.formaPago),
       pagado: 0,
       aulaDada: false,
       creado: admin.firestore.FieldValue.serverTimestamp(),
@@ -5063,6 +5319,7 @@ async function asegurarColumnasDePadron(cursoId, formId, config) {
     const delFormulario = columnasDeFormulario(config);
     await _db.runTransaction(async (tx) => {
       const doc = await tx.get(ref);
+      const semilla = cursadaDeFormacion(cursoId);
       if (!doc.exists) {
         tx.set(ref, {
           cursoId,
@@ -5071,21 +5328,41 @@ async function asegurarColumnasDePadron(cursoId, formId, config) {
           hojaPlanilla: config.hoja || '',
           columnas: delFormulario,
           meses: [],
-          plan: { total: null, cuotas: null },
+          cursada: semilla.cursada,
+          plan: semilla.plan,
           creado: admin.firestore.FieldValue.serverTimestamp(),
         });
         return;
       }
-      const columnas = doc.data().columnas || [];
+      const v = doc.data();
+      const cambios = {};
+
+      const columnas = v.columnas || [];
       const faltan = delFormulario.filter(c => !columnas.some(x => x.key === c.key));
-      if (!faltan.length) return;
-      let orden = columnas.reduce((max, c) => Math.max(max, Number(c.orden) || 0), 0);
-      tx.update(ref, {
-        columnas: columnas.concat(faltan.map(c => ({ ...c, orden: ++orden }))),
-      });
-      functions.logger.info('Columnas nuevas en el padrón', {
-        cursoId, agregadas: faltan.map(c => c.key),
-      });
+      if (faltan.length) {
+        let orden = columnas.reduce((max, c) => Math.max(max, Number(c.orden) || 0), 0);
+        cambios.columnas = columnas.concat(faltan.map(c => ({ ...c, orden: ++orden })));
+        functions.logger.info('Columnas nuevas en el padrón', {
+          cursoId, agregadas: faltan.map(c => c.key),
+        });
+      }
+
+      // Lo mismo que con las columnas: se completa lo que falte y no se pisa
+      // nada. Un documento creado antes de que existiera la cursada no tiene
+      // esos campos, y el inicio de clases cargado a mano desde el panel gana
+      // siempre sobre la semilla del codigo.
+      const cursada = { dia: '', horario: '', inicio: '', ...(v.cursada || {}) };
+      const plan = { tipo: '', cuotas: null, desde: '', total: null, ...(v.plan || {}) };
+      let faltaba = false;
+      for (const k of ['dia', 'horario', 'inicio']) {
+        if (!cursada[k] && semilla.cursada[k]) { cursada[k] = semilla.cursada[k]; faltaba = true; }
+      }
+      for (const k of ['tipo', 'cuotas', 'desde']) {
+        if (!plan[k] && semilla.plan[k]) { plan[k] = semilla.plan[k]; faltaba = true; }
+      }
+      if (faltaba) { cambios.cursada = cursada; cambios.plan = plan; }
+
+      if (Object.keys(cambios).length) tx.update(ref, cambios);
     });
   } catch (error) {
     // Que falte la config de columnas no puede impedir que la fila se

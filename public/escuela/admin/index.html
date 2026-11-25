@@ -85,8 +85,11 @@
         .tab-btn:hover { color: var(--text); }
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-        /* PANELS */
-        .tab-panel { display: none; padding: 24px; max-width: 900px; }
+        /* PANELS
+           Sin tope de ancho: la planilla del padron es la tabla mas ancha del
+           sitio y en 900px se leia en un scroll horizontal con media pantalla
+           vacia al lado. Lo que si necesita medida es el texto largo, abajo. */
+        .tab-panel { display: none; padding: 24px; }
         .tab-panel.active { display: block; }
 
         /* CARD */
@@ -231,6 +234,37 @@
         }
         .pad-form-pago input[type="number"] { width: 110px; }
 
+        /* El panel usa todo el ancho, pero el texto largo no: una linea de
+           prosa cruzando 2500px no se lee. Las tablas quedan afuera a
+           proposito, que para eso se saco el tope. */
+        .card > p, .card textarea, .pad-ajustes p { max-width: 900px; }
+
+        /* Cabeceras que ordenan las filas. Solo en la pantalla: no se guarda
+           nada y no se le pide nada al servidor. */
+        .user-table th.pad-ord { cursor: pointer; user-select: none; white-space: nowrap; }
+        .user-table th.pad-ord:hover { color: var(--text); }
+        .user-table th.pad-ord .flecha { color: var(--primary); margin-left: 4px; }
+
+        /* El orden de las columnas SI es configuracion y se guarda. */
+        .pad-cols { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+        .pad-col-fila {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            border-radius: 8px; padding: 7px 10px;
+        }
+        .pad-col-fila .num { color: var(--muted); font-size: 0.75rem; width: 1.6em; }
+        .pad-col-fila input[type="text"] { flex: 1 1 200px; min-width: 160px; font-size: 0.82rem; padding: 5px 8px; }
+        .pad-col-fila label { font-size: 0.76rem; color: var(--muted); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .pad-col-fila.oculta { opacity: 0.55; }
+        .pad-ajustes { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+        .pad-ajustes label { display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; color: var(--muted); }
+        .pad-ajustes input, .pad-ajustes select { font-size: 0.82rem; padding: 6px 9px; }
+        .pad-cursada {
+            font-size: 0.83rem; color: var(--text);
+            background: rgba(36,155,149,0.08); border: 1px solid rgba(36,155,149,0.35);
+            border-radius: 8px; padding: 9px 13px; margin-top: 12px;
+        }
+
         /* TAGS */
         .tag {
             display: inline-block; padding: 2px 8px;
@@ -366,6 +400,71 @@
                 <input type="checkbox" id="pad-nacimiento">
                 <span>Mostrar los datos de nacimiento (apagado para que no queden a la vista en una pantalla compartida)</span>
             </label>
+            <!-- El inicio de clases es lo que hace que los vencimientos
+                 existan: sin mes de primera cuota nada puede figurar
+                 atrasado. Vive en padron_columnas/{cursoId}, no en cada
+                 fila. -->
+            <div id="pad-cursada" class="pad-cursada" style="display:none;"></div>
+
+            <details id="pad-ajustes-caja" style="margin-top:12px; display:none;">
+                <summary style="cursor:pointer; font-size:.83rem; color:var(--primary);">
+                    Inicio de clases y arancel de esta formación
+                </summary>
+                <p style="opacity:.7; font-size:.8rem; margin:10px 0;">
+                    El mes de la primera cuota es lo que marca los vencimientos. Un campo vacío vuelve
+                    al valor por defecto del año. Esto no cambia los planes ya cargados: para eso está
+                    el botón de abajo.
+                </p>
+                <div class="pad-ajustes">
+                    <label>Primera clase
+                        <input type="date" id="pad-aj-inicio">
+                    </label>
+                    <label>Día
+                        <input type="text" id="pad-aj-dia" maxlength="40" placeholder="viernes" style="width:120px;">
+                    </label>
+                    <label>Horario
+                        <input type="text" id="pad-aj-horario" maxlength="40" placeholder="18 a 20" style="width:110px;">
+                    </label>
+                    <label>Plan por omisión
+                        <select id="pad-aj-tipo">
+                            <option value="">Sin plan</option>
+                            <option value="anual">Anual, un pago</option>
+                            <option value="semestral">Semestral, 2 cuotas</option>
+                            <option value="mensual">Mensual</option>
+                        </select>
+                    </label>
+                    <label>Cuotas
+                        <input type="number" id="pad-aj-cuotas" min="1" max="24" style="width:80px;">
+                    </label>
+                    <label>Primera cuota
+                        <input type="month" id="pad-aj-desde">
+                    </label>
+                    <label>Total por omisión
+                        <input type="number" id="pad-aj-total" min="0" step="1000" placeholder="(vacío)" style="width:130px;">
+                    </label>
+                    <button class="btn btn-primary btn-sm" id="pad-aj-guardar">Guardar</button>
+                    <button class="btn btn-secondary btn-sm" id="pad-aj-aplicar">Aplicar a las filas que no lo tienen</button>
+                </div>
+                <div id="pad-aj-msg"></div>
+            </details>
+
+            <details id="pad-cols-caja" style="margin-top:8px; display:none;">
+                <summary style="cursor:pointer; font-size:.83rem; color:var(--primary);">
+                    Columnas de la planilla
+                </summary>
+                <p style="opacity:.7; font-size:.8rem; margin:10px 0;">
+                    El orden y los títulos quedan guardados para esta formación. Ocultar una columna
+                    no borra nada: lo cargado sigue ahí y vuelve a aparecer si la mostrás de nuevo.
+                    Alta, Nombre, Mail, Teléfono, Plan, Pagado y Aula son la estructura de la planilla
+                    y no se mueven.
+                </p>
+                <div class="pad-cols" id="pad-cols"></div>
+                <div style="margin-top:10px;">
+                    <button class="btn btn-primary btn-sm" id="pad-cols-guardar">Guardar el orden</button>
+                </div>
+                <div id="pad-cols-msg"></div>
+            </details>
+
             <div id="pad-msg"></div>
             <div id="pad-totales" style="margin-top:14px;"></div>
             <div id="pad-lista" style="margin-top:10px; overflow-x:auto;"></div>
@@ -1455,6 +1554,39 @@
         sin_plan: 'sin plan', sin_fecha: 'sin fecha de inicio',
     };
 
+    // La cursada y el plan por omision de la formacion elegida.
+    let padCursada = null;
+    let padPlanCurso = null;
+
+    // El orden de las filas. Vive solo aca: no se guarda ni se le pide al
+    // servidor, a diferencia del orden de las columnas.
+    let padOrden = { col: 'nombre', dir: 1 };
+
+    // `alta` no siempre es una fecha ISO: la que llega del formulario es la
+    // misma que va a la planilla de Sheets, en formato argentino
+    // ("25/11/2026, 14:30:05"), y pasarla por new Date() daba "Invalid Date".
+    // Las de un alta a mano si son ISO. Y si no se entiende ninguna de las
+    // dos, se muestra el texto tal cual antes que una fecha inventada.
+    function fechaDeAlta(valor) {
+        const s = String(valor || '').trim();
+        if (!s) return '—';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            const d = new Date(s);
+            return isNaN(d) ? s.slice(0, 10) : d.toLocaleDateString('es');
+        }
+        const ar = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (ar) return `${ar[1]}/${ar[2]}/${ar[3]}`;
+        return s;
+    }
+    // Para ordenar: la misma fecha pero comparable, sea como venga.
+    function altaComparable(valor) {
+        const s = String(valor || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        const ar = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (ar) return `${ar[3]}-${ar[2].padStart(2, '0')}-${ar[1].padStart(2, '0')}`;
+        return '';
+    }
+
     function pesos(n) {
         return (n === null || n === undefined || n === '') ? '—'
             : '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 });
@@ -1470,6 +1602,8 @@
         padMsg.innerHTML = '';
         if (!cursoId) {
             padFilas = [];
+            padCursada = null; padPlanCurso = null; padColumnas = [];
+            pintarCursada();
             document.getElementById('pad-totales').innerHTML = '';
             padLista.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Elegí un curso.</p></div>';
             return;
@@ -1480,8 +1614,14 @@
                 accion: 'listar', cursoId,
                 conNacimiento: padNacimiento.checked,
             });
+            // Vienen todas, tambien las ocultas: el editor de columnas las
+            // necesita para poder volver a mostrarlas.
             padColumnas = r.data.columnas || [];
             padFilas = r.data.filas || [];
+            padCursada = r.data.cursada || null;
+            padPlanCurso = r.data.plan || null;
+            pintarCursada();
+            pintarColumnasEditor();
             pintarPadron();
         } catch (e) {
             padError(padLista, e);
@@ -1576,8 +1716,50 @@
         </td></tr>`;
     }
 
+    // El rango de los estados: el orden en que uno quiere verlos cuando
+    // ordena por Plan. Primero lo que reclama atencion.
+    const PAD_RANGO_ESTADO = { atrasado: 0, sin_fecha: 1, sin_plan: 2, al_dia: 3, pagado: 4 };
+
+    function valorParaOrdenar(f, col) {
+        const d = f.deuda || {};
+        if (col === 'alta') return altaComparable(f.alta);
+        if (col === 'nombre') return f.nombre || '';
+        if (col === 'email') return f.email || '';
+        if (col === 'telefono') return f.telefono || '';
+        if (col === 'pagado') return Number(d.pagado) || 0;
+        if (col === 'plan') return PAD_RANGO_ESTADO[d.estado] ?? 9;
+        if (col.startsWith('campo:')) return f.campos?.[col.slice(6)] ?? '';
+        return '';
+    }
+
+    function filasOrdenadas() {
+        const { col, dir } = padOrden;
+        return padFilas.slice().sort((a, b) => {
+            const x = valorParaOrdenar(a, col);
+            const y = valorParaOrdenar(b, col);
+            const cmp = (typeof x === 'number' && typeof y === 'number')
+                ? x - y
+                : String(x).localeCompare(String(y), 'es', { numeric: true });
+            // Empate por nombre, para que el orden no baile entre repintados.
+            return (cmp || String(a.nombre).localeCompare(String(b.nombre), 'es')) * dir;
+        });
+    }
+
+    function cabecera(label, col) {
+        if (!col) return `<th>${escapeHtml(label)}</th>`;
+        const flecha = padOrden.col === col
+            ? `<span class="flecha">${padOrden.dir === 1 ? '▲' : '▼'}</span>` : '';
+        return `<th class="pad-ord" data-pad-sort="${escapeHtml(col)}">${escapeHtml(label)}${flecha}</th>`;
+    }
+
+    // Lo que se pinta: las ocultas quedan fuera de la grilla pero siguen
+    // existiendo en padColumnas para el editor de columnas.
+    function padColumnasVisibles() {
+        return padColumnas.filter(c => !c.oculta);
+    }
+
     function pintarPadron() {
-        const filas = padFilas;
+        const filas = filasOrdenadas();
         const totales = document.getElementById('pad-totales');
         if (!filas.length) {
             totales.innerHTML = '';
@@ -1585,10 +1767,12 @@
             return;
         }
         const conNac = padNacimiento.checked;
-        const cabeceras = ['Alta', 'Nombre', 'Mail', 'Teléfono']
-            .concat(padColumnas.map(c => c.label))
-            .concat(conNac ? ['Nacimiento', 'Hora', 'Lugar'] : ['Carta'])
-            .concat(['Plan', 'Pagado', 'Aula', '']);
+        const visibles = padColumnasVisibles();
+        // [titulo, clave para ordenar] — sin clave, la cabecera no ordena.
+        const cabeceras = [['Alta', 'alta'], ['Nombre', 'nombre'], ['Mail', 'email'], ['Teléfono', 'telefono']]
+            .concat(visibles.map(c => [c.label, 'campo:' + c.key]))
+            .concat(conNac ? [['Nacimiento', ''], ['Hora', ''], ['Lugar', '']] : [['Carta', '']])
+            .concat([['Plan', 'plan'], ['Pagado', 'pagado'], ['Aula', ''], ['', '']]);
         const ancho = cabeceras.length;
 
         // La vista rápida de esta formación, con la misma cuenta que hace el
@@ -1609,16 +1793,15 @@
             </dl></div></div>`;
 
         const cuerpo = filas.map(f => {
-            const alta = f.alta ? new Date(f.alta).toLocaleDateString('es') : '—';
             const celdas = [
-                escapeHtml(alta),
+                escapeHtml(fechaDeAlta(f.alta)),
                 celdaEditable(f, 'nombre', f.nombre)
                     + (f.estado === 'baja' ? '<div class="pad-mini">de baja</div>' : '')
                     + (f.origen === 'manual' ? '<div class="pad-mini">anotada a mano</div>' : ''),
                 escapeHtml(f.email || '—'),
                 celdaEditable(f, 'telefono', f.telefono),
             ];
-            for (const c of padColumnas) celdas.push(celdaEditable(f, c.key, f.campos?.[c.key]));
+            for (const c of visibles) celdas.push(celdaEditable(f, c.key, f.campos?.[c.key]));
             if (conNac) {
                 celdas.push(escapeHtml(f.nacimiento?.fecha || '—'));
                 celdas.push(escapeHtml(f.nacimiento?.hora || '—'));
@@ -1643,8 +1826,161 @@
         }).join('');
 
         padLista.innerHTML = `<p style="opacity:.7;font-size:.85rem;margin:0 0 8px;">${filas.length} ${filas.length === 1 ? 'persona' : 'personas'}</p>`
-            + `<table class="user-table"><thead><tr><th>${cabeceras.map(escapeHtml).join('</th><th>')}</th></tr></thead><tbody>${cuerpo}</tbody></table>`;
+            + `<table class="user-table"><thead><tr>${cabeceras.map(([t, c]) => cabecera(t, c)).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>`;
     }
+
+    // ── El inicio de clases de la formación ───────────────────────
+    // Es el dato que se consulta en voz alta cuando alguien pregunta por
+    // WhatsApp, y el que hace que los vencimientos existan.
+    const DIAS_LINDOS = { '1': 'lunes', '2': 'martes', '3': 'miércoles', '4': 'jueves', '5': 'viernes', '6': 'sábado', '0': 'domingo' };
+    function fechaLinda(iso) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return '';
+        const [a, m, d] = iso.split('-').map(Number);
+        // Mediodía UTC: así ninguna zona horaria corre el día.
+        const fecha = new Date(Date.UTC(a, m - 1, d, 12));
+        return `${DIAS_LINDOS[String(fecha.getUTCDay())]} ${d}/${String(m).padStart(2, '0')}/${a}`;
+    }
+
+    function pintarCursada() {
+        const caja = document.getElementById('pad-cursada');
+        const ajustes = document.getElementById('pad-ajustes-caja');
+        const cols = document.getElementById('pad-cols-caja');
+        if (!padCursoSel.value) {
+            caja.style.display = ajustes.style.display = cols.style.display = 'none';
+            return;
+        }
+        ajustes.style.display = cols.style.display = '';
+
+        const c = padCursada || {};
+        const p = padPlanCurso || {};
+        const partes = [];
+        if (c.inicio) partes.push(`empieza el ${fechaLinda(c.inicio) || c.inicio}`);
+        if (c.dia || c.horario) partes.push([c.dia, c.horario && `de ${c.horario}`].filter(Boolean).join(' '));
+        if (p.desde && p.cuotas) partes.push(`${p.cuotas} ${p.cuotas === 1 ? 'cuota' : 'cuotas'} desde ${mesLindo(p.desde)}`);
+        if (p.total) partes.push(`total ${pesos(p.total)}`);
+
+        caja.style.display = partes.length ? '' : 'none';
+        caja.innerHTML = partes.length
+            ? `<i class="fa-solid fa-calendar-day" style="color:var(--primary);margin-right:7px;"></i>${escapeHtml(partes.join(' · '))}`
+            : '';
+
+        // El formulario de ajustes, con lo que hay cargado.
+        document.getElementById('pad-aj-inicio').value = c.inicio || '';
+        document.getElementById('pad-aj-dia').value = c.dia || '';
+        document.getElementById('pad-aj-horario').value = c.horario || '';
+        document.getElementById('pad-aj-tipo').value = p.tipo || '';
+        document.getElementById('pad-aj-cuotas').value = p.cuotas || '';
+        document.getElementById('pad-aj-desde').value = p.desde || '';
+        document.getElementById('pad-aj-total').value = p.total || '';
+    }
+
+    document.getElementById('pad-aj-guardar').addEventListener('click', async (ev) => {
+        const msg = document.getElementById('pad-aj-msg');
+        msg.innerHTML = '';
+        if (!padCursoSel.value) { padError(msg, { message: 'Elegí una formación.' }); return; }
+        ev.target.disabled = true;
+        try {
+            const r = await padronApi({
+                accion: 'guardarAjustesCurso', cursoId: padCursoSel.value,
+                inicio: document.getElementById('pad-aj-inicio').value,
+                dia: document.getElementById('pad-aj-dia').value,
+                horario: document.getElementById('pad-aj-horario').value,
+                tipo: document.getElementById('pad-aj-tipo').value,
+                cuotas: document.getElementById('pad-aj-cuotas').value,
+                desde: document.getElementById('pad-aj-desde').value,
+                total: document.getElementById('pad-aj-total').value,
+            });
+            padCursada = r.data.cursada || null;
+            padPlanCurso = r.data.plan || null;
+            pintarCursada();
+            msg.innerHTML = '<div class="alert alert-success">Guardado. Las inscripciones nuevas ya nacen con este plan.</div>';
+        } catch (e) {
+            padError(msg, e);
+        }
+        ev.target.disabled = false;
+    });
+
+    document.getElementById('pad-aj-aplicar').addEventListener('click', async (ev) => {
+        const msg = document.getElementById('pad-aj-msg');
+        msg.innerHTML = '';
+        if (!padCursoSel.value) { padError(msg, { message: 'Elegí una formación.' }); return; }
+        if (!confirm('Completa el plan de las filas que no lo tienen. No toca los planes ya cargados, ni los pagos. ¿Sigo?')) return;
+        ev.target.disabled = true;
+        try {
+            const r = await padronApi({ accion: 'aplicarPlanCurso', cursoId: padCursoSel.value });
+            msg.innerHTML = `<div class="alert alert-success">${r.data.tocadas} ${r.data.tocadas === 1 ? 'fila' : 'filas'} con el plan completado.</div>`;
+            await cargarPadron();
+        } catch (e) {
+            padError(msg, e);
+        }
+        ev.target.disabled = false;
+    });
+
+    // ── El orden de las columnas, que sí se guarda ────────────────
+    function pintarColumnasEditor() {
+        const caja = document.getElementById('pad-cols');
+        if (!padColumnas.length) {
+            caja.innerHTML = '<p style="opacity:.7;font-size:.82rem;">Esta formación todavía no tiene columnas propias.</p>';
+            return;
+        }
+        caja.innerHTML = padColumnas.map((c, i) => `
+            <div class="pad-col-fila${c.oculta ? ' oculta' : ''}" data-pad-col="${escapeHtml(c.key)}">
+                <span class="num">${i + 1}.</span>
+                <button class="btn-table" data-pad-mover="arriba" title="Subir"${i === 0 ? ' disabled' : ''}>▲</button>
+                <button class="btn-table" data-pad-mover="abajo" title="Bajar"${i === padColumnas.length - 1 ? ' disabled' : ''}>▼</button>
+                <input type="text" value="${escapeHtml(c.label || c.key)}" maxlength="80" data-pad-col-label>
+                <label><input type="checkbox" data-pad-col-oculta${c.oculta ? ' checked' : ''}> ocultar</label>
+            </div>`).join('');
+    }
+
+    // Lo tipeado y lo marcado se leen de la pantalla antes de mover nada: si
+    // no, un cambio de título se perdería al reordenar.
+    function leerColumnasDeLaPantalla() {
+        return [...document.querySelectorAll('#pad-cols .pad-col-fila')].map(fila => ({
+            key: fila.dataset.padCol,
+            label: fila.querySelector('[data-pad-col-label]').value.trim(),
+            oculta: fila.querySelector('[data-pad-col-oculta]').checked,
+        }));
+    }
+
+    document.getElementById('pad-cols').addEventListener('click', (ev) => {
+        const boton = ev.target.closest('[data-pad-mover]');
+        if (!boton) return;
+        const fila = boton.closest('.pad-col-fila');
+        const leidas = leerColumnasDeLaPantalla();
+        const i = leidas.findIndex(c => c.key === fila.dataset.padCol);
+        const j = boton.dataset.padMover === 'arriba' ? i - 1 : i + 1;
+        if (i < 0 || j < 0 || j >= leidas.length) return;
+        [leidas[i], leidas[j]] = [leidas[j], leidas[i]];
+        // El editor se repinta con lo leído; la planilla, al guardar.
+        padColumnas = leidas.map(c => ({ ...padColumnas.find(x => x.key === c.key), ...c }));
+        pintarColumnasEditor();
+    });
+
+    document.getElementById('pad-cols').addEventListener('change', (ev) => {
+        if (!ev.target.matches('[data-pad-col-oculta]')) return;
+        ev.target.closest('.pad-col-fila').classList.toggle('oculta', ev.target.checked);
+    });
+
+    document.getElementById('pad-cols-guardar').addEventListener('click', async (ev) => {
+        const msg = document.getElementById('pad-cols-msg');
+        msg.innerHTML = '';
+        if (!padCursoSel.value) { padError(msg, { message: 'Elegí una formación.' }); return; }
+        ev.target.disabled = true;
+        try {
+            const r = await padronApi({
+                accion: 'guardarColumnas', cursoId: padCursoSel.value,
+                columnas: leerColumnasDeLaPantalla(),
+            });
+            padColumnas = r.data.columnas || [];
+            pintarColumnasEditor();
+            pintarPadron();
+            msg.innerHTML = '<div class="alert alert-success">Listo, la planilla quedó así.</div>';
+        } catch (e) {
+            padError(msg, e);
+        }
+        ev.target.disabled = false;
+    });
 
     document.getElementById('pad-cargar').addEventListener('click', cargarPadron);
     padCursoSel.addEventListener('change', cargarPadron);
@@ -1699,6 +2035,15 @@
         if (pagos) {
             const id = pagos.dataset.padPagos;
             if (padAbiertas.has(id)) padAbiertas.delete(id); else padAbiertas.add(id);
+            pintarPadron();
+            return;
+        }
+
+        // Ordenar las filas por una columna. Clic de nuevo invierte.
+        const cab = ev.target.closest('th[data-pad-sort]');
+        if (cab) {
+            const col = cab.dataset.padSort;
+            padOrden = { col, dir: padOrden.col === col ? -padOrden.dir : 1 };
             pintarPadron();
             return;
         }
