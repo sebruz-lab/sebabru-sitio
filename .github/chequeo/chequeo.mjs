@@ -19,7 +19,7 @@ const PUBLIC = join(RAIZ, 'public');
 const SITIO = (process.env.SITIO_URL || 'https://sebabru.com').replace(/\/$/, '');
 const GA_ID = 'G-GDLRMR5D57';
 const FUNCIONES = 'https://us-central1-sebabru-e5563.cloudfunctions.net';
-const WHATSAPP_COMPROBANTES = 'https://wa.me/5493544584122';
+const WHATSAPP_COMPROBANTES = 'https://wa.me/5493544559877';
 
 // Lo que no se publica (firebase.json -> hosting.ignore) o son pruebas sueltas.
 const IGNORAR = [/^test\//, /^test-3d\//, /^Mey\//, /^preview-bloques\.html$/, /^prueba-contenido\.html$/,

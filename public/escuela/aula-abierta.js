@@ -263,7 +263,7 @@ function construirCheckoutHTML(info) {
         <div id="info-comprobante" style="display:none; margin-top:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:10px; padding:14px 16px;">
           <p style="font-size: 0.75rem; color:#ccc; margin:0 0 10px; line-height:1.7;">
             <i class="fa-solid fa-circle-check" style="color:#f0f0f4; margin-right:6px;"></i>
-            Alias copiado. Enviá el comprobante a <strong style="color:#f0f0f0;">sebruz@gmail.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 584122</strong>
+            Alias copiado. Enviá el comprobante a <strong style="color:#f0f0f0;">info@sebabru.com</strong> o al <strong style="color:#f0f0f0;">+54 9 3544 559877</strong>
           </p>
           <a class="wa-comprobante" href="#" target="_blank" rel="noopener noreferrer"
              style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:white; padding:9px 16px; border-radius:7px; text-decoration:none; font-size: 0.75rem; font-family:'Outfit',sans-serif;">
@@ -316,8 +316,8 @@ function insertarCheckout(slug, primera, funcs) {
   primera.insertAdjacentHTML('afterend', construirCheckoutHTML(info));
 
   const wa = document.querySelector('#checkout-aula .wa-comprobante');
-  if (wa) wa.href = 'https://wa.me/5493544584122?text=' +
-    encodeURIComponent(`Hola Seba, acabo de hacer la transferencia para el curso ${info.nombre}. Te mando el comprobante.`);
+  if (wa) wa.href = 'https://wa.me/5493544559877?text=' +
+    encodeURIComponent(`Hola Clari, acabo de hacer la transferencia para el curso ${info.nombre}. Te mando el comprobante.`);
 
   document.getElementById('link-login-mp')?.addEventListener('click', abrirModal);
   document.getElementById('link-login-paypal')?.addEventListener('click', abrirModal);

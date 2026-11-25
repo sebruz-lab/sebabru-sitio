@@ -3055,11 +3055,10 @@ const CONOCIMIENTOS_FORMACION = [
   'No tengo conocimientos',
 ];
 
-// El telefono de Clari para los pagos, el mismo que ya usa el mail de Tu
-// identidad en el cielo. El de "como llegar al presencial" es otro y ya
-// esta arriba, en AGENDA_WHATSAPP_CLARI.
-const CLARI_PAGOS = '+5493544584122';
-const CLARI_PRESENCIAL = '+5493544559877';
+// El telefono de contacto de los mails de inscripcion (pagos y "como llegar
+// al presencial") es el de Clari, y sale de AGENDA_WHATSAPP_CLARI, mas abajo.
+// Hubo dos constantes aca y una guardaba el celular de Seba, asi que los
+// mails decian "escribile a Clari" con el numero equivocado.
 
 const FORMACIONES_ESCUELA = [
   { cursoId: 'intro27', grupo: 'Primer año 2027', hoja: 'INTRO 27',
@@ -3108,9 +3107,9 @@ function formacionDeAnio({ cursoId, nombre, grupo, hoja }) {
           ? 'Te mando adjunta tu carta natal, calculada con los datos que me pasaste (fecha, hora y lugar de nacimiento). Revisá que estén bien: si algo no coincide, respondé este mail y la corrijo.'
           : '',
         modalidad === 'Presencial en Villa de las Rosas'
-          ? `Pedile la información sobre cómo llegar a Clari: ${CLARI_PRESENCIAL}.`
+          ? `Pedile la información sobre cómo llegar a Clari: ${AGENDA_WHATSAPP_CLARI}.`
           : 'Antes de empezar te escribo con los enlaces y todo lo que necesitás para cursar.',
-        `Para datos del pago podés escribirle a Clari al ${CLARI_PAGOS}.`,
+        `Para datos del pago podés escribirle a Clari al ${AGENDA_WHATSAPP_CLARI}.`,
         '¡Nos vemos pronto!<br>Seba',
       ].filter(Boolean),
     },
@@ -3151,9 +3150,9 @@ const FORMULARIOS_INSCRIPCION = {
         modalidad === 'Online'
           ? 'Unite a la reunión de Zoom con este enlace:<br><a href="https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1">https://us02web.zoom.us/j/87111385793?pwd=upJRRWmCEdancwG80rDo6u9QKKPSIo.1</a><br>Meeting ID: 871 1138 5793<br>Passcode: Astro2025'
           : modalidad === 'Presencial'
-            ? 'Pedile la información sobre cómo llegar a Clari: +5493544559877.'
+            ? `Pedile la información sobre cómo llegar a Clari: ${AGENDA_WHATSAPP_CLARI}.`
             : '',
-        'Para datos del pago podés escribirle a Clari al +5493544584122.',
+        `Para datos del pago podés escribirle a Clari al ${AGENDA_WHATSAPP_CLARI}.`,
         '¡Nos vemos pronto!<br>Seba',
       ].filter(Boolean),
     },
@@ -4174,6 +4173,14 @@ const RESPUESTA_ALTA = { ok: true, estado: 'suscrito' };
 const TOPE_POR_DIRECCION = 3;
 const VENTANA_POR_DIRECCION = 24 * 60 * 60 * 1000;
 
+// A donde manda Brevo a la persona despues del clic de confirmacion. No es
+// opcional: /contacts/doubleOptinConfirmation contesta 400 "Redirection url
+// is missing" si no va, y ese 400 es permanente, asi que el trigger no lo
+// reintenta y el alta se pierde en silencio. Es lo que paso entre el 21/11 y
+// el 25/11/2026: dos personas afuera de la lista mientras la pagina les
+// decia que revisaran su casilla.
+const URL_CONFIRMADO = 'https://sebabru.com/suscribirse/?confirmado=1';
+
 function diaDeHoy() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -4592,7 +4599,7 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     await encolarContactoBrevo({
       id: claveDireccion(email),
       email, nombre, listas: ['suscriptores'], atributos,
-      motivo: 'suscripcion', doi: true,
+      motivo: 'suscripcion', doi: true, redirectUrl: URL_CONFIRMADO,
     });
     await anotarPedido('confirmacion_pendiente');
     await decidir('degradado_doi', { mando: true });
@@ -5772,6 +5779,9 @@ const {
 const AGENDA_ZOOM = 'https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1';
 const AGENDA_ZOOM_ID = '802 086 1967';
 const AGENDA_ZOOM_PASS = 'paso';
+// El celular de Clari. Es el unico telefono de contacto del sitio: lo usan
+// tambien los mails de inscripcion a las formaciones, mas arriba, aunque el
+// nombre diga AGENDA.
 const AGENDA_WHATSAPP_CLARI = '+5493544559877';
 // El celular con el que se hace la videollamada de WhatsApp, una de las tres
 // opciones del mail de la sesion online. Es el personal de Seba: va solo en
