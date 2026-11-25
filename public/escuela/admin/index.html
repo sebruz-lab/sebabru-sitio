@@ -450,6 +450,10 @@
                 <select id="pad-curso"><option value="">Elegí un curso</option></select>
             </div>
 
+            <!-- El total de todo 2026, los doce cursos juntos. Sale del mismo
+                 resumen que la vista rápida. -->
+            <div id="pad-total-archivo" style="display:none;"></div>
+
             <!-- Nivel 3 de 2026: una planilla por pestaña de la planilla
                  vieja. Se llena desde el servidor. -->
             <div class="tabs" data-nivel="3" data-grupo="pad-archivo" id="pad-barra-archivo" style="display:none;"></div>
@@ -2105,6 +2109,14 @@
         const esArchivo = btn.dataset.archivo === '1' || padArchivo.some(c => c.cursoId === btn.dataset.curso);
         const barra = document.getElementById('pad-barra-archivo');
         barra.style.display = esArchivo ? 'flex' : 'none';
+        // El total de todo 2026 sólo tiene sentido en 2026. Si todavía no
+        // llegó el resumen, se pide: entrar por acá puede ser la primera vez.
+        const total = document.getElementById('pad-total-archivo');
+        total.style.display = esArchivo ? '' : 'none';
+        if (esArchivo && !padTotalArchivo) {
+            padResumenCargado = true;
+            cargarResumenDePadron();
+        }
         const titulo = document.getElementById('pad-titulo');
         let curso = btn.dataset.curso;
         if (btn.dataset.archivo === '1') {
@@ -2822,6 +2834,45 @@
     // ── Vista rápida: cada formación, y quién adeuda el mes ───────
     // La cuenta la hace el servidor en una sola lectura del padrón: acá no
     // se recalcula nada, justamente para que no pueda discrepar.
+    // El total de todo 2026, los doce cursos juntos. Sale del mismo `resumen`
+    // que la vista rápida, así que verlo no cuesta una lectura más.
+    //
+    // La deuda de 2026 en pesos NO existe: la planilla llevaba `resta` en
+    // PRIMER AÑO y `faltan` en SEGUNDO, y lo que tienen son CUOTAS que
+    // faltaban (0 a 10), no importes; el BALANCE 2026 declara TOTAL DEBEN $0.
+    // Así que se muestran como cuotas y se dice de dónde salen: multiplicarlas
+    // por un arancel para mostrar un monto sería fabricar una deuda que nadie
+    // registró.
+    let padTotalArchivo = null;
+    function pintarTotalArchivo() {
+        const caja = document.getElementById('pad-total-archivo');
+        if (!caja || !padTotalArchivo) return;
+        const t = padTotalArchivo;
+        const cursos = t.cursos || [];
+        caja.innerHTML = `<div class="pad-tarjetas">
+                <div class="pad-tarjeta"><h4>Todo 2026, los ${cursos.length} cursos juntos</h4><dl>
+                    <dt>Personas</dt><dd>${t.filas}</dd>
+                    <dt>Cobrado</dt><dd>${escapeHtml(pesos(t.cobrado))}</dd>
+                    <dt>Cuotas que faltaban</dt><dd>${t.cuotas || 0}${t.filasConCuotas ? ` <span class="pad-mini">en ${t.filasConCuotas} personas</span>` : ''}</dd>
+                </dl></div>
+            </div>
+            <div style="overflow-x:auto;margin:14px 0 18px;"><table class="user-table"><thead><tr>
+                    <th>Curso</th><th>Personas</th><th>Cobrado</th><th>Cuotas que faltaban</th>
+                </tr></thead><tbody>`
+            + cursos.map(c => `<tr>
+                    <td>${escapeHtml(c.nombreCurso)}</td>
+                    <td>${c.filas}</td>
+                    <td>${escapeHtml(pesos(c.cobrado))}</td>
+                    <td>${c.filasConCuotas ? c.cuotas : '—'}</td>
+                </tr>`).join('')
+            + `<tr><th>Total</th><th>${t.filas}</th><th>${escapeHtml(pesos(t.cobrado))}</th><th>${t.cuotas || 0}</th></tr>`
+            + '</tbody></table></div>'
+            + '<p style="opacity:.7;font-size:.82rem;margin:0 0 16px;">'
+            + 'La deuda de 2026 en plata no está en ninguna parte: la planilla anotaba cuántas '
+            + '<em>cuotas</em> faltaban (las columnas "resta" y "faltan", sólo en Primer y Segundo año), '
+            + 'y el BALANCE 2026 declara que no se debe nada. Eso de arriba son cuotas, no pesos.</p>';
+    }
+
     async function cargarResumenDePadron() {
         const caja = document.getElementById('pad-resumen');
         const lista = document.getElementById('pad-deudores');
@@ -2831,6 +2882,8 @@
             const r = await padronApi({ accion: 'resumen' });
             const cursos = r.data.cursos || [];
             const deudores = r.data.deudores || [];
+            padTotalArchivo = r.data.archivo || null;
+            pintarTotalArchivo();
 
             caja.innerHTML = cursos.length
                 ? '<div class="pad-tarjetas">' + cursos.map(c => `<div class="pad-tarjeta">

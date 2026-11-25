@@ -338,6 +338,16 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **`agregarColumna` rechaza las keys fijas.** Deriva la key del título, así
   que una columna llamada "Plan" generaría `plan` y chocaría con la fija: dos
   columnas con la misma key y un valor en `campos.plan` que no se vería nunca.
+- **El orden por omisión es Alta · Nombre · Plan · Pagado · Aula · Mail ·
+  Teléfono · las propias · nacimiento · Carta · Baja** (pedido de Seba,
+  25/11/2026). Plan, Pagado y Aula estaban al fondo y obligaban a cruzar el
+  scroll horizontal para ver lo que se mira al abrir la planilla. Vive en la
+  semilla de `COLUMNAS_FIJAS_PADRON`, así que **sólo aplica a los cursos que
+  todavía no guardaron su `estructura`**: un curso con el orden ya configurado
+  desde el panel no se toca, que es justamente el punto. `intro27` tenía uno
+  guardado a mano y se le borró el campo para que tomara el nuevo (no tenía
+  columnas ocultas ni renombradas; si las hubiera tenido, había que decidirlo
+  a mano).
 - **El mail se puede ocultar y mover, pero no editar**: el nombre del
   documento de la fila se deriva de él. El editor lo dice al lado.
 - **Se puede ocultar todo**, y entonces la planilla lo avisa en vez de mostrar
@@ -414,6 +424,16 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   26 filas de Primer Año", sigue sin tocarse porque gana el PAGO.)
 - **`SUMA TOTAL` del BALANCE era $12.310.400 y el padrón suma $12.565.400**: la
   diferencia es exactamente la de TERCER AÑO.
+- **La subpestaña 2026 abre con el total de los doce cursos juntos**: personas,
+  cobrado y el detalle curso por curso. Sale del mismo `resumen` que la vista
+  rápida (que ahora devuelve un bloque `archivo` aparte), así que verlo no
+  cuesta una lectura más.
+- **La deuda de 2026 en pesos no existe, y la pantalla lo dice.** Las columnas
+  `resta` (PRIMER AÑO) y `faltan` (SEGUNDO) **no son importes: son cuotas**,
+  con valores de 0 a 10, y el BALANCE declara TOTAL DEBEN $0. Por eso el total
+  muestra "cuotas que faltaban" y no un monto: multiplicarlas por un arancel
+  sería fabricar una deuda que nadie registró. Si algún día aparece el dato en
+  plata, va en una columna nueva, no en esas dos.
 
 ## Finanzas
 

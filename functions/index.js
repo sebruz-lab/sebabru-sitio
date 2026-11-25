@@ -2524,19 +2524,22 @@ async function anotarMovimientoDePadron(filaId, accion, antes, despues, quien) {
 // pantalla: las cuatro de identificacion primero (negativos), las del
 // formulario en el medio (0..N, el que ya traen) y el resto al final (1000+).
 // Cuando el panel guarda, todo se renumera con un contador unico.
+// Plan, Pagado y Aula van pegadas al nombre (pedido de Seba, 25/11/2026): es
+// lo que se mira al abrir la planilla, y al fondo de la tabla obligaba a
+// cruzar el scroll horizontal para leerlas.
 const COLUMNAS_FIJAS_PADRON = [
-  { key: 'alta', label: 'Alta', orden: -1004 },
-  { key: 'nombre', label: 'Nombre', orden: -1003 },
+  { key: 'alta', label: 'Alta', orden: -1007 },
+  { key: 'nombre', label: 'Nombre', orden: -1006 },
+  { key: 'plan', label: 'Plan', orden: -1005 },
+  { key: 'pagado', label: 'Pagado', orden: -1004 },
+  { key: 'aula', label: 'Aula', orden: -1003 },
   { key: 'email', label: 'Mail', orden: -1002 },
   { key: 'telefono', label: 'Teléfono', orden: -1001 },
   { key: 'nacimiento', label: 'Nacimiento', orden: 1001 },
   { key: 'horaNacimiento', label: 'Hora', orden: 1002 },
   { key: 'lugarNacimiento', label: 'Lugar', orden: 1003 },
   { key: 'carta', label: 'Carta', orden: 1004 },
-  { key: 'plan', label: 'Plan', orden: 1005 },
-  { key: 'pagado', label: 'Pagado', orden: 1006 },
-  { key: 'aula', label: 'Aula', orden: 1007 },
-  { key: 'baja', label: 'Baja', orden: 1008 },
+  { key: 'baja', label: 'Baja', orden: 1005 },
 ];
 const KEYS_FIJAS_PADRON = new Set(COLUMNAS_FIJAS_PADRON.map((c) => c.key));
 
@@ -3242,7 +3245,24 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       const cursoId = v.cursoId || 'sin_curso';
       // El archivo de 2026 no entra en la vista rapida: suma a Finanzas, pero
       // no tiene por que aparecer todos los dias entre quienes deben el mes.
-      if (CURSOS_ARCHIVO.has(cursoId)) continue;
+      if (CURSOS_ARCHIVO.has(cursoId)) {
+        const a = archivo.cursos[cursoId] || (archivo.cursos[cursoId] = {
+          cursoId, nombreCurso: nombres[cursoId] || cursoId,
+          filas: 0, cobrado: 0, cuotas: 0, filasConCuotas: 0,
+        });
+        const cuotas = cuotasQueFaltan(v);
+        a.filas++;
+        a.cobrado += Number(v.pagado) || 0;
+        archivo.filas++;
+        archivo.cobrado += Number(v.pagado) || 0;
+        if (cuotas !== null) {
+          a.cuotas += cuotas;
+          a.filasConCuotas++;
+          archivo.cuotas += cuotas;
+          archivo.filasConCuotas++;
+        }
+        continue;
+      }
       const c = porCurso[cursoId] || (porCurso[cursoId] = {
         cursoId, nombreCurso: nombres[cursoId] || cursoId,
         total: 0, activos: 0, bajas: 0, alDia: 0, atrasados: 0,
@@ -3280,7 +3300,9 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
     // escribirles.
     deudores.sort((a, b) => (a.desdeMes || '9999').localeCompare(b.desdeMes || '9999')
       || a.nombre.localeCompare(b.nombre, 'es'));
-    return { ok: true, cursos, deudores, mes: mesActualAR() };
+    archivo.cursos = Object.values(archivo.cursos)
+      .sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es'));
+    return { ok: true, cursos, deudores, archivo, mes: mesActualAR() };
   }
 
   throw new functions.https.HttpsError('invalid-argument', `Acción desconocida: ${accion}`);
