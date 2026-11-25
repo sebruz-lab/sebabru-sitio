@@ -69,6 +69,20 @@ function yaSuscripto() {
     try { return localStorage.getItem(CLAVE_SUSCRIPTO) === '1'; } catch (e) { return false; }
 }
 
+// LA VUELTA DEL MAIL DE CONFIRMACION
+//
+// Quien no puede resolver el captcha entra por el carril con confirmacion:
+// Brevo le manda un mail y el clic lo devuelve a /suscribirse/?confirmado=1
+// (URL_CONFIRMADO, en functions/index.js). Sin este cartel la persona vuelve
+// a la misma pagina con el mismo formulario y no tiene forma de saber que ya
+// quedo adentro — y lo mas probable es que lo complete de nuevo.
+//
+// Quien viene por el ebook NO cae aca: su carril la deja directamente en la
+// pagina del libro, que es la entrega.
+function vieneConfirmado() {
+    try { return new URLSearchParams(location.search).has('confirmado'); } catch (e) { return false; }
+}
+
 // A proposito no se promete un numero de mails por mes: la lista manda
 // lo que el cielo vaya pidiendo, y un numero escrito es una promesa que
 // despues hay que cumplir.
@@ -234,6 +248,17 @@ function armar(caja, n) {
     var textoBoton = caja.getAttribute('data-boton') || 'Suscribirme';
 
     caja.classList.add('suscribirse');
+
+    // Vuelve del mail de confirmacion: ya esta adentro, no hay formulario que
+    // mostrarle. La marca se escribe por lo mismo que despues de un alta
+    // normal — confirmar ES el alta —, y de paso le deja el atajo al libro.
+    if (vieneConfirmado()) {
+        marcarSuscripto();
+        caja.innerHTML = '<h3 class="sus-titulo">' + titulo + '</h3>'
+            + '<p class="sus-listo">Listo. Tu suscripción quedó confirmada: ya te van a llegar los mails.'
+            + '<span class="sus-nota">Si no ves el primero, mirá en spam o en promociones.</span></p>';
+        return;
+    }
 
     // EL ATAJO AL LIBRO
     //

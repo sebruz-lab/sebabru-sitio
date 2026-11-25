@@ -4435,6 +4435,12 @@ const VENTANA_POR_DIRECCION = 24 * 60 * 60 * 1000;
 // decia que revisaran su casilla.
 const URL_CONFIRMADO = 'https://sebabru.com/suscribirse/?confirmado=1';
 
+// La vuelta del carril del ebook es la pagina del libro, y no es un detalle
+// de presentacion: ES la entrega. El boton del mail confirma la suscripcion y
+// el redirectionUrl deja a la persona leyendo, todo en un clic. Si se cambia
+// la direccion del libro, se cambia aca.
+const URL_CONFIRMADO_EBOOK = 'https://sebabru.com/tu-identidad-en-el-cielo/#ebook';
+
 function diaDeHoy() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -4528,6 +4534,29 @@ function plantillaDeAlta(origen) {
     return process.env.BREVO_EBOOK_TEMPLATE_ID;
   }
   return process.env.BREVO_BIENVENIDA_TEMPLATE_ID;
+}
+
+// Lo mismo, pero para el carril con confirmacion: que plantilla de doble
+// opt-in le toca a cada origen, y a donde cae despues del clic.
+//
+// El ebook tiene las dos cosas propias, y es lo que lo devuelve al carril. Su
+// plantilla confirma Y lleva al libro con el mismo boton, porque el
+// redirectionUrl del pedido deja a la persona en la pagina del libro. Hasta
+// el 25/11/2026 el ebook estaba excluido del carril justamente por no tener
+// esto: confirmar daba el alta y el regalo no llegaba nunca.
+//
+// Devuelve null si falta la plantilla de ese origen. Quien llama cierra la
+// puerta, igual que con la general: un carril degradado sin su control no es
+// un carril degradado.
+function confirmacionDeAlta(origen) {
+  if (origen === 'ebook') {
+    return process.env.BREVO_DOI_EBOOK_TEMPLATE_ID
+      ? { plantilla: process.env.BREVO_DOI_EBOOK_TEMPLATE_ID, volverA: URL_CONFIRMADO_EBOOK }
+      : null;
+  }
+  return process.env.BREVO_DOI_TEMPLATE_ID
+    ? { plantilla: process.env.BREVO_DOI_TEMPLATE_ID, volverA: URL_CONFIRMADO }
+    : null;
 }
 
 // Cuantas veces se le reenvia el libro a una misma direccion que ya esta en
@@ -4821,28 +4850,20 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   // linea. El alta la hace Brevo cuando la persona confirma; hasta entonces
   // no hay contacto en la lista, que es justamente el punto.
   if (conConfirmacion) {
+    // Que plantilla y que vuelta le toca a este origen. El ebook tiene las
+    // suyas desde el 25/11/2026, y por eso entra al carril como todo el
+    // mundo: antes se lo rechazaba, porque confirmar le habria dado el alta
+    // sin entregarle nunca el libro.
+    const confirmacion = confirmacionDeAlta(origen);
+
     // Si falta la plantilla, el carril no tiene barrera y seria un endpoint
     // abierto. Fail-closed a proposito, y es la unica parte de todo esto que
     // cierra en vez de abrir: un carril degradado sin su control no es un
     // carril degradado.
-    if (!process.env.BREVO_DOI_TEMPLATE_ID) {
-      functions.logger.error('BREVO_DOI_TEMPLATE_ID no configurado: el carril con confirmación no puede funcionar y se rechaza el alta.');
+    if (!confirmacion) {
+      functions.logger.error('Falta la plantilla de confirmación de este origen: el carril no puede funcionar y se rechaza el alta.', { origen });
       await decidir('rechazado_sin_doi');
       await guardarLoQueDejo('falta_plantilla_doi', 'grave');
-      return res.status(400).json({ error: 'captcha_requerido' });
-    }
-
-    // El ebook queda afuera, y es a proposito. La rama "doi" del trigger
-    // ignora pedido.plantilla: una confirmacion con origen ebook daria de
-    // alta y NUNCA entregaria el libro, que es el bug que ya pasó una vez y
-    // se arregló el 2026-11-18. Hasta que el mail de confirmacion lleve
-    // contenido propio (ver el pendiente en CLAUDE.md), el regalo sigue
-    // pidiendo captcha resuelto.
-    if (origen === 'ebook') {
-      // Se rechaza, pero el mail queda guardado: a esta persona se le puede
-      // mandar el libro a mano, que es exactamente lo que vino a buscar.
-      await decidir('rechazado_captcha_ebook');
-      await guardarLoQueDejo('ebook_sin_captcha');
       return res.status(400).json({ error: 'captcha_requerido' });
     }
 
@@ -4853,7 +4874,8 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
     await encolarContactoBrevo({
       id: claveDireccion(email),
       email, nombre, listas: ['suscriptores'], atributos,
-      motivo: 'suscripcion', doi: true, redirectUrl: URL_CONFIRMADO,
+      motivo: 'suscripcion', doi: true,
+      plantilla: confirmacion.plantilla, redirectUrl: confirmacion.volverA,
     });
     await anotarPedido('confirmacion_pendiente');
     await decidir('degradado_doi', { mando: true });
@@ -5478,12 +5500,19 @@ exports.sincronizarContactoBrevo = onDocumentCreated({
 
   try {
     if (pedido.doi) {
+      // pedido.plantilla significa lo mismo en las dos ramas: la plantilla de
+      // ESTE pedido. Aca es la del doble opt-in (la general, o la del ebook
+      // que confirma y lleva al libro); abajo es el transaccional que sale
+      // despues del alta. Que esta rama la ignorara es exactamente el bug que
+      // dejo al ebook afuera del carril hasta el 25/11/2026: si se vuelve a
+      // sacar de aca, el regalo deja de llegar otra vez.
       await brevo.pedirDobleOptin({
         email: pedido.email,
         nombre: pedido.nombre,
         atributos: pedido.atributos,
         listas: pedido.listas,
         redirectUrl: pedido.redirectUrl,
+        plantilla: pedido.plantilla,
       });
     } else {
       await brevo.upsertContacto({
