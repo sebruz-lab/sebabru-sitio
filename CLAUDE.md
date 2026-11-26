@@ -405,9 +405,14 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   **ya no se edita ahí**: va por el lápiz de la columna Plan, en un emergente
   (`padPlanFondo`), para que cobrar no obligue a pasar por delante del plan.
 - **Cada año es una sola vista, sin subpestañas** (se sacaron el 26/11/2026):
-  arriba el total de esa cursada, después la planilla y abajo los atrasados.
-  Los resúmenes viven **todos** en la vista rápida, también el total de 2026
-  junto, que estaba dentro de la pestaña de archivo.
+  primero la planilla y **abajo todo lo que la resume** — el inicio de clases,
+  el total de esa cursada y los atrasados. Nada de eso va arriba de la tabla.
+- **2026 tiene su propia vista rápida**, primera de su barra
+  (`data-archivo-vista="1"`): el total del año más el detalle de las doce
+  planillas. Ocupa el lugar de la planilla (se esconde `#pad-planilla-caja`),
+  no se suma arriba. En la vista rápida general queda **sólo** el total del
+  año: el mismo dato en dos recortes, `tarjetaDe2026()` y `tablaDe2026()`,
+  para no repetir la tabla en los dos lugares.
 - **Los datos de nacimiento no tienen interruptor.** Son tres columnas ocultas
   como cualquier otra, y `conNacimiento()` devuelve true sólo si alguna está a
   la vista: el dato no sale de Firestore si nadie lo está mirando. Al mostrar
