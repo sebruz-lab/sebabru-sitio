@@ -2978,6 +2978,14 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       const fila = await tx.get(filaRef);
       if (!fila.exists) throw new functions.https.HttpsError('not-found', 'Esa fila no existe.');
       const pagos = Array.isArray(fila.data().pagos) ? fila.data().pagos : [];
+      // Un pago facturado no se borra. La factura existe en AFIP y no se
+      // puede deshacer: lo que corresponde es una nota de crédito, y para eso
+      // el renglón tiene que seguir estando.
+      const facturado = pagos.find(p => p.id === pagoId && p.facturaId);
+      if (facturado) {
+        throw new functions.https.HttpsError('failed-precondition',
+          `Ese pago está facturado (${facturado.facturaId}): hace falta una nota de crédito, no borrarlo.`);
+      }
       const quedan = pagos.filter(p => p.id !== pagoId);
       if (quedan.length === pagos.length) {
         throw new functions.https.HttpsError('not-found', 'Ese pago ya no está.');

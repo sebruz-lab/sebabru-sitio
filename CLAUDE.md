@@ -461,6 +461,14 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   `aulaDada: true` y el plan del curso; si la escritura falla, custodia, para
   que no quede alguien con el aula y fuera de la planilla sin que nadie se
   entere.
+- **Las cuotas se facturan con el facturador de AFIP, desde diciembre de 2026.**
+  `C:\dev\facturador-afip` lista las cuotas sin facturar junto a las compras
+  del sitio (ver `padron.js` y el LEEME de ahí). Facturan **Transferencia y
+  Mercado Pago**; PayPal, Efectivo y Otro no. El corte es el 2026-12-01 y el
+  archivo de 2026 nunca entra. Del lado de acá: un pago con `facturaId`
+  **no se puede borrar** —`borrarPago` lo rechaza y el panel esconde el ✕—,
+  porque la factura existe en AFIP y lo que corresponde es una nota de
+  crédito; el renglón muestra el número abajo.
 - **PENDIENTE (etapa 2):** el cobro en línea de las cuotas con Mercado Pago y
   PayPal. El 10% a Clari y la importación de 2026 se hicieron el 25/11/2026
   (ver las secciones "Finanzas" y "El archivo de 2026"); la diferencia de

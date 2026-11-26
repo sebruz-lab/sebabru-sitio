@@ -2353,8 +2353,8 @@
                         <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(p.monto))}</td>
                         <td>${escapeHtml(p.medio || '')}</td>
                         <td>${p.cuota ? 'cuota ' + escapeHtml(String(p.cuota)) : '<span style="opacity:.6">suelto</span>'}</td>
-                        <td>${escapeHtml(p.nota || '')}</td>
-                        <td><button class="btn-table" data-pad-borrar-pago="${escapeHtml(p.id || '')}" data-pad-fila="${escapeHtml(f.id)}" title="Borrar este pago">✕</button></td>
+                        <td>${escapeHtml(p.nota || '')}${p.facturaId ? `<div class="pad-mini">facturado · ${escapeHtml(p.facturaId)}</div>` : ''}</td>
+                        <td>${p.facturaId ? '' : `<button class="btn-table" data-pad-borrar-pago="${escapeHtml(p.id || '')}" data-pad-fila="${escapeHtml(f.id)}" title="Borrar este pago">✕</button>`}</td>
                     </tr>`).join('')
             : '';
 
