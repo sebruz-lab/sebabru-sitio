@@ -494,20 +494,23 @@
                 <select id="pad-curso"><option value="">Elegí un curso</option></select>
             </div>
 
-            <!-- Nivel 3 de 2026: una planilla por pestaña de la planilla
-                 vieja. Se llena desde el servidor. -->
+            <!-- Nivel 3 de 2026: la vista rápida de todo el año y después una
+                 planilla por pestaña de la planilla vieja. Se llena desde el
+                 servidor. -->
             <div class="tabs" data-nivel="3" data-grupo="pad-archivo" id="pad-barra-archivo" style="display:none;"></div>
 
-            <!-- El inicio de clases es lo que hace que los vencimientos
-                 existan: sin mes de primera cuota nada puede figurar
-                 atrasado. Vive en padron_columnas/{cursoId}. -->
-            <div id="pad-cursada" class="pad-cursada" style="display:none;"></div>
+            <!-- La vista rápida de 2026: todas las planillas resumidas. Ocupa
+                 el lugar de la planilla, no se suma arriba. -->
+            <div id="pad-archivo-vista" style="display:none;"></div>
+
+            <div id="pad-planilla-caja">
             <div id="pad-msg"></div>
 
-            <!-- Arriba el total de esta cursada, después la planilla, y abajo
-                 quién debe: no hay subpestañas por año. -->
-            <div id="pad-totales" style="margin-top:14px;"></div>
+            <!-- La planilla primero. Todo lo que la resume va abajo: el inicio
+                 de clases, el total de esta cursada y quién debe. -->
             <div id="pad-lista" style="margin-top:10px; overflow-x:auto;"></div>
+            <div id="pad-cursada" class="pad-cursada" style="display:none;"></div>
+            <div id="pad-totales" style="margin-top:14px;"></div>
             <div id="pad-plata" style="margin-top:24px;"></div>
 
             <details id="pad-ajustes-caja" style="margin-top:20px; display:none;">
@@ -571,6 +574,7 @@
                 </div>
                 <div id="pad-col-msg"></div>
             </details>
+            </div><!-- /pad-planilla-caja -->
         </div>
         </div>
         <div id="tab-al-mano" class="tab-panel" data-grupo="alumnos">
@@ -2084,8 +2088,11 @@
             // La barra de 2026 sale del servidor: sumar un curso de archivo
             // es una entrada en FORMACIONES_ARCHIVO y nada de HTML.
             padArchivo = r.data.archivo || [];
-            document.getElementById('pad-barra-archivo').innerHTML = padArchivo.map((c, i) =>
-                `<button class="tab-btn${i === 0 ? ' active' : ''}" data-tab="al-curso" data-curso="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso.replace(/^2026 · /, ''))}</button>`).join('');
+            document.getElementById('pad-barra-archivo').innerHTML =
+                '<button class="tab-btn active" data-tab="al-curso" data-archivo-vista="1">'
+                + '<i class="fa-solid fa-gauge-high"></i> Vista rápida</button>'
+                + padArchivo.map(c =>
+                    `<button class="tab-btn" data-tab="al-curso" data-curso="${escapeHtml(c.cursoId)}">${escapeHtml(c.nombreCurso.replace(/^2026 · /, ''))}</button>`).join('');
             padCursosCargados = true;
         } catch (e) {
             padError(padMsg, e);
@@ -2111,26 +2118,37 @@
     });
 
     // Los botones de curso: los cuatro años tienen el curso puesto en el
-    // HTML, y el de 2026 abre su barra y toma el primero de la lista.
+    // HTML, y el de 2026 abre su barra, que empieza por su vista rápida.
     document.addEventListener('click', async (ev) => {
         const btn = ev.target.closest('.tab-btn[data-tab="al-curso"]');
         if (!btn) return;
         await cargarCursosDePadron();
-        const esArchivo = btn.dataset.archivo === '1' || padArchivo.some(c => c.cursoId === btn.dataset.curso);
+        const esArchivo = btn.dataset.archivo === '1' || btn.dataset.archivoVista === '1'
+            || padArchivo.some(c => c.cursoId === btn.dataset.curso);
         const barra = document.getElementById('pad-barra-archivo');
         barra.style.display = esArchivo ? 'flex' : 'none';
-        // El total de todo 2026 junto vive en la vista rápida, con los demás
-        // resúmenes: acá se ve la planilla de un curso y su propio total.
         const titulo = document.getElementById('pad-titulo');
-        let curso = btn.dataset.curso;
+
+        // Entrar a 2026 por el botón de arriba: manda el botón que la barra
+        // muestra como activo, para que la pantalla y el dato no digan cosas
+        // distintas. Si es la vista rápida, no hay curso que elegir.
+        let elegido = btn;
         if (btn.dataset.archivo === '1') {
-            // Entrar a 2026 por el botón de arriba: queda elegido el que la
-            // barra muestra como activo, para que la pantalla y el dato no
-            // digan cosas distintas.
-            curso = barra.querySelector('.tab-btn.active')?.dataset.curso || padArchivo[0]?.cursoId;
+            elegido = barra.querySelector('.tab-btn.active') || barra.querySelector('.tab-btn') || btn;
         }
-        titulo.textContent = esArchivo ? 'Planilla de 2026 (archivo)' : 'Planilla';
-        elegirCursoDePadron(curso);
+        const vistaDe2026 = elegido.dataset.archivoVista === '1';
+        document.getElementById('pad-archivo-vista').style.display = vistaDe2026 ? '' : 'none';
+        document.getElementById('pad-planilla-caja').style.display = vistaDe2026 ? 'none' : '';
+        titulo.textContent = vistaDe2026 ? 'Todo 2026'
+            : (esArchivo ? 'Planilla de 2026 (archivo)' : 'Planilla');
+        if (vistaDe2026) {
+            // Si el resumen todavía no llegó, se pide: entrar por acá puede
+            // ser la primera vez que se abre la pestaña.
+            if (!padTotalArchivo) { padResumenCargado = true; cargarResumenDePadron(); }
+            else pintarVistaDe2026();
+            return;
+        }
+        elegirCursoDePadron(elegido.dataset.curso);
     });
 
     // Las filas quedan en memoria para poder repintar la tabla sin volver a
@@ -3082,29 +3100,53 @@
     // por un arancel para mostrar un monto sería fabricar una deuda que nadie
     // registró.
     let padTotalArchivo = null;
-    function pintarTotalArchivo() {
-        const caja = document.getElementById('pad-total-archivo');
-        if (!caja || !padTotalArchivo) return;
+
+    // El total del anio, para la vista rapida general.
+    function tarjetaDe2026() {
         const t = padTotalArchivo;
-        const cursos = t.cursos || [];
-        caja.innerHTML = `<div class="pad-tarjetas">
-                <div class="pad-tarjeta"><h4>Todo 2026, los ${cursos.length} cursos juntos</h4><dl>
+        if (!t) return '';
+        return `<div class="pad-tarjetas">
+                <div class="pad-tarjeta"><h4>Todo 2026, los ${(t.cursos || []).length} cursos juntos</h4><dl>
                     <dt>Personas</dt><dd>${t.filas}</dd>
                     <dt>Cobrado</dt><dd>${escapeHtml(pesos(t.cobrado))}</dd>
                     <dt>Cuotas que faltaban</dt><dd>${t.cuotas || 0}${t.filasConCuotas ? ` <span class="pad-mini">en ${t.filasConCuotas} personas</span>` : ''}</dd>
                 </dl></div>
-            </div>
-            <div style="overflow-x:auto;margin:14px 0 18px;"><table class="user-table"><thead><tr>
+            </div>`;
+    }
+
+    // Curso por curso, para la vista rapida de 2026.
+    function tablaDe2026() {
+        const t = padTotalArchivo;
+        const cursos = (t && t.cursos) || [];
+        if (!cursos.length) return '';
+        return `<div style="overflow-x:auto;margin-top:16px;"><table class="user-table"><thead><tr>
                     <th>Curso</th><th>Personas</th><th>Cobrado</th><th>Cuotas que faltaban</th>
                 </tr></thead><tbody>`
             + cursos.map(c => `<tr>
                     <td>${escapeHtml(c.nombreCurso)}</td>
                     <td>${c.filas}</td>
                     <td>${escapeHtml(pesos(c.cobrado))}</td>
-                    <td>${c.filasConCuotas ? c.cuotas : '—'}</td>
+                    <td>${c.filasConCuotas ? c.cuotas : '\u2014'}</td>
                 </tr>`).join('')
             + `<tr><th>Total</th><th>${t.filas}</th><th>${escapeHtml(pesos(t.cobrado))}</th><th>${t.cuotas || 0}</th></tr>`
             + '</tbody></table></div>';
+    }
+
+    // Dos lugares, dos recortes del mismo dato: en la vista rapida general va
+    // el total del anio, y en la vista rapida de 2026 va eso mas el detalle de
+    // las doce planillas.
+    function pintarTotalArchivo() {
+        const caja = document.getElementById('pad-total-archivo');
+        if (caja) caja.innerHTML = tarjetaDe2026();
+        pintarVistaDe2026();
+    }
+
+    function pintarVistaDe2026() {
+        const caja = document.getElementById('pad-archivo-vista');
+        if (!caja) return;
+        caja.innerHTML = padTotalArchivo
+            ? tarjetaDe2026() + tablaDe2026()
+            : '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
     }
 
     async function cargarResumenDePadron() {
