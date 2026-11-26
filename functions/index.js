@@ -2527,19 +2527,24 @@ async function anotarMovimientoDePadron(filaId, accion, antes, despues, quien) {
 // Plan, Pagado y Aula van pegadas al nombre (pedido de Seba, 25/11/2026): es
 // lo que se mira al abrir la planilla, y al fondo de la tabla obligaba a
 // cruzar el scroll horizontal para leerlas.
+// `oculta: true` en la semilla: por omision se ven Nombre, Plan, Pagado y
+// Aula, y nada mas (pedido de Seba, 26/11/2026). El resto esta ahi y vuelve
+// desde el menu de la cabecera o desde el ojo del final de la tabla, porque
+// ocultar no borra nada. Solo aplica a un curso que todavia no guardo su
+// `estructura`: uno ya configurado desde el panel no se toca.
 const COLUMNAS_FIJAS_PADRON = [
-  { key: 'alta', label: 'Alta', orden: -1007 },
+  { key: 'alta', label: 'Alta', orden: -1007, oculta: true },
   { key: 'nombre', label: 'Nombre', orden: -1006 },
   { key: 'plan', label: 'Plan', orden: -1005 },
   { key: 'pagado', label: 'Pagado', orden: -1004 },
   { key: 'aula', label: 'Aula', orden: -1003 },
-  { key: 'email', label: 'Mail', orden: -1002 },
-  { key: 'telefono', label: 'Teléfono', orden: -1001 },
-  { key: 'nacimiento', label: 'Nacimiento', orden: 1001 },
-  { key: 'horaNacimiento', label: 'Hora', orden: 1002 },
-  { key: 'lugarNacimiento', label: 'Lugar', orden: 1003 },
-  { key: 'carta', label: 'Carta', orden: 1004 },
-  { key: 'baja', label: 'Baja', orden: 1005 },
+  { key: 'email', label: 'Mail', orden: -1002, oculta: true },
+  { key: 'telefono', label: 'Teléfono', orden: -1001, oculta: true },
+  { key: 'nacimiento', label: 'Nacimiento', orden: 1001, oculta: true },
+  { key: 'horaNacimiento', label: 'Hora', orden: 1002, oculta: true },
+  { key: 'lugarNacimiento', label: 'Lugar', orden: 1003, oculta: true },
+  { key: 'carta', label: 'Carta', orden: 1004, oculta: true },
+  { key: 'baja', label: 'Baja', orden: 1005, oculta: true },
 ];
 const KEYS_FIJAS_PADRON = new Set(COLUMNAS_FIJAS_PADRON.map((c) => c.key));
 
@@ -2572,7 +2577,9 @@ function columnasFusionadas(estructura, columnas) {
       opciones: [],
       fija: true,
       orden: Number.isFinite(v.orden) ? v.orden : base.orden,
-      oculta: Boolean(v.oculta),
+      // Sin nada guardado manda la semilla; con `estructura` guardada manda
+      // lo que dejo el panel, tambien cuando dejo la columna a la vista.
+      oculta: v.oculta === undefined ? Boolean(base.oculta) : Boolean(v.oculta),
     };
   });
   return fijas.concat(guardadas).sort((a, b) => a.orden - b.orden);
@@ -3092,7 +3099,7 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
         estructura.push({
           key: base.key,
           label: vieja.label || base.label,
-          oculta: Boolean(vieja.oculta),
+          oculta: vieja.oculta === undefined ? Boolean(base.oculta) : Boolean(vieja.oculta),
           orden: orden++,
         });
       }
