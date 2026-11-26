@@ -1286,11 +1286,11 @@
                     </tr></thead><tbody>`
                     + masNuevoPrimero(lista).map(i => `<tr>
                         <td>${escapeHtml(i.fecha || '—')}</td>
-                        <td>${escapeHtml(i.concepto || '—')}${i.nota ? `<div class="pad-mini">${escapeHtml(i.nota)}</div>` : ''}</td>
+                        <td>${escapeHtml(i.concepto || '—')}${i.nota ? `<div class="pad-mini">${escapeHtml(i.nota)}</div>` : ''}${i.facturaId ? `<div class="pad-mini">facturado · ${escapeHtml(i.facturaId)}</div>` : ''}</td>
                         <td>${escapeHtml(FIN_FUENTES[i.fuente] || i.fuente || '—')}</td>
                         <td>${escapeHtml(finPlata({ [i.moneda === 'USD' ? 'USD' : 'ARS']: Number(i.monto) || 0 }))}</td>
                         <td>${escapeHtml(i.medio || '—')}</td>
-                        <td><button class="btn-table" data-fin-borrar-ingreso="${escapeHtml(i.id)}">Borrar</button></td>
+                        <td>${i.facturaId ? '' : `<button class="btn-table" data-fin-borrar-ingreso="${escapeHtml(i.id)}">Borrar</button>`}</td>
                     </tr>`).join('')
                     + '</tbody></table></div>'
                 : '<p style="opacity:.7;font-size:.85rem;">Todavía no hay ingresos anotados a mano en este período.</p>';

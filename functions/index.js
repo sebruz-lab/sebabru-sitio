@@ -3590,6 +3590,12 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
     const ref = _db.collection(esClari ? 'finanzas_clari' : 'finanzas_ingresos').doc(id);
     const doc = await ref.get();
     if (!doc.exists) throw new functions.https.HttpsError('not-found', 'Ese renglón ya no está.');
+    // Un ingreso facturado no se borra, por lo mismo que un pago del padrón:
+    // la factura existe en AFIP y lo que corresponde es una nota de crédito.
+    if (doc.data().facturaId) {
+      throw new functions.https.HttpsError('failed-precondition',
+        `Ese ingreso está facturado (${doc.data().facturaId}): hace falta una nota de crédito, no borrarlo.`);
+    }
     await ref.delete();
     await anotarMovimientoDeFinanzas(`${esClari ? 'clari' : 'ingreso'}:${id}`,
       accion, doc.data(), null, quien);

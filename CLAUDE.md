@@ -468,7 +468,15 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   archivo de 2026 nunca entra. Del lado de acá: un pago con `facturaId`
   **no se puede borrar** —`borrarPago` lo rechaza y el panel esconde el ✕—,
   porque la factura existe en AFIP y lo que corresponde es una nota de
-  crédito; el renglón muestra el número abajo.
+  crédito; el renglón muestra el número abajo. Lo mismo para un ingreso de
+  `finanzas_ingresos`, que **también se factura** desde ahí: es donde quedan
+  las sesiones cobradas por fuera del sitio.
+- **La factura dice una de tres palabras y nada más**: `Clases`, `Sesiones` o
+  `Consultas` (decisión de Seba del 26/11/2026). Todo lo de la escuela es
+  Clases; atender a alguien va por monto, con el corte en $100.000. No hay
+  texto libre en ninguna pantalla y el facturador rechaza cualquier otra cosa.
+  Qué se vendió no va impreso: queda en el registro de `facturas`. Y **todo
+  sale a consumidor final sin identificar**, siempre.
 - **PENDIENTE (etapa 2):** el cobro en línea de las cuotas con Mercado Pago y
   PayPal. El 10% a Clari y la importación de 2026 se hicieron el 25/11/2026
   (ver las secciones "Finanzas" y "El archivo de 2026"); la diferencia de
