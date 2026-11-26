@@ -348,11 +348,35 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   guardado a mano y se le borró el campo para que tomara el nuevo (no tenía
   columnas ocultas ni renombradas; si las hubiera tenido, había que decidirlo
   a mano).
+- **Las columnas se acomodan desde la cabecera, no desde un editor** (desde el
+  26/11/2026). Cada `<th>` se arrastra y además trae un `▾` con el menú de esa
+  columna: ordenar por ella, mover a un lado o al otro, y ocultar. Lo elegido
+  se guarda en el momento con `guardarColumnas` — el panel manda **la lista
+  completa**, también las ocultas, que es lo que esa acción espera. El
+  `<details>` "Títulos de las columnas" quedó sólo para renombrar y para crear
+  una columna nueva: el orden y el ocultado ya no se leen de ahí, salen de
+  `padColumnas`.
+- **El menú va suelto en el `<body>`, `position: fixed`.** Adentro del `<th>`
+  lo recortaba el contenedor de la tabla, que tiene `overflow-x: auto` (y
+  `overflow-x: auto` con `overflow-y: visible` computa `auto` en los dos ejes).
+  Se ubica con `getBoundingClientRect()`.
+- **El ojo del final de la tabla es el camino de vuelta.** Es una columnita
+  extra a la altura de las cabeceras que lista las ocultas; sin ella, ocultar
+  la última columna no tendría regreso. Por eso el `colspan` del detalle de
+  pagos es `visibles.length + 1`. Si están todas ocultas, la planilla lo avisa
+  y ofrece el mismo menú en un botón.
+- **Por omisión se ven Nombre, Plan, Pagado y Aula, y nada más** (pedido de
+  Seba, 26/11/2026). Las fijas nacen con `oculta: true` en la semilla de
+  `COLUMNAS_FIJAS_PADRON`, así que **sólo aplica a un curso que todavía no
+  guardó su `estructura`**. Las del formulario son otra historia: no tienen
+  estado "sin definir" (`asegurarColumnasDePadron` les escribe `oculta: false`),
+  así que se ocultaron **una vez, a mano**, en los 14 documentos de
+  `padron_columnas`. Las que se agreguen después —un campo nuevo del formulario
+  o una columna del panel— **siguen naciendo a la vista a propósito**: una
+  columna nueva tiene que anunciarse sola, que es justo el bug callado que
+  documenta el punto de `asegurarColumnasDePadron`.
 - **El mail se puede ocultar y mover, pero no editar**: el nombre del
   documento de la fila se deriva de él. El editor lo dice al lado.
-- **Se puede ocultar todo**, y entonces la planilla lo avisa en vez de mostrar
-  una tabla vacía: el editor lista también las ocultas, así que siempre hay
-  camino de vuelta.
 - Se sacó la regla `@media` que escondía `:nth-child(3)` en pantalla chica.
   Servía cuando la tercera columna era siempre el mail; con las columnas
   ordenables tapaba un dato cualquiera.
@@ -371,6 +395,30 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   a mano sí es ISO. Lo resuelve `fechaDeAlta()` en el panel, que entiende las
   dos y, si no entiende, muestra el texto tal cual antes que una fecha
   inventada.
+- **Cobrar es un paso, y editar el plan es otro camino.** El botón de la
+  columna Pagado abre el renglón de la fila con el formulario de pago
+  **primero y ya completo**: la fecha de hoy, la cuota que toca (la primera
+  pendiente) y el monto de cuota más frecuente de esa formación, que sale de
+  contar los `pagos[]` de todas las filas (`montosPosibles()`); si todavía no
+  hay ningún pago, de `total / cuotas` de la fila y del curso. El campo es
+  escribible y el desplegable es un `<datalist>`, no una lista cerrada. El plan
+  **ya no se edita ahí**: va por el lápiz de la columna Plan, en un emergente
+  (`padPlanFondo`), para que cobrar no obligue a pasar por delante del plan.
+- **Cada año es una sola vista, sin subpestañas** (se sacaron el 26/11/2026):
+  arriba el total de esa cursada, después la planilla y abajo los atrasados.
+  Los resúmenes viven **todos** en la vista rápida, también el total de 2026
+  junto, que estaba dentro de la pestaña de archivo.
+- **Los datos de nacimiento no tienen interruptor.** Son tres columnas ocultas
+  como cualquier otra, y `conNacimiento()` devuelve true sólo si alguna está a
+  la vista: el dato no sale de Firestore si nadie lo está mirando. Al mostrar
+  una, `guardarColumnasAhora()` ve que `conNacimiento() !== padNacCargado` y
+  vuelve a cargar la planilla. `cargarPadron()` tiene la misma red para el
+  cambio de curso, con una sola vuelta extra.
+- **Las leyendas del panel se sacaron** (pedido de Seba, 26/11/2026): los
+  carteles que explicaban cómo funciona cada cosa. Lo que queda son los
+  mensajes de estado ("Nadie figura atrasado", "No hay columnas ocultas") y los
+  errores. Las explicaciones van en los comentarios del código y acá, no en la
+  pantalla.
 - Anual y semestral **se distinguen solo por color**; el mensual muestra
   cuántas cuotas van pagas y cuáles faltan con su mes (pedido de Seba,
   24/11/2026).
