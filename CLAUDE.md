@@ -427,6 +427,40 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - Anual y semestral **se distinguen solo por color**; el mensual muestra
   cuántas cuotas van pagas y cuáles faltan con su mes (pedido de Seba,
   24/11/2026).
+- **Beca y media beca son tipos de plan** (desde el 26/11/2026). `beca` no es
+  un plan de pago, es la ausencia de uno: `deudaDeLaFila` la corta antes de
+  calcular nada y la devuelve con estado `'beca'`, así que no genera
+  vencimientos, no puede figurar atrasada y no suma a "a cobrar"; la vista
+  rápida la cuenta aparte. `media` **sí paga**, y paga igual que el mensual
+  (10 cuotas, `cada: 1`): lo que cambia es el total, que como todos los
+  totales es personal y se carga a mano. Por eso `PAD_EN_CUOTAS` del panel
+  son dos tipos y no uno — si se agrega otro plan que venza de a cuotas, va
+  en esa lista o se va a ver como una sola chapa.
+- **Toda lista de pagos va de lo más nuevo a lo más viejo** (pedido de Seba,
+  26/11/2026): el padrón, los pagos a Clari y los ingresos a mano. Las
+  consultas del servidor ya ordenan por fecha, pero los `pagos[]` de una fila
+  son un arreglo, así que el orden lo asegura `masNuevoPrimero()` en el panel,
+  en un solo lugar.
+- **El teléfono de un deudor es un enlace a WhatsApp.** `waHref()` arma el
+  `wa.me`: en Argentina el móvil lleva el 9 después del 54 y no lleva el 0 ni
+  el 15. Si el número no parece argentino se usa tal como está, porque un
+  enlace que no abre es mejor que uno que abre con otra persona.
+- **La vista rápida abre con todas las formaciones sumadas** y después el
+  detalle año por año (pedido de Seba, 26/11/2026). La suma la hace el
+  navegador con `sumaDeCursos()` sobre lo que ya devolvió `resumen`: no cuesta
+  una lectura más.
+- **Dar el aula de una formación anota a la persona en su planilla.** Lo hace
+  el trigger `aulaAlPadron` sobre `usuarios/{email}`, y está ahí y no en el
+  botón del panel a propósito: `usuarios.cursos` se escribe desde tres lugares
+  (el casillero de "Editar usuario", el botón "Dar acceso" del padrón y la
+  herramienta de migrar acceso), y así el padrón se completa por los tres.
+  Reacciona **sólo a los cursos que se agregaron** y sólo a los de
+  `FORMACIONES_ESCUELA`: un curso grabado no tiene padrón. Antes eran dos
+  gestos separados y el panel podía decir que una formación tenía dos anotados
+  mientras el aula tenía cuatro. La fila nace con `origen: 'aula'`,
+  `aulaDada: true` y el plan del curso; si la escritura falla, custodia, para
+  que no quede alguien con el aula y fuera de la planilla sin que nadie se
+  entere.
 - **PENDIENTE (etapa 2):** el cobro en línea de las cuotas con Mercado Pago y
   PayPal. El 10% a Clari y la importación de 2026 se hicieron el 25/11/2026
   (ver las secciones "Finanzas" y "El archivo de 2026"); la diferencia de
@@ -439,10 +473,15 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   `functions/index.js`, con `cursoId` `a26_*` y una entrada por pestaña de la
   planilla. El prefijo no es decorativo: `linaje26` y `pluton26` ya son slugs
   de aulas, y un `cursoId` repetido mezclaría dos padrones.
-- **Suman a Finanzas y no a la vista rápida.** `accion: 'resumen'` saltea los
-  cursos de archivo, y las filas nacen con `plan: null`, así que nada puede
-  figurar atrasado: 2026 está cerrado y reclamar una cuota de marzo de 2026 no
-  es lo que el panel tiene que recordar todos los días.
+- **2026 no cruza a Finanzas, y tampoco a la vista rápida** (decisión de Seba
+  del 26/11/2026; antes sí sumaba a Finanzas). El archivo es un campo de
+  prueba para ver cómo funciona el padrón: `juntarTodo` saltea los cursos de
+  `CURSOS_ARCHIVO` de entrada, así que no suma a ningún ingreso ni entra en la
+  base del porcentaje de Clari. `accion: 'resumen'` los saltea igual, y las
+  filas nacen con `plan: null`, así que nada puede figurar atrasado: 2026 está
+  cerrado y reclamar una cuota de marzo de 2026 no es lo que el panel tiene
+  que recordar todos los días. Se mira en su propia vista rápida, dentro del
+  padrón, y ahí termina.
 - **Gana la columna PAGO, no los meses** (decisión de Seba). Entra como **un**
   renglón de `pagos[]` fechado al 31/12/2026, con la nota que aclara que es el
   total del año y no un cobro de ese día. Las columnas de meses de PRIMER AÑO
@@ -504,11 +543,20 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **El 10% de Clari se calcula sobre los pagos del padrón** (las formaciones),
   no sobre los cursos grabados ni las consultas. El porcentaje vive en
   `finanzas_config/clari` y se edita desde el panel: cambiarlo no es un deploy.
-  Por omisión no cuenta 2026; hay una casilla para incluirlo. El BALANCE 2026
-  calculaba "PAGAR A CLARI" como el 10% de **todo** lo ingresado, así que si
-  alguna vez hay que reproducir ese número, es con esa casilla prendida.
+  2026 **no entra**, y ya no hay casilla para incluirlo (ver el punto de "El
+  archivo de 2026"). El BALANCE 2026 calculaba "PAGAR A CLARI" como el 10% de
+  **todo** lo ingresado: ese número ya no se puede reproducir desde el panel,
+  y está bien, porque es la cuenta de un año cerrado.
 - **Un pago a Clari es un renglón, nunca un número tipeado**, igual que los
   pagos del padrón: el saldo es derivado.
+- **Una compra de prueba se marca, no se borra.** `compras` con
+  `prueba: true` no suma a Finanzas. Es lo que se hizo con los $800 de
+  `mp_183132780689` (el curso `lilith`, 01/11/2026), que era una prueba de
+  Seba: el pago existió en Mercado Pago y borrar el registro sería perder el
+  único rastro que tenemos de él.
+- **"Consultas y sesiones" es una columna de Ingresos de la escuela**, no sólo
+  una subpestaña: hasta el 26/11/2026 esa tabla mostraba formaciones, cursos
+  y libro, y lo cobrado por consultas no aparecía en ningún total por mes.
 - **El número de consultas es un piso, y la pantalla lo dice.** Sólo está lo
   que pasó por el sitio (Mercado Pago y PayPal, en `compras` con
   `producto: 'consulta'`). La columna "Pago" de la planilla de consultas está
