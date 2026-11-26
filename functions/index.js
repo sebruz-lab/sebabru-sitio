@@ -2358,16 +2358,24 @@ exports.pendientes = functions.https.onCall(async (data, context) => {
 // mismo.
 // -------------------------------------------------------
 const MEDIOS_PAGO = ['Transferencia', 'Mercado Pago', 'PayPal', 'Efectivo', 'Otro'];
-const TIPOS_DE_PLAN = ['anual', 'semestral', 'mensual'];
+const TIPOS_DE_PLAN = ['anual', 'semestral', 'mensual', 'beca', 'media'];
 
 // Cuantas cuotas tiene cada tipo y cada cuantos meses vence una.
 // Desde 2027 la cursada va de marzo a diciembre: diez cuotas seguidas, sin el
 // salto de julio que tenia el esquema de ocho. Y el semestre son cinco meses,
 // no seis, asi que la segunda cuota del plan semestral vence en agosto.
+//
+// `beca` no tiene cuotas: no es un plan de pago, es la ausencia de uno. No
+// genera vencimientos y `deudaDeLaFila` la corta antes de calcular nada, asi
+// que una beca no puede figurar atrasada ni sumar a "a cobrar".
+// `media` (media beca) si paga, y paga igual que el mensual: lo que cambia es
+// el total, que como todos los totales es personal y se carga a mano.
 const FORMA_DEL_PLAN = {
   anual: { cuotas: 1, cada: 0 },
   semestral: { cuotas: 2, cada: 5 },
   mensual: { cuotas: 10, cada: 1 },
+  beca: { cuotas: 0, cada: 0 },
+  media: { cuotas: 10, cada: 1 },
 };
 
 // Lo que eligio en el formulario, traducido a un plan. Es solo el punto de
@@ -2441,6 +2449,10 @@ function deudaDeLaFila(v) {
     cuotasPagas: 0, cuotasPendientes: [], adeudaEsteMes: false,
     mesHoy: mesActualAR(), estado: plan ? 'sin_fecha' : 'sin_plan',
   };
+  // Una beca no debe nada, nunca, y tampoco le falta el mes de inicio: no hay
+  // cuotas que fechar. Sale con su propio estado para que la vista rapida la
+  // cuente aparte en vez de mezclarla con quien esta al dia.
+  if (plan && plan.tipo === 'beca') return { ...base, estado: 'beca', saldo: null, cuotas: 0 };
   if (!plan || !plan.desde) return base;
 
   const vencimientos = vencimientosDelPlan(plan);
@@ -3273,7 +3285,7 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       const c = porCurso[cursoId] || (porCurso[cursoId] = {
         cursoId, nombreCurso: nombres[cursoId] || cursoId,
         total: 0, activos: 0, bajas: 0, alDia: 0, atrasados: 0,
-        anualPagado: 0, sinPlan: 0, sinFecha: 0, cobrado: 0, aCobrar: 0,
+        anualPagado: 0, becas: 0, sinPlan: 0, sinFecha: 0, cobrado: 0, aCobrar: 0,
       });
       c.total++;
       if ((v.estado || 'activo') === 'baja') { c.bajas++; continue; }
@@ -3283,7 +3295,8 @@ exports.adminPadron = functions.https.onCall(async (data, context) => {
       c.cobrado += deuda.pagado;
       if (deuda.total) c.aCobrar += deuda.total;
 
-      if (deuda.estado === 'sin_plan') c.sinPlan++;
+      if (deuda.estado === 'beca') c.becas++;
+      else if (deuda.estado === 'sin_plan') c.sinPlan++;
       else if (deuda.estado === 'sin_fecha') c.sinFecha++;
       else if (deuda.estado === 'pagado') {
         // "Anual pagado" es el que pediste ver aparte: pago todo de una.
@@ -3395,7 +3408,6 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
     return {
       porcentaje: Number.isFinite(p) && p >= 0 && p <= 100 ? p : 10,
       desdeMes: mesValido(v.desdeMes) ? v.desdeMes : '',
-      incluirArchivo: v.incluirArchivo === true,
     };
   }
 
@@ -3408,7 +3420,6 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
     const porCurso = {};        // cursoId -> { nombreCurso, archivo, ARS }
     const aConfirmar = {};
     let baseFormaciones = 0;    // pesos de formaciones en curso (la base de Clari)
-    let baseArchivo = 0;
 
     const anotar = (mes, fuente, moneda, monto) => {
       if (!monto) return;
@@ -3423,17 +3434,21 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
     await barrerColeccion(_db.collection('padron').orderBy('__name__'), (d) => {
       const v = d.data();
       const cursoId = v.cursoId || 'sin_curso';
-      const esArchivo = CURSOS_ARCHIVO.has(cursoId);
+      // 2026 no cruza a Finanzas (decision de Seba del 26/11/2026): el archivo
+      // es un campo de prueba para ver como funciona el padron, no plata que
+      // haya que sumar de nuevo ni base del porcentaje de Clari. Se mira en su
+      // propia vista rapida y ahi termina.
+      if (CURSOS_ARCHIVO.has(cursoId)) return;
       for (const p of (Array.isArray(v.pagos) ? v.pagos : [])) {
         const monto = Number(p?.monto) || 0;
         const fecha = String(p?.fecha || '');
         if (monto <= 0 || fecha < desde || fecha > hasta) continue;
-        anotar(mesDeFecha(fecha), esArchivo ? 'archivo2026' : 'formaciones', 'ARS', monto);
+        anotar(mesDeFecha(fecha), 'formaciones', 'ARS', monto);
         const c = porCurso[cursoId] || (porCurso[cursoId] = {
-          cursoId, nombreCurso: nombres[cursoId] || cursoId, archivo: esArchivo, ARS: 0,
+          cursoId, nombreCurso: nombres[cursoId] || cursoId, archivo: false, ARS: 0,
         });
         c.ARS += monto;
-        if (esArchivo) baseArchivo += monto; else baseFormaciones += monto;
+        baseFormaciones += monto;
       }
     });
 
@@ -3444,6 +3459,10 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
       const v = d.data();
       const fecha = fechaDeTimestamp(v.fecha);
       if (!fecha || fecha < desde || fecha > hasta) return;
+      // Una compra de prueba no es un ingreso. Se marca con `prueba: true` en
+      // vez de borrarla: el pago existio en Mercado Pago y borrar el registro
+      // seria perder el unico rastro que tenemos de el.
+      if (v.prueba === true) return;
       const monto = Number(v.monto) || 0;
       if (monto <= 0) return;
       const moneda = v.moneda === 'USD' ? 'USD' : 'ARS';
@@ -3474,7 +3493,7 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
       meses: Object.keys(porMes).sort().map(mes => ({ mes, fuentes: porMes[mes] })),
       porFuente, general, aConfirmar,
       cursos: Object.values(porCurso).sort((a, b) => a.nombreCurso.localeCompare(b.nombreCurso, 'es')),
-      baseFormaciones, baseArchivo,
+      baseFormaciones,
     };
   }
 
@@ -3491,7 +3510,7 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
       juntarTodo(),
       _db.collection('finanzas_clari').orderBy('fecha', 'desc').limit(500).get(),
     ]);
-    const base = todo.baseFormaciones + (config.incluirArchivo ? todo.baseArchivo : 0);
+    const base = todo.baseFormaciones;
     const pagos = pagosSnap.docs
       .map(d => ({ id: d.id, ...d.data(), creado: undefined }))
       .filter(p => !config.desdeMes || mesDeFecha(p.fecha) >= config.desdeMes);
@@ -3500,7 +3519,7 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
     return {
       ok: true, desde, hasta, config,
       base, corresponde, pagado, saldo: corresponde - pagado,
-      pagos, porCurso: todo.cursos.filter(c => !c.archivo || config.incluirArchivo),
+      pagos, porCurso: todo.cursos,
     };
   }
 
@@ -3522,7 +3541,7 @@ exports.adminFinanzas = functions.https.onCall(async (data, context) => {
       throw new functions.https.HttpsError('invalid-argument', 'El porcentaje tiene que estar entre 0 y 100.');
     }
     const desdeMes = mesValido(data?.desdeMes) ? String(data.desdeMes) : '';
-    const config = { porcentaje: p, desdeMes, incluirArchivo: data?.incluirArchivo === true };
+    const config = { porcentaje: p, desdeMes };
     await _db.collection('finanzas_config').doc('clari').set(config, { merge: true });
     await anotarMovimientoDeFinanzas('clari:config', 'clariConfig', null, config, quien);
     return { ok: true, config };
@@ -6371,6 +6390,91 @@ exports.sincronizarAlumnoBrevo = onDocumentWritten({
     quitarDeListas: esAlumno ? ['interesados'] : [],
     atributos: { CURSOS: cursosComoTexto(cursos), ...atributosNuevos },
   });
+});
+
+// -------------------------------------------------------
+// aulaAlPadron: dar el aula de una formacion anota a la persona en la
+// planilla de esa formacion.
+//
+// Antes eran dos gestos separados: tildar el curso en "Editar usuario" daba
+// el acceso, y si esa persona no habia entrado por el formulario no quedaba
+// en ningun padron. El panel decia que la formacion tenia dos anotados
+// mientras el aula tenia cuatro.
+//
+// Va en un trigger y no en el boton del panel a proposito: `usuarios.cursos`
+// se escribe desde tres lugares (el casillero del panel, el boton "Dar
+// acceso" del padron y la herramienta de migrar acceso) y asi el padron se
+// completa por los tres. Reacciona solo a los cursos que se AGREGARON, y
+// solo a los de `FORMACIONES_ESCUELA`: un curso grabado no tiene padron.
+// -------------------------------------------------------
+exports.aulaAlPadron = onDocumentWritten({
+  document: 'usuarios/{email}',
+  database: 'cursos',
+  region: 'us-central1',
+  maxInstances: 3,
+}, async (event) => {
+  ensureInit();
+  const antes = event.data?.before?.data() || {};
+  const despues = event.data?.after?.data();
+  if (!despues) return; // se borro el usuario: el padron no se toca
+
+  const emailNorm = mailNormalizado(event.params.email);
+  if (!EMAIL_VALIDO.test(emailNorm)) return;
+
+  const tenia = new Set(Array.isArray(antes.cursos) ? antes.cursos : []);
+  const ahora = Array.isArray(despues.cursos) ? despues.cursos : [];
+  const conPadron = new Set(FORMACIONES_ESCUELA.map(f => f.cursoId));
+  const nuevos = ahora.filter(c => conPadron.has(c) && !tenia.has(c));
+  if (!nuevos.length) return;
+
+  const nombre = sanitizeTexto(despues.nombre, 200);
+  for (const cursoId of nuevos) {
+    try {
+      const clave = claveDePadron(cursoId, emailNorm, nombre);
+      const filaRef = _db.collection('padron').doc(clave);
+      if ((await filaRef.get()).exists) continue;
+
+      // La segunda red: una fila importada o cargada a mano puede existir con
+      // otra clave (sin mail, por ejemplo) y tener el mail puesto despues.
+      const mismo = await _db.collection('padron')
+        .where('cursoId', '==', cursoId).where('emailNorm', '==', emailNorm).limit(1).get();
+      if (!mismo.empty) continue;
+
+      await filaRef.set({
+        cursoId,
+        email: emailNorm, emailNorm,
+        nombre, nombreNorm: nombreNormalizado(nombre),
+        telefono: '',
+        nacimiento: { fecha: '', hora: '', lugar: '' },
+        origen: 'aula',
+        formId: '', inscripcionId: '',
+        alta: new Date().toISOString(),
+        estado: 'activo',
+        campos: {},
+        pagos: [], plan: await planInicialDePadron(cursoId, ''), pagado: 0,
+        // El aula es justamente lo que disparo esta fila.
+        aulaDada: true,
+        aulaDadaEn: admin.firestore.FieldValue.serverTimestamp(),
+        creado: admin.firestore.FieldValue.serverTimestamp(),
+        actualizado: admin.firestore.FieldValue.serverTimestamp(),
+        actualizadoPor: 'aulaAlPadron',
+      });
+      await anotarMovimientoDePadron(clave, 'altaPorAula', null, { cursoId, email: emailNorm }, 'aulaAlPadron');
+      functions.logger.info('Alta en el padrón por acceso al aula', { cursoId });
+    } catch (error) {
+      // Si falla, la persona tiene el aula y no esta en la planilla: es
+      // exactamente el tipo de hueco callado que la custodia existe para
+      // evitar. No se tira: los demas cursos de la misma escritura siguen.
+      functions.logger.error('No se pudo anotar en el padrón por el aula:', error.message);
+      await custodiar({
+        endpoint: 'aulaAlPadron',
+        motivo: 'alta_padron_por_aula',
+        gravedad: 'normal',
+        datos: { cursoId, error: error.message },
+        contacto: { email: emailNorm, nombre },
+      });
+    }
+  }
 });
 
 // -------------------------------------------------------

@@ -216,9 +216,20 @@
         .pad-pill.anual      { background: rgba(155,109,214,0.18); color: #c9a6f0; }
         .pad-pill.semestral  { background: rgba(72,140,214,0.18);  color: #9ec4ef; }
         .pad-pill.mensual    { background: rgba(255,255,255,0.08);  color: var(--muted); }
+        .pad-pill.media      { background: rgba(255,255,255,0.08);  color: var(--muted); }
+        .pad-pill.beca       { background: rgba(214,154,72,0.20);  color: #efc07f; }
         .pad-pill.al_dia     { background: rgba(47,158,107,0.18);  color: #7fd3a7; }
         .pad-pill.pagado     { background: rgba(47,158,107,0.28);  color: #9ae7c0; }
         .pad-pill.atrasado   { background: rgba(214,72,96,0.20);   color: #f2909f; }
+        /* Las listas de pagos no empujan fuera de pantalla lo que viene
+           abajo: scrollean adentro. */
+        .fin-lista-pagos {
+            margin-top: 16px;
+            max-height: 340px;
+            overflow: auto;
+            border: 1px solid var(--borde, rgba(255,255,255,0.08));
+            border-radius: 8px;
+        }
         .pad-pill.sin_plan,
         .pad-pill.sin_fecha  { background: rgba(240,197,22,0.16);  color: #e8cf6a; }
 
@@ -624,7 +635,7 @@
                 <div class="tabs" data-nivel="2" data-grupo="finanzas" style="margin-bottom:0;">
                     <button class="tab-btn active" data-tab="fin-escuela">Ingresos de la escuela</button>
                     <button class="tab-btn" data-tab="fin-clari">Pagos a Clari</button>
-                    <button class="tab-btn" data-tab="fin-consultas">Consultas</button>
+                    <button class="tab-btn" data-tab="fin-consultas">Consultas y sesiones</button>
                     <button class="tab-btn" data-tab="fin-total">Ingresos totales</button>
                 </div>
             </div>
@@ -645,18 +656,13 @@
         <div id="tab-fin-clari" class="tab-panel" data-grupo="finanzas">
             <div class="card">
                 <p class="card-title">Pagos a Clari</p>
-                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
-                    El porcentaje se calcula sobre lo cobrado de las formaciones, no sobre los cursos
-                    grabados ni las consultas. Cada pago es un renglón con su fecha: el saldo es la
-                    resta, y no se tipea nunca.
-                </p>
                 <div id="fin-clari-cuerpo"></div>
             </div>
         </div>
 
         <div id="tab-fin-consultas" class="tab-panel" data-grupo="finanzas">
             <div class="card">
-                <p class="card-title">Ingresos por consultas</p>
+                <p class="card-title">Ingresos por consultas y sesiones</p>
                 <div class="alert alert-warning" style="margin-bottom:14px;">
                     Este número es un piso, no el total. Lo que se ve acá es lo que pasó por el sitio
                     (Mercado Pago y PayPal). Una consulta que se paga por transferencia a Clari no
@@ -670,10 +676,6 @@
             </div>
             <div class="card">
                 <p class="card-title">Anotar un ingreso a mano</p>
-                <p style="opacity:.7; font-size:.85rem; margin-bottom:14px;">
-                    Para lo que se cobró fuera del sitio. Queda con su fecha y suma a los ingresos
-                    totales.
-                </p>
                 <div class="pad-ajustes">
                     <label>Concepto
                         <input type="text" id="fin-ing-concepto" maxlength="200" placeholder="Consulta de X">
@@ -692,7 +694,7 @@
                     </label>
                     <label>De dónde
                         <select id="fin-ing-fuente">
-                            <option value="consultas">Consultas</option>
+                            <option value="consultas">Consultas y sesiones</option>
                             <option value="formaciones">Formaciones</option>
                             <option value="cursos">Cursos grabados</option>
                             <option value="otro">Otro</option>
@@ -1133,12 +1135,13 @@
     // miente es peor que no tener el total: los pesos y los dólares van
     // separados, y una transferencia que alguien avisó pero nadie confirmó no
     // suma.
+    // 2026 no figura acá: el archivo no cruza a Finanzas (decisión de Seba del
+    // 26/11/2026). Se mira en su propia vista rápida, dentro del padrón.
     const FIN_FUENTES = {
         formaciones: 'Formaciones 2027',
-        archivo2026: 'Formaciones 2026 (archivo)',
         cursos: 'Cursos grabados',
         libro: 'Libro',
-        consultas: 'Consultas',
+        consultas: 'Consultas y sesiones',
         manual: 'Anotado a mano',
     };
 
@@ -1159,6 +1162,32 @@
             desde: document.getElementById('fin-desde').value,
             hasta: document.getElementById('fin-hasta').value,
         };
+    }
+
+    // Toda lista de pagos del panel va de lo más nuevo a lo más viejo (pedido
+    // de Seba, 26/11/2026): lo que se acaba de cobrar es lo que se mira. El
+    // servidor ya ordena por fecha, pero no todas las listas vienen de una
+    // consulta ordenada —los `pagos[]` de una fila son un arreglo— así que el
+    // orden se asegura acá, en un solo lugar.
+    function masNuevoPrimero(lista) {
+        return (lista || []).slice()
+            .sort((a, b) => String(b?.fecha || '').localeCompare(String(a?.fecha || '')));
+    }
+
+    // La lista de pagos a Clari. Alto máximo y scroll propio: con un par de
+    // años anotados, la tabla empuja fuera de pantalla todo lo demás.
+    function finTablaDePagos(pagos, attrBorrar) {
+        return '<table class="user-table"><thead><tr>'
+            + '<th>Fecha</th><th>Monto</th><th>Medio</th><th>Nota</th><th></th>'
+            + '</tr></thead><tbody>'
+            + masNuevoPrimero(pagos).map(p => `<tr>
+                    <td>${escapeHtml(p.fecha || '—')}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(p.monto))}</td>
+                    <td>${escapeHtml(p.medio || '—')}</td>
+                    <td>${escapeHtml(p.nota || '')}</td>
+                    <td><button class="btn-table" ${attrBorrar}="${escapeHtml(p.id)}">Borrar</button></td>
+                </tr>`).join('')
+            + '</tbody></table>';
     }
 
     // Una tabla de mes por fuente. Las fuentes que no tuvieron nada en el
@@ -1206,12 +1235,12 @@
         const caja = document.getElementById('fin-escuela-cuerpo');
         if (!finDatos) { caja.innerHTML = ''; return; }
         const d = finDatos;
-        const fuentes = ['formaciones', 'archivo2026', 'cursos', 'libro'];
+        const fuentes = ['formaciones', 'cursos', 'libro', 'consultas', 'manual'];
         let html = finTablaPorMes(d.meses, fuentes);
         if (d.cursos?.length) {
             html += '<p class="card-title" style="margin-top:24px;">Curso por curso</p>'
                 + '<div style="overflow-x:auto;"><table class="user-table"><thead><tr><th>Formación</th><th>Cobrado</th></tr></thead><tbody>'
-                + d.cursos.map(c => `<tr><td>${escapeHtml(c.nombreCurso)}${c.archivo ? ' <span class="pad-mini">archivo</span>' : ''}</td><td>${escapeHtml(pesos(c.ARS))}</td></tr>`).join('')
+                + d.cursos.map(c => `<tr><td>${escapeHtml(c.nombreCurso)}</td><td>${escapeHtml(pesos(c.ARS))}</td></tr>`).join('')
                 + '</tbody></table></div>';
         }
         caja.innerHTML = html;
@@ -1227,7 +1256,7 @@
                 <dt>Cobrado por el sitio</dt><dd>${escapeHtml(finPlata(finDatos.porFuente.consultas))}</dd>
                 <dt>Avisado sin confirmar</dt><dd>${escapeHtml(finPlata(finDatos.aConfirmar))}</dd>
             </dl></div></div>`
-            + (porMes ? `<div style="overflow-x:auto;margin-top:14px;"><table class="user-table"><thead><tr><th>Mes</th><th>Consultas</th></tr></thead><tbody>${porMes}</tbody></table></div>`
+            + (porMes ? `<div style="overflow-x:auto;margin-top:14px;"><table class="user-table"><thead><tr><th>Mes</th><th>Consultas y sesiones</th></tr></thead><tbody>${porMes}</tbody></table></div>`
                 : '<p style="opacity:.7;font-size:.85rem;margin-top:14px;">No hay consultas cobradas por el sitio en este período.</p>');
         cargarIngresosManuales();
     }
@@ -1252,10 +1281,10 @@
             const r = await finApi({ accion: 'ingresos', ...finRango() });
             const lista = r.data.ingresos || [];
             caja.innerHTML = lista.length
-                ? `<div style="overflow-x:auto;"><table class="user-table"><thead><tr>
+                ? `<div class="fin-lista-pagos"><table class="user-table"><thead><tr>
                         <th>Fecha</th><th>Concepto</th><th>De dónde</th><th>Monto</th><th>Medio</th><th></th>
                     </tr></thead><tbody>`
-                    + lista.map(i => `<tr>
+                    + masNuevoPrimero(lista).map(i => `<tr>
                         <td>${escapeHtml(i.fecha || '—')}</td>
                         <td>${escapeHtml(i.concepto || '—')}${i.nota ? `<div class="pad-mini">${escapeHtml(i.nota)}</div>` : ''}</td>
                         <td>${escapeHtml(FIN_FUENTES[i.fuente] || i.fuente || '—')}</td>
@@ -1303,40 +1332,21 @@
                 </div>
                 <div id="fin-cl-msg"></div>
 
-                ${d.pagos.length ? `<div style="overflow-x:auto;margin-top:16px;"><table class="user-table"><thead><tr>
-                        <th>Fecha</th><th>Monto</th><th>Medio</th><th>Nota</th><th></th>
-                    </tr></thead><tbody>`
-                    + d.pagos.map(p => `<tr>
-                        <td>${escapeHtml(p.fecha || '—')}</td>
-                        <td>${escapeHtml(pesos(p.monto))}</td>
-                        <td>${escapeHtml(p.medio || '—')}</td>
-                        <td>${escapeHtml(p.nota || '')}</td>
-                        <td><button class="btn-table" data-fin-borrar-clari="${escapeHtml(p.id)}">Borrar</button></td>
-                    </tr>`).join('')
-                    + '</tbody></table></div>'
-                  : '<p style="opacity:.7;font-size:.85rem;margin-top:16px;">Todavía no hay pagos anotados.</p>'}
-
-                <details style="margin-top:20px;">
+                <details style="margin-top:18px;">
                     <summary style="cursor:pointer;font-size:.83rem;color:var(--primary);">El porcentaje y desde cuándo</summary>
-                    <p style="opacity:.7;font-size:.8rem;margin:10px 0;">
-                        El porcentaje se guarda y no hace falta tocar el código para cambiarlo. "Desde"
-                        sirve para no contar los pagos que ya se liquidaron antes de empezar a usar esta
-                        pantalla.
-                    </p>
-                    <div class="pad-ajustes">
+                    <div class="pad-ajustes" style="margin-top:10px;">
                         <label>Porcentaje
                             <input type="number" id="fin-cl-pct" min="0" max="100" step="0.5" value="${d.config.porcentaje}" style="width:90px;">
                         </label>
                         <label>Contar desde
                             <input type="month" id="fin-cl-desde" value="${escapeHtml(d.config.desdeMes || '')}">
                         </label>
-                        <label style="flex-direction:row;align-items:center;gap:8px;">
-                            <input type="checkbox" id="fin-cl-archivo"${d.config.incluirArchivo ? ' checked' : ''}>
-                            <span>Incluir también 2026</span>
-                        </label>
                         <button class="btn btn-secondary btn-sm" id="fin-cl-guardar">Guardar</button>
                     </div>
-                </details>`;
+                </details>
+
+                ${d.pagos.length ? '<div class="fin-lista-pagos">' + finTablaDePagos(d.pagos, 'data-fin-borrar-clari') + '</div>'
+                  : '<p style="opacity:.7;font-size:.85rem;margin-top:16px;">Todavía no hay pagos anotados.</p>'}`;
         } catch (e) {
             caja.innerHTML = `<div class="alert alert-error">${escapeHtml(e.message || 'Algo falló.')}</div>`;
         }
@@ -1382,7 +1392,6 @@
                     accion: 'clariConfig',
                     porcentaje: Number(document.getElementById('fin-cl-pct').value),
                     desdeMes: document.getElementById('fin-cl-desde').value,
-                    incluirArchivo: document.getElementById('fin-cl-archivo').checked,
                 });
                 await cargarClari();
             } else if (sumarIngreso) {
@@ -2162,10 +2171,19 @@
         ['anual', 'Anual, un pago'],
         ['semestral', 'Semestral, 2 cuotas'],
         ['mensual', 'Mensual, 10 cuotas'],
+        ['media', 'Media beca, 10 cuotas'],
+        ['beca', 'Beca, no paga'],
     ];
     const PAD_ESTADOS = {
-        pagado: 'pagado', al_dia: 'al día', atrasado: 'atrasado',
+        pagado: 'pagado', al_dia: 'al día', atrasado: 'atrasado', beca: 'beca',
         sin_plan: 'sin plan', sin_fecha: 'sin fecha de inicio',
+    };
+    // Los planes que vencen de a cuotas, que son los que muestran "3/10
+    // pagas" en vez de una sola chapa.
+    const PAD_EN_CUOTAS = ['mensual', 'media'];
+    const PAD_PLAN_NOMBRE = {
+        anual: 'anual', semestral: 'semestral', mensual: 'mensual',
+        media: 'media beca', beca: 'beca',
     };
 
     // La cursada y el plan por omision de la formacion elegida.
@@ -2258,16 +2276,21 @@
         if (d.estado === 'sin_plan') {
             return '<span class="pad-pill sin_plan">sin plan</span>';
         }
+        // Una beca no debe nada y no tiene cuotas: una sola chapa y listo.
+        if (d.estado === 'beca') {
+            return '<span class="pad-pill beca">beca</span>';
+        }
         if (d.estado === 'sin_fecha') {
-            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span>`
+            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(PAD_PLAN_NOMBRE[d.tipo] || d.tipo)}</span>`
                 + '<div class="pad-mini">falta el mes de inicio</div>';
         }
-        if (d.tipo !== 'mensual') {
-            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span> `
+        if (!PAD_EN_CUOTAS.includes(d.tipo)) {
+            return `<span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(PAD_PLAN_NOMBRE[d.tipo] || d.tipo)}</span> `
                 + `<span class="pad-pill ${escapeHtml(d.estado)}">${escapeHtml(PAD_ESTADOS[d.estado] || d.estado)}</span>`;
         }
         const vencidas = (d.cuotasPendientes || []).filter(p => p.vencida);
         let html = `<span class="pad-pill ${escapeHtml(d.estado)}">${d.cuotasPagas}/${d.cuotas} pagas</span>`;
+        if (d.tipo === 'media') html = '<span class="pad-pill media">media beca</span> ' + html;
         if (vencidas.length) {
             html += `<div class="pad-mini">debe ${vencidas.length}: ${escapeHtml(vencidas.map(p => mesLindo(p.mes)).join(', '))}</div>`;
         } else if ((d.cuotasPendientes || []).length) {
@@ -2325,7 +2348,7 @@
         const listaId = 'pad-montos-' + String(f.id).replace(/[^A-Za-z0-9_-]/g, '-');
 
         const renglones = (f.pagos || []).length
-            ? (f.pagos || []).map(p => `<tr>
+            ? masNuevoPrimero(f.pagos).map(p => `<tr>
                         <td>${escapeHtml(p.fecha || '')}</td>
                         <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(p.monto))}</td>
                         <td>${escapeHtml(p.medio || '')}</td>
@@ -2539,11 +2562,11 @@
                 </tr></thead><tbody>`
             + deben.map(({ f, vencidas }) => `<tr>
                     <td>${escapeHtml(f.nombre || '—')}</td>
-                    <td>${escapeHtml(f.deuda.tipo || '—')}</td>
+                    <td>${escapeHtml(PAD_PLAN_NOMBRE[f.deuda.tipo] || f.deuda.tipo || '—')}</td>
                     <td>${escapeHtml(vencidas.map(p => mesLindo(p.mes)).join(', ') || '—')}</td>
                     <td>${escapeHtml(pesos(f.deuda.pagado))}</td>
                     <td>${escapeHtml(f.deuda.saldo === null || f.deuda.saldo === undefined ? '—' : pesos(f.deuda.saldo))}</td>
-                    <td>${escapeHtml(f.telefono || '—')}</td>
+                    <td>${celdaTelefono(f.telefono)}</td>
                 </tr>`).join('')
             + '</tbody></table></div>';
     }
@@ -3149,6 +3172,56 @@
             : '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
     }
 
+    // Todas las formaciones en curso sumadas. Va primero en la vista rápida
+    // (pedido de Seba, 26/11/2026): lo primero que se mira es el conjunto, y
+    // el detalle de cada año viene después.
+    function sumaDeCursos(cursos) {
+        const t = {
+            total: 0, activos: 0, bajas: 0, alDia: 0, atrasados: 0,
+            anualPagado: 0, becas: 0, sinPlan: 0, sinFecha: 0, cobrado: 0, aCobrar: 0,
+        };
+        for (const c of cursos) for (const k of Object.keys(t)) t[k] += Number(c[k]) || 0;
+        return t;
+    }
+
+    function tarjetaDeUnCurso(c, titulo, suelta) {
+        const cuerpo = `<div class="pad-tarjeta"><h4>${escapeHtml(titulo)}</h4><dl>
+                <dt>Activos</dt><dd>${c.activos}</dd>
+                <dt>Al día</dt><dd>${c.alDia}</dd>
+                <dt>Atrasados</dt><dd${c.atrasados ? ' style="color:#f2909f;font-weight:600;"' : ''}>${c.atrasados}</dd>
+                <dt>Anual pagado</dt><dd>${c.anualPagado}</dd>
+                ${c.becas ? `<dt>Becas</dt><dd>${c.becas}</dd>` : ''}
+                <dt>Sin plan</dt><dd>${c.sinPlan + c.sinFecha}</dd>
+                <dt>Cobrado</dt><dd>${escapeHtml(pesos(c.cobrado))}</dd>
+                <dt>A cobrar</dt><dd>${escapeHtml(c.aCobrar ? pesos(c.aCobrar) : '—')}</dd>
+                ${c.bajas ? `<dt>Bajas</dt><dd>${c.bajas}</dd>` : ''}
+            </dl></div>`;
+        return suelta ? cuerpo : '<div class="pad-tarjetas">' + cuerpo + '</div>';
+    }
+
+    // El teléfono como enlace a WhatsApp, que es por donde se le escribe a
+    // quien debe una cuota. wa.me quiere sólo dígitos y con país: en Argentina
+    // el móvil lleva el 9 después del 54 y no lleva el 0 ni el 15. Si el
+    // número no parece argentino se usa tal como está, porque un enlace que no
+    // abre es mejor que uno que abre con otra persona.
+    function waHref(tel) {
+        let d = String(tel || '').replace(/\D/g, '').replace(/^00/, '');
+        if (!d) return '';
+        if (d.startsWith('54')) d = d.slice(2);
+        else if (d.length < 10 || d.length > 11) return 'https://wa.me/' + d;
+        d = d.replace(/^0/, '');
+        if (d.startsWith('9')) d = d.slice(1);
+        return 'https://wa.me/549' + d;
+    }
+
+    function celdaTelefono(tel) {
+        const href = waHref(tel);
+        if (!tel) return '—';
+        if (!href) return escapeHtml(tel);
+        return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" title="Escribir por WhatsApp">`
+            + `${escapeHtml(tel)} <i class="fa-brands fa-whatsapp"></i></a>`;
+    }
+
     async function cargarResumenDePadron() {
         const caja = document.getElementById('pad-resumen');
         const lista = document.getElementById('pad-deudores');
@@ -3162,17 +3235,9 @@
             pintarTotalArchivo();
 
             caja.innerHTML = cursos.length
-                ? '<div class="pad-tarjetas">' + cursos.map(c => `<div class="pad-tarjeta">
-                        <h4>${escapeHtml(c.nombreCurso)}</h4><dl>
-                        <dt>Activos</dt><dd>${c.activos}</dd>
-                        <dt>Al día</dt><dd>${c.alDia}</dd>
-                        <dt>Atrasados</dt><dd${c.atrasados ? ' style="color:#f2909f;font-weight:600;"' : ''}>${c.atrasados}</dd>
-                        <dt>Anual pagado</dt><dd>${c.anualPagado}</dd>
-                        <dt>Sin plan</dt><dd>${c.sinPlan + c.sinFecha}</dd>
-                        <dt>Cobrado</dt><dd>${escapeHtml(pesos(c.cobrado))}</dd>
-                        <dt>A cobrar</dt><dd>${escapeHtml(c.aCobrar ? pesos(c.aCobrar) : '—')}</dd>
-                        ${c.bajas ? `<dt>Bajas</dt><dd>${c.bajas}</dd>` : ''}
-                        </dl></div>`).join('') + '</div>'
+                ? tarjetaDeUnCurso(sumaDeCursos(cursos), 'Todas las formaciones juntas')
+                    + '<p class="card-title" style="margin-top:22px;">Año por año</p>'
+                    + '<div class="pad-tarjetas">' + cursos.map(c => tarjetaDeUnCurso(c, c.nombreCurso, true)).join('') + '</div>'
                 : '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>Todavía no hay nadie anotado en ninguna formación.</p></div>';
 
             if (!deudores.length) {
@@ -3182,10 +3247,10 @@
             const filas = deudores.map(d => `<tr>
                     <td>${escapeHtml(d.nombre || '—')}</td>
                     <td>${escapeHtml(d.nombreCurso)}</td>
-                    <td><span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(d.tipo)}</span></td>
+                    <td><span class="pad-pill ${escapeHtml(d.tipo)}">${escapeHtml(PAD_PLAN_NOMBRE[d.tipo] || d.tipo)}</span></td>
                     <td>${escapeHtml(d.cuotasVencidas.map(c => `${c.cuota} (${mesLindo(c.mes)})`).join(', ') || '—')}</td>
                     <td style="font-variant-numeric:tabular-nums;">${escapeHtml(pesos(d.saldo))}</td>
-                    <td>${escapeHtml(d.telefono || '—')}</td>
+                    <td>${celdaTelefono(d.telefono)}</td>
                     <td>${escapeHtml(d.email || '—')}</td>
                 </tr>`).join('');
             lista.innerHTML = `<p style="opacity:.8;font-size:.85rem;margin:0 0 8px;">`
