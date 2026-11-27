@@ -174,12 +174,24 @@
 
     /* Los horarios extraordinarios: aparte de los regulares, y detras de una
        pregunta, porque son la salida para quien no encontro nada. */
-    .ag-sueltos { margin-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+    .ag-sueltos { margin-top: 36px; border-top: 1px solid rgba(255,255,255,0.14); padding-top: 28px; }
+    /* Mas grande que el resto a proposito: es la salida de quien no encontro
+       nada, y como nota al pie no se veia. */
     .ag-sueltos > summary {
-        cursor: pointer; color: #a9a7a1; font-size: 0.85rem; line-height: 1.7;
+        cursor: pointer; color: #e8e6e1; font-size: 1.05rem; line-height: 1.6;
+        padding: 6px 0;
     }
-    .ag-sueltos > summary:hover { color: #e8e6e1; }
+    .ag-sueltos > summary:hover { color: #fff; }
     .ag-sueltos-nota { color: #8f8d88; font-size: 0.8rem; line-height: 1.8; margin: 14px 0 4px; }
+    /* Y si tampoco sirve ninguno de los extraordinarios, queda escribirle a
+       Clari. Va abajo de todo y se ve siempre, tambien cuando no hay ningun
+       horario extraordinario abierto: justo entonces es cuando hace falta. */
+    .ag-salida {
+        margin-top: 24px; padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        color: #a9a7a1; font-size: 0.9rem; line-height: 1.8;
+    }
+    .ag-salida a { color: #e8e6e1; }
     .ag-suelto-dia { margin-top: 16px; }
     .ag-suelto-dia h4 {
         font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
@@ -368,12 +380,18 @@
                             <div class="ag-lista-horas" id="ag-lista-horas"></div>
                         </div>
 
-                        <details class="ag-sueltos" id="ag-sueltos" hidden>
+                        <details class="ag-sueltos" id="ag-sueltos">
                             <summary>¿No encontrás un horario que te sirva?</summary>
-                            <p class="ag-sueltos-nota">
-                                Estos son horarios que abrí aparte de mis días habituales.
+                            <div id="ag-sueltos-lista" hidden>
+                                <p class="ag-sueltos-nota">
+                                    Estos son horarios que abrí aparte de mis días habituales.
+                                </p>
+                                <div id="ag-dias-sueltos"></div>
+                            </div>
+                            <p class="ag-salida">
+                                ¿Tampoco te cuadra? Escribile a Clari contándole los momentos que tenés
+                                disponibles: <a href="https://wa.me/5493544559877">+54 9 3544 55-9877</a>.
                             </p>
-                            <div id="ag-dias-sueltos"></div>
                         </details>
 
                         <div id="ag-resumen" class="ag-resumen" hidden>

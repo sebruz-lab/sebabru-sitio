@@ -335,8 +335,9 @@ function pintarCalendario(data) {
 // Un día entero, con sus fichas. Es lo que se ve al tocar una celda del mes,
 // y lo que hace que se pueda mover o cancelar un turno.
 function pintarDia(d) {
+  const habituales = d.habituales || [];
   const total = d.turnos.length + d.sesiones.length + d.consultas.length
-    + d.guardados.length + d.extraordinarios.length;
+    + d.guardados.length + d.extraordinarios.length + habituales.length;
 
   const bloque = document.createElement('div');
   bloque.className = 'pa-cal-dia';
@@ -393,6 +394,14 @@ function pintarDia(d) {
     fichas.appendChild(f);
   }
   for (const iso of d.extraordinarios) fichas.appendChild(ficha('extra', `${soloHora(iso)} extraordinario`));
+  // Los espacios de los encuentros habituales que todavía no están tomados
+  // como turno. Sin esta ficha, un día lleno de encuentros se vería igual que
+  // un día sin franja: vacío y sin explicación.
+  for (const h of habituales) {
+    const f = ficha('habitual', `${soloHora(h.desde)}–${soloHora(h.hasta)} ${h.motivo || 'espacio habitual'}`);
+    f.title = 'Espacio reservado para un encuentro habitual. No se ofrece a nadie más.';
+    fichas.appendChild(f);
+  }
   // Lo que ya tenías en Google Calendar. Va al final porque no es un espacio
   // de la agenda, es la razón por la que faltan espacios.
   for (const o of (d.ocupado || [])) {
@@ -451,6 +460,53 @@ function elegirTurno(t) {
   pintarCalendario(ultimoCalendario);
 }
 
+// Anotar un turno a mano. Si el horario se pisa con algo, se pregunta y se
+// repite el pedido con `superponer`: superponer nunca pasa en silencio, y es
+// lo único que el panel puede hacer y la página pública no.
+async function anotarTurno(superponer) {
+  const fecha = $('pa-nt-fecha').value;
+  const hora = $('pa-nt-hora').value;
+  const nombre = $('pa-nt-nombre').value.trim();
+  if (!nombre) return avisar('Poné el nombre.', 'error');
+  if (!fecha || !hora) return avisar('Poné la fecha y la hora.', 'error');
+
+  const boton = $('pa-btn-nuevo-turno');
+  boton.disabled = true;
+  try {
+    const duracion = Number($('pa-nt-duracion').value);
+    const r = await llamar({
+      accion: 'crearTurno',
+      nombre,
+      email: $('pa-nt-email').value.trim(),
+      telefono: $('pa-nt-telefono').value.trim(),
+      // El fragmento de hora de Argentina, igual que todo lo demás que manda
+      // el panel: el servidor trabaja siempre en esa zona.
+      inicio: `${fecha}T${hora}:00-03:00`,
+      tipo: $('pa-nt-tipo').value,
+      duracionMin: Number.isFinite(duracion) && duracion >= 15 ? duracion : null,
+      modalidad: $('pa-nt-modalidad').value,
+      avisar: $('pa-nt-avisar').checked,
+      superponer: superponer === true,
+    });
+    for (const id of ['pa-nt-nombre', 'pa-nt-email', 'pa-nt-telefono', 'pa-nt-duracion']) $(id).value = '';
+    avisar(`Anotado: ${fechaLarga(r.turno.inicio)}.`, 'ok');
+    await cargarCalendario();
+  } catch (e) {
+    if (e.message === 'slot_ocupado' && !superponer) {
+      const ok = window.confirm(
+        'Ese horario se pisa con algo que ya tenés: otro turno, un encuentro habitual '
+        + 'o algo de tu calendario.\n\n¿Lo anoto igual, superpuesto?');
+      if (ok) return anotarTurno(true);
+      return;
+    }
+    avisar(e.message === 'demasiados_superpuestos'
+      ? 'Ya hay varios turnos superpuestos en ese mismo horario.'
+      : `No se pudo anotar: ${e.message}`, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
+
 async function moverTurnoA(inicioISO) {
   const t = turnoElegido;
   if (!t) return;
@@ -463,9 +519,24 @@ async function moverTurnoA(inicioISO) {
     avisar('Turno movido. A la persona le llegó el mail con la fecha nueva.', 'ok');
     await cargarCalendario();
   } catch (e) {
-    avisar(e.message === 'slot_ocupado'
-      ? 'Ese horario se pisa con otra cosa de tu calendario.'
-      : `No se pudo mover: ${e.message}`, 'error');
+    if (e.message === 'slot_ocupado') {
+      const ok = window.confirm(
+        'Ese horario se pisa con algo que ya tenés.\n\n¿Lo muevo igual, superpuesto?');
+      if (ok) {
+        try {
+          await llamar({ accion: 'mover', turnoId: t.id, inicio: inicioISO, superponer: true });
+          turnoElegido = null;
+          avisar('Turno movido, superpuesto.', 'ok');
+          await cargarCalendario();
+          return;
+        } catch (e2) {
+          avisar(`No se pudo mover: ${e2.message}`, 'error');
+          return;
+        }
+      }
+      return;
+    }
+    avisar(`No se pudo mover: ${e.message}`, 'error');
   }
 }
 
@@ -525,22 +596,65 @@ function pintarConfig() {
     sumar.type = 'button';
     sumar.className = 'pa-mini';
     sumar.textContent = '+ franja';
-    sumar.addEventListener('click', () => agregarFranja(franjas, '', ''));
+    sumar.addEventListener('click', () => agregarFranja(franjas, null));
     fila.appendChild(sumar);
 
-    for (const f of (c.semana?.[String(d)] || [])) agregarFranja(franjas, f.desde, f.hasta);
+    for (const f of (c.semana?.[String(d)] || [])) agregarFranja(franjas, f);
     caja.appendChild(fila);
   }
 }
 
-function agregarFranja(contenedor, desde, hasta) {
+// Cada campo lleva su clase y se lee por clase, nunca por posición dentro de
+// la franja: antes eran dos `input` y se leían con un destructuring del
+// querySelectorAll, así que el primer campo nuevo que entrara en la caja
+// —este `input type="date"` del ancla— desordenaba los dos horarios en
+// silencio.
+function agregarFranja(contenedor, franja) {
+  const f = franja || {};
   const caja = document.createElement('div');
   caja.className = 'pa-franja';
 
   const a = document.createElement('input');
-  a.type = 'time'; a.value = desde || '10:00'; a.setAttribute('aria-label', 'Desde');
+  a.type = 'time'; a.className = 'pa-franja-desde';
+  a.value = f.desde || '10:00'; a.setAttribute('aria-label', 'Desde');
   const b = document.createElement('input');
-  b.type = 'time'; b.value = hasta || '18:00'; b.setAttribute('aria-label', 'Hasta');
+  b.type = 'time'; b.className = 'pa-franja-hasta';
+  b.value = f.hasta || '18:00'; b.setAttribute('aria-label', 'Hasta');
+
+  // Cada cuánto cae esta franja. Es lo que permite tener un viernes de
+  // sesiones y el siguiente de consultas sin bloquear nada a mano.
+  const frecuencia = document.createElement('select');
+  frecuencia.className = 'pa-franja-frecuencia';
+  frecuencia.setAttribute('aria-label', 'Cada cuánto');
+  for (const [valor, texto] of [['semanal', 'todas las semanas'], ['quincenal', 'una semana de por medio']]) {
+    const o = document.createElement('option');
+    o.value = valor; o.textContent = texto;
+    frecuencia.appendChild(o);
+  }
+  frecuencia.value = f.frecuencia === 'quincenal' ? 'quincenal' : 'semanal';
+
+  // Desde qué día se cuentan las semanas. Solo hace falta si es quincenal.
+  const ancla = document.createElement('input');
+  ancla.type = 'date'; ancla.className = 'pa-franja-ancla';
+  ancla.value = f.ancla || '';
+  ancla.title = 'Desde qué día empieza a contarse';
+  ancla.setAttribute('aria-label', 'Desde qué día');
+
+  const verAncla = () => { ancla.hidden = frecuencia.value !== 'quincenal'; };
+  frecuencia.addEventListener('change', verAncla);
+  verAncla();
+
+  // Para qué sirve la franja. Vacío es los dos tipos, que es lo que
+  // significan las franjas de siempre.
+  const tipos = document.createElement('select');
+  tipos.className = 'pa-franja-tipos';
+  tipos.setAttribute('aria-label', 'Para qué');
+  for (const [valor, texto] of [['', 'sesiones y consultas'], ['una-hora', 'solo sesiones'], ['dos-horas', 'solo consultas']]) {
+    const o = document.createElement('option');
+    o.value = valor; o.textContent = texto;
+    tipos.appendChild(o);
+  }
+  tipos.value = Array.isArray(f.tipos) && f.tipos.length === 1 ? f.tipos[0] : '';
 
   const quitar = document.createElement('button');
   quitar.type = 'button';
@@ -549,7 +663,7 @@ function agregarFranja(contenedor, desde, hasta) {
   quitar.setAttribute('aria-label', 'Quitar la franja');
   quitar.addEventListener('click', () => caja.remove());
 
-  caja.append(a, document.createTextNode('a'), b, quitar);
+  caja.append(a, document.createTextNode('a'), b, frecuencia, ancla, tipos, quitar);
   contenedor.appendChild(caja);
 }
 
@@ -560,7 +674,8 @@ function primeraFranja() {
   for (const fila of document.querySelectorAll('.pa-dia')) {
     const f = fila.querySelector('.pa-franja');
     if (!f) continue;
-    const [a, b] = f.querySelectorAll('input');
+    const a = f.querySelector('.pa-franja-desde');
+    const b = f.querySelector('.pa-franja-hasta');
     if (a.value && b.value && b.value > a.value) {
       return { dia: DIAS[Number(fila.dataset.dia)], desde: a.value, hasta: b.value };
     }
@@ -605,8 +720,16 @@ function leerConfigDeLaPantalla() {
   for (const fila of document.querySelectorAll('.pa-dia')) {
     const franjas = [];
     for (const f of fila.querySelectorAll('.pa-franja')) {
-      const [a, b] = f.querySelectorAll('input');
-      if (a.value && b.value) franjas.push({ desde: a.value, hasta: b.value });
+      const a = f.querySelector('.pa-franja-desde').value;
+      const b = f.querySelector('.pa-franja-hasta').value;
+      if (!a || !b) continue;
+      const frecuencia = f.querySelector('.pa-franja-frecuencia').value;
+      const soloTipo = f.querySelector('.pa-franja-tipos').value;
+      franjas.push({
+        desde: a, hasta: b, frecuencia,
+        ancla: frecuencia === 'quincenal' ? (f.querySelector('.pa-franja-ancla').value || null) : null,
+        tipos: soloTipo ? [soloTipo] : [],
+      });
     }
     if (franjas.length) semana[fila.dataset.dia] = franjas;
   }
@@ -753,8 +876,42 @@ function pintarFormExcepcional() {
   const repite = $('pa-ex-cuando').value === 'repite';
   $('pa-ex-caja-fecha').hidden = repite;
   $('pa-ex-caja-dia').hidden = !repite;
+  $('pa-ex-caja-frecuencia').hidden = !repite;
+  $('pa-ex-caja-ancla').hidden = !repite || $('pa-ex-frecuencia').value !== 'quincenal';
   $('pa-ex-caja-desde-fecha').hidden = !repite;
   $('pa-ex-caja-hasta-fecha').hidden = !repite;
+}
+
+// Editar uno que ya existe usa el mismo formulario de arriba, precargado, como
+// las sesiones.
+let editandoExtra = null;
+const CAMPOS_EXTRA = ['pa-ex-fecha', 'pa-ex-desde-fecha', 'pa-ex-hasta-fecha', 'pa-ex-desde', 'pa-ex-hasta', 'pa-ex-motivo', 'pa-ex-ancla'];
+
+function editarExcepcional(e) {
+  editandoExtra = e.id;
+  $('pa-ex-cuando').value = e.repite ? 'repite' : 'fecha';
+  $('pa-ex-fecha').value = e.fecha || '';
+  $('pa-ex-dia').value = String(e.diaSemana ?? 1);
+  $('pa-ex-frecuencia').value = e.frecuencia === 'quincenal' ? 'quincenal' : 'semanal';
+  $('pa-ex-ancla').value = e.ancla || '';
+  $('pa-ex-desde-fecha').value = e.desdeFecha || '';
+  $('pa-ex-hasta-fecha').value = e.hastaFecha || '';
+  $('pa-ex-desde').value = e.desde || '';
+  $('pa-ex-hasta').value = e.hasta || '';
+  const tipos = e.tipos || [];
+  $('pa-ex-tipos').value = tipos.length === 1 ? tipos[0] : 'ambos';
+  $('pa-ex-unico').checked = e.unicoPorDia === true;
+  $('pa-ex-motivo').value = e.motivo || '';
+  pintarFormExcepcional();
+  $('pa-btn-excepcional').textContent = 'Guardar el cambio';
+  $('pa-btn-excepcional').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function salirDeExtra() {
+  editandoExtra = null;
+  for (const id of CAMPOS_EXTRA) $(id).value = '';
+  $('pa-ex-unico').checked = true;
+  $('pa-btn-excepcional').textContent = 'Abrir el espacio';
 }
 
 function textoDeExcepcional(e) {
@@ -764,7 +921,10 @@ function textoDeExcepcional(e) {
     e.desdeFecha ? `desde el ${e.desdeFecha}` : '',
     e.hastaFecha ? `hasta el ${e.hastaFecha}` : '',
   ].filter(Boolean).join(' ');
-  return `Todos los ${DIA_CORTO[e.diaSemana]}, ${horas}${limite ? ` (${limite})` : ''}`;
+  const cada = e.frecuencia === 'quincenal'
+    ? `Un ${DIA_CORTO[e.diaSemana]} de por medio${e.ancla ? ` desde el ${e.ancla}` : ''}`
+    : `Todos los ${DIA_CORTO[e.diaSemana]}`;
+  return `${cada}, ${horas}${limite ? ` (${limite})` : ''}`;
 }
 
 function pintarExcepcionales() {
@@ -793,8 +953,20 @@ function pintarExcepcionales() {
     const para = tipos.length === 1
       ? { 'una-hora': 'Solo sesiones de una hora', 'dos-horas': 'Solo consultas de dos horas' }[tipos[0]]
       : 'Consultas y sesiones';
-    detalle.textContent = [para, e.motivo, e.borrador ? 'sin publicar' : ''].filter(Boolean).join(' · ');
+    detalle.textContent = [
+      para,
+      e.unicoPorDia ? 'uno por día' : '',
+      e.motivo,
+      e.borrador ? 'sin publicar' : '',
+    ].filter(Boolean).join(' · ');
     fila.appendChild(detalle);
+
+    const editar = document.createElement('button');
+    editar.type = 'button';
+    editar.className = 'pa-mini';
+    editar.textContent = 'Editar';
+    editar.addEventListener('click', () => editarExcepcional(e));
+    fila.appendChild(editar);
 
     const quitar = document.createElement('button');
     quitar.type = 'button';
@@ -826,10 +998,13 @@ async function abrirExcepcional() {
     desde, hasta,
     tipos: tipo === 'ambos' ? ['dos-horas', 'una-hora'] : [tipo],
     motivo: $('pa-ex-motivo').value.trim(),
+    unicoPorDia: $('pa-ex-unico').checked,
   };
   if (repite) {
     excepcional.repite = true;
     excepcional.diaSemana = Number($('pa-ex-dia').value);
+    excepcional.frecuencia = $('pa-ex-frecuencia').value;
+    excepcional.ancla = excepcional.frecuencia === 'quincenal' ? ($('pa-ex-ancla').value || null) : null;
     excepcional.desdeFecha = $('pa-ex-desde-fecha').value || null;
     excepcional.hastaFecha = $('pa-ex-hasta-fecha').value || null;
     if (excepcional.hastaFecha && excepcional.desdeFecha
@@ -849,7 +1024,16 @@ async function abrirExcepcional() {
   const dow = repite
     ? excepcional.diaSemana
     : new Date(`${excepcional.fecha}T12:00:00Z`).getUTCDay();
-  const franjas = (datos.config?.semana || {})[String(dow)] || [];
+  //
+  // Solo cuenta una franja que de verdad lo tape: una quincenal cae la mitad
+  // de las veces y una que sirve para otro tipo no ofrece estos horarios, así
+  // que avisar por ellas sería avisar en falso.
+  const franjas = ((datos.config?.semana || {})[String(dow)] || []).filter(f => {
+    if (f.frecuencia === 'quincenal') return false;
+    const suyos = Array.isArray(f.tipos) ? f.tipos : [];
+    if (!suyos.length) return true;
+    return excepcional.tipos.some(t => suyos.includes(t));
+  });
   const tapado = franjas.find(f => f.desde <= desde && f.hasta >= hasta);
   if (tapado) {
     const ok = window.confirm(
@@ -860,14 +1044,18 @@ async function abrirExcepcional() {
   }
 
   try {
-    await llamar({ accion: 'excepcional', excepcional });
-    for (const id of ['pa-ex-fecha', 'pa-ex-desde-fecha', 'pa-ex-hasta-fecha', 'pa-ex-desde', 'pa-ex-hasta', 'pa-ex-motivo']) {
-      $(id).value = '';
+    if (editandoExtra) {
+      await llamar({ accion: 'guardarExcepcional', id: editandoExtra, excepcional });
+      salirDeExtra();
+      avisar('Guardado. Acordate de publicarlo.', 'ok');
+    } else {
+      await llamar({ accion: 'excepcional', excepcional });
+      for (const id of CAMPOS_EXTRA) $(id).value = '';
+      avisar('Listo: el espacio queda abierto. Acordate de publicarlo.', 'ok');
     }
-    avisar('Listo: el espacio queda abierto. Acordate de publicarlo.', 'ok');
     await recargar();
   } catch (e) {
-    avisar(`No se pudo abrir: ${e.message}`, 'error');
+    avisar(`No se pudo guardar: ${e.message}`, 'error');
   }
 }
 
@@ -916,15 +1104,39 @@ function pintarSeries() {
     nombre.textContent = s.nombre || s.email;
     const cuando = document.createElement('span');
     cuando.className = 'pa-serie-cuando';
-    cuando.textContent = `${DIA_CORTO[s.diaSemana]} a las ${s.hora}, cada 15 días`;
+    const cadaCuanto = s.frecuencia === 'semanal' ? 'cada semana' : 'cada 15 días';
+    const duracion = s.duracionMin ? `, ${s.duracionMin} min` : '';
+    // Indefinido es lo normal, y por eso no se escribe: lo que merece decirse
+    // es que termina.
+    const termina = s.hasta ? `, hasta el ${s.hasta}` : '';
+    cuando.textContent = `${DIA_CORTO[s.diaSemana]} a las ${s.hora}, ${cadaCuanto}${duracion}${termina}`;
     cabeza.append(nombre, cuando);
     ficha.appendChild(cabeza);
 
     const datos = document.createElement('div');
     datos.className = 'pa-serie-datos';
-    datos.textContent = [s.email, s.telefono, s.modalidad].filter(Boolean).join(' · ')
+    datos.textContent = [s.email || 'falta el mail', s.telefono, s.modalidad].filter(Boolean).join(' · ')
       + (s.estado === 'pausada' ? ' · EN PAUSA' : '');
     ficha.appendChild(datos);
+
+    if (s.recurrenciaExterna) {
+      const importada = document.createElement('div');
+      importada.className = 'pa-serie-conflicto';
+      importada.textContent = 'Importada del calendario: su horario ya está reservado y nadie más lo puede '
+        + 'tomar, pero los encuentros los sigue poniendo la repetición vieja. Con "Pasar al sistema" la corto '
+        + 'y empiezo a crearlos yo, con su enlace y su invitación.';
+      ficha.appendChild(importada);
+    }
+
+    // Sin mail, el espacio queda igual de protegido pero no se le puede
+    // mandar el enlace ni invitarla al encuentro. Conviene que se vea.
+    if (!s.email) {
+      const falta = document.createElement('div');
+      falta.className = 'pa-serie-conflicto';
+      falta.textContent = 'Sin mail: su horario está reservado, pero no puede recibir el enlace '
+        + 'para cambiarlo ni la invitación de cada encuentro. Agregalo con Editar.';
+      ficha.appendChild(falta);
+    }
 
     if (s.conflictos && s.conflictos.length) {
       const aviso = document.createElement('div');
@@ -960,9 +1172,15 @@ function pintarSeries() {
     acciones.className = 'pa-serie-acciones';
 
     acciones.appendChild(boton('Editar', () => editarSerie(s)));
-    acciones.appendChild(boton('Mandarle el enlace', () => mandarEnlace(s, true)));
-    acciones.appendChild(boton('Ver el enlace', () => mandarEnlace(s, false)));
-    acciones.appendChild(boton('Estirar sus encuentros', () => estirarSerie(s)));
+    // Una serie importada todavía no tiene encuentros propios: el enlace y el
+    // estirado no sirven hasta que pase al sistema.
+    if (s.recurrenciaExterna) {
+      acciones.appendChild(boton('Pasar al sistema', () => adoptarSerie(s)));
+    } else {
+      acciones.appendChild(boton('Mandarle el enlace', () => mandarEnlace(s, true)));
+      acciones.appendChild(boton('Ver el enlace', () => mandarEnlace(s, false)));
+      acciones.appendChild(boton('Estirar sus encuentros', () => estirarSerie(s)));
+    }
     acciones.appendChild(boton(s.estado === 'pausada' ? 'Reactivar' : 'Pausar', () => pausarSerie(s)));
     acciones.appendChild(boton('Borrar', () => borrarSerie(s)));
 
@@ -985,6 +1203,28 @@ function boton(texto, alTocar) {
 // estar sumando a otra persona.
 let editando = null;
 
+// Los campos del formulario, en un solo lugar: el alta y la edición mandan lo
+// mismo, y antes estaba escrito dos veces (así que un campo nuevo había que
+// acordarse de sumarlo en los dos).
+const CAMPOS_SERIE = ['pa-se-nombre', 'pa-se-email', 'pa-se-telefono', 'pa-se-ancla', 'pa-se-hasta', 'pa-se-duracion'];
+
+function serieDeLaPantalla() {
+  const duracion = Number($('pa-se-duracion').value);
+  return {
+    nombre: $('pa-se-nombre').value.trim(),
+    email: $('pa-se-email').value.trim(),
+    telefono: $('pa-se-telefono').value.trim(),
+    diaSemana: Number($('pa-se-dia').value),
+    hora: $('pa-se-hora').value,
+    ancla: $('pa-se-ancla').value,
+    // Vacío es indefinido, que es el caso normal.
+    hasta: $('pa-se-hasta').value || null,
+    frecuencia: $('pa-se-frecuencia').value,
+    duracionMin: Number.isFinite(duracion) && duracion >= 15 ? duracion : null,
+    modalidad: $('pa-se-modalidad').value,
+  };
+}
+
 function editarSerie(s) {
   editando = s.id;
   $('pa-se-nombre').value = s.nombre || '';
@@ -993,6 +1233,9 @@ function editarSerie(s) {
   $('pa-se-dia').value = String(s.diaSemana);
   $('pa-se-hora').value = s.hora || '';
   $('pa-se-ancla').value = s.ancla || '';
+  $('pa-se-hasta').value = s.hasta || '';
+  $('pa-se-duracion').value = s.duracionMin || '';
+  $('pa-se-frecuencia').value = s.frecuencia === 'semanal' ? 'semanal' : 'quincenal';
   $('pa-se-modalidad').value = s.modalidad || 'Online';
   $('pa-btn-crear-serie').textContent = 'Guardar los cambios';
   $('pa-se-aviso').hidden = false;
@@ -1002,7 +1245,7 @@ function editarSerie(s) {
 
 function salirDeEdicion() {
   editando = null;
-  for (const id of ['pa-se-nombre', 'pa-se-email', 'pa-se-telefono', 'pa-se-ancla']) $(id).value = '';
+  for (const id of CAMPOS_SERIE) $(id).value = '';
   $('pa-btn-crear-serie').textContent = 'Sumar y tomar sus encuentros';
   $('pa-se-aviso').hidden = true;
 }
@@ -1025,6 +1268,63 @@ async function borrarSerie(s) {
   }
 }
 
+// Importar los encuentros que ya viven en el calendario. Cada uno entra con
+// su horario protegido y sin tocar el calendario; el paso que lo toca es
+// adoptarla, y se hace de a una.
+async function importarSeries() {
+  const caja = $('pa-importar-resultado');
+  const boton = $('pa-btn-importar');
+  let lista;
+  try {
+    lista = JSON.parse($('pa-importar-datos').value);
+    if (!Array.isArray(lista) || !lista.length) throw new Error('vacío');
+  } catch (e) {
+    return avisar('Eso no es una lista que pueda leer. Pegá el texto completo, con los corchetes.', 'error');
+  }
+
+  boton.disabled = true;
+  caja.textContent = '';
+  let bien = 0;
+  const mal = [];
+  for (const cruda of lista) {
+    const { recurrenciaExterna, ...serie } = cruda;
+    try {
+      await llamar({ accion: 'crearSerie', serie, recurrenciaExterna: recurrenciaExterna || null });
+      bien++;
+    } catch (e) {
+      mal.push(`${serie.nombre || 'sin nombre'}: ${e.message}`);
+    }
+  }
+  boton.disabled = false;
+
+  avisar(mal.length
+    ? `Entraron ${bien} de ${lista.length}. Mirá el detalle abajo.`
+    : `Listo: entraron las ${bien}. Sus horarios ya están reservados y tu calendario quedó intacto.`,
+  mal.length ? 'error' : 'ok');
+  if (mal.length) caja.textContent = `No entraron: ${mal.join(' · ')}`;
+  $('pa-importar-datos').value = '';
+  await cargarSeries();
+}
+
+async function adoptarSerie(s) {
+  const ok = window.confirm(
+    `Voy a cortar la repetición de ${s.nombre || s.email} en tu calendario (lo que ya pasó queda) `
+    + 'y a crear de acá en adelante un encuentro por vez, con su invitación.\n\n¿Sigo?');
+  if (!ok) return;
+  try {
+    const r = await llamar({ accion: 'adoptarSerie', id: s.id });
+    avisar(r.conflictos.length
+      ? `Pasó al sistema con ${r.creados.length} encuentro(s), pero ${r.conflictos.length} no entró porque el horario estaba ocupado.`
+      : `Pasó al sistema: ${r.creados.length} encuentro(s) creado(s).`,
+    r.conflictos.length ? 'error' : 'ok');
+    await cargarSeries();
+  } catch (e) {
+    avisar(e.message === 'no_se_pudo_cortar'
+      ? 'No pude cortar la repetición en el calendario, así que no creé nada: si lo hiciera, cada encuentro quedaría dos veces.'
+      : `No se pudo pasar al sistema: ${e.message}`, 'error');
+  }
+}
+
 async function crearSerie() {
   if (editando) return guardarSerieEditada();
   const boton = $('pa-btn-crear-serie');
@@ -1032,15 +1332,7 @@ async function crearSerie() {
   try {
     const r = await llamar({
       accion: 'crearSerie',
-      serie: {
-        nombre: $('pa-se-nombre').value.trim(),
-        email: $('pa-se-email').value.trim(),
-        telefono: $('pa-se-telefono').value.trim(),
-        diaSemana: Number($('pa-se-dia').value),
-        hora: $('pa-se-hora').value,
-        ancla: $('pa-se-ancla').value,
-        modalidad: $('pa-se-modalidad').value,
-      },
+      serie: serieDeLaPantalla(),
     });
 
     // Un alta puede salir a medias: la serie queda, y alguno de sus
@@ -1056,7 +1348,7 @@ async function crearSerie() {
       avisar(`${parte} Le mandé el enlace por mail.`, r.conflictos.length ? 'error' : 'ok');
     }
 
-    for (const id of ['pa-se-nombre', 'pa-se-email', 'pa-se-telefono', 'pa-se-ancla']) $(id).value = '';
+    for (const id of CAMPOS_SERIE) $(id).value = '';
     await cargarSeries();
   } catch (e) {
     avisar(`No se pudo sumar: ${mensajeDeSerie(e)}`, 'error');
@@ -1072,15 +1364,7 @@ async function guardarSerieEditada() {
     await llamar({
       accion: 'guardarSerie',
       id: editando,
-      serie: {
-        nombre: $('pa-se-nombre').value.trim(),
-        email: $('pa-se-email').value.trim(),
-        telefono: $('pa-se-telefono').value.trim(),
-        diaSemana: Number($('pa-se-dia').value),
-        hora: $('pa-se-hora').value,
-        ancla: $('pa-se-ancla').value,
-        modalidad: $('pa-se-modalidad').value,
-      },
+      serie: serieDeLaPantalla(),
     });
     avisar('Guardado. Los encuentros que ya estaban tomados siguen donde estaban.', 'ok');
     salirDeEdicion();
@@ -1359,8 +1643,11 @@ $('pa-cal-despues').addEventListener('click', () => {
   calMes = mesVecino(calMes || hoyISO().slice(0, 7), 1);
   cargarCalendario();
 });
+$('pa-btn-nuevo-turno').addEventListener('click', () => anotarTurno(false));
+$('pa-btn-importar').addEventListener('click', importarSeries);
 $('pa-btn-excepcional').addEventListener('click', abrirExcepcional);
 $('pa-ex-cuando').addEventListener('change', pintarFormExcepcional);
+$('pa-ex-frecuencia').addEventListener('change', pintarFormExcepcional);
 pintarFormExcepcional();
 
 // La vista previa de la cadencia se rehace con cualquier cosa que la cambie:

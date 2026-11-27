@@ -373,7 +373,9 @@ function pintarCalendario() {
     // falso: están justo abajo, detrás de la pregunta.
     grilla.innerHTML = estado.excepcionales.length
       ? '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en mis días habituales, pero abrí algunos aparte: están más abajo.</p>'
-      : '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en los próximos días. Escribinos a <a href="mailto:info@sebabru.com">info@sebabru.com</a> y buscamos un hueco.</p>';
+      // Misma situacion que el bloque de abajo, asi que la misma salida: dos
+      // caminos distintos para lo mismo solo hacen dudar.
+      : '<p style="grid-column:1/-1; color:#8f8d88; line-height:1.7;">No hay horarios libres en los próximos días. Escribile a Clari contándole los momentos que tenés disponibles y buscamos un hueco: <a href="https://wa.me/5493544559877">+54 9 3544 55-9877</a>.</p>';
     return;
   }
 
@@ -473,7 +475,12 @@ function pintarDiasSueltos() {
     if (!porDia.has(dia)) porDia.set(dia, []);
     porDia.get(dia).push(iso);
   }
-  $('ag-sueltos').hidden = porDia.size === 0;
+  // Lo que se esconde cuando no hay ningun horario extraordinario es la
+  // lista, no el bloque. El bloque se ve siempre, porque abajo esta la salida
+  // para escribirle a Clari y quien no encontro nada es justamente quien la
+  // necesita. Antes se escondia todo y esa salida desaparecia en el unico
+  // caso en que hacia falta.
+  $('ag-sueltos-lista').hidden = porDia.size === 0;
   if (!porDia.size) return;
 
   for (const [, horas] of [...porDia.entries()].sort()) {

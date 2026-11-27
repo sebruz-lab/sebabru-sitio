@@ -7043,6 +7043,29 @@ async function leerExcepcionales(modo = MODO_PUBLICADO) {
     .filter(e => e && e.desde && e.hasta && esDelModo(e, modo));
 }
 
+// Los encuentros habituales vigentes, para que el motor no ofrezca el horario
+// de nadie.
+//
+// No lleva `modo`, y es a proposito: las series no tienen borrador y no
+// deberian tenerlo. El horario que alguien tiene desde hace anios no es
+// configuracion en preparacion, y un espacio comprometido no puede depender
+// de que alguien se acuerde de publicar.
+//
+// La igualdad es sobre un solo campo, el mismo que usa el trabajo diario que
+// las materializa: asi lo que se protege y lo que se crea son exactamente el
+// mismo conjunto.
+async function leerSeriesActivas() {
+  const snap = await _db.collection('agenda_series').where('estado', '==', 'activa').get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// De todo lo ocupado, los turnos que dio el sitio: son los unicos que traen
+// id. Lo usa la regla del extra unico por dia, que tiene que distinguir una
+// reserva de un evento cualquiera del calendario de Seba.
+function soloReservas(ocupados) {
+  return (ocupados || []).filter(o => o && o.length > 2 && o[2]);
+}
+
 // -------------------------------------------------------
 // Ocupacion: lo que dice Google Calendar mas los turnos que ya dio el sitio.
 // Devuelve intervalos [desde, hasta] en milisegundos.
@@ -7084,7 +7107,18 @@ async function ocupacionEntre(desdeMs, hastaMs) {
   for (const doc of turnos.docs) {
     const t = doc.data();
     if (t.estado !== 'reservado') continue;
-    ocupados.push([t.inicio.toMillis(), t.fin.toMillis()]);
+    // El tercer elemento es el id del documento, y solo lo traen los turnos
+    // del sitio: los huecos que vienen de Calendar no tienen ninguno.
+    //
+    // Hace falta para poder sacar un turno puntual de la ocupacion -- el que
+    // la persona esta soltando al reprogramar -- sin DERIVAR su id desde el
+    // horario. Derivarlo es lo que se hacia antes, y se rompe en cuanto dos
+    // turnos comparten el mismo instante: el id calculado matchea a los dos y
+    // se saca de la ocupacion uno que nadie solto.
+    //
+    // chocaCon destructura [a, b] e ignora el resto, asi que el motor no se
+    // entera de que esto esta aca.
+    ocupados.push([t.inicio.toMillis(), t.fin.toMillis(), doc.id]);
   }
 
   return ocupados;
@@ -7472,7 +7506,7 @@ async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId) {
       },
     };
   } else {
-    cuerpo.location = datosDelEncuentro(pedido.modalidad).lugar;
+    cuerpo.location = datosDelEncuentro(sujeto.modalidad).lugar;
   }
 
   const r = await cal.events.insert({
@@ -7644,18 +7678,25 @@ async function slotsVisibles(config, desdePedido, hastaPedido, tipo, modo = MODO
   if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
   if (hasta < desde) return { desde, hasta, slots: [] };
 
-  const [ocupados, bloqueos, excepcionales] = await Promise.all([
+  const [ocupados, bloqueos, excepcionales, series] = await Promise.all([
     ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
     leerBloqueos(modo),
     leerExcepcionales(modo),
+    leerSeriesActivas(),
   ]);
   const horarios = motor.horariosDe({
     config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
+    series, reservas: soloReservas(ocupados),
   });
-  // Las tres listas viajan juntas: los regulares libres, los excepcionales
-  // (que la pagina muestra aparte y solo si hacen falta) y los tramos que
-  // este tipo no puede usar, para pintarlos en gris con su motivo en lugar
-  // de que desaparezcan sin explicacion.
+  // Las listas viajan juntas: los regulares libres, los excepcionales (que la
+  // pagina muestra aparte y solo si hacen falta) y los tramos que este tipo no
+  // puede usar, para pintarlos en gris con su motivo en lugar de que
+  // desaparezcan sin explicacion.
+  //
+  // OJO con `horarios.series`: lleva el NOMBRE de cada persona que tiene un
+  // encuentro habitual. Es para el panel. Los endpoints publicos
+  // (`disponibilidad`, `miDisponibilidad`) copian campo por campo justamente
+  // por esto, asi que no hagas un spread de esto en una respuesta publica.
   return { desde, hasta, ...horarios };
 }
 
@@ -7877,6 +7918,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   const promesaConfig = leerConfigAgenda();
   const promesaBloqueos = leerBloqueos();
   const promesaExcepcionales = leerExcepcionales();
+  const promesaSeries = leerSeriesActivas();
   const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'));
 
   const config = await promesaConfig;
@@ -7897,11 +7939,19 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   //              automatico no deberia comerse en silencio.
   const porLaGrilla = quien !== 'admin' && quien !== 'serie';
 
+  // Superponer es una decision de Seba y solo de Seba: se revalida contra
+  // `quien` y no se confia en el cuerpo del pedido. Lo unico que agrega es
+  // saltear la comprobacion de solapamiento -- el admin ya no pasaba por las
+  // franjas, la grilla, la anticipacion ni la pausa --, y el panel lo pide
+  // con una confirmacion a la vista, nunca en silencio.
+  const superponer = quien === 'admin' && sujeto.superponer === true;
+
   if (config.pausado && porLaGrilla) {
     // Las otras ya salieron: si se vuelve sin esperarlas, un rechazo suyo
     // queda sin atender y Node lo levanta como unhandledRejection.
     promesaBloqueos.catch(() => {});
     promesaExcepcionales.catch(() => {});
+    promesaSeries.catch(() => {});
     promesaOcupacion.catch(() => {});
     return { error: 'agenda_pausada', status: 409 };
   }
@@ -7910,14 +7960,35 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   // sujeto sin tipo es una consulta de dos horas con los valores de siempre:
   // es lo unico que existia antes de que hubiera tipos.
   const t = tipoDe(config, sujeto.tipo);
+  // La duracion la puede fijar el sujeto, y entonces manda sobre la del tipo.
+  // Lo usan los encuentros habituales, que duran lo que duran (55, 60, 75,
+  // 120) y no lo que diga un tipo. Acotada a lo mismo que acota la
+  // configuracion: nadie puede pedir un turno de dos dias.
+  const duracionPedida = Math.round(Number(sujeto.duracionMin));
+  const duracionMin = Number.isFinite(duracionPedida) && duracionPedida >= 15 && duracionPedida <= MAX_TURNO_MIN
+    ? duracionPedida
+    : t.duracionMin;
   const turnoAnterior = sujeto.turnoAnterior || null;
-  const [bloqueos, excepcionales, ocupadosCrudos] = await Promise.all([
-    promesaBloqueos, promesaExcepcionales, promesaOcupacion,
+  const [bloqueos, excepcionales, series, ocupadosCrudos] = await Promise.all([
+    promesaBloqueos, promesaExcepcionales, promesaSeries, promesaOcupacion,
   ]);
+
+  // El espacio habitual de quien reserva no puede estorbarle a su propio
+  // encuentro. Se excluye UNA ocurrencia, no la serie entera: si se excluyera
+  // la serie, alguien podria mover el encuentro del 10 encima de su propio
+  // horario del 24 y el trabajo diario lo reportaria despues como conflicto.
+  const excluirSerie = sujeto.serieId
+    ? { serieId: sujeto.serieId, ocurrencia: sujeto.ocurrencia || diaLocal(inicioMs) }
+    : null;
   const ocupados = ocupadosCrudos
     // Al reprogramar, el turno que la persona ya tenia no se cuenta como
     // ocupado: si no, no podria mover la sesion dos horas.
-    .filter(([a]) => !(turnoAnterior && idDeTurno(a) === turnoAnterior));
+    //
+    // Se compara contra el id que trae el intervalo, no contra uno derivado
+    // del horario: dos turnos pueden empezar en el mismo instante (los que el
+    // panel crea superpuestos), y un id calculado los matchearia a los dos,
+    // sacando de la ocupacion uno que nadie solto.
+    .filter(([, , id]) => !(turnoAnterior && id === turnoAnterior));
 
   if (porLaGrilla) {
     // El horario tiene que ser uno de los que la pagina podia ofrecer: no
@@ -7931,15 +8002,25 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     const horarios = motor.horariosDe({
       config, tipo: sujeto.tipo, desde: dia, hasta: dia,
       bloqueos, excepcionales, ocupados,
+      series, excluirSerie, reservas: soloReservas(ocupados),
     });
     const legales = [...horarios.slots, ...horarios.excepcionales];
     if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
-  } else if (chocaCon(inicioMs, inicioMs + t.duracionMin * 60000, ocupados, bufferDe(t, quien))) {
-    return { error: 'slot_ocupado', status: 409 };
+  } else {
+    // Admin y series no pasan por la grilla, pero el espacio habitual de otra
+    // persona si los frena: un encuentro que todavia no se materializo es
+    // ocupacion igual, y pisarlo en silencio seria sacarle el horario a
+    // alguien que lo tiene desde anios.
+    const conSeries = [
+      ...ocupados,
+      ...motor.tramosDeSeries(dia, series, config, excluirSerie).map(s => [s.inicio, s.fin]),
+    ];
+    if (!superponer && chocaCon(inicioMs, inicioMs + duracionMin * 60000, conSeries, bufferDe(t, quien))) {
+      return { error: 'slot_ocupado', status: 409 };
+    }
   }
 
-  const finMs = inicioMs + t.duracionMin * 60000;
-  const turnoId = idDeTurno(inicioMs);
+  const finMs = inicioMs + duracionMin * 60000;
 
   // Aca esta la carrera: dos personas con el mismo horario abierto. El id
   // del documento sale del horario, asi que los dos escriben el mismo.
@@ -7964,7 +8045,15 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   // mira el calendario de Seba, las franjas y la anticipacion. Esta mira solo
   // los turnos del sitio, que es lo unico que pudo haber cambiado en el
   // milisegundo que paso.
-  const ref = _db.collection('agenda_turnos').doc(turnoId);
+  //
+  // Y el candado tiene su excepcion, que es la unica: cuando Seba pide
+  // superponer a proposito, dos turnos COMPARTEN el instante de arranque y
+  // entonces no pueden compartir el documento. Ahi -- y solo ahi -- el id
+  // lleva un sufijo. Fuera de ese caso el id es el horario pelado, porque es
+  // lo que hace que dos personas que aprietan el mismo horario a la vez
+  // choquen en el mismo documento y una pierda.
+  let turnoId = idDeTurno(inicioMs);
+  let ref = _db.collection('agenda_turnos').doc(turnoId);
 
   // Un turno que arranca antes que este puede solaparlo igual, asi que la
   // consulta empieza el maximo que puede durar uno antes del inicio pedido.
@@ -7979,22 +8068,39 @@ async function reservarHorario(sujeto, inicioMs, quien) {
 
   try {
     await _db.runTransaction(async tx => {
-      // Las dos lecturas van juntas: una transaccion admite varias, y en
-      // fila se sumarian dos viajes a Firestore adentro del candado.
-      const [snap, cerca] = await Promise.all([tx.get(ref), tx.get(vecinos)]);
-      if (snap.exists && snap.data().estado === 'reservado') {
-        throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
-      }
-      for (const doc of cerca.docs) {
-        // El propio horario ya se miro arriba, y el turno que esta persona
-        // esta soltando no cuenta: si contara, no podria mover su sesion dos
-        // horas.
-        if (doc.id === turnoId || doc.id === turnoAnterior) continue;
-        const otro = doc.data();
-        if (otro.estado !== 'reservado') continue;
-        const rango = [[otro.inicio.toMillis(), otro.fin.toMillis()]];
-        if (chocaCon(inicioMs, finMs, rango, bufferTx)) {
+      if (superponer) {
+        // El primer id libre de la serie base, base__2, base__3... La busqueda
+        // va ADENTRO de la transaccion a proposito: afuera, dos pedidos de
+        // superposicion simultaneos elegirian el mismo sufijo y el segundo
+        // perderia con un "slot_ocupado" incomprensible.
+        const base = idDeTurno(inicioMs);
+        let elegido = null;
+        for (let n = 1; n <= 5 && !elegido; n++) {
+          const candidato = n === 1 ? base : `${base}__${n}`;
+          const s = await tx.get(_db.collection('agenda_turnos').doc(candidato));
+          if (!s.exists || s.data().estado !== 'reservado') elegido = candidato;
+        }
+        if (!elegido) throw Object.assign(new Error('demasiados_superpuestos'), { demasiados: true });
+        turnoId = elegido;
+        ref = _db.collection('agenda_turnos').doc(turnoId);
+      } else {
+        // Las dos lecturas van juntas: una transaccion admite varias, y en
+        // fila se sumarian dos viajes a Firestore adentro del candado.
+        const [snap, cerca] = await Promise.all([tx.get(ref), tx.get(vecinos)]);
+        if (snap.exists && snap.data().estado === 'reservado') {
           throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
+        }
+        for (const doc of cerca.docs) {
+          // El propio horario ya se miro arriba, y el turno que esta persona
+          // esta soltando no cuenta: si contara, no podria mover su sesion dos
+          // horas.
+          if (doc.id === turnoId || doc.id === turnoAnterior) continue;
+          const otro = doc.data();
+          if (otro.estado !== 'reservado') continue;
+          const rango = [[otro.inicio.toMillis(), otro.fin.toMillis()]];
+          if (chocaCon(inicioMs, finMs, rango, bufferTx)) {
+            throw Object.assign(new Error('slot_ocupado'), { slotOcupado: true });
+          }
         }
       }
       tx.set(ref, {
@@ -8006,7 +8112,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
         // mucho despues, y la configuracion puede haber cambiado entre
         // medio. Un turno tiene que saber cuanto dura el.
         tipo: t.id,
-        duracionMin: t.duracionMin,
+        duracionMin,
         serieId: sujeto.serieId || null,
         // De que encuentro de la serie se trata, con la fecha quincenal que
         // le toca por calendario. No es lo mismo que el dia del turno: si la
@@ -8031,6 +8137,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     });
   } catch (e) {
     if (e.slotOcupado || e.code === 6) return { error: 'slot_ocupado', status: 409 };
+    if (e.demasiados) return { error: 'demasiados_superpuestos', status: 409 };
     throw e;
   }
 
@@ -8050,7 +8157,14 @@ async function reservarHorario(sujeto, inicioMs, quien) {
 
   let eventId = null;
   let meet = null;
-  try {
+  // Un evento que YA esta en el calendario se adopta en lugar de crear otro.
+  // Es lo que usa la importacion de los encuentros que Seba venia anotando a
+  // mano: sin esto, traerlos al sistema le duplicaria cada encuentro en el
+  // calendario. Un evento adoptado no trae Meet, asi que el encuentro cae al
+  // Zoom de siempre.
+  if (sujeto.eventId) {
+    eventId = sujeto.eventId;
+  } else try {
     ({ eventId, meet } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId));
   } catch (e) {
     // El turno vale igual (la persona ya tiene su confirmacion) pero Seba
@@ -8085,7 +8199,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     meet,
     turno: {
       id: turnoId, inicio: isoLocal(inicioMs), fin: isoLocal(finMs),
-      tipo: t.id, duracionMin: t.duracionMin,
+      tipo: t.id, duracionMin,
       modalidad: sujeto.modalidad || '', meet,
     },
   };
@@ -8109,6 +8223,9 @@ async function reservarParaPedido(pedido, pedidoId, inicioMs, quien) {
     serieId: pedido.serieId || null,
     turnoAnterior: pedido.turnoId || null,
     enlacePersonal: urlDeAgenda(pedidoId),
+    // Solo lo honra el camino del admin, y reservarHorario lo revalida
+    // contra `quien`: un pedido del publico que lo traiga no hace nada.
+    superponer: pedido.superponer === true,
   }, inicioMs, quien);
   if (r.error) return r;
 
@@ -8362,6 +8479,11 @@ function turnoParaPersona(turno, config) {
 // -------------------------------------------------------
 async function extenderSerie(serie, config) {
   if (!serie || serie.estado === 'pausada') return { creados: [], conflictos: [] };
+  // Una serie importada todavia tiene su repeticion vieja viva en el
+  // calendario de Seba: materializarla le dejaria cada encuentro dos veces.
+  // Su horario ya esta protegido por regla, asi que no hay apuro: se
+  // materializa al adoptarla, que es cuando se corta la repeticion.
+  if (serie.recurrenciaExterna) return { creados: [], conflictos: [] };
   const conf = config || await leerConfigAgenda();
 
   const hoy = diaLocal(Date.now());
@@ -8396,7 +8518,11 @@ async function extenderSerie(serie, config) {
     // de Google es la forma segura de comerse un 429.
     const r = await reservarHorario({
       nombre: serie.nombre, email: serie.email, telefono: serie.telefono,
-      modalidad: serie.modalidad, tipo: 'una-hora',
+      modalidad: serie.modalidad,
+      // El tipo y la duracion salen de la serie: los encuentros de Seba no
+      // duran todos lo mismo, y antes esto forzaba una hora para todos.
+      tipo: serie.tipo || 'una-hora',
+      duracionMin: serie.duracionMin || null,
       serieId: serie.id,
       ocurrencia,
       enlacePersonal: serie.enlace || null,
@@ -8417,6 +8543,39 @@ async function extenderSerie(serie, config) {
   }
 
   return { creados, conflictos };
+}
+
+// -------------------------------------------------------
+// Cortar una repeticion vieja de Google Calendar
+//
+// Los encuentros habituales de Seba vivian como eventos repetidos puestos a
+// mano. Cuando el sistema se hace cargo de una de esas personas, la
+// repeticion vieja tiene que dejar de producir ocurrencias o cada encuentro
+// quedaria dos veces en el calendario.
+//
+// Se le pone un UNTIL de ayer en lugar de borrarla: lo que ya paso queda
+// donde esta. Borrarla se llevaria anios de encuentros del calendario, y eso
+// no se puede deshacer.
+// -------------------------------------------------------
+async function cortarRecurrencia(eventId) {
+  const cal = getCalendarClient();
+  const calendarId = calendarioDeTurnos();
+  const actual = await cal.events.get({ calendarId, eventId });
+  const reglas = actual.data.recurrence || [];
+  if (!reglas.length) return { cortada: false, motivo: 'no_repite' };
+
+  // AAAAMMDD de ayer, que es el formato de fecha de un UNTIL sin hora.
+  const ayer = diaLocal(Date.now() - 86400000).replace(/-/g, '');
+  const nuevas = reglas.map(regla => {
+    if (!regla.startsWith('RRULE')) return regla;
+    // Si ya tenia un UNTIL o un COUNT, se reemplaza: dos topes en la misma
+    // regla la vuelven invalida.
+    const limpia = regla.replace(/;?(UNTIL|COUNT)=[^;]*/g, '');
+    return `${limpia};UNTIL=${ayer}`;
+  });
+
+  await cal.events.patch({ calendarId, eventId, requestBody: { recurrence: nuevas } });
+  return { cortada: true, reglas: nuevas };
 }
 
 // Un aviso por tanda, no uno por conflicto: si una semana se cruzan cinco
@@ -8811,7 +8970,11 @@ exports.miCambio = functions.runWith({ memory: '512MB' }).https.onRequest(async 
 
     const inicioMs = Date.parse(sanitizeTexto(req.body?.inicio, 40));
     if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
-    if (idDeTurno(inicioMs) === turno.id) return res.status(200).json({ ok: true, sinCambios: true });
+    // Pedir el horario que ya se tiene no es un cambio. Se compara el instante
+    // y no el id derivado: el id de un turno que el panel creo superpuesto
+    // lleva un sufijo, asi que idDeTurno(inicioMs) no coincidiria y "moverlo a
+    // su propia hora" dispararia una reserva de verdad.
+    if (turno.inicio.toMillis() === inicioMs) return res.status(200).json({ ok: true, sinCambios: true });
 
     const r = await reservarHorario({
       nombre: turno.nombre, email: turno.email, telefono: turno.telefono,
@@ -8870,7 +9033,15 @@ function serieSaneada(cruda) {
   const hora = sanitizeTexto(cruda?.hora, 5);
 
   if (!nombre) return { error: 'falta_nombre' };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'email_invalido' };
+  // El mail es opcional, pero si viene tiene que ser un mail.
+  //
+  // Opcional porque los encuentros habituales de Seba vivian como eventos
+  // puestos a mano en su calendario y casi ninguno tiene el mail anotado.
+  // Exigirlo dejaba la agenda de anios afuera del sistema por un dato que
+  // Seba tiene en otro lado. Una serie sin mail existe, ocupa su horario y se
+  // ve en el panel; lo que no puede es recibir el enlace personal ni la
+  // invitacion al encuentro, y el panel lo avisa.
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'email_invalido' };
   if (!Number.isFinite(diaSemana) || diaSemana < 0 || diaSemana > 6) return { error: 'dia_invalido' };
   if (minutosDeHora(hora) === null) return { error: 'hora_invalida' };
 
@@ -8886,10 +9057,28 @@ function serieSaneada(cruda) {
   // todas el dia equivocado, en silencio.
   if (diaDeSemana(ancla) !== diaSemana) return { error: 'ancla_no_coincide' };
 
+  // Hasta cuando. Vacio es lo normal y significa indefinido: el espacio es de
+  // esa persona hasta que Seba lo de de baja, no hasta donde llego el ultimo
+  // barrido.
+  const hastaCrudo = sanitizeTexto(cruda?.hasta, 10);
+  const hasta = fechaValida(hastaCrudo) ? hastaCrudo : null;
+  if (hasta && hasta < ancla) return { error: 'hasta_antes_del_ancla' };
+
+  // Cada cuanto, y cuanto dura. Los encuentros de Seba duran 55, 60, 75 y 120
+  // minutos segun la persona, asi que la duracion no puede salir de un tipo
+  // fijo. Sin duracion escrita, la del tipo.
+  const frecuencia = cruda?.frecuencia === 'semanal' ? 'semanal' : 'quincenal';
+  const tipo = motor.TIPOS_POR_DEFECTO[cruda?.tipo] ? cruda.tipo : 'una-hora';
+  const duracionCruda = Math.round(Number(cruda?.duracionMin));
+  const duracionMin = Number.isFinite(duracionCruda) && duracionCruda >= 15 && duracionCruda <= MAX_TURNO_MIN
+    ? duracionCruda
+    : null;
+
   const notis = cruda?.notificaciones || {};
   return {
     serie: {
-      nombre, email, hora, diaSemana, ancla,
+      nombre, email, hora, diaSemana, ancla, hasta,
+      frecuencia, tipo, duracionMin,
       telefono: sanitizeTexto(cruda?.telefono, 50),
       modalidad: cruda?.modalidad === 'Presencial' ? 'Presencial' : 'Online',
       estado: cruda?.estado === 'pausada' ? 'pausada' : 'activa',
@@ -8915,10 +9104,27 @@ function excepcionalSaneado(cruda) {
   const tipos = Array.isArray(cruda?.tipos)
     ? cruda.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
     : [];
+  // Las DOS ramas emiten TODAS las claves, y eso no es prolijidad: es lo que
+  // hace que editar un extra funcione. Se guardan con `set merge`, asi que si
+  // la rama de fecha no escribiera `repite: false` y `diaSemana: null`, un
+  // extra creado como recurrente y editado a una fecha sola conservaria
+  // `repite: true`, el motor branchearia por ahi y el extra seguiria cayendo
+  // todas las semanas mientras la pantalla muestra una fecha. En silencio.
   const base = {
     desde, hasta,
     tipos: tipos.length ? tipos : [motor.TIPO_POR_DEFECTO],
     motivo: sanitizeTexto(cruda?.motivo, 200),
+    // Si tomar uno cierra los otros extras de ese dia. El panel lo ofrece
+    // prendido, pero un campo ausente vale false: los extras que ya estan
+    // guardados no se reinterpretan por abajo.
+    unicoPorDia: cruda?.unicoPorDia === true,
+    repite: false,
+    fecha: null,
+    diaSemana: null,
+    frecuencia: 'semanal',
+    ancla: null,
+    desdeFecha: null,
+    hastaFecha: null,
   };
 
   if (cruda?.repite === true) {
@@ -8926,9 +9132,19 @@ function excepcionalSaneado(cruda) {
     if (!Number.isFinite(diaSemana) || diaSemana < 0 || diaSemana > 6) return { error: 'dia_invalido' };
     const desdeFecha = sanitizeTexto(cruda?.desdeFecha, 10);
     const hastaFecha = sanitizeTexto(cruda?.hastaFecha, 10);
+    const frecuencia = cruda?.frecuencia === 'quincenal' ? 'quincenal' : 'semanal';
+    let ancla = null;
+    if (frecuencia === 'quincenal') {
+      const anclaCruda = sanitizeTexto(cruda?.ancla, 10);
+      if (fechaValida(anclaCruda)) {
+        ancla = anclaCruda;
+        let vueltas = 0;
+        while (diaDeSemana(ancla) !== diaSemana && vueltas < 7) { ancla = sumarDias(ancla, 1); vueltas++; }
+      }
+    }
     return {
       excepcional: {
-        ...base, repite: true, diaSemana,
+        ...base, repite: true, diaSemana, frecuencia, ancla,
         desdeFecha: fechaValida(desdeFecha) ? desdeFecha : null,
         hastaFecha: fechaValida(hastaFecha) ? hastaFecha : null,
       },
@@ -8937,7 +9153,7 @@ function excepcionalSaneado(cruda) {
 
   const fecha = sanitizeTexto(cruda?.fecha, 10);
   if (!fechaValida(fecha)) return { error: 'fecha_invalida' };
-  return { excepcional: { ...base, repite: false, fecha } };
+  return { excepcional: { ...base, fecha } };
 }
 
 // El mail con el enlace personal. Voz de Seba, primera persona del singular,
@@ -8986,7 +9202,34 @@ function configSaneada(cruda) {
       const desde = minutosDeHora(f?.desde);
       const hasta = minutosDeHora(f?.hasta);
       if (desde === null || hasta === null || hasta <= desde) continue;
-      limpias.push({ desde: f.desde, hasta: f.hasta });
+
+      // Cada cuanto cae la franja, y para que tipos de turno sirve. Las dos
+      // cosas existen para el mismo caso real: hay un viernes que Seba da
+      // sesiones y un viernes que da consultas. Antes eso se armaba con
+      // bloqueos puestos a mano, uno por cada viernes.
+      //
+      // Los defaults son los que dejan a las franjas ya guardadas
+      // significando exactamente lo mismo: semanal y para todos los tipos.
+      const frecuencia = f?.frecuencia === 'quincenal' ? 'quincenal' : 'semanal';
+      const tipos = Array.isArray(f?.tipos)
+        ? f.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
+        : [];
+
+      // El ancla se acomoda al dia de la franja. Un ancla de otro dia de la
+      // semana no tiene sentido -- la franja es de los viernes, el ancla dice
+      // desde que viernes -- y el motor ya es defensivo, pero guardarla
+      // derecha evita que el panel muestre una fecha que no es la que manda.
+      let ancla = null;
+      if (frecuencia === 'quincenal') {
+        const cruda2 = sanitizeTexto(f?.ancla, 10);
+        if (fechaValida(cruda2)) {
+          ancla = cruda2;
+          let vueltas = 0;
+          while (diaDeSemana(ancla) !== d && vueltas < 7) { ancla = sumarDias(ancla, 1); vueltas++; }
+        }
+      }
+
+      limpias.push({ desde: f.desde, hasta: f.hasta, frecuencia, ancla, tipos });
     }
     if (limpias.length) semana[String(d)] = limpias;
   }
@@ -9026,7 +9269,13 @@ function configSaneada(cruda) {
   };
 }
 
-exports.adminAgenda = functions.https.onRequest(async (req, res) => {
+// El timeout no es el de fabrica (60 s) porque crear una serie materializa
+// sus encuentros en el acto, uno por uno: cada uno le pregunta la ocupacion a
+// Google Calendar y le escribe un evento. Con una serie semanal son ocho o
+// nueve encuentros en fila, y en fila es a proposito (todos juntos contra la
+// API de Google es la forma segura de comerse un 429). Con 60 s se corta a la
+// mitad y la serie queda con parte de sus encuentros tomados.
+exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }).https.onRequest(async (req, res) => {
   setCors(req, res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -9168,7 +9417,9 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         for (const coleccion of ['agenda_bloqueos', 'agenda_excepcionales']) {
           const pendientes = await _db.collection(coleccion).where('borrador', '==', true).get();
           for (const d of pendientes.docs) {
-            lote.update(d.ref, { borrador: false, publicado: new Date().toISOString() });
+            // `previo` se va con la publicacion: era la copia para poder
+            // descartar, y lo editado acaba de volverse lo vigente.
+            lote.update(d.ref, { borrador: false, publicado: new Date().toISOString(), previo: null });
             marcados++;
           }
         }
@@ -9184,16 +9435,38 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
 
         // Lo que se creo para el borrador y nunca se publico se borra: no
         // tiene sentido conservar un bloqueo que se descarto.
+        //
+        // Pero uno que YA se publico y despues se edito no se puede borrar:
+        // descartar la edicion tiene que devolverlo a lo publicado, no
+        // hacerlo desaparecer. Se nota en cuanto los extraordinarios se
+        // pueden editar -- antes de eso un documento publicado nunca volvia a
+        // tener borrador: true -- y perder un espacio abierto porque se
+        // descarto un cambio de horario seria perder un dato.
         const lote = _db.batch();
         let borrados = 0;
+        let devueltos = 0;
         for (const coleccion of ['agenda_bloqueos', 'agenda_excepcionales']) {
           const pendientes = await _db.collection(coleccion).where('borrador', '==', true).get();
-          for (const d of pendientes.docs) { lote.delete(d.ref); borrados++; }
+          for (const d of pendientes.docs) {
+            const datos = d.data();
+            if (!datos.publicado) {
+              lote.delete(d.ref);
+              borrados++;
+              continue;
+            }
+            // Vuelve a lo que estaba publicado. `previo` lo guarda quien
+            // edita (guardarExcepcional) justo antes de pisar los valores:
+            // sin esa copia, descartar dejaria la edicion publicada, que es
+            // exactamente lo contrario de descartar. Si no hay copia, al
+            // menos se saca de la lista de cambios pendientes.
+            lote.update(d.ref, { ...(datos.previo || {}), borrador: false, previo: null });
+            devueltos++;
+          }
         }
-        if (borrados) await lote.commit();
+        if (borrados || devueltos) await lote.commit();
 
-        functions.logger.info('Borrador descartado', { por: sesion.email, borrados });
-        return res.status(200).json({ ok: true, borrados });
+        functions.logger.info('Borrador descartado', { por: sesion.email, borrados, devueltos });
+        return res.status(200).json({ ok: true, borrados, devueltos });
       }
 
       case 'bloquear': {
@@ -9264,16 +9537,102 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         return res.status(200).json({ ok: true });
       }
 
+      // ---------- Cargar un turno a mano ----------
+      //
+      // No existia: el unico camino para que el admin generara turnos era
+      // crear una serie. Hacia falta para traer al sistema las consultas que
+      // ya estaban agendadas, y para anotar a alguien que escribio por
+      // WhatsApp sin pasar por la pagina.
+      //
+      // Va por reservarHorario y no por reservarParaPedido: ese arrastra la
+      // planilla, y escribirSesionEnPlanilla tira si el pedido no vino del
+      // formulario. El aviso, si corresponde, se manda aparte.
+      case 'crearTurno': {
+        const inicioMs = Date.parse(sanitizeTexto(req.body?.inicio, 40));
+        if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
+        const nombre = sanitizeTexto(req.body?.nombre, 200);
+        if (!nombre) return res.status(400).json({ error: 'falta_nombre' });
+        const email = sanitizeTexto(req.body?.email, 200).toLowerCase();
+        if (email && !EMAIL_VALIDO.test(email)) return res.status(400).json({ error: 'email_invalido' });
+
+        const tipo = motor.TIPOS_POR_DEFECTO[req.body?.tipo] ? req.body.tipo : motor.TIPO_POR_DEFECTO;
+        const duracionCruda = Math.round(Number(req.body?.duracionMin));
+        const sujeto = {
+          nombre, email,
+          telefono: sanitizeTexto(req.body?.telefono, 50),
+          modalidad: req.body?.modalidad === 'Presencial' ? 'Presencial' : 'Online',
+          tipo,
+          duracionMin: Number.isFinite(duracionCruda) ? duracionCruda : null,
+          // Un evento que ya existe en el calendario se adopta.
+          eventId: sanitizeTexto(req.body?.eventId, 200) || null,
+          superponer: req.body?.superponer === true,
+        };
+
+        // El pedido existe para que la persona pueda mover su turno despues y
+        // para que se le pueda mandar el enlace personal. Un turno sin pedido
+        // es un turno que nadie puede tocar mas que Seba.
+        const pedidoRef = await _db.collection('agenda_pedidos').add({
+          origen: 'panel',
+          nombre, email,
+          telefono: sujeto.telefono,
+          modalidad: sujeto.modalidad,
+          tipo,
+          turnoId: null,
+          creado: new Date().toISOString(),
+          creadoPor: sesion.email,
+        });
+
+        const r = await reservarHorario({ ...sujeto, pedidoId: pedidoRef.id }, inicioMs, 'admin');
+        if (r.error) {
+          // Si no se pudo tomar, el pedido no queda dando vueltas.
+          await pedidoRef.delete().catch(() => {});
+          return res.status(r.status).json({ error: r.error });
+        }
+
+        // El aviso es opcional: la importacion de lo que ya estaba agendado no
+        // tiene que mandarle un mail a nadie.
+        if (req.body?.avisar === true && email) {
+          try {
+            await avisarTurnoReservado({ ...sujeto, email }, pedidoRef.id, inicioMs, r.finMs, r.turnoId, r.meet);
+          } catch (e) {
+            functions.logger.error('No se pudo avisar el turno cargado a mano', e.message);
+          }
+        }
+
+        functions.logger.info('Turno cargado a mano', {
+          turnoId: r.turnoId, por: sesion.email,
+          superpuesto: sujeto.superponer, adoptado: Boolean(sujeto.eventId),
+        });
+        return res.status(200).json({ ok: true, turno: r.turno, pedidoId: pedidoRef.id });
+      }
+
       case 'mover': {
         const turnoId = sanitizeTexto(req.body?.turnoId, 64);
         const inicioMs = Date.parse(sanitizeTexto(req.body?.inicio, 40));
         if (!Number.isFinite(inicioMs)) return res.status(400).json({ error: 'horario_invalido' });
         const snap = await _db.collection('agenda_turnos').doc(turnoId).get();
         if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
-        const pedidoId = snap.data().pedidoId;
+        const turno = snap.data();
+        const pedidoId = turno.pedidoId;
         const pedidoSnap = pedidoId ? await _db.collection('agenda_pedidos').doc(pedidoId).get() : null;
-        if (!pedidoSnap || !pedidoSnap.exists) return res.status(404).json({ error: 'sin_pedido' });
-        const r = await reservarParaPedido({ ...pedidoSnap.data(), turnoId }, pedidoId, inicioMs, 'admin');
+
+        // Con pedido se mueve por el camino de siempre, que ademas actualiza
+        // la planilla y avisa. Sin pedido -- un encuentro de una serie, o un
+        // turno importado -- el sujeto se arma con lo que el propio turno ya
+        // sabe de la persona. Antes esto contestaba 404 y dejaba sin mover,
+        // desde el panel, justamente a los turnos que Seba mas mueve.
+        const superponer = req.body?.superponer === true;
+        const r = pedidoSnap && pedidoSnap.exists
+          ? await reservarParaPedido({ ...pedidoSnap.data(), turnoId, superponer }, pedidoId, inicioMs, 'admin')
+          : await reservarHorario({
+            superponer,
+            nombre: turno.nombre, email: turno.email, telefono: turno.telefono,
+            modalidad: turno.modalidad, tipo: turno.tipo,
+            duracionMin: turno.duracionMin || null,
+            serieId: turno.serieId || null,
+            ocurrencia: turno.ocurrencia || null,
+            turnoAnterior: turnoId,
+          }, inicioMs, 'admin');
         if (r.error) return res.status(r.status).json({ error: r.error });
         functions.logger.info('Turno movido desde el panel', { turnoId, nuevo: r.turno.id, por: sesion.email });
         return res.status(200).json({ ok: true, turno: r.turno });
@@ -9296,10 +9655,11 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         if (hasta > sumarDias(desde, 45)) hasta = sumarDias(desde, 45);
         if (hasta < desde) hasta = desde;
 
-        const [config, bloqueos, excepcionales, ocupados, turnosSnap] = await Promise.all([
+        const [config, bloqueos, excepcionales, seriesActivas, ocupados, turnosSnap] = await Promise.all([
           leerConfigAgenda(MODO_BORRADOR),
           leerBloqueos(MODO_BORRADOR),
           leerExcepcionales(MODO_BORRADOR),
+          leerSeriesActivas(),
           ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
           _db.collection('agenda_turnos')
             .where('inicio', '>=', new Date(msDeHoraLocal(desde, '00:00')))
@@ -9313,6 +9673,7 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         // Seba tiene que ver.
         const paraTipo = tipo => motor.horariosDe({
           config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
+          series: seriesActivas, reservas: soloReservas(ocupados),
           sinAnticipacion: true, topeDias: 400,
         });
         const sesiones = paraTipo('una-hora');
@@ -9323,7 +9684,7 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           if (!dias.has(clave)) {
             dias.set(clave, {
               dia: clave, turnos: [], sesiones: [], consultas: [],
-              guardados: [], extraordinarios: [], ocupado: [],
+              guardados: [], extraordinarios: [], ocupado: [], habituales: [],
             });
           }
           return dias.get(clave);
@@ -9346,11 +9707,31 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         }
         for (const iso of sesiones.slots) dia(iso.slice(0, 10)).sesiones.push(iso);
         for (const iso of consultas.slots) dia(iso.slice(0, 10)).consultas.push(iso);
-        for (const iso of consultas.excepcionales) dia(iso.slice(0, 10)).extraordinarios.push(iso);
+        // Los dos tipos, no solo las consultas: un extraordinario que Seba
+        // abrio para una sesion de una hora existe y hay que verlo. Tomandolo
+        // solo de `consultas` no aparecia nunca en esta pantalla, que es
+        // justo donde se comprueba lo que se acaba de configurar. El Set
+        // dedupe los horarios que sirven para los dos.
+        for (const iso of new Set([...consultas.excepcionales, ...sesiones.excepcionales])) {
+          dia(iso.slice(0, 10)).extraordinarios.push(iso);
+        }
         // Lo bloqueado para una sesion y no para una consulta es, en
         // castellano, un espacio guardado para consultas. Es la distincion
         // que Seba necesita ver con un color propio.
         for (const b of sesiones.bloqueados) dia(b.desde.slice(0, 10)).guardados.push(b);
+
+        // Los espacios de los encuentros habituales, con el nombre de quien
+        // los tiene. Van en su propia lista y NO entre lo ocupado: lo ocupado
+        // es lo que esta en el calendario de Google, y un encuentro que
+        // todavia no se materializo no esta ahi. Sin esta lista, un dia lleno
+        // de encuentros habituales se veria igual que un dia sin franja -- o
+        // sea vacio y sin explicacion -- que es exactamente el problema que
+        // el bloque de aca abajo vino a resolver para Calendar.
+        //
+        // Salen de las sesiones y no de las consultas porque los tramos son
+        // los mismos para los dos tipos: lo que cambia es con que aire se
+        // miden, y para pintar da igual.
+        for (const h of sesiones.series) dia(h.desde.slice(0, 10)).habituales.push(h);
 
         // Lo que ya tenes en Google Calendar.
         //
@@ -9422,6 +9803,10 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
             telefono: s.telefono || '', modalidad: s.modalidad || '',
             diaSemana: s.diaSemana, hora: s.hora,
             ancla: s.ancla, estado: s.estado || 'activa',
+            hasta: s.hasta || null,
+            frecuencia: s.frecuencia || 'quincenal',
+            duracionMin: s.duracionMin || null,
+            recurrenciaExterna: s.recurrenciaExterna || null,
             notificaciones: s.notificaciones || { cambios: true, recordatorio: true },
             conflictos: s.conflictos || [],
             encuentros: turnos
@@ -9436,12 +9821,28 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
         const s = serieSaneada(req.body?.serie);
         if (s.error) return res.status(400).json({ error: s.error });
 
+        // El id del evento repetido que Seba ya tenia en su calendario, si
+        // esta serie viene de ahi. Se guarda para poder cortarlo despues: es
+        // lo unico que permite distinguir "el calendario lo maneja la
+        // repeticion vieja" de "lo maneja el sistema".
+        const recurrenciaExterna = sanitizeTexto(req.body?.recurrenciaExterna, 200) || null;
+
         const ref = await _db.collection('agenda_series').add({
           ...s.serie,
+          recurrenciaExterna,
           conflictos: [],
           creado: new Date().toISOString(),
           creadoPor: sesion.email,
         });
+
+        // Sin materializar, la serie ya protege su horario: el motor no lo
+        // ofrece a nadie. Es lo que hace falta al importar, porque los
+        // encuentros ya estan en el calendario y crearlos nuevo los
+        // duplicaria. Se adoptan despues, de a una.
+        if (recurrenciaExterna || req.body?.sinMaterializar === true) {
+          functions.logger.info('Serie creada sin materializar', { serieId: ref.id, por: sesion.email });
+          return res.status(200).json({ ok: true, id: ref.id, creados: [], conflictos: [], sinMaterializar: true });
+        }
 
         // Y se toman sus encuentros en el acto: una serie que existe pero no
         // ocupa nada es una serie que no sirve para nada.
@@ -9506,6 +9907,45 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           serieId: id, cancelados, accesos: accesos.size, por: sesion.email,
         });
         return res.status(200).json({ ok: true, cancelados });
+      }
+
+      // ---------- Pasar al sistema una serie importada ----------
+      //
+      // Una serie importada protege su horario pero su calendario lo sigue
+      // manejando la repeticion vieja. Adoptarla es el paso que cambia eso:
+      // se corta la repeticion y el sistema empieza a crear un evento por
+      // encuentro, con su Meet y con la invitacion a la persona.
+      //
+      // De a una, nunca en tanda: es el unico paso que modifica el calendario
+      // de Seba.
+      case 'adoptarSerie': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        const snap = await _db.collection('agenda_series').doc(id).get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const serie = { id: snap.id, ...snap.data() };
+
+        let corte = { cortada: false, motivo: 'sin_recurrencia_externa' };
+        if (serie.recurrenciaExterna) {
+          try {
+            corte = await cortarRecurrencia(serie.recurrenciaExterna);
+          } catch (e) {
+            // Si no se pudo cortar, no se materializa: el calendario quedaria
+            // con cada encuentro dos veces y limpiarlo es a mano.
+            functions.logger.error('No se pudo cortar la recurrencia vieja', { id, error: e.message });
+            return res.status(502).json({ error: 'no_se_pudo_cortar', detalle: e.message });
+          }
+        }
+
+        // Recien ahora deja de tener dueno externo, y el trabajo diario la
+        // empieza a estirar como a cualquier otra.
+        await snap.ref.set({ recurrenciaExterna: null, adoptada: new Date().toISOString() }, { merge: true });
+        const r = await extenderSerie({ ...serie, recurrenciaExterna: null });
+
+        functions.logger.info('Serie adoptada', {
+          serieId: id, por: sesion.email, cortada: corte.cortada,
+          creados: r.creados.length, conflictos: r.conflictos.length,
+        });
+        return res.status(200).json({ ok: true, corte, ...r });
       }
 
       case 'extenderSerie': {
@@ -9592,6 +10032,36 @@ exports.adminAgenda = functions.https.onRequest(async (req, res) => {
           creado: new Date().toISOString(),
         });
         return res.status(200).json({ ok: true, id: ref.id });
+      }
+
+      // Editar uno que ya existe, en vez de borrarlo y volver a escribirlo.
+      // Es el espejo de guardarSerie, y el saneado emite todas las claves
+      // justamente para que un merge no deje mitad de una forma y mitad de la
+      // otra.
+      case 'guardarExcepcional': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        const e = excepcionalSaneado(req.body?.excepcional);
+        if (e.error) return res.status(400).json({ error: e.error });
+
+        const ref = _db.collection('agenda_excepcionales').doc(id);
+        const snap = await ref.get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const antes = snap.data();
+
+        // Un extra ya publicado vuelve a estar en preparacion, y se guarda
+        // como estaba para que descartar el borrador pueda devolverlo. Sin esa
+        // copia, descartar dejaria la edicion publicada, que es lo contrario
+        // de descartar.
+        const guardar = { ...e.excepcional, borrador: true };
+        if (antes.publicado && !antes.previo) {
+          const { previo: _ignorado, borrador: _b, ...comoEstaba } = antes;
+          guardar.previo = comoEstaba;
+        }
+
+        await ref.set(guardar, { merge: true });
+        functions.logger.info('Horario excepcional editado', { id, por: sesion.email });
+        return res.status(200).json({ ok: true });
       }
 
       case 'quitarExcepcional': {

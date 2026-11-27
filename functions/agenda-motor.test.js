@@ -513,3 +513,306 @@ test('minutosDeHora rechaza lo que no es una hora', () => {
   assert.equal(m.minutosDeHora(''), null);
   assert.equal(m.minutosDeHora(undefined), null);
 });
+
+// -------------------------------------------------------
+// Cada cuanto se repite algo
+// -------------------------------------------------------
+
+test('una franja sin frecuencia escrita sigue cayendo todas las semanas', () => {
+  // El test de no regresion de todo el cambio: las franjas que ya estan
+  // guardadas son {desde, hasta} y nada mas.
+  const uno = horarios({ tipo: 'una-hora' });
+  const otro = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora',
+    desde: '2026-12-08', hasta: '2026-12-08', ahora: AHORA,
+  });
+  assert.ok(uno.slots.length > 0);
+  assert.deepEqual(horasDe(otro.slots), horasDe(uno.slots));
+});
+
+test('periodoDeSerie: sin frecuencia escrita, una serie es quincenal', () => {
+  assert.equal(m.periodoDeSerie({}), 14);
+  assert.equal(m.periodoDeSerie({ frecuencia: 'quincenal' }), 14);
+  assert.equal(m.periodoDeSerie({ frecuencia: 'semanal' }), 7);
+});
+
+test('una franja quincenal cae en su ancla y se saltea la semana siguiente', () => {
+  const config = {
+    ...CONFIG,
+    semana: { '2': [{ desde: '10:00', hasta: '18:00', frecuencia: 'quincenal', ancla: '2026-12-01' }] },
+  };
+  const unDia = dia => m.horariosDe({ config, tipo: 'una-hora', desde: dia, hasta: dia, ahora: AHORA });
+  assert.ok(unDia('2026-12-01').slots.length > 0, 'el martes del ancla');
+  assert.equal(unDia('2026-12-08').slots.length, 0, 'el martes siguiente, no');
+  assert.ok(unDia('2026-12-15').slots.length > 0, 'y el otro si');
+});
+
+test('una franja quincenal sin ancla se trata como semanal', () => {
+  // Contar quincenas desde la epoca seria una franja que aparece y desaparece
+  // sin que nada lo explique. Mejor que caiga siempre.
+  const config = {
+    ...CONFIG,
+    semana: { '2': [{ desde: '10:00', hasta: '18:00', frecuencia: 'quincenal' }] },
+  };
+  for (const dia of ['2026-12-01', '2026-12-08', '2026-12-15']) {
+    const r = m.horariosDe({ config, tipo: 'una-hora', desde: dia, hasta: dia, ahora: AHORA });
+    assert.ok(r.slots.length > 0, dia);
+  }
+});
+
+test('una franja quincenal con un ancla de otro dia de la semana no desaparece', () => {
+  // El ancla cae un lunes y la franja es de los martes. Sin la red, ningun
+  // martes seria multiplo de 14 dias y la franja no existiria mas.
+  const config = {
+    ...CONFIG,
+    semana: { '2': [{ desde: '10:00', hasta: '18:00', frecuencia: 'quincenal', ancla: '2026-11-30' }] },
+  };
+  const r = m.horariosDe({ config, tipo: 'una-hora', desde: '2026-12-01', hasta: '2026-12-29', ahora: AHORA });
+  assert.ok(r.slots.length > 0, 'algun martes tiene que quedar');
+});
+
+test('un ancla posterior al dia no abre la franja antes de tiempo', () => {
+  const config = {
+    ...CONFIG,
+    semana: { '2': [{ desde: '10:00', hasta: '18:00', frecuencia: 'quincenal', ancla: '2026-12-15' }] },
+  };
+  const unDia = dia => m.horariosDe({ config, tipo: 'una-hora', desde: dia, hasta: dia, ahora: AHORA });
+  assert.equal(unDia('2026-12-01').slots.length, 0);
+  assert.ok(unDia('2026-12-15').slots.length > 0);
+});
+
+test('dos franjas quincenales alternadas dan un viernes de sesiones y otro de consultas', () => {
+  // El caso real: hay un viernes que Seba da sesiones y un viernes que da
+  // consultas. Antes habia que separarlos con bloqueos puestos a mano.
+  const config = {
+    ...CONFIG,
+    semana: {
+      '5': [
+        { desde: '14:00', hasta: '18:00', frecuencia: 'quincenal', ancla: '2026-12-04', tipos: ['una-hora'] },
+        { desde: '14:00', hasta: '18:00', frecuencia: 'quincenal', ancla: '2026-12-11', tipos: ['dos-horas'] },
+      ],
+    },
+  };
+  const unDia = (dia, tipo) => m.horariosDe({ config, tipo, desde: dia, hasta: dia, ahora: AHORA }).slots;
+
+  assert.ok(unDia('2026-12-04', 'una-hora').length > 0, 'el 4 hay sesiones');
+  assert.equal(unDia('2026-12-04', 'dos-horas').length, 0, 'y ninguna consulta');
+  assert.ok(unDia('2026-12-11', 'dos-horas').length > 0, 'el 11 hay consultas');
+  assert.equal(unDia('2026-12-11', 'una-hora').length, 0, 'y ninguna sesion');
+  assert.ok(unDia('2026-12-18', 'una-hora').length > 0, 'y el 18 vuelven las sesiones');
+});
+
+test('una franja con tipos vacios sigue valiendo para los dos tipos', () => {
+  const config = { ...CONFIG, semana: { '2': [{ desde: '10:00', hasta: '18:00', tipos: [] }] } };
+  for (const tipo of ['una-hora', 'dos-horas']) {
+    const r = m.horariosDe({ config, tipo, desde: '2026-12-01', hasta: '2026-12-01', ahora: AHORA });
+    assert.ok(r.slots.length > 0, tipo);
+  }
+});
+
+// -------------------------------------------------------
+// Los espacios de los encuentros habituales
+// -------------------------------------------------------
+
+// Vir, que viene los martes a las 15, cada quince dias, desde el 1 de
+// diciembre. Sin turno creado: es justo lo que hay que proteger.
+const SERIE = {
+  id: 's1', nombre: 'Vir', diaSemana: 2, hora: '15:00',
+  ancla: '2026-12-01', estado: 'activa', duracionMin: 60,
+};
+
+test('el horario de una serie activa no se ofrece aunque no haya turno tomado', () => {
+  const libre = horarios({ tipo: 'una-hora' });
+  const con = horarios({ tipo: 'una-hora', series: [SERIE] });
+  assert.ok(horasDe(libre.slots).includes('15:00'), 'estaba libre');
+  assert.ok(!horasDe(con.slots).includes('15:00'), 'y ahora es de Vir');
+});
+
+test('el espacio de la serie se protege mas alla de la ventana de materializacion', () => {
+  // Medio ano para adelante: mucho mas lejos que ventanaSeriesDias. Antes de
+  // esto, ahi el horario quedaba al alcance de cualquier consulta.
+  // 2027-06-15 es martes y son 28 semanas justas desde el ancla, o sea que le
+  // toca a Vir.
+  const lejos = '2027-06-15';
+  const r = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora', desde: lejos, hasta: lejos,
+    series: [SERIE], ahora: AHORA, topeDias: 400,
+  });
+  assert.ok(!horasDe(r.slots).includes('15:00'));
+});
+
+test('la serie quincenal no toca la semana intermedia', () => {
+  const r = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora', desde: '2026-12-08', hasta: '2026-12-08',
+    series: [SERIE], ahora: AHORA,
+  });
+  assert.ok(horasDe(r.slots).includes('15:00'), 'el martes de por medio sigue libre');
+});
+
+test('una serie semanal protege todas las semanas', () => {
+  const r = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora', desde: '2026-12-08', hasta: '2026-12-08',
+    series: [{ ...SERIE, frecuencia: 'semanal' }], ahora: AHORA,
+  });
+  assert.ok(!horasDe(r.slots).includes('15:00'));
+});
+
+test('una serie pausada no reserva nada', () => {
+  const r = horarios({ tipo: 'una-hora', series: [{ ...SERIE, estado: 'pausada' }] });
+  assert.ok(horasDe(r.slots).includes('15:00'));
+});
+
+test('una serie con hasta deja de proteger despues de esa fecha', () => {
+  const serie = { ...SERIE, hasta: '2026-12-10' };
+  const r = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora', desde: '2026-12-15', hasta: '2026-12-15',
+    series: [serie], ahora: AHORA,
+  });
+  assert.ok(horasDe(r.slots).includes('15:00'));
+  // Y tampoco se siguen proyectando sus encuentros.
+  const fechas = m.fechasDeSerie(serie, '2026-12-01', '2027-01-31');
+  assert.deepEqual(fechas.map(m.diaLocal), ['2026-12-01']);
+});
+
+test('el tramo de la serie se excluye solo para su propia ocurrencia', () => {
+  // Al materializar el encuentro del 1, su propio espacio no puede estorbarle.
+  // Pero el del 15 si: si no, alguien podria mover un encuentro encima de su
+  // propio horario de otra quincena.
+  const excluir = { serieId: 's1', ocurrencia: '2026-12-01' };
+  const uno = horarios({ tipo: 'una-hora', series: [SERIE], excluirSerie: excluir });
+  assert.ok(horasDe(uno.slots).includes('15:00'), 'el 1 vuelve');
+
+  const otro = m.horariosDe({
+    config: CONFIG, tipo: 'una-hora', desde: '2026-12-15', hasta: '2026-12-15',
+    series: [SERIE], excluirSerie: excluir, ahora: AHORA,
+  });
+  assert.ok(!horasDe(otro.slots).includes('15:00'), 'el 15 sigue siendo suyo');
+});
+
+test('los espacios de las series se devuelven aparte para pintarlos', () => {
+  const r = horarios({ tipo: 'una-hora', series: [SERIE] });
+  assert.equal(r.series.length, 1);
+  assert.equal(r.series[0].desde, '2026-12-01T15:00:00-03:00');
+  assert.equal(r.series[0].hasta, '2026-12-01T16:00:00-03:00');
+  assert.match(r.series[0].motivo, /Vir/);
+  assert.equal(r.series[0].ocurrencia, '2026-12-01');
+});
+
+test('el aire del tipo que llega tambien se le aplica al espacio de una serie', () => {
+  // Con el encuentro a las 14:50, la sesion de 13:45 a 14:45 le quedaria a
+  // cinco minutos: no entra. Es la misma regla que con cualquier otro
+  // ocupado, y la que hace que un encuentro automatico no se coma el aire.
+  const r = horarios({ tipo: 'una-hora', series: [{ ...SERIE, hora: '14:50' }] });
+  assert.ok(!horasDe(r.slots).includes('13:45'));
+
+  // Y el borde: a 15 minutos justos si entra, que es lo que significa el aire.
+  const justo = horarios({ tipo: 'una-hora', series: [SERIE] });
+  assert.ok(horasDe(justo.slots).includes('13:45'));
+});
+
+test('una serie de dos horas ocupa dos horas', () => {
+  const r = horarios({ tipo: 'una-hora', series: [{ ...SERIE, duracionMin: 120 }] });
+  const horas = horasDe(r.slots);
+  assert.ok(!horas.includes('15:00'));
+  assert.ok(!horas.includes('16:15'), 'y tambien se lleva la de las 16:15');
+});
+
+test('una serie sin duracion propia dura lo que diga su tipo', () => {
+  const sinDuracion = { ...SERIE, duracionMin: undefined, tipo: 'dos-horas' };
+  const r = horarios({ tipo: 'una-hora', series: [sinDuracion] });
+  assert.ok(!horasDe(r.slots).includes('16:15'), 'dos horas desde las 15');
+});
+
+test('una serie semanal proyecta el doble de fechas en la misma ventana', () => {
+  const quincenal = m.fechasDeSerie(SERIE, '2026-12-01', '2026-12-29');
+  const semanal = m.fechasDeSerie({ ...SERIE, frecuencia: 'semanal' }, '2026-12-01', '2026-12-29');
+  assert.equal(quincenal.length, 3);
+  assert.equal(semanal.length, 5);
+});
+
+// -------------------------------------------------------
+// Un extra tomado cierra los otros extras del dia
+// -------------------------------------------------------
+
+// Dos horarios abiertos el mismo miercoles para que alguien elija uno.
+const EXTRA_A = { fecha: '2026-12-02', desde: '09:00', hasta: '11:00', unicoPorDia: true };
+const EXTRA_B = { fecha: '2026-12-02', desde: '19:00', hasta: '21:00', unicoPorDia: true };
+
+function elMiercoles2(extra) {
+  return m.horariosDe({
+    config: CONFIG, desde: '2026-12-02', hasta: '2026-12-02', ahora: AHORA, ...extra,
+  });
+}
+
+test('tomar uno de los extras del dia cierra los otros extras de ese dia', () => {
+  const sinNada = elMiercoles2({ excepcionales: [EXTRA_A, EXTRA_B] });
+  assert.equal(sinNada.excepcionales.length, 2, 'los dos se ofrecen');
+
+  const tomado = elMiercoles2({
+    excepcionales: [EXTRA_A, EXTRA_B],
+    ocupados: [TURNO_DE_LA_MANANA],
+    reservas: [TURNO_DE_LA_MANANA],
+  });
+  assert.equal(tomado.excepcionales.length, 0, 'tomado uno, ninguno');
+});
+
+// Un turno de verdad esta en las dos listas: ocupa (ocupados) y es una
+// reserva del sitio (reservas). Quien llama al motor saca las dos del mismo
+// lugar, asi que los tests de aca abajo tambien.
+const TURNO_DE_LA_MANANA = [m.msDeHoraLocal('2026-12-02', '09:00'), m.msDeHoraLocal('2026-12-02', '11:00')];
+
+test('un extra sin unicoPorDia no cierra a los otros', () => {
+  const r = elMiercoles2({
+    excepcionales: [{ ...EXTRA_A, unicoPorDia: false }, { ...EXTRA_B, unicoPorDia: false }],
+    ocupados: [TURNO_DE_LA_MANANA],
+    reservas: [TURNO_DE_LA_MANANA],
+  });
+  // El de la manana se lo lleva el turno; el de la tarde sigue en pie.
+  assert.deepEqual(horasDe(r.excepcionales), ['19:00']);
+});
+
+test('un campo unicoPorDia ausente no cierra nada', () => {
+  // Los extras que ya estan guardados no tienen el campo, y no se los puede
+  // reinterpretar por abajo.
+  const r = elMiercoles2({
+    excepcionales: [{ fecha: '2026-12-02', desde: '09:00', hasta: '11:00' }, { fecha: '2026-12-02', desde: '19:00', hasta: '21:00' }],
+    ocupados: [TURNO_DE_LA_MANANA],
+    reservas: [TURNO_DE_LA_MANANA],
+  });
+  assert.deepEqual(horasDe(r.excepcionales), ['19:00']);
+});
+
+test('una reserva en un extra no cierra los extras de otro dia', () => {
+  const r = m.horariosDe({
+    config: CONFIG, desde: '2026-12-09', hasta: '2026-12-09', ahora: AHORA,
+    excepcionales: [{ ...EXTRA_A, fecha: '2026-12-09' }, { ...EXTRA_B, fecha: '2026-12-09' }],
+    ocupados: [TURNO_DE_LA_MANANA],
+    reservas: [TURNO_DE_LA_MANANA],
+  });
+  assert.equal(r.excepcionales.length, 2);
+});
+
+test('un evento de Calendar dentro de un extra tapa esa franja pero no cierra el dia', () => {
+  // Va por `ocupados` y no por `reservas`: nadie reservo nada.
+  const ocupado = [[m.msDeHoraLocal('2026-12-02', '09:00'), m.msDeHoraLocal('2026-12-02', '11:00')]];
+  const r = elMiercoles2({ excepcionales: [EXTRA_A, EXTRA_B], ocupados: ocupado });
+  assert.deepEqual(horasDe(r.excepcionales), ['19:00']);
+});
+
+test('cancelar la reserva reabre el dia sin tocar ningun documento', () => {
+  const r = elMiercoles2({ excepcionales: [EXTRA_A, EXTRA_B], reservas: [] });
+  assert.equal(r.excepcionales.length, 2);
+});
+
+test('un extra recurrente tambien puede ser quincenal', () => {
+  const extra = {
+    repite: true, diaSemana: 3, desde: '09:00', hasta: '11:00',
+    frecuencia: 'quincenal', ancla: '2026-12-02',
+  };
+  const unDia = dia => m.horariosDe({
+    config: CONFIG, desde: dia, hasta: dia, ahora: AHORA, excepcionales: [extra],
+  }).excepcionales;
+  assert.equal(unDia('2026-12-02').length, 1);
+  assert.equal(unDia('2026-12-09').length, 0);
+  assert.equal(unDia('2026-12-16').length, 1);
+});

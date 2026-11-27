@@ -482,6 +482,126 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   (ver las secciones "Finanzas" y "El archivo de 2026"); la diferencia de
   $255.000 de TERCER AÑO quedó confirmada y sin corregir.
 
+## El agendador de consultas
+
+- **Los tests del motor son la verificacion barata, pero hay que correrlos
+  bien**: `node --test functions/agenda-motor.test.js`, **no**
+  `node --test functions/`. El segundo agrupa todo en un subtest y reporta
+  "pass 1 / fail 0" **aunque adentro haya tests rojos** (comprobado el
+  27/11/2026 con 10 fallos invisibles). Un comando de verificacion que miente
+  es peor que ninguno.
+- **El horario de un encuentro habitual se protege por regla, no por estar
+  materializado.** `horariosDe` recibe las series activas (`leerSeriesActivas`)
+  y descarta sus dia+hora+frecuencia hasta el infinito. Antes solo estaba
+  tomado donde el barrido ya habia creado el turno, o sea hasta
+  `ventanaSeriesDias` (60), que es **el mismo numero** que `ventanaDias`: en el
+  borde habia carrera y el espacio de alguien de anios se podia perder.
+- **Las series no van nunca en `ocupados`.** En `case 'calendario'` esa misma
+  variable es lo que se pinta como "ocupado en tu calendario", y un encuentro
+  que todavia no se materializo **no esta** en Google Calendar. `horariosDe`
+  devuelve una cuarta lista, `series`, con la forma de `tramosBloqueados`, y el
+  panel la pinta aparte (ficha `habitual`, violeta).
+- **Se excluye una ocurrencia, no la serie entera.** Excluir la serie dejaria
+  mover el encuentro del 10 encima del horario propio del 24.
+- **`ocupacionEntre` devuelve `[inicio, fin, docId]`** y el id solo lo traen
+  los turnos del sitio. Es lo que permite sacar de la ocupacion el turno que
+  alguien esta soltando sin **derivar** su id del horario, que es lo que se
+  hacia antes: con dos turnos en el mismo instante, el id calculado matcheaba
+  a los dos y se podia reservar encima de uno que nadie solto. `chocaCon`
+  destructura `[a, b]`, asi que el motor no se entera. **Nunca volver a
+  comparar `idDeTurno(ms)` contra un id guardado.**
+- **El admin puede superponer y el publico no.** `sujeto.superponer` solo se
+  honra si `quien === 'admin'` (se revalida contra `quien`, no se confia en el
+  cuerpo) y lo unico que hace es saltear `chocaCon`: el admin ya no pasaba por
+  las franjas, la grilla, la anticipacion ni la pausa. El panel lo pide con un
+  confirm, nunca en silencio.
+- **El id con sufijo es la UNICA excepcion al candado del documento.** Dos
+  turnos superpuestos comparten el instante de arranque y no pueden compartir
+  el documento, asi que ahi el id va `...T16-00__2`. La busqueda del id libre
+  va **adentro** de la transaccion: afuera, dos pedidos simultaneos elegirian
+  el mismo sufijo. Fuera de ese caso el id es el horario pelado, que es lo que
+  hace que dos personas que aprietan el mismo horario choquen y una pierda.
+- **La duracion puede venir del sujeto.** Los encuentros de Seba duran 55, 60,
+  75 y 120 minutos segun la persona; antes `extenderSerie` forzaba
+  `tipo: 'una-hora'` para todos.
+- **El mail de una serie es opcional.** De los 17 encuentros habituales que
+  vivian en el calendario, 15 no tenian mail anotado. Exigirlo dejaba la
+  agenda de anios afuera del sistema por un dato que Seba tiene en otro lado.
+  Sin mail el horario se protege igual, pero no hay enlace personal ni
+  invitacion, y el panel lo dice en la ficha.
+- **Un extra tomado cierra los otros extras de ese dia, y eso se DERIVA.**
+  `franjasExcepcionales` recibe `reservas` (los turnos del sitio, no la
+  ocupacion entera) y saltea los `unicoPorDia` del dia si alguna reserva cae
+  en uno. Guardarlo en el documento pedia escribir al confirmar y revertir en
+  los cinco caminos de cancelacion -- y el que mas se olvida no se llama
+  cancelar: es la liberacion del turno viejo al reprogramar
+  (`canceladoPor: 'reprogramacion'`). Derivado, cancelar reabre el dia gratis.
+  **Un `unicoPorDia` ausente vale `false`**: los extras ya guardados no se
+  reinterpretan.
+- **`excepcionalSaneado` emite TODAS las claves en las dos ramas**, y no es
+  prolijidad: se guarda con `set merge`, asi que si la rama de fecha no
+  escribiera `repite: false`, un extra creado como recurrente y editado a una
+  fecha sola seguiria cayendo todas las semanas mientras la pantalla muestra
+  una fecha.
+- **Un extra publicado que se edita guarda `previo`.** `descartarBorrador`
+  **borraba** todo documento con `borrador: true`: en cuanto los extras se
+  pueden editar, eso era perder un espacio publicado por descartar un cambio.
+  Ahora, si tiene `publicado`, vuelve a `previo` en lugar de borrarse.
+- **La frecuencia es la misma regla en tres lugares** (franja de la semana,
+  extra recurrente, serie) y la resuelve un solo predicado,
+  `caeEnLaFecha(entrada, diaISO, porDefecto)`. **El default no es el mismo**:
+  una franja o un extra sin frecuencia son semanales y una serie sin
+  frecuencia es quincenal, que es lo que significaban los que ya estaban
+  guardados. **Se cuenta en semanas desde el ancla, no en dias exactos**: con
+  dias exactos, un ancla puesta un lunes sobre una franja de los martes no
+  daba multiplo de 14 ningun martes y la franja desaparecia entera, sin aviso.
+- **Una franja puede ser solo para un tipo** (`tipos: []` es los dos). Con eso
+  se arma el viernes de sesiones y el viernes de consultas: dos franjas
+  quincenales sobre el mismo dia con anclas corridas una semana. Antes eso
+  pedia un bloqueo a mano por cada viernes.
+- **Los campos de una franja se leen por clase, nunca por posicion.**
+  `primeraFranja` y `leerConfigDeLaPantalla` usaban
+  `querySelectorAll('input')` con destructuring: el `input type="date"` del
+  ancla habria desordenado los dos horarios en silencio.
+- **`horariosDe` normaliza el tipo antes de usarlo** (`tipoId = t.id`). Con el
+  `tipo` crudo, una llamada sin tipo -- que significa "la consulta de dos
+  horas" -- no veia ni los horarios excepcionales ni los bloqueos puestos para
+  las consultas, porque `aplicaATipo` comparaba contra `undefined`.
+- **Importar del calendario: dos pasos, y el segundo de a uno.**
+  `node agenda-detectar.js` en `C:\dev\herramientas-sebabru` **solo lee** e
+  imprime el JSON para pegar en el panel (Sesiones -> Importar). Un script no
+  puede escribir por `adminAgenda`: esa function exige un ID token de usuario
+  con claim `admin`, y una cuenta de servicio no puede emitirlo. La escritura
+  pasa por el panel con la sesion de Seba.
+  - La serie importada guarda `recurrenciaExterna` (el id del evento repetido)
+    y **no se materializa**: su horario ya esta protegido por regla y crear
+    eventos le duplicaria cada encuentro en el calendario. `extenderSerie`
+    corta de entrada si ese campo esta puesto.
+  - **"Pasar al sistema"** (`adoptarSerie`) corta la repeticion vieja con un
+    `UNTIL` de ayer -- no la borra, lo que ya paso queda -- y recien entonces
+    materializa. Si no se pudo cortar, **no materializa**: dejaria cada
+    encuentro dos veces y limpiarlo es a mano.
+  - **Ojo con las ocurrencias renombradas.** Seba usa un hueco que se guarda
+    (el "Silencio" de los viernes) y le cambia el nombre a quien lo va a
+    ocupar esa vez. Eso parece una serie y no lo es: su repeticion es la del
+    hueco, asi que importarla y adoptarla **cortaria el hueco de todas las
+    semanas**. El detector pide el evento madre, compara los titulos y las
+    manda a turnos sueltos.
+  - La frecuencia sale de la `RRULE` del evento madre (`INTERVAL=2` es la
+    quincena), no de medir la distancia entre ocurrencias: medirla falla
+    cuando en la ventana hay una sola o cuando alguna se movio de semana.
+  - La delegacion de dominio esta autorizada para el scope `calendar`, **no**
+    para `calendar.readonly`: pedir el de solo lectura devuelve
+    `unauthorized_client`.
+- **`adminAgenda` tiene `timeoutSeconds: 300`.** Con los 60 s de fabrica,
+  crear una serie **semanal** se cortaba a la mitad: materializa ocho o nueve
+  encuentros en fila, cada uno con un `freebusy` y un `events.insert`, y en
+  fila es a proposito (todos juntos contra la API de Google es un 429).
+- **La salida a Clari se ve siempre.** En `/consultas/agenda/`, el bloque
+  "¿No encontrás un horario que te sirva?" **ya no se esconde** cuando no hay
+  extraordinarios: se esconde solo la lista de adentro. Abajo va el WhatsApp
+  de Clari, y quien no encontro nada es justamente quien lo necesita.
+
 ## El archivo de 2026
 
 - **Las 82 filas de la planilla FORMACIONES 2026 están en el padrón** (migradas

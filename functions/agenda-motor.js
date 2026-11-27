@@ -138,6 +138,64 @@ function sumarDias(fechaISO, n) {
   return new Date(Date.parse(`${fechaISO}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 }
 
+// Dias enteros entre dos fechas. Se mide al mediodia por la misma razon que
+// diaDeSemana: ningun redondeo puede correr el resultado de dia.
+function diasEntre(aISO, bISO) {
+  return Math.round((Date.parse(`${aISO}T12:00:00Z`) - Date.parse(`${bISO}T12:00:00Z`)) / 86400000);
+}
+
+// -------------------------------------------------------
+// Cada cuanto se repite algo
+//
+// Hay tres cosas que se repiten en la agenda y las tres se repiten igual: una
+// franja de la semana, un horario excepcional recurrente y el encuentro
+// habitual de una persona. Antes solo las series se repetian, siempre cada 14
+// dias y con el numero escrito en el codigo.
+//
+// El default NO es el mismo para todas, y por eso lo elige cada quien:
+//
+//   una franja o un excepcional sin frecuencia -> semanal, que es lo que
+//   significaban los que ya estan guardados.
+//   una serie sin frecuencia -> quincenal, que es lo que significaban las
+//   series que ya estan guardadas.
+//
+// Si se equivocara el default, las dos cosas cambiarian de comportamiento
+// solas en un deploy.
+// -------------------------------------------------------
+const DIAS_QUINCENA = 14;
+
+function diasDeFrecuencia(frecuencia) {
+  return frecuencia === 'semanal' ? 7 : DIAS_QUINCENA;
+}
+
+function periodoDeSerie(serie) {
+  return diasDeFrecuencia((serie && serie.frecuencia) || 'quincenal');
+}
+
+// Si algo que se repite aplica a este dia. No mira el dia de la semana: de eso
+// se encarga quien llama, que ya lo sabe (las franjas vienen de un mapa por
+// dia de semana y los excepcionales traen su `diaSemana`).
+//
+// Un ancla que falta, o una frecuencia semanal, significan "todas las
+// semanas". Es a proposito y es la red que evita el peor error posible aca:
+// una quincenal sin ancla seria "cada 14 dias contados desde la epoca", o sea
+// una franja que aparece y desaparece sin que nada en la pantalla lo explique.
+function caeEnLaFecha(entrada, diaISO, frecuenciaPorDefecto = 'semanal') {
+  if (!entrada) return false;
+  if (entrada.desdeFecha && diaISO < entrada.desdeFecha) return false;
+  if (entrada.hastaFecha && diaISO > entrada.hastaFecha) return false;
+  const dias = diasDeFrecuencia(entrada.frecuencia || frecuenciaPorDefecto);
+  if (dias === 7 || !entrada.ancla) return true;
+  if (diaISO < entrada.ancla) return false;
+  // Se cuenta en SEMANAS desde el ancla, no en dias exactos. El ancla marca
+  // la semana en la que algo arranca, y asi un ancla que cayo en otro dia de
+  // la semana sigue funcionando: con dias exactos, un ancla puesta un lunes
+  // sobre una franja de los martes no daba multiplo de 14 ningun martes y la
+  // franja desaparecia entera, sin nada en la pantalla que lo explicara.
+  const semanas = Math.floor(diasEntre(diaISO, entrada.ancla) / 7);
+  return semanas % (dias / 7) === 0;
+}
+
 function minutosDeHora(hhmm) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
   if (!m) return null;
@@ -268,23 +326,82 @@ function tramosBloqueados(diaISO, tipo, bloqueos) {
 //      excepcional no se puede volver el quincenal de nadie, ni siquiera si
 //      esta libre los proximos dos meses.
 // -------------------------------------------------------
-function franjasExcepcionales(diaISO, tipo, excepcionales) {
-  const dow = diaDeSemana(diaISO);
-  const salida = [];
+
+// Si un excepcional aplica a este dia, sin mirar el tipo. Las dos formas (con
+// fecha y recurrente) en un solo lugar, porque hay tres cosas que lo
+// preguntan.
+function excepcionalEnElDia(e, diaISO) {
+  if (!e || !e.desde || !e.hasta) return false;
+  if (e.repite) {
+    if (Number(e.diaSemana) !== diaDeSemana(diaISO)) return false;
+    return caeEnLaFecha(e, diaISO, 'semanal');
+  }
+  return e.fecha === diaISO;
+}
+
+// -------------------------------------------------------
+// Un extra tomado cierra los otros extras de ese dia
+//
+// Cuando Seba abre tres horarios un lunes para que alguien elija uno, los tres
+// son el mismo lunes: tomado uno, los otros dos no tienen que seguir
+// ofreciendose. Eso es lo que marca `unicoPorDia`.
+//
+// Se DERIVA de las reservas en vez de guardarse en el documento. Guardarlo
+// pedia escribir al confirmar, revertir en los cinco caminos de cancelacion
+// que existen (y el que mas se olvida no se llama cancelar: es la liberacion
+// del turno viejo al reprogramar), y aun asi quedaba mal cuando dos turnos
+// caian en extras distintos del mismo dia. Derivado, cancelar reabre el dia
+// gratis y no hay nada que mantener.
+//
+// `reservas` son solo los turnos del sitio, no la ocupacion entera: un evento
+// cualquiera del calendario de Seba adentro del extra tapa esa franja -- de
+// eso ya se encarga chocaCon -- pero no cierra el dia, porque nadie reservo.
+// -------------------------------------------------------
+function diaConExtraTomado(diaISO, excepcionales, reservas) {
+  if (!reservas || !reservas.length) return false;
+  const base = msDeHoraLocal(diaISO, '00:00');
   for (const e of (excepcionales || [])) {
-    if (!e || !e.desde || !e.hasta) continue;
+    if (!e || !e.unicoPorDia) continue;
+    if (!excepcionalEnElDia(e, diaISO)) continue;
+    const desdeMin = minutosDeHora(e.desde);
+    const hastaMin = minutosDeHora(e.hasta);
+    if (desdeMin === null || hastaMin === null || hastaMin <= desdeMin) continue;
+    const arranca = base + desdeMin * 60000;
+    const termina = base + hastaMin * 60000;
+    if (reservas.some(([a, b]) => a < termina && b > arranca)) return true;
+  }
+  return false;
+}
+
+function franjasExcepcionales(diaISO, tipo, excepcionales, reservas) {
+  const salida = [];
+  const tomado = diaConExtraTomado(diaISO, excepcionales, reservas);
+  for (const e of (excepcionales || [])) {
     // Por defecto, solo las consultas de dos horas.
     if (!aplicaATipo(e, tipo, tipo === TIPO_POR_DEFECTO)) continue;
-    if (e.repite) {
-      if (Number(e.diaSemana) !== dow) continue;
-      if (e.desdeFecha && diaISO < e.desdeFecha) continue;
-      if (e.hastaFecha && diaISO > e.hastaFecha) continue;
-    } else if (e.fecha !== diaISO) {
-      continue;
-    }
+    if (!excepcionalEnElDia(e, diaISO)) continue;
+    // El que cierra el dia tambien se cierra a si mismo, y esta bien: su
+    // horario ya esta ocupado por el turno que lo tomo.
+    if (e.unicoPorDia && tomado) continue;
     salida.push({ desde: e.desde, hasta: e.hasta, motivo: e.motivo || '' });
   }
   return salida;
+}
+
+// -------------------------------------------------------
+// Las franjas regulares de un dia
+//
+// Antes era una linea adentro de horariosDe: el arreglo del dia de la semana,
+// tal cual. Ahora una franja puede valer una semana de por medio y puede ser
+// solo para un tipo de turno, que es lo que permite tener un viernes de
+// sesiones y el siguiente de consultas sin bloqueos puestos a mano.
+//
+// Una franja sin `tipos` vale para todos y una sin `frecuencia` cae todas las
+// semanas: las franjas que ya estan guardadas siguen significando lo mismo.
+// -------------------------------------------------------
+function franjasDelDia(diaISO, tipo, config) {
+  const todas = (config && config.semana && config.semana[String(diaDeSemana(diaISO))]) || [];
+  return todas.filter(f => aplicaATipo(f, tipo) && caeEnLaFecha(f, diaISO, 'semanal'));
 }
 
 // -------------------------------------------------------
@@ -306,9 +423,19 @@ function franjasExcepcionales(diaISO, tipo, excepcionales) {
 function horariosDe({
   config, tipo, desde, hasta,
   bloqueos = [], excepcionales = [], ocupados = [],
+  series = [], excluirSerie = null, reservas = [],
   ahora = Date.now(), topeDias = null, sinAnticipacion = false,
 }) {
   const t = tipoDe(config, tipo);
+  // El tipo YA resuelto, y es el que usa todo el cuerpo de aca para abajo.
+  //
+  // Antes el cuerpo usaba el `tipo` crudo, y eso hacia que una llamada sin
+  // tipo (que significa "la consulta de dos horas", el unico que existia
+  // antes de que hubiera tipos) no viera ni los horarios excepcionales ni los
+  // bloqueos puestos para las consultas: `aplicaATipo` compara contra
+  // 'dos-horas' y recibia undefined. Callado, porque las dos cosas se
+  // resuelven con un "no aplica".
+  const tipoId = t.id;
   const duracionMs = t.duracionMin * 60000;
   // La cadencia: cada cuanto puede arrancar un turno adentro de una franja,
   // contando desde donde empieza la franja.
@@ -346,12 +473,34 @@ function horariosDe({
   const slots = [];
   const sueltos = [];
   const bloqueados = [];
+  const deSeries = [];
 
   for (let dia = desde; dia <= hasta; dia = sumarDias(dia, 1)) {
-    for (const tramo of tramosBloqueados(dia, tipo, bloqueos)) bloqueados.push(tramo);
+    for (const tramo of tramosBloqueados(dia, tipoId, bloqueos)) bloqueados.push(tramo);
 
-    const regulares = (config && config.semana && config.semana[String(diaDeSemana(dia))]) || [];
-    const extras = franjasExcepcionales(dia, tipo, excepcionales);
+    const regulares = franjasDelDia(dia, tipoId, config);
+    const extras = franjasExcepcionales(dia, tipoId, excepcionales, reservas);
+
+    // Los espacios de los encuentros habituales ocupan igual que cualquier
+    // otra cosa, con el mismo aire. Se arma un `ocupados` propio del dia en
+    // lugar de sumarlos a la lista general a proposito: quien llama usa esa
+    // lista tambien para pintar "esto esta en tu Google Calendar", y un
+    // encuentro que todavia no se materializo no esta ahi. Decirlo seria
+    // mentir en la unica pantalla donde Seba comprueba lo que configuro.
+    const tramosSerie = tramosDeSeries(dia, series, config, excluirSerie);
+    const ocupadosDelDia = tramosSerie.length
+      ? [...ocupados, ...tramosSerie.map(t => [t.inicio, t.fin])]
+      : ocupados;
+    for (const t of tramosSerie) {
+      deSeries.push({
+        desde: isoLocal(t.inicio),
+        hasta: isoLocal(t.fin),
+        diaEntero: false,
+        motivo: t.nombre ? `Espacio de ${t.nombre}` : 'Espacio habitual',
+        serieId: t.serieId,
+        ocurrencia: t.ocurrencia,
+      });
+    }
 
     for (const [franjas, destino] of [[regulares, slots], [extras, sueltos]]) {
       for (const franja of franjas) {
@@ -362,8 +511,8 @@ function horariosDe({
         const finFranja = base + hastaMin * 60000;
         for (let inicio = base + desdeMin * 60000; inicio + duracionMs <= finFranja; inicio += paso) {
           if (inicio < minimoMs || inicio > topeMs) continue;
-          if (bloqueadoPara(inicio, inicio + duracionMs, tipo, bloqueos)) continue;
-          if (chocaCon(inicio, inicio + duracionMs, ocupados, bufferMs)) continue;
+          if (bloqueadoPara(inicio, inicio + duracionMs, tipoId, bloqueos)) continue;
+          if (chocaCon(inicio, inicio + duracionMs, ocupadosDelDia, bufferMs)) continue;
           destino.push(isoLocal(inicio));
         }
       }
@@ -378,39 +527,93 @@ function horariosDe({
     slots,
     excepcionales: sueltos.filter(s => !yaEsta.has(s)),
     bloqueados,
+    // Los espacios de los encuentros habituales, aparte y con la misma forma
+    // que `bloqueados`, para que el panel los pinte con el pintor que ya
+    // tiene. Sin esta lista, un dia entero sin huecos se veria igual que un
+    // dia sin franja: vacio y sin explicacion.
+    series: deSeries,
   };
 }
 
 // -------------------------------------------------------
-// La periodicidad quincenal
+// La periodicidad de los encuentros habituales
 //
 // "Cada 15 dias" en la practica es cada 14: el mismo dia de la semana, una
 // semana de por medio. El ejemplo del pedido lo dice solo -- jueves 26 de
 // noviembre, jueves 10 de diciembre, jueves 24 de diciembre -- y son 14 dias
 // entre uno y el siguiente. Con 15 el encuentro se correria un dia por vez y
 // a los dos meses cae un martes.
+//
+// Desde que la frecuencia se elige por persona, el numero sale de
+// periodoDeSerie y 14 es el default. El parametro existe para que los dos
+// lugares que proyectan fechas no tengan cada uno su propia idea de cada
+// cuanto.
 // -------------------------------------------------------
-const DIAS_QUINCENA = 14;
 
-// Las fechas quincenales desde una, inclusive, hasta un tope.
-function proyectarQuincenal(primeraISO, hora, hastaISO) {
+// Las fechas desde una, inclusive, hasta un tope.
+function proyectarQuincenal(primeraISO, hora, hastaISO, periodo = DIAS_QUINCENA) {
   const fechas = [];
-  for (let dia = primeraISO; dia <= hastaISO; dia = sumarDias(dia, DIAS_QUINCENA)) {
+  for (let dia = primeraISO; dia <= hastaISO; dia = sumarDias(dia, periodo)) {
     fechas.push(msDeHoraLocal(dia, hora));
   }
   return fechas;
 }
 
 // Los encuentros de una serie dentro de una ventana. El ancla es la fecha
-// desde la que se cuentan las quincenas, asi que la serie no necesita
+// desde la que se cuentan los periodos, asi que la serie no necesita
 // guardar la lista: se deriva, y moverla es cambiar una fecha.
+//
+// `serie.hasta` corta la proyeccion. Tiene que cortarla ACA y no solo donde se
+// mira la ocupacion: si no, el trabajo diario seguiria materializando
+// encuentros de alguien que ya termino.
 function fechasDeSerie(serie, desdeISO, hastaISO) {
   if (!serie || !serie.ancla || !serie.hora) return [];
+  const periodo = periodoDeSerie(serie);
   let dia = serie.ancla;
   // Hasta entrar en la ventana. Un while sobre dias de a 14 es barato: dos
   // meses son cuatro vueltas, y un ancla vieja de un ano son 26.
-  while (dia < desdeISO) dia = sumarDias(dia, DIAS_QUINCENA);
-  return proyectarQuincenal(dia, serie.hora, hastaISO);
+  while (dia < desdeISO) dia = sumarDias(dia, periodo);
+  const tope = serie.hasta && serie.hasta < hastaISO ? serie.hasta : hastaISO;
+  return proyectarQuincenal(dia, serie.hora, tope, periodo);
+}
+
+// -------------------------------------------------------
+// Los espacios de los encuentros habituales
+//
+// El horario de quien viene cada quince dias desde hace anos no se protege
+// porque su turno este creado: se protege porque es suyo. Antes dependia de
+// que el turno estuviera materializado, y eso valia hasta donde llegaba el
+// ultimo barrido -- el mismo horizonte en el que el publico puede reservar,
+// asi que en el borde habia carrera y el espacio se podia perder.
+//
+// Devuelve un tramo por encuentro, con su ocurrencia, para que quien excluya
+// pueda excluir UN encuentro y no la serie entera: si se excluyera la serie,
+// alguien podria mover su encuentro del 10 encima de su propio horario del
+// 24.
+// -------------------------------------------------------
+function tramosDeSeries(diaISO, series, config, excluir) {
+  const dow = diaDeSemana(diaISO);
+  const salida = [];
+  for (const s of (series || [])) {
+    if (!s || !s.hora || minutosDeHora(s.hora) === null) continue;
+    // Una serie pausada no ocupa nada: es justo para lo que sirve pausarla.
+    if (s.estado && s.estado !== 'activa') continue;
+    if (Number(s.diaSemana) !== dow) continue;
+    if (!caeEnLaFecha({ frecuencia: s.frecuencia, ancla: s.ancla, hastaFecha: s.hasta || null }, diaISO, 'quincenal')) continue;
+    // Sin ancla no hay serie: no se puede saber que quincena le toca.
+    if (!s.ancla) continue;
+    if (excluir && excluir.serieId && excluir.serieId === s.id && excluir.ocurrencia === diaISO) continue;
+    const duracion = Number.isFinite(s.duracionMin) ? s.duracionMin : tipoDe(config, s.tipo).duracionMin;
+    const inicio = msDeHoraLocal(diaISO, s.hora);
+    salida.push({
+      serieId: s.id || null,
+      ocurrencia: diaISO,
+      nombre: s.nombre || '',
+      inicio,
+      fin: inicio + duracion * 60000,
+    });
+  }
+  return salida;
 }
 
 // -------------------------------------------------------
@@ -432,9 +635,11 @@ module.exports = {
   TIPOS_POR_DEFECTO, TIPO_POR_DEFECTO, DIAS_QUINCENA,
   tipoDe, cadenciaSugerida,
   msDeHoraLocal, diaLocal, horaLocal, isoLocal, diaDeSemana, sumarDias,
-  minutosDeHora, idDeTurno,
+  minutosDeHora, idDeTurno, diasEntre,
+  diasDeFrecuencia, periodoDeSerie, caeEnLaFecha,
   chocaCon, aplicaATipo, tramoDelBloqueo, bloqueadoPara, tramosBloqueados,
-  franjasExcepcionales,
+  franjasExcepcionales, excepcionalEnElDia, diaConExtraTomado, franjasDelDia,
+  tramosDeSeries,
   horariosDe,
   proyectarQuincenal, fechasDeSerie, puedeCambiar,
 };

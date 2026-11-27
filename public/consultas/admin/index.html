@@ -142,6 +142,9 @@
     .pa-punto.guardado { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.28); border-style: dashed; }
     .pa-punto.extra { background: rgba(242,201,76,0.18); border-color: rgba(242,201,76,0.55); }
     .pa-punto.ocupado { background: rgba(245,109,150,0.16); border-color: rgba(245,109,150,0.5); }
+    /* El espacio de alguien que viene siempre: violeta, y distinto del tomado
+       porque todavia no es un turno creado. */
+    .pa-punto.habitual { background: rgba(185,160,235,0.2); border-color: rgba(185,160,235,0.55); }
 
     /* La grilla de mes */
     .pa-mes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -206,6 +209,7 @@
     }
     .pa-ficha.extra { background: rgba(242,201,76,0.12); border-color: rgba(242,201,76,0.45); color: #f5e6bd; }
     .pa-ficha.ocupado { background: rgba(245,109,150,0.1); border-color: rgba(245,109,150,0.4); color: #f3c6d4; }
+    .pa-ficha.habitual { background: rgba(185,160,235,0.12); border-color: rgba(185,160,235,0.45); color: #ded2f6; }
     .pa-ficha.elegido { box-shadow: 0 0 0 2px #fff; }
     /* Mientras se mueve un turno, los horarios libres son destinos. Se
        levantan un poco para que se note que ahora se pueden tocar. */
@@ -383,6 +387,39 @@
                         </div>
 
                         <div id="pa-turnos" class="pa-panel visible">
+                            <details class="pa-nueva-serie" id="pa-nuevo-turno">
+                                <summary>Anotar un turno a mano</summary>
+                                <p class="pa-serie-nota">
+                                    Para alguien que arregló por WhatsApp, o para una consulta que ya tenías
+                                    agendada. No pasa por tus franjas ni por la anticipación, y si el horario
+                                    se pisa con algo te pregunto antes de anotarlo igual.
+                                </p>
+                                <div class="pa-nuevo-bloqueo">
+                                    <div><label for="pa-nt-nombre">Nombre</label><input type="text" id="pa-nt-nombre" maxlength="200"></div>
+                                    <div><label for="pa-nt-email">Mail (opcional)</label><input type="email" id="pa-nt-email" maxlength="200"></div>
+                                    <div><label for="pa-nt-telefono">Teléfono</label><input type="text" id="pa-nt-telefono" maxlength="50"></div>
+                                    <div><label for="pa-nt-fecha">Fecha</label><input type="date" id="pa-nt-fecha"></div>
+                                    <div><label for="pa-nt-hora">Hora</label><input type="time" id="pa-nt-hora"></div>
+                                    <div>
+                                        <label for="pa-nt-tipo">Qué es</label>
+                                        <select id="pa-nt-tipo">
+                                            <option value="dos-horas">Consulta (2 h)</option>
+                                            <option value="una-hora">Sesión (1 h)</option>
+                                        </select>
+                                    </div>
+                                    <div><label for="pa-nt-duracion">Cuánto dura (min)</label><input type="number" id="pa-nt-duracion" min="15" max="480" step="5" placeholder="según el tipo"></div>
+                                    <div>
+                                        <label for="pa-nt-modalidad">Modalidad</label>
+                                        <select id="pa-nt-modalidad">
+                                            <option value="Online">Online</option>
+                                            <option value="Presencial">Presencial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <label class="pa-pausa"><input type="checkbox" id="pa-nt-avisar"> Mandarle el mail de confirmación</label>
+                                <button type="button" class="pa-boton" id="pa-btn-nuevo-turno">Anotar el turno</button>
+                            </details>
+
                             <div class="pa-cal-barra">
                                 <button type="button" class="pa-mini" id="pa-cal-antes">← Mes anterior</button>
                                 <span id="pa-cal-rango"></span>
@@ -394,6 +431,7 @@
                                 <span><i class="pa-punto consulta"></i> Libre para una consulta</span>
                                 <span><i class="pa-punto guardado"></i> Guardado para consultas</span>
                                 <span><i class="pa-punto extra"></i> Extraordinario</span>
+                                <span><i class="pa-punto habitual"></i> Espacio de alguien que viene siempre</span>
                                 <span><i class="pa-punto ocupado"></i> Ocupado en tu calendario</span>
                             </div>
                             <p class="pa-seccion-nota">
@@ -458,36 +496,7 @@
                             </p>
 
                             <label class="pa-pausa"><input type="checkbox" id="pa-pausado"> Cerrar la agenda (nadie puede reservar)</label>
-                            <button type="button" class="pa-boton" id="pa-btn-guardar">Guardar</button>
-                        </div>
-
-                        <div id="pa-bloqueos" class="pa-panel">
-                            <h3 class="pa-seccion">Bloqueos: sacar horarios</h3>
-                            <p class="pa-seccion-nota">
-                                Un bloqueo saca horarios de la agenda. Sin horas es el día entero, y
-                                sirve para unas vacaciones. Con horas y "solo las sesiones de una hora"
-                                es otra cosa: <strong>así guardás un bloque para una consulta</strong>.
-                                Un martes de 10 a 12 para consultas sale de los horarios de una hora,
-                                queda entero para una de dos, y a quien busca una sesión le aparece en
-                                gris con su motivo en lugar de desaparecer.
-                            </p>
-                            <div class="pa-nuevo-bloqueo">
-                                <div><label for="pa-bl-desde">Desde</label><input type="date" id="pa-bl-desde"></div>
-                                <div><label for="pa-bl-hasta">Hasta</label><input type="date" id="pa-bl-hasta"></div>
-                                <div><label for="pa-bl-desde-hora">De (opcional)</label><input type="time" id="pa-bl-desde-hora"></div>
-                                <div><label for="pa-bl-hasta-hora">A (opcional)</label><input type="time" id="pa-bl-hasta-hora"></div>
-                                <div>
-                                    <label for="pa-bl-tipos">Para</label>
-                                    <select id="pa-bl-tipos">
-                                        <option value="">Todo</option>
-                                        <option value="una-hora">Solo las sesiones de una hora</option>
-                                        <option value="dos-horas">Solo las consultas</option>
-                                    </select>
-                                </div>
-                                <div><label for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
-                                <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
-                            </div>
-                            <div id="pa-lista-bloqueos"></div>
+                            <button type="button" class="pa-boton" id="pa-btn-guardar">Guardar los horarios de la semana</button>
 
                             <h3 class="pa-seccion">Espacios extraordinarios: agregar horarios</h3>
                             <p class="pa-seccion-nota">
@@ -519,6 +528,14 @@
                                         <option value="0">Domingo</option>
                                     </select>
                                 </div>
+                                <div id="pa-ex-caja-frecuencia" hidden>
+                                    <label for="pa-ex-frecuencia">Cada cuánto</label>
+                                    <select id="pa-ex-frecuencia">
+                                        <option value="semanal">Todas las semanas</option>
+                                        <option value="quincenal">Una semana de por medio</option>
+                                    </select>
+                                </div>
+                                <div id="pa-ex-caja-ancla" hidden><label for="pa-ex-ancla">Desde qué día se cuenta</label><input type="date" id="pa-ex-ancla"></div>
                                 <div id="pa-ex-caja-desde-fecha" hidden><label for="pa-ex-desde-fecha">A partir de (opcional)</label><input type="date" id="pa-ex-desde-fecha"></div>
                                 <div id="pa-ex-caja-hasta-fecha" hidden><label for="pa-ex-hasta-fecha">Hasta (opcional)</label><input type="date" id="pa-ex-hasta-fecha"></div>
                                 <div><label for="pa-ex-desde">De</label><input type="time" id="pa-ex-desde"></div>
@@ -534,7 +551,38 @@
                                 <div><label for="pa-ex-motivo">Motivo</label><input type="text" id="pa-ex-motivo" maxlength="200" placeholder="Un hueco suelto"></div>
                                 <button type="button" class="pa-boton" id="pa-btn-excepcional">Abrir el espacio</button>
                             </div>
+                            <label class="pa-pausa"><input type="checkbox" id="pa-ex-unico" checked> Si alguien toma uno, cerrar los otros espacios extraordinarios de ese mismo día</label>
                             <div id="pa-lista-excepcionales"></div>
+                        </div>
+
+                        <div id="pa-bloqueos" class="pa-panel">
+                            <h3 class="pa-seccion">Bloqueos: sacar horarios</h3>
+                            <p class="pa-seccion-nota">
+                                Un bloqueo saca horarios de la agenda. Sin horas es el día entero, y
+                                sirve para unas vacaciones. Con horas y "solo las sesiones de una hora"
+                                es otra cosa: <strong>así guardás un bloque para una consulta</strong>.
+                                Un martes de 10 a 12 para consultas sale de los horarios de una hora,
+                                queda entero para una de dos, y a quien busca una sesión le aparece en
+                                gris con su motivo en lugar de desaparecer.
+                            </p>
+                            <div class="pa-nuevo-bloqueo">
+                                <div><label for="pa-bl-desde">Desde</label><input type="date" id="pa-bl-desde"></div>
+                                <div><label for="pa-bl-hasta">Hasta</label><input type="date" id="pa-bl-hasta"></div>
+                                <div><label for="pa-bl-desde-hora">De (opcional)</label><input type="time" id="pa-bl-desde-hora"></div>
+                                <div><label for="pa-bl-hasta-hora">A (opcional)</label><input type="time" id="pa-bl-hasta-hora"></div>
+                                <div>
+                                    <label for="pa-bl-tipos">Para</label>
+                                    <select id="pa-bl-tipos">
+                                        <option value="">Todo</option>
+                                        <option value="una-hora">Solo las sesiones de una hora</option>
+                                        <option value="dos-horas">Solo las consultas</option>
+                                    </select>
+                                </div>
+                                <div><label for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
+                                <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
+                            </div>
+                            <div id="pa-lista-bloqueos"></div>
+
                         </div>
 
                         <div id="pa-series" class="pa-panel">
@@ -569,6 +617,14 @@
                                     </div>
                                     <div><label for="pa-se-hora">Hora</label><input type="time" id="pa-se-hora" value="16:00"></div>
                                     <div><label for="pa-se-ancla">Primer encuentro</label><input type="date" id="pa-se-ancla"></div>
+                                    <div><label for="pa-se-frecuencia">Cada cuánto</label>
+                                        <select id="pa-se-frecuencia">
+                                            <option value="quincenal">Cada 15 días</option>
+                                            <option value="semanal">Cada semana</option>
+                                        </select>
+                                    </div>
+                                    <div><label for="pa-se-duracion">Cuánto dura (min)</label><input type="number" id="pa-se-duracion" min="15" max="480" step="5" placeholder="60"></div>
+                                    <div><label for="pa-se-hasta">Hasta (opcional)</label><input type="date" id="pa-se-hasta"></div>
                                     <div><label for="pa-se-modalidad">Modalidad</label>
                                         <select id="pa-se-modalidad">
                                             <option value="Online">Online</option>
@@ -578,8 +634,24 @@
                                 </div>
                                 <label class="pa-pausa"><input type="checkbox" id="pa-se-mandar" checked> Mandarle el enlace por mail</label>
                                 <button type="button" class="pa-boton" id="pa-btn-crear-serie">Sumar y tomar sus encuentros</button>
+                                <details id="pa-importar">
+                                    <summary>Importar los encuentros que ya están en el calendario</summary>
+                                    <p class="pa-serie-nota">
+                                        Pegá acá la lista que te preparé. Cada persona entra con su horario
+                                        reservado hacia adelante, <strong>sin tocar tu calendario</strong>:
+                                        los encuentros que ya tenés ahí siguen tal como están. Después, con
+                                        "Pasar al sistema", corto la repetición vieja y empiezo a crear un
+                                        encuentro por vez, con su enlace y su invitación.
+                                    </p>
+                                    <textarea id="pa-importar-datos" rows="6" placeholder="[ ... ]"></textarea>
+                                    <button type="button" class="pa-boton" id="pa-btn-importar">Importar</button>
+                                    <div id="pa-importar-resultado"></div>
+                                </details>
                                 <p class="pa-serie-nota">
-                                    Si dejás vacío el primer encuentro, se toma el próximo día de la semana que elegiste.
+                                    Si dejás vacío el primer encuentro, se toma el próximo día de la semana que
+                                    elegiste. Sin fecha de fin, el espacio queda reservado indefinidamente hacia
+                                    adelante. El mail se puede dejar para después, pero sin él no se le puede
+                                    mandar el enlace ni invitarla a cada encuentro.
                                 </p>
                             </details>
 
