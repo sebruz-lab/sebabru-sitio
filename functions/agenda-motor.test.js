@@ -816,3 +816,118 @@ test('un extra recurrente tambien puede ser quincenal', () => {
   assert.equal(unDia('2026-12-09').length, 0);
   assert.equal(unDia('2026-12-16').length, 1);
 });
+
+
+// -------------------------------------------------------
+// El espacio de un habitual, cuando queda libre
+//
+// Martes 1 de diciembre de 2026. La semana de CONFIG abre los martes de 10 a
+// 18, asi que para probar los espacios habituales sueltos hace falta un dia
+// SIN franja: se usa el miercoles 2, que no tiene ninguna.
+// -------------------------------------------------------
+
+const MIERCOLES = { desde: '2026-12-02', hasta: '2026-12-02' };
+const SERIE_MOISES = {
+  id: 'moises', nombre: 'Moises', estado: 'activa',
+  diaSemana: 3, hora: '10:00', duracionMin: 60,
+  frecuencia: 'quincenal', ancla: '2026-12-02',
+};
+const SERIE_ANDREA = {
+  id: 'andrea', nombre: 'Andrea', estado: 'activa',
+  diaSemana: 3, hora: '11:00', duracionMin: 60,
+  frecuencia: 'quincenal', ancla: '2026-12-09',
+};
+
+test('el espacio de un habitual no se ofrece la semana en que esa persona viene', () => {
+  const r = horarios({ ...MIERCOLES, tipo: 'una-hora', series: [SERIE_MOISES] });
+  assert.ok(!horasDe(r.slots).includes('10:00'));
+});
+
+test('el mismo espacio se ofrece la semana en que esa persona no viene', () => {
+  // El 9 es la quincena de Andrea, no la de Moises: su hora esta libre.
+  const r = m.horariosDe({
+    config: CONFIG, desde: '2026-12-09', hasta: '2026-12-09', ahora: AHORA,
+    tipo: 'una-hora', series: [SERIE_MOISES],
+  });
+  assert.ok(horasDe(r.slots).includes('10:00'));
+});
+
+test('si el encuentro ya existe y se cancelo, su horario vuelve a ofrecerse', () => {
+  // La regla protege lo que todavia no se creo. Una vez creado, el turno es
+  // el que manda: si se cancelo o se movio, el hueco es un hueco.
+  const r = horarios({
+    ...MIERCOLES, tipo: 'una-hora', series: [SERIE_MOISES],
+    materializadas: new Set(['moises|2026-12-02']),
+  });
+  assert.ok(horasDe(r.slots).includes('10:00'));
+});
+
+test('si el encuentro existe y sigue en pie, su horario no se ofrece', () => {
+  const inicio = m.msDeHoraLocal('2026-12-02', '10:00');
+  const r = horarios({
+    ...MIERCOLES, tipo: 'una-hora', series: [SERIE_MOISES],
+    materializadas: new Set(['moises|2026-12-02']),
+    ocupados: [[inicio, inicio + 60 * 60000, '2026-12-02T10-00']],
+  });
+  assert.ok(!horasDe(r.slots).includes('10:00'));
+});
+
+test('una serie pausada deja su espacio libre y ofrecido', () => {
+  const r = horarios({
+    ...MIERCOLES, tipo: 'una-hora', series: [{ ...SERIE_MOISES, estado: 'pausada' }],
+  });
+  assert.ok(horasDe(r.slots).includes('10:00'));
+});
+
+// Los dos caen la quincena del 9, asi que el miercoles 2 no viene ninguno de
+// los dos y el bloque de 10 a 12 esta entero libre.
+const LIBRE_MOISES = { ...SERIE_MOISES, ancla: '2026-12-09' };
+
+test('dos espacios de una hora pegados y libres son una consulta de dos', () => {
+  const r = horarios({
+    ...MIERCOLES, tipo: 'dos-horas', series: [LIBRE_MOISES, SERIE_ANDREA],
+  });
+  assert.ok(horasDe(r.slots).includes('10:00'));
+});
+
+test('con un hueco entre los dos, la consulta de dos horas no entra', () => {
+  const corto = { ...LIBRE_MOISES, duracionMin: 50 };
+  const r = horarios({
+    ...MIERCOLES, tipo: 'dos-horas', series: [corto, SERIE_ANDREA],
+  });
+  assert.ok(!horasDe(r.slots).includes('10:00'));
+  // Y el espacio corto tampoco da para una sesion de una hora: 50 minutos no
+  // alcanzan. Lo que si se ofrece es la hora entera de al lado.
+  const corta = horarios({
+    ...MIERCOLES, tipo: 'una-hora', series: [corto, SERIE_ANDREA],
+  });
+  assert.ok(!horasDe(corta.slots).includes('10:00'));
+  assert.ok(horasDe(corta.slots).includes('11:00'));
+});
+
+test('el espacio de un habitual no se ofrece si hay un bloqueo encima', () => {
+  const r = horarios({
+    ...MIERCOLES, tipo: 'una-hora', series: [SERIE_MOISES],
+    materializadas: new Set(['moises|2026-12-02']),
+    bloqueos: [{ desde: '2026-12-02', hasta: '2026-12-02' }],
+  });
+  assert.ok(!horasDe(r.slots).includes('10:00'));
+});
+
+test('una serie sin tipo dura una hora, no dos', () => {
+  // El tipo por defecto del sitio es la consulta de dos horas, pero un
+  // encuentro habitual es una sesion. Cuando no lo era, el espacio de las
+  // 08:00 tapaba hasta las 10:00 un calendario vacio.
+  const sinTipo = { id: 'belen', estado: 'activa', diaSemana: 3, hora: '08:00', ancla: '2026-12-02' };
+  assert.equal(m.duracionDeSerie(sinTipo, CONFIG), 60);
+  const tramos = m.tramosDeSeries('2026-12-02', [sinTipo], CONFIG);
+  assert.equal(tramos.length, 1);
+  assert.equal(tramos[0].fin - tramos[0].inicio, 60 * 60000);
+});
+
+test('los horarios salen ordenados y sin repetir', () => {
+  // El habitual de las 10:00 del martes cae adentro de la franja de 10 a 18.
+  const serieMartes = { ...SERIE_MOISES, id: 'martes', diaSemana: 2, ancla: '2026-12-08' };
+  const r = horarios({ tipo: 'una-hora', series: [serieMartes] });
+  assert.deepEqual(r.slots, [...new Set(r.slots)].sort());
+});

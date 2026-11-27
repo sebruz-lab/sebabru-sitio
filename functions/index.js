@@ -7070,7 +7070,15 @@ function soloReservas(ocupados) {
 // Ocupacion: lo que dice Google Calendar mas los turnos que ya dio el sitio.
 // Devuelve intervalos [desde, hasta] en milisegundos.
 // -------------------------------------------------------
-async function ocupacionEntre(desdeMs, hastaMs) {
+// `salida` es opcional y sirve para una sola cosa: devolver, sin repetir la
+// consulta a agenda_turnos, que ocurrencias de que serie ya tienen un turno
+// creado (`salida.materializadas`, un Set de "<serieId>|<ocurrencia>").
+//
+// El motor lo usa para no proteger por regla un encuentro que ya existe: si
+// ese turno se cancelo o se movio, su horario viejo tiene que volver a
+// ofrecerse, y la regla lo taparia para siempre. Por eso se cuentan los
+// documentos de cualquier estado, no solo los reservados.
+async function ocupacionEntre(desdeMs, hastaMs, salida = null) {
   // Las dos consultas son independientes y la de Google es la lenta (medio
   // segundo largo contra la API de Calendar). En fila, la persona esperaba
   // una despues de la otra para ver el calendario; en paralelo paga solo la
@@ -7097,6 +7105,14 @@ async function ocupacionEntre(desdeMs, hastaMs) {
       .where('inicio', '<=', new Date(hastaMs))
       .get(),
   ]);
+
+  if (salida) {
+    salida.materializadas = new Set();
+    for (const doc of turnos.docs) {
+      const t = doc.data();
+      if (t.serieId && t.ocurrencia) salida.materializadas.add(`${t.serieId}|${t.ocurrencia}`);
+    }
+  }
 
   const ocupados = [];
   for (const info of Object.values(respCalendar.data.calendars || {})) {
@@ -7689,15 +7705,16 @@ async function slotsVisibles(config, desdePedido, hastaPedido, tipo, modo = MODO
   if (hasta > sumarDias(desde, 70)) hasta = sumarDias(desde, 70);
   if (hasta < desde) return { desde, hasta, slots: [] };
 
+  const deTurnos = {};
   const [ocupados, bloqueos, excepcionales, series] = await Promise.all([
-    ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
+    ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59'), deTurnos),
     leerBloqueos(modo),
     leerExcepcionales(modo),
     leerSeriesActivas(),
   ]);
   const horarios = motor.horariosDe({
     config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
-    series, reservas: soloReservas(ocupados),
+    series, reservas: soloReservas(ocupados), materializadas: deTurnos.materializadas,
   });
   // Las listas viajan juntas: los regulares libres, los excepcionales (que la
   // pagina muestra aparte y solo si hacen falta) y los tramos que este tipo no
@@ -7944,7 +7961,8 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   const promesaBloqueos = leerBloqueos();
   const promesaExcepcionales = leerExcepcionales();
   const promesaSeries = leerSeriesActivas();
-  const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'));
+  const deTurnos = {};
+  const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'), deTurnos);
 
   const config = await promesaConfig;
 
@@ -8028,6 +8046,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
       config, tipo: sujeto.tipo, desde: dia, hasta: dia,
       bloqueos, excepcionales, ocupados,
       series, excluirSerie, reservas: soloReservas(ocupados),
+      materializadas: deTurnos.materializadas,
     });
     const legales = [...horarios.slots, ...horarios.excepcionales];
     if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
@@ -8038,7 +8057,8 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     // alguien que lo tiene desde anios.
     const conSeries = [
       ...ocupados,
-      ...motor.tramosDeSeries(dia, series, config, excluirSerie).map(s => [s.inicio, s.fin]),
+      ...motor.tramosDeSeries(dia, series, config, excluirSerie, deTurnos.materializadas)
+        .map(s => [s.inicio, s.fin]),
     ];
     if (!superponer && chocaCon(inicioMs, inicioMs + duracionMin * 60000, conSeries, bufferDe(t, quien))) {
       return { error: 'slot_ocupado', status: 409 };
@@ -8546,8 +8566,8 @@ async function extenderSerie(serie, config) {
       modalidad: serie.modalidad,
       // El tipo y la duracion salen de la serie: los encuentros de Seba no
       // duran todos lo mismo, y antes esto forzaba una hora para todos.
-      tipo: serie.tipo || 'una-hora',
-      duracionMin: serie.duracionMin || null,
+      tipo: serie.tipo || motor.TIPO_DE_SERIE,
+      duracionMin: motor.duracionDeSerie(serie, conf),
       serieId: serie.id,
       ocurrencia,
       enlacePersonal: serie.enlace || null,
@@ -8658,15 +8678,15 @@ async function ensayarSerie(serie, ignorarRecurrencia = null) {
   const fechas = motor.fechasDeSerie(serie, hoy, hasta).filter(ms => ms >= Date.now());
   if (!fechas.length) return { fechas: [], conflictos: [] };
 
-  const t = tipoDe(conf, serie.tipo);
-  const duracionMin = Number.isFinite(serie.duracionMin) ? serie.duracionMin : t.duracionMin;
+  const duracionMin = motor.duracionDeSerie(serie, conf);
 
   const desdeMs = msDeHoraLocal(diaLocal(fechas[0]), '00:00');
   const hastaMs = msDeHoraLocal(diaLocal(fechas[fechas.length - 1]), '23:59');
 
+  const deTurnos = {};
   const [series, todoOcupado, propias] = await Promise.all([
     leerSeriesActivas(),
-    ocupacionEntre(desdeMs, hastaMs),
+    ocupacionEntre(desdeMs, hastaMs, deTurnos),
     instanciasDeRecurrencia(ignorarRecurrencia, desdeMs, hastaMs),
   ]);
 
@@ -8683,7 +8703,7 @@ async function ensayarSerie(serie, ignorarRecurrencia = null) {
     const dia = diaLocal(inicioMs);
     const propios = motor.tramosDeSeries(dia, series, conf, {
       serieId: serie.id, ocurrencia: dia,
-    }).map(s => [s.inicio, s.fin]);
+    }, deTurnos.materializadas).map(s => [s.inicio, s.fin]);
 
     // El motivo dice contra que choca. "Ocupado" a secas mandaba a Seba a
     // mirar un calendario donde no hay nada: el espacio de otra persona es
@@ -9774,12 +9794,13 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         if (hasta > sumarDias(desde, 45)) hasta = sumarDias(desde, 45);
         if (hasta < desde) hasta = desde;
 
+        const deTurnos = {};
         const [config, bloqueos, excepcionales, seriesActivas, ocupados, turnosSnap] = await Promise.all([
           leerConfigAgenda(MODO_BORRADOR),
           leerBloqueos(MODO_BORRADOR),
           leerExcepcionales(MODO_BORRADOR),
           leerSeriesActivas(),
-          ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59')),
+          ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59'), deTurnos),
           _db.collection('agenda_turnos')
             .where('inicio', '>=', new Date(msDeHoraLocal(desde, '00:00')))
             .where('inicio', '<=', new Date(msDeHoraLocal(hasta, '23:59')))
@@ -9793,6 +9814,7 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         const paraTipo = tipo => motor.horariosDe({
           config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
           series: seriesActivas, reservas: soloReservas(ocupados),
+          materializadas: deTurnos.materializadas,
           sinAnticipacion: true, topeDias: 400,
         });
         const sesiones = paraTipo('una-hora');

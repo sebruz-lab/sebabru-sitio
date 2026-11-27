@@ -423,7 +423,7 @@ function franjasDelDia(diaISO, tipo, config) {
 function horariosDe({
   config, tipo, desde, hasta,
   bloqueos = [], excepcionales = [], ocupados = [],
-  series = [], excluirSerie = null, reservas = [],
+  series = [], excluirSerie = null, reservas = [], materializadas = null,
   ahora = Date.now(), topeDias = null, sinAnticipacion = false,
 }) {
   const t = tipoDe(config, tipo);
@@ -487,7 +487,7 @@ function horariosDe({
     // lista tambien para pintar "esto esta en tu Google Calendar", y un
     // encuentro que todavia no se materializo no esta ahi. Decirlo seria
     // mentir en la unica pantalla donde Seba comprueba lo que configuro.
-    const tramosSerie = tramosDeSeries(dia, series, config, excluirSerie);
+    const tramosSerie = tramosDeSeries(dia, series, config, excluirSerie, materializadas);
     const ocupadosDelDia = tramosSerie.length
       ? [...ocupados, ...tramosSerie.map(t => [t.inicio, t.fin])]
       : ocupados;
@@ -500,6 +500,19 @@ function horariosDe({
         serieId: t.serieId,
         ocurrencia: t.ocurrencia,
       });
+    }
+
+    // Los espacios habituales que quedaron libres. Van con la lista normal y
+    // no con los extraordinarios: no son un hueco que Seba abrio a mano, son
+    // su horario de siempre. El arranque es la hora de esa persona y no un
+    // punto de la grilla, asi que se prueba uno por uno en vez de pasar por
+    // el bucle de las franjas.
+    for (const b of bloquesDeSeries(dia, series, config)) {
+      if (b.inicio + duracionMs > b.hasta) continue;
+      if (b.inicio < minimoMs || b.inicio > topeMs) continue;
+      if (bloqueadoPara(b.inicio, b.inicio + duracionMs, tipoId, bloqueos)) continue;
+      if (chocaCon(b.inicio, b.inicio + duracionMs, ocupadosDelDia, bufferMs)) continue;
+      slots.push(isoLocal(b.inicio));
     }
 
     for (const [franjas, destino] of [[regulares, slots], [extras, sueltos]]) {
@@ -522,9 +535,14 @@ function horariosDe({
   // Un horario que ya esta entre los regulares no se repite como
   // excepcional: pasa cuando Seba abre un excepcional encima de una franja
   // que despues agrega a su semana regular.
-  const yaEsta = new Set(slots);
+  // Un espacio habitual libre puede caer tambien adentro de una franja de la
+  // semana, y entonces el mismo horario se genero dos veces. Se ordena ademas
+  // porque los habituales se agregan antes que las franjas de cada dia y la
+  // pagina espera la lista en hora.
+  const unicos = [...new Set(slots)].sort();
+  const yaEsta = new Set(unicos);
   return {
-    slots,
+    slots: unicos,
     excepcionales: sueltos.filter(s => !yaEsta.has(s)),
     bloqueados,
     // Los espacios de los encuentros habituales, aparte y con la misma forma
@@ -591,7 +609,27 @@ function fechasDeSerie(serie, desdeISO, hastaISO) {
 // alguien podria mover su encuentro del 10 encima de su propio horario del
 // 24.
 // -------------------------------------------------------
-function tramosDeSeries(diaISO, series, config, excluir) {
+// Cuanto dura un encuentro habitual.
+//
+// Esta en una sola funcion porque la respuesta tiene que ser la MISMA en los
+// dos lados que la preguntan: el que protege el horario (tramosDeSeries) y el
+// que crea el turno (extenderSerie, en index.js). Cuando no lo era, una serie
+// vieja sin `tipo` se protegia como consulta -- dos horas, el tipo por
+// defecto del sitio -- y se materializaba como sesion de una. El espacio de
+// Belen, de 08:00 a 09:00, tapaba hasta las 10:00 un horario que en el
+// calendario estaba vacio, y el encuentro de las 09:30 de la persona
+// siguiente se rechazaba como ocupado sin que nada se viera.
+//
+// El default es la sesion de una hora y no el tipo por defecto del sitio:
+// un encuentro habitual es una sesion, no una consulta de dos horas.
+const TIPO_DE_SERIE = 'una-hora';
+
+function duracionDeSerie(serie, config) {
+  if (serie && Number.isFinite(serie.duracionMin)) return serie.duracionMin;
+  return tipoDe(config, (serie && serie.tipo) || TIPO_DE_SERIE).duracionMin;
+}
+
+function tramosDeSeries(diaISO, series, config, excluir, materializadas) {
   const dow = diaDeSemana(diaISO);
   const salida = [];
   for (const s of (series || [])) {
@@ -603,7 +641,17 @@ function tramosDeSeries(diaISO, series, config, excluir) {
     // Sin ancla no hay serie: no se puede saber que quincena le toca.
     if (!s.ancla) continue;
     if (excluir && excluir.serieId && excluir.serieId === s.id && excluir.ocurrencia === diaISO) continue;
-    const duracion = Number.isFinite(s.duracionMin) ? s.duracionMin : tipoDe(config, s.tipo).duracionMin;
+    // Si ese encuentro YA se creo, el que manda es el turno y no la regla.
+    //
+    // La regla existe para proteger lo que todavia no se materializo, que es
+    // lo que vive mas alla del horizonte del barrido. Dentro del horizonte el
+    // turno esta en `ocupados` y bloquea igual, asi que aplicar las dos cosas
+    // no agrega proteccion: lo unico que agrega es que un encuentro cancelado
+    // o movido a otro dia siga tapando su horario viejo para siempre. Y ese
+    // horario, cuando queda libre, es justamente el que hay que volver a
+    // ofrecer.
+    if (materializadas && s.id && materializadas.has(`${s.id}|${diaISO}`)) continue;
+    const duracion = duracionDeSerie(s, config);
     const inicio = msDeHoraLocal(diaISO, s.hora);
     salida.push({
       serieId: s.id || null,
@@ -612,6 +660,62 @@ function tramosDeSeries(diaISO, series, config, excluir) {
       inicio,
       fin: inicio + duracion * 60000,
     });
+  }
+  return salida;
+}
+
+// -------------------------------------------------------
+// El espacio de un habitual tambien es un horario que se puede ofrecer
+//
+// El dia y la hora en que Seba ve a alguien desde hace anios son horario de
+// trabajo suyo, caiga o no esa persona esa semana. Antes esos horarios no
+// estaban en ninguna franja -- la configuracion de la semana cubria otra
+// cosa -- asi que el dia que alguien movia su encuentro, o que Seba daba de
+// baja a un habitual, el hueco no se le ofrecia a nadie: quedaba vacio.
+//
+// Lo que devuelve es un horario de arranque por encuentro habitual de ese dia
+// de la semana (la hora de esa persona, no una grilla nueva), con el fin del
+// bloque corrido al que llegan los encuentros pegados. Por eso dos espacios
+// de una hora seguidos alcanzan para una consulta de dos: el arranque es el
+// del primero y el bloque llega hasta el fin del segundo.
+//
+// Se fusiona solo lo que se toca o se superpone. Si entre dos encuentros hay
+// un hueco, aunque sea de diez minutos, son dos bloques: ofrecer dos horas
+// encima de un hueco seria ofrecer algo que no entra.
+//
+// No mira frecuencia ni ancla a proposito: la quincena dice cuando viene esa
+// persona, no cuando Seba trabaja.
+// -------------------------------------------------------
+function bloquesDeSeries(diaISO, series, config) {
+  const dow = diaDeSemana(diaISO);
+  const ventanas = [];
+  for (const s of (series || [])) {
+    if (!s || !s.hora || minutosDeHora(s.hora) === null) continue;
+    // Una serie pausada cuenta igual, y es a proposito: pausar significa que
+    // esa persona no viene por un tiempo, no que Seba dejo de trabajar a esa
+    // hora. Justamente ahi es donde mas sirve que el espacio se ofrezca.
+    // Para cerrar el horario de verdad estan los bloqueos, o borrar la serie.
+    if (Number(s.diaSemana) !== dow) continue;
+    const inicio = msDeHoraLocal(diaISO, s.hora);
+    ventanas.push([inicio, inicio + duracionDeSerie(s, config) * 60000]);
+  }
+  if (!ventanas.length) return [];
+  ventanas.sort((a, b) => a[0] - b[0]);
+
+  const bloques = [];
+  for (const [a, b] of ventanas) {
+    const ultimo = bloques[bloques.length - 1];
+    if (ultimo && a <= ultimo[1]) { ultimo[1] = Math.max(ultimo[1], b); continue; }
+    bloques.push([a, b]);
+  }
+
+  const salida = [];
+  const vistos = new Set();
+  for (const [a] of ventanas) {
+    if (vistos.has(a)) continue;
+    vistos.add(a);
+    const bloque = bloques.find(([x, y]) => a >= x && a < y);
+    salida.push({ inicio: a, hasta: bloque ? bloque[1] : a });
   }
   return salida;
 }
@@ -632,7 +736,8 @@ function puedeCambiar(inicioTurnoMs, configTipo, ahora = Date.now()) {
 
 module.exports = {
   AGENDA_OFFSET, AGENDA_ZONA, MAX_TURNO_MIN,
-  TIPOS_POR_DEFECTO, TIPO_POR_DEFECTO, DIAS_QUINCENA,
+  TIPOS_POR_DEFECTO, TIPO_POR_DEFECTO, TIPO_DE_SERIE, DIAS_QUINCENA,
+  duracionDeSerie, bloquesDeSeries,
   tipoDe, cadenciaSugerida,
   msDeHoraLocal, diaLocal, horaLocal, isoLocal, diaDeSemana, sumarDias,
   minutosDeHora, idDeTurno, diasEntre,

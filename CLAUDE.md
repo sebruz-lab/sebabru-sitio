@@ -597,6 +597,41 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   crear una serie **semanal** se cortaba a la mitad: materializa ocho o nueve
   encuentros en fila, cada uno con un `freebusy` y un `events.insert`, y en
   fila es a proposito (todos juntos contra la API de Google es un 429).
+- **El espacio de un habitual tambien se ofrece cuando queda libre.** El dia
+  y la hora en que Seba ve a alguien desde hace anios son horario de trabajo
+  suyo, caiga o no esa persona esa semana, y antes no estaban en ninguna
+  franja: el dia que alguien movia su encuentro o se daba de baja un habitual,
+  el hueco no se le ofrecia a nadie. `bloquesDeSeries` arma un horario de
+  arranque por encuentro de ese dia de la semana -- la hora de esa persona, no
+  una grilla nueva -- y lo fusiona con los que estan pegados, asi que **dos
+  espacios de una hora seguidos y libres son una consulta de dos**. Solo se
+  fusiona lo que se toca: con un hueco de diez minutos en el medio son dos
+  bloques, porque ofrecer dos horas encima de un hueco es ofrecer algo que no
+  entra. **No mira frecuencia ni ancla** a proposito: la quincena dice cuando
+  viene esa persona, no cuando Seba trabaja. Y **una serie pausada cuenta
+  igual**: pausar es que esa persona no viene por un tiempo, que es justo
+  cuando mas sirve ofrecer el espacio. Para cerrar el horario de verdad estan
+  los bloqueos.
+- **La regla protege lo que todavia NO se materializo, y nada mas.** Una
+  ocurrencia que ya tiene turno sale de `tramosDeSeries` (`materializadas`, un
+  Set de `<serieId>|<ocurrencia>` que arma `ocupacionEntre` de paso). Dentro
+  del horizonte el turno ya bloquea desde `ocupados`, asi que aplicar las dos
+  cosas no protegia mas: lo unico que agregaba era que un encuentro cancelado
+  o movido siguiera tapando su horario viejo para siempre -- que es justo el
+  que hay que volver a ofrecer.
+- **Cuanto dura un encuentro habitual lo decide `duracionDeSerie`, en el
+  motor, y nadie mas.** El default es `una-hora` y **no** el tipo por defecto
+  del sitio, que es la consulta de dos. Cuando no era una sola funcion, una
+  serie vieja sin `tipo` se protegia como consulta y se materializaba como
+  sesion: el espacio de 08:00 a 09:00 tapaba hasta las 10:00, y el encuentro
+  de las 09:30 de la persona siguiente se rechazaba con `slot_ocupado` contra
+  un calendario que se veia vacio.
+- **Adoptar una serie no la hace chocar contra si misma.** El ensayo corre
+  antes de cortar la repeticion vieja, asi que `freebusy` todavia ve los
+  encuentros de esa misma persona: `ensayarSerie` descuenta las ocurrencias de
+  `recurrenciaExterna` (`instanciasDeRecurrencia`), comparando por el instante
+  de arranque y no por superposicion, para no tapar un evento de verdad que
+  caiga ahi al lado.
 - **La salida a Clari se ve siempre.** En `/consultas/agenda/`, el bloque
   "¿No encontrás un horario que te sirva?" **ya no se esconde** cuando no hay
   extraordinarios: se esconde solo la lista de adentro. Abajo va el WhatsApp
