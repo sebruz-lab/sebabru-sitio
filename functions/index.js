@@ -8968,27 +8968,56 @@ async function espaciosLibresPublicados(desdeMs, hastaMs) {
 // La anticipacion se respeta (no se pasa `sinAnticipacion`): un hueco que
 // nadie puede tomar porque faltan menos de 24 horas no es un espacio
 // agendable, y anunciarlo seria prometer algo que la pantalla no ofrece.
+// Se preguntan LOS DOS TIPOS, y eso no es un detalle: una franja puede estar
+// marcada "solo consultas de dos horas", y mirando nada mas el tipo corto esa
+// franja no da ningun espacio libre. Hasta el 27/11/2026 se preguntaba solo
+// por `una-hora`, asi que la mayoria de las franjas -- que son de consulta --
+// no se anunciaban en el calendario y parecia que no habia lugar.
+//
+// Cada tipo tiene su duracion y su anticipacion, asi que los horarios se
+// calculan por separado y recien despues se fusionan: donde la franja acepta
+// las dos cosas, los bloques se encimarian y el mismo rato saldria anunciado
+// dos veces.
+const TIPOS_DE_ESPACIO_LIBRE = ['dos-horas', 'una-hora'];
+
 async function calcularEspaciosLibres(config) {
   const desde = diaLocal(Date.now());
   const hasta = sumarDias(desde, config.ventanaDias || 30);
-  const visibles = await slotsVisibles(config, desde, hasta, 'una-hora', MODO_PUBLICADO);
-  const t = tipoDe(config, 'una-hora');
 
-  // Los regulares y los extraordinarios se cuentan aparte: los dos se pueden
-  // agendar, pero no son lo mismo y en el calendario conviene que se vea.
-  return [
-    ...motor.bloquesLibres(visibles.slots, t.duracionMin, TOLERANCIA_BLOQUE_MIN)
-      .map(b => ({ ...b, extra: false })),
-    ...motor.bloquesLibres(visibles.excepcionales, t.duracionMin, TOLERANCIA_BLOQUE_MIN)
-      .map(b => ({ ...b, extra: true })),
-  ].sort((a, b) => a.inicio - b.inicio);
+  // Los extraordinarios se marcan, pero van en la MISMA bolsa: uno puesto
+  // adentro de una franja de las de siempre se encimaria con ella y el mismo
+  // rato saldria dos veces en el calendario, apilado. La marca sobrevive solo
+  // si el bloque es extraordinario de punta a punta.
+  const bloques = [];
+  for (const tipoId of TIPOS_DE_ESPACIO_LIBRE) {
+    const visibles = await slotsVisibles(config, desde, hasta, tipoId, MODO_PUBLICADO);
+    const t = tipoDe(config, tipoId);
+    bloques.push(
+      ...motor.bloquesLibres(visibles.slots, t.duracionMin, TOLERANCIA_BLOQUE_MIN, tipoId)
+        .map(b => ({ ...b, extra: false })),
+      ...motor.bloquesLibres(visibles.excepcionales, t.duracionMin, TOLERANCIA_BLOQUE_MIN, tipoId)
+        .map(b => ({ ...b, extra: true })),
+    );
+  }
+
+  return motor.fusionarBloques(bloques, TOLERANCIA_BLOQUE_MIN)
+    .sort((a, b) => a.inicio - b.inicio);
 }
 
+// Que entra en el rato que quedo libre. Se dice por tipo y no con un numero
+// solo: "2 consultas o 4 sesiones" es lo que hace falta para saber a quien se
+// le puede ofrecer ese hueco, y sumar los dos tipos daria un numero que no
+// quiere decir nada (los mismos minutos contados dos veces).
 function tituloDeEspacioLibre(bloque) {
-  const cuantos = bloque.cuantos === 1 ? '1 espacio' : `${bloque.cuantos} espacios`;
+  const partes = [];
+  const consultas = (bloque.porTipo || {})['dos-horas'] || 0;
+  const sesiones = (bloque.porTipo || {})['una-hora'] || 0;
+  if (consultas) partes.push(consultas === 1 ? '1 consulta' : `${consultas} consultas`);
+  if (sesiones) partes.push(sesiones === 1 ? '1 sesión' : `${sesiones} sesiones`);
+  const que = partes.join(' o ') || 'espacio';
   return bloque.extra
-    ? `Libre (extraordinario) · ${cuantos}`
-    : `Libre para agendar · ${cuantos}`;
+    ? `Libre (extraordinario) · ${que}`
+    : `Libre para agendar · ${que}`;
 }
 
 // Se borra lo publicado y se escribe de nuevo, en vez de comparar uno por uno.

@@ -769,9 +769,25 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
     no aparece en freebusy, y el mismo evento marcado como ocupado si. Si
     alguna vez se saca esa linea, la agenda se cierra sola y en silencio:
     freebusy no distingue el titulo del evento.
+  - **Se preguntan LOS DOS TIPOS, y es lo que mas se olvida.** Una franja
+    puede estar marcada "solo consultas de dos horas", y mirando nada mas el
+    tipo corto esa franja **no da ningun espacio libre**. Hasta la tarde del
+    27/11/2026 se preguntaba solo por `una-hora`, asi que la mayoria de las
+    franjas -- que son de consulta -- no se anunciaban y el calendario
+    mostraba 12 bloques donde habia 13 ratos libres, sin el jueves de 14 a 16.
+    Cada tipo tiene su duracion y su anticipacion, asi que se calculan por
+    separado y recien despues se fusionan con `fusionarBloques`: donde la
+    franja acepta las dos cosas, los bloques se encimarian y el mismo rato
+    saldria anunciado dos veces.
+  - **Los extraordinarios van en la misma bolsa que las franjas**, marcados y
+    no separados. Uno puesto adentro de una franja de las de siempre se
+    encima con ella, y con dos listas aparte eso eran dos eventos apilados
+    sobre el mismo rato. La marca `extra` se arrastra con un Y en la fusion:
+    el bloque queda "(extraordinario)" solo si no tiene nada mas.
+  - **El titulo dice que entra, por tipo**: "1 consulta o 2 sesiones". Sumar
+    los dos tipos en un numero solo seria contar los mismos minutos dos veces.
   - Se parte de los horarios que el sitio **ofrece de verdad**
-    (`slotsVisibles` con el tipo de una hora, que es el mas corto) y no de las
-    franjas menos lo ocupado: un hueco de cuarenta minutos no es un espacio
+    (`slotsVisibles` con cada tipo) y no de las franjas menos lo ocupado: un hueco de cuarenta minutos no es un espacio
     agendable y pintarlo como libre seria prometer algo que la pantalla de
     reservas no da. `bloquesLibres` los fusiona con una tolerancia de 20
     minutos, **porque el aire entre encuentro y encuentro es parte del

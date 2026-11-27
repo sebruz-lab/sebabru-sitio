@@ -775,7 +775,7 @@ function bloquesDeSeries(diaISO, series, config, liberadas = null) {
 // convierte "de 14 a 16:15" en "dos sesiones" -- y de paso avisa cuando dos
 // seguidos alcanzan para una consulta de dos horas.
 // -------------------------------------------------------
-function bloquesLibres(slots, duracionMin, toleranciaMin = 0) {
+function bloquesLibres(slots, duracionMin, toleranciaMin = 0, tipoId = null) {
   const ordenados = [...new Set(slots || [])].sort();
   const bloques = [];
   const duracionMs = duracionMin * 60000;
@@ -789,11 +789,55 @@ function bloquesLibres(slots, duracionMin, toleranciaMin = 0) {
     if (ultimo && inicio - ultimo.fin <= toleranciaMs) {
       ultimo.fin = Math.max(ultimo.fin, fin);
       ultimo.cuantos += 1;
+      if (tipoId) ultimo.porTipo[tipoId] += 1;
       continue;
     }
-    bloques.push({ inicio, fin, cuantos: 1 });
+    bloques.push({ inicio, fin, cuantos: 1, porTipo: tipoId ? { [tipoId]: 1 } : {} });
   }
   return bloques;
+}
+
+// Juntar los bloques de los DOS tipos de encuentro en una sola lista.
+//
+// Hace falta porque una franja puede aceptar sesiones, consultas, o las dos
+// cosas, y cada tipo tiene su duracion y su anticipacion, asi que los horarios
+// se calculan por separado. Una franja de las dos daria dos bloques encimados
+// -- el mismo rato anunciado dos veces en el calendario -- y una franja de
+// "solo consultas" no daria ninguno si solo se mirara el tipo corto.
+//
+// Entran tambien los extraordinarios, en la misma lista y no en una aparte:
+// un extraordinario puesto adentro de una franja de las de siempre daria dos
+// eventos encimados sobre el mismo rato, apilados en la pantalla del
+// calendario, que es justo lo que esto viene a evitar.
+//
+// `porTipo` es lo que sobrevive a la fusion, y es lo que importa: cuantas
+// consultas y cuantas sesiones entran en el rato que quedo libre. `cuantos`
+// deja de querer decir algo cuando se suman dos tipos, asi que no se usa para
+// el titulo.
+function fusionarBloques(bloques, toleranciaMin = 0) {
+  const ordenados = [...(bloques || [])].sort((x, y) => x.inicio - y.inicio);
+  const salida = [];
+  const toleranciaMs = toleranciaMin * 60000;
+
+  for (const b of ordenados) {
+    const ultimo = salida[salida.length - 1];
+    if (ultimo && b.inicio - ultimo.fin <= toleranciaMs) {
+      ultimo.fin = Math.max(ultimo.fin, b.fin);
+      ultimo.cuantos += b.cuantos;
+      for (const [tipo, cuantos] of Object.entries(b.porTipo || {})) {
+        ultimo.porTipo[tipo] = (ultimo.porTipo[tipo] || 0) + cuantos;
+      }
+      // `extra` se arrastra con un Y: un rato donde se encima un horario de
+      // los de siempre con uno extraordinario es horario de los de siempre.
+      // Solo queda extraordinario el bloque que no tiene nada mas.
+      if ('extra' in ultimo || 'extra' in b) {
+        ultimo.extra = Boolean(ultimo.extra) && Boolean(b.extra);
+      }
+      continue;
+    }
+    salida.push({ ...b, porTipo: { ...(b.porTipo || {}) } });
+  }
+  return salida;
 }
 
 // -------------------------------------------------------
@@ -813,7 +857,7 @@ function puedeCambiar(inicioTurnoMs, configTipo, ahora = Date.now()) {
 module.exports = {
   AGENDA_OFFSET, AGENDA_ZONA, MAX_TURNO_MIN,
   TIPOS_POR_DEFECTO, TIPO_POR_DEFECTO, TIPO_DE_SERIE, DIAS_QUINCENA,
-  duracionDeSerie, bloquesDeSeries, bloquesLibres,
+  duracionDeSerie, bloquesDeSeries, bloquesLibres, fusionarBloques,
   tipoDe, cadenciaSugerida,
   msDeHoraLocal, diaLocal, horaLocal, isoLocal, diaDeSemana, sumarDias,
   minutosDeHora, idDeTurno, diasEntre,

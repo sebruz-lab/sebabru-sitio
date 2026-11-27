@@ -1,6 +1,10 @@
 // Pruebas del motor de disponibilidad.
 //
-//   node --test functions/
+//   node --test functions/agenda-motor.test.js
+//
+// Con la carpeta (`node --test functions/`) agrupa todo en un subtest y
+// reporta "pass 1 / fail 0" aunque adentro haya tests rojos: hay que nombrar
+// el archivo.
 //
 // No necesitan emulador, credenciales ni red: agenda-motor.js no habla con
 // nada. Esa es toda la razon por la que el motor vive en su propio archivo.
@@ -1057,4 +1061,106 @@ test('los horarios ofrecidos salen ordenados y sin repetir', () => {
   const serieMartes = { ...SERIE_MOISES, id: 'martes', diaSemana: 2, ancla: '2026-12-08' };
   const r = horarios({ tipo: 'una-hora', series: [serieMartes] });
   assert.deepEqual(r.slots, [...new Set(r.slots)].sort());
+});
+
+// -------------------------------------------------------
+// fusionarBloques: juntar los dos tipos de encuentro
+//
+// Una franja puede aceptar sesiones, consultas o las dos cosas. Los horarios
+// de cada tipo se calculan por separado -- otra duracion, otra anticipacion --
+// asi que donde la franja acepta las dos cosas hay que fusionar, o el mismo
+// rato sale anunciado dos veces en el calendario.
+// -------------------------------------------------------
+
+test('fusionarBloques: dos tipos sobre el mismo rato dan UN bloque', () => {
+  const consultas = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T16:00:00-03:00'], 120, 20, 'dos-horas');
+  const sesiones = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T15:15:00-03:00', '2026-12-03T16:30:00-03:00'],
+    60, 20, 'una-hora');
+
+  const fusion = m.fusionarBloques([...consultas, ...sesiones], 20);
+  assert.equal(fusion.length, 1, 'el mismo rato no puede salir dos veces');
+  assert.equal(fusion[0].porTipo['dos-horas'], 2);
+  assert.equal(fusion[0].porTipo['una-hora'], 3);
+  assert.equal(new Date(fusion[0].inicio).toISOString(), '2026-12-03T17:00:00.000Z'); // 14:00 local
+  assert.equal(new Date(fusion[0].fin).toISOString(), '2026-12-03T21:00:00.000Z');    // 18:00 local
+});
+
+test('fusionarBloques: una franja de solo consultas da su bloque igual', () => {
+  const consultas = m.bloquesLibres(['2026-12-03T18:00:00-03:00'], 120, 20, 'dos-horas');
+  const fusion = m.fusionarBloques(consultas, 20);
+  assert.equal(fusion.length, 1);
+  assert.equal(fusion[0].porTipo['dos-horas'], 1);
+  assert.equal(fusion[0].porTipo['una-hora'], undefined);
+});
+
+test('fusionarBloques: dos ratos separados del mismo dia siguen siendo dos', () => {
+  // Es el caso que se vio en el calendario: 14:00 y 18:00 del mismo jueves.
+  const tarde = m.bloquesLibres(['2026-12-03T14:00:00-03:00'], 120, 20, 'dos-horas');
+  const noche = m.bloquesLibres(['2026-12-03T18:00:00-03:00'], 120, 20, 'dos-horas');
+  const fusion = m.fusionarBloques([...tarde, ...noche], 20);
+  assert.equal(fusion.length, 2, 'con dos horas de hueco en el medio no se fusionan');
+  assert.equal(new Date(fusion[0].inicio).toISOString(), '2026-12-03T17:00:00.000Z');
+  assert.equal(new Date(fusion[1].inicio).toISOString(), '2026-12-03T21:00:00.000Z');
+});
+
+test('fusionarBloques: un bloque adentro de otro no agranda nada', () => {
+  const grande = m.bloquesLibres(['2026-12-03T14:00:00-03:00'], 240, 0, 'dos-horas');
+  const chico = m.bloquesLibres(['2026-12-03T15:00:00-03:00'], 60, 0, 'una-hora');
+  const fusion = m.fusionarBloques([...grande, ...chico], 20);
+  assert.equal(fusion.length, 1);
+  assert.equal(new Date(fusion[0].fin).toISOString(), '2026-12-03T21:00:00.000Z'); // sigue 18:00
+});
+
+test('fusionarBloques: sin bloques no tira', () => {
+  assert.deepEqual(m.fusionarBloques([], 20), []);
+  assert.deepEqual(m.fusionarBloques(null, 20), []);
+});
+
+test('fusionarBloques: no toca los bloques que recibe', () => {
+  const uno = m.bloquesLibres(['2026-12-03T14:00:00-03:00'], 120, 0, 'dos-horas');
+  const dos = m.bloquesLibres(['2026-12-03T15:00:00-03:00'], 120, 0, 'una-hora');
+  const antes = JSON.stringify([uno, dos]);
+  m.fusionarBloques([...uno, ...dos], 20);
+  assert.equal(JSON.stringify([uno, dos]), antes, 'fusionar no puede mutar la entrada');
+});
+
+test('bloquesLibres: etiqueta el tipo cuando se lo pide', () => {
+  const b = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T15:00:00-03:00'], 60, 20, 'una-hora');
+  assert.equal(b.length, 1);
+  assert.equal(b[0].porTipo['una-hora'], 2);
+  // Sin tipo sigue andando como antes: `cuantos` y nada mas.
+  const sinTipo = m.bloquesLibres(['2026-12-03T14:00:00-03:00'], 60, 20);
+  assert.equal(sinTipo[0].cuantos, 1);
+  assert.deepEqual(sinTipo[0].porTipo, {});
+});
+
+test('fusionarBloques: un extraordinario adentro de una franja no es extraordinario', () => {
+  // El caso visto en el calendario: el jueves 18:00 sale de una franja de
+  // todas las semanas Y de un extraordinario puesto encima. Es UN rato, y es
+  // horario de los de siempre.
+  const franja = m.bloquesLibres(['2026-12-03T18:00:00-03:00'], 120, 20, 'dos-horas')
+    .map(b => ({ ...b, extra: false }));
+  const extraordinario = m.bloquesLibres(['2026-12-03T18:00:00-03:00'], 60, 20, 'una-hora')
+    .map(b => ({ ...b, extra: true }));
+
+  const fusion = m.fusionarBloques([...franja, ...extraordinario], 20);
+  assert.equal(fusion.length, 1, 'el mismo rato no puede salir dos veces');
+  assert.equal(fusion[0].extra, false, 'si hay franja de las de siempre, no es extraordinario');
+  assert.equal(fusion[0].porTipo['dos-horas'], 1);
+  assert.equal(fusion[0].porTipo['una-hora'], 1);
+});
+
+test('fusionarBloques: un extraordinario solo sigue siendo extraordinario', () => {
+  const extraordinario = m.bloquesLibres(['2026-12-03T18:00:00-03:00'], 60, 20, 'una-hora')
+    .map(b => ({ ...b, extra: true }));
+  const otro = m.bloquesLibres(['2026-12-03T19:15:00-03:00'], 60, 20, 'una-hora')
+    .map(b => ({ ...b, extra: true }));
+
+  const fusion = m.fusionarBloques([...extraordinario, ...otro], 20);
+  assert.equal(fusion.length, 1, 'dos extraordinarios pegados son un bloque');
+  assert.equal(fusion[0].extra, true);
+  assert.equal(fusion[0].porTipo['una-hora'], 2);
 });
