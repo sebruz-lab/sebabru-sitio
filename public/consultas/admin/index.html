@@ -299,10 +299,7 @@
     .pa-serie-cabeza strong { color: #fff; font-weight: 400; }
     .pa-serie-cuando { color: var(--pa-accent); font-size: 0.85rem; }
     .pa-serie-datos { color: #a9a7a1; font-size: 0.8rem; line-height: 1.6; margin-bottom: 12px; }
-    .pa-espacios-libres {
-        margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);
-        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    }
+    .pa-espacios-libres { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .pa-libres-estado { color: #a9a7a1; font-size: 0.8rem; }
     .pa-serie-encuentros {
         display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px;
@@ -577,6 +574,19 @@
                             </div>
                             <label class="pa-pausa"><input type="checkbox" id="pa-ex-unico" checked> Si alguien toma uno, cerrar los otros espacios extraordinarios de ese mismo día</label>
                             <div id="pa-lista-excepcionales"></div>
+
+                            <h3 class="pa-seccion">Los espacios libres en tu calendario</h3>
+                            <p class="pa-seccion-nota">
+                                Una vez por día, a las 6:40, el sitio escribe en tu calendario un evento
+                                por cada tramo que queda libre para agendar. Van marcados como
+                                <strong>disponible</strong>, así que no te ocupan la agenda.
+                                Después de cambiar las franjas de acá arriba conviene rearmarlos a mano:
+                                lo publicado dejó de ser cierto.
+                            </p>
+                            <div class="pa-espacios-libres">
+                                <button type="button" class="pa-boton" id="pa-btn-libres">Rearmar los espacios libres del calendario</button>
+                                <span id="pa-libres-estado" class="pa-libres-estado"></span>
+                            </div>
                         </div>
 
                         <div id="pa-bloqueos" class="pa-panel">
@@ -607,11 +617,6 @@
                                 <button type="button" class="pa-mini" id="pa-btn-bl-cancelar" hidden>Dejar de editar</button>
                             </div>
                             <div id="pa-lista-bloqueos"></div>
-
-                            <div class="pa-espacios-libres">
-                                <button type="button" class="pa-mini" id="pa-btn-libres">Rearmar los espacios libres del calendario</button>
-                                <span id="pa-libres-estado" class="pa-libres-estado"></span>
-                            </div>
 
                         </div>
 

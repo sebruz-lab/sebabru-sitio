@@ -756,7 +756,9 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
 - **Los espacios libres se publican en el calendario de Seba** (desde el
   27/11/2026, pedido suyo): un evento por tramo contiguo agendable, una vez
   por dia a las 6:40, mas el boton "Rearmar los espacios libres del
-  calendario" en Sesiones, que hace falta justo despues de cambiar las franjas.
+  calendario" al final de Disponibilidad, que hace falta justo despues de
+  cambiar las franjas (esta ahi, y no en Sesiones, porque es donde estan las
+  franjas: cambiarlas es lo que vuelve falso lo publicado).
   - **LA TRAMPA, y es la que decide todo el diseno: la ocupacion se lee de ESE
     MISMO calendario con `freebusy`.** Un evento normal que diga "libre" seria
     ocupacion para el motor, asi que taparia justo el hueco que anuncia y el
