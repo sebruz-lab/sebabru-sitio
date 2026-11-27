@@ -703,6 +703,15 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   abajo, detras de un "no encontras un horario que te sirva" -- el camino
   equivocado para quien viene siempre y lo que busca es correr SU encuentro
   una semana.
+- **El enlace puede decir que clase de encuentro se viene a agendar.**
+  `/consultas/agenda/?tipo=una-hora` ofrece los horarios de las sesiones y
+  reserva una sesion; sin el parametro sigue siendo la consulta de dos horas,
+  que es lo que ofrece `/consultas/`. El backend ya lo soportaba --
+  `disponibilidad` y `reservarParaPedido` leen `pedido.tipo` -- y lo unico que
+  faltaba era que `iniciarAgenda` lo guardara. **Ese enlace no es secreto ni
+  de un solo uso y no cobra nada**: es para mandarselo a una persona, no para
+  publicarlo. Y reserva UN encuentro: para que quede como habitual hay que
+  cargarla como serie en el panel.
 - **El telefono de "ya falta menos de 12 horas" es el de Seba**
   (+54 9 3544 584122), no el de Clari ni el mail: mover un encuentro a ultimo
   momento lo decide el. Las 12 horas salen de `anticipacionCambioHoras` del
@@ -744,6 +753,38 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   quedaba abierto. `bloqueoSaneado` es la validacion, una sola para el alta y
   la edicion, y **emite todas las claves en las dos ramas** por el `set merge`,
   igual que `excepcionalSaneado`.
+- **Los espacios libres se publican en el calendario de Seba** (desde el
+  27/11/2026, pedido suyo): un evento por tramo contiguo agendable, una vez
+  por dia a las 6:40, mas el boton "Rearmar los espacios libres del
+  calendario" en Sesiones, que hace falta justo despues de cambiar las franjas.
+  - **LA TRAMPA, y es la que decide todo el diseno: la ocupacion se lee de ESE
+    MISMO calendario con `freebusy`.** Un evento normal que diga "libre" seria
+    ocupacion para el motor, asi que taparia justo el hueco que anuncia y el
+    sitio dejaria de ofrecer nada. Por eso van con
+    `transparency: 'transparent'`, que en Calendar es "disponible" y es lo que
+    hace que freebusy no los cuente. **Comprobado de las dos puntas** el
+    27/11/2026 (`_probar-transparente.js` en las herramientas): transparente
+    no aparece en freebusy, y el mismo evento marcado como ocupado si. Si
+    alguna vez se saca esa linea, la agenda se cierra sola y en silencio:
+    freebusy no distingue el titulo del evento.
+  - Se parte de los horarios que el sitio **ofrece de verdad**
+    (`slotsVisibles` con el tipo de una hora, que es el mas corto) y no de las
+    franjas menos lo ocupado: un hueco de cuarenta minutos no es un espacio
+    agendable y pintarlo como libre seria prometer algo que la pantalla de
+    reservas no da. `bloquesLibres` los fusiona con una tolerancia de 20
+    minutos, **porque el aire entre encuentro y encuentro es parte del
+    bloque**: con cadencia 75 y sesiones de 60, los horarios de 14:00 y 15:15
+    dejan quince minutos que no son un hueco, son el respiro. Sin esa
+    tolerancia cada sesion seria su propio evento.
+  - **Se respeta la anticipacion** (no se pasa `sinAnticipacion`): un hueco que
+    nadie puede tomar porque faltan menos de 24 horas no se anuncia.
+  - Se reconocen por `extendedProperties.private.origen = 'sb-espacio-libre'`
+    y **no por el titulo**: un evento que Seba escriba a mano y se llame
+    parecido no se toca. Cada barrido borra los suyos y los vuelve a escribir,
+    que es mas simple que comparar y no puede dejar anunciado un hueco que ya
+    se lleno.
+  - Con la agenda en pausa se borran y no se publica nada, y hay un tope de
+    120 eventos por si el calculo se va de las manos.
 - **La salida a Clari se ve siempre.** En `/consultas/agenda/`, el bloque
   "¿No encontrás un horario que te sirva?" **ya no se esconde** cuando no hay
   extraordinarios: se esconde solo la lista de adentro. Abajo va el WhatsApp

@@ -752,6 +752,51 @@ function bloquesDeSeries(diaISO, series, config, liberadas = null) {
 }
 
 // -------------------------------------------------------
+// Los huecos agendables, en bloques: lo que se publica en Google Calendar
+//
+// Entra la lista de horarios que el sitio ofrece de verdad (los `slots` que
+// devuelve horariosDe) y salen los tramos contiguos, para ver de un vistazo
+// cuanto aire queda en el dia en lugar de una fila de eventos cortos.
+//
+// Se parte de los horarios ofrecidos y no de las franjas menos lo ocupado, y
+// es a proposito: lo que se publica tiene que ser lo que alguien puede tomar.
+// Un hueco de cuarenta minutos entre dos encuentros no es un espacio
+// agendable, y pintarlo como libre seria prometer algo que la pantalla de
+// reservas no ofrece.
+//
+// El aire entre encuentro y encuentro cuenta como parte del bloque: con una
+// cadencia de 75 para sesiones de 60, los horarios de 14:00 y 15:15 dejan
+// quince minutos en el medio que no son un hueco sino el respiro. Por eso dos
+// horarios se fusionan cuando el siguiente arranca a menos de `toleranciaMin`
+// del fin del anterior. Sin esa tolerancia cada sesion seria su propio
+// evento y el calendario quedaria igual de picado que antes.
+//
+// `cuantos` dice cuantos espacios entran en el bloque, que es el dato que
+// convierte "de 14 a 16:15" en "dos sesiones" -- y de paso avisa cuando dos
+// seguidos alcanzan para una consulta de dos horas.
+// -------------------------------------------------------
+function bloquesLibres(slots, duracionMin, toleranciaMin = 0) {
+  const ordenados = [...new Set(slots || [])].sort();
+  const bloques = [];
+  const duracionMs = duracionMin * 60000;
+  const toleranciaMs = toleranciaMin * 60000;
+
+  for (const iso of ordenados) {
+    const inicio = Date.parse(iso);
+    if (!Number.isFinite(inicio)) continue;
+    const fin = inicio + duracionMs;
+    const ultimo = bloques[bloques.length - 1];
+    if (ultimo && inicio - ultimo.fin <= toleranciaMs) {
+      ultimo.fin = Math.max(ultimo.fin, fin);
+      ultimo.cuantos += 1;
+      continue;
+    }
+    bloques.push({ inicio, fin, cuantos: 1 });
+  }
+  return bloques;
+}
+
+// -------------------------------------------------------
 // La regla de anticipacion para cambiar un turno (apartado 9)
 //
 // Se mide contra el inicio del turno ORIGINAL, no contra el nuevo: lo que la
@@ -768,7 +813,7 @@ function puedeCambiar(inicioTurnoMs, configTipo, ahora = Date.now()) {
 module.exports = {
   AGENDA_OFFSET, AGENDA_ZONA, MAX_TURNO_MIN,
   TIPOS_POR_DEFECTO, TIPO_POR_DEFECTO, TIPO_DE_SERIE, DIAS_QUINCENA,
-  duracionDeSerie, bloquesDeSeries,
+  duracionDeSerie, bloquesDeSeries, bloquesLibres,
   tipoDe, cadenciaSugerida,
   msDeHoraLocal, diaLocal, horaLocal, isoLocal, diaDeSemana, sumarDias,
   minutosDeHora, idDeTurno, diasEntre,

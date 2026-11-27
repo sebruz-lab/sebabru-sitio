@@ -1738,7 +1738,29 @@ onAuthStateChanged(auth, async usuario => {
 $('pa-btn-entrar').addEventListener('click', entrar);
 $('pa-btn-salir').addEventListener('click', () => signOut(auth));
 $('pa-btn-guardar').addEventListener('click', guardarConfig);
+// Los espacios libres del calendario se rearman una vez por dia, a las 6:40.
+// El boton es para no esperar: hace falta justo despues de cambiar las
+// franjas, que es cuando lo publicado deja de ser cierto.
+async function rearmarLibres() {
+  const boton = $('pa-btn-libres');
+  const estado = $('pa-libres-estado');
+  boton.disabled = true;
+  estado.textContent = 'Rearmando...';
+  try {
+    const r = await llamar({ accion: 'espaciosLibres' });
+    estado.textContent = r.pausado
+      ? 'La agenda esta en pausa: se borraron los espacios y no se publico ninguno.'
+      : `Listo: ${r.creados} bloque${r.creados === 1 ? '' : 's'} en el calendario.`;
+  } catch (e) {
+    estado.textContent = '';
+    avisar(`No se pudo rearmar: ${e.message}`, 'error');
+  } finally {
+    boton.disabled = false;
+  }
+}
+
 $('pa-btn-bloquear').addEventListener('click', bloquear);
+$('pa-btn-libres').addEventListener('click', rearmarLibres);
 $('pa-btn-bl-cancelar').addEventListener('click', salirDeBloqueo);
 $('pa-btn-previa').addEventListener('click', cargarPrevia);
 

@@ -8920,6 +8920,164 @@ async function avisarConflictosDeSeries(pendientes) {
 }
 
 // -------------------------------------------------------
+// Los espacios libres, publicados en el calendario de Seba
+//
+// Para ver en Google Calendar, entre sus cosas, donde queda lugar para
+// agendar a alguien. Un evento por tramo contiguo, no uno por horario.
+//
+// LA TRAMPA, y es la que decide todo el diseno: la ocupacion se lee de ESTE
+// MISMO calendario con `freebusy`. Un evento normal que diga "libre" seria
+// ocupacion para el motor, asi que taparia justo el hueco que anuncia y el
+// sitio dejaria de ofrecer nada. Por eso van con
+// `transparency: 'transparent'`, que en Calendar es "disponible" y es lo que
+// hace que freebusy no los cuente.
+//
+// Si alguna vez se toca esta funcion: sin esa linea, la agenda se cierra
+// sola y en silencio. El `freebusy` no distingue el titulo del evento.
+// -------------------------------------------------------
+const MARCA_LIBRE = 'sb-espacio-libre';
+const COLOR_LIBRE = '2'; // verde salvia, distinto de los dos tipos de encuentro
+// El aire entre encuentro y encuentro es parte del bloque: con cadencia 75 y
+// sesiones de 60 son quince minutos que no son un hueco, son el respiro.
+const TOLERANCIA_BLOQUE_MIN = 20;
+// Tope de seguridad: si algo sale mal en el calculo, que no se le llenen
+// trescientos eventos al calendario.
+const MAX_EVENTOS_LIBRES = 120;
+
+// Los eventos de espacio libre que ya estan publicados en un rango. Se
+// reconocen por una propiedad privada y no por el titulo: un evento que Seba
+// escriba a mano y se llame parecido no se toca.
+async function espaciosLibresPublicados(desdeMs, hastaMs) {
+  const r = await getCalendarClient().events.list({
+    calendarId: calendarioDeTurnos(),
+    timeMin: new Date(desdeMs).toISOString(),
+    timeMax: new Date(hastaMs).toISOString(),
+    privateExtendedProperty: `origen=${MARCA_LIBRE}`,
+    maxResults: 2500,
+    singleEvents: true,
+  });
+  return r.data.items || [];
+}
+
+// Que se publica: los horarios que el sitio ofrece DE VERDAD, en bloques.
+//
+// Se usa el tipo de una hora porque es el mas corto, asi que sus horarios son
+// los que mejor dibujan el aire disponible; `cuantos` dice cuantos entran, y
+// de ahi se deduce que dos seguidos alcanzan para una consulta de dos.
+//
+// La anticipacion se respeta (no se pasa `sinAnticipacion`): un hueco que
+// nadie puede tomar porque faltan menos de 24 horas no es un espacio
+// agendable, y anunciarlo seria prometer algo que la pantalla no ofrece.
+async function calcularEspaciosLibres(config) {
+  const desde = diaLocal(Date.now());
+  const hasta = sumarDias(desde, config.ventanaDias || 30);
+  const visibles = await slotsVisibles(config, desde, hasta, 'una-hora', MODO_PUBLICADO);
+  const t = tipoDe(config, 'una-hora');
+
+  // Los regulares y los extraordinarios se cuentan aparte: los dos se pueden
+  // agendar, pero no son lo mismo y en el calendario conviene que se vea.
+  return [
+    ...motor.bloquesLibres(visibles.slots, t.duracionMin, TOLERANCIA_BLOQUE_MIN)
+      .map(b => ({ ...b, extra: false })),
+    ...motor.bloquesLibres(visibles.excepcionales, t.duracionMin, TOLERANCIA_BLOQUE_MIN)
+      .map(b => ({ ...b, extra: true })),
+  ].sort((a, b) => a.inicio - b.inicio);
+}
+
+function tituloDeEspacioLibre(bloque) {
+  const cuantos = bloque.cuantos === 1 ? '1 espacio' : `${bloque.cuantos} espacios`;
+  return bloque.extra
+    ? `Libre (extraordinario) · ${cuantos}`
+    : `Libre para agendar · ${cuantos}`;
+}
+
+// Se borra lo publicado y se escribe de nuevo, en vez de comparar uno por uno.
+// A este volumen -- treinta dias, un par de bloques por dia -- reconstruir es
+// mas simple y no puede dejar un evento viejo dando vueltas, que es el error
+// que importa: un hueco que ya se lleno y sigue anunciado.
+async function publicarEspaciosLibres() {
+  const config = await leerConfigAgenda(MODO_PUBLICADO);
+  const cal = getCalendarClient();
+  const desdeMs = msDeHoraLocal(diaLocal(Date.now()), '00:00');
+  const hastaMs = msDeHoraLocal(sumarDias(diaLocal(Date.now()), (config.ventanaDias || 30) + 1), '00:00');
+
+  const viejos = await espaciosLibresPublicados(desdeMs, hastaMs);
+  for (const e of viejos) {
+    try {
+      await cal.events.delete({ calendarId: calendarioDeTurnos(), eventId: e.id, sendUpdates: 'none' });
+    } catch (err) {
+      // Uno que ya no esta no es un problema: se sigue con los demas.
+      if (err.code !== 404 && err.code !== 410) {
+        functions.logger.warn('No se pudo borrar un espacio libre viejo', { id: e.id, error: err.message });
+      }
+    }
+  }
+
+  // Con la agenda en pausa no se anuncia nada: no se puede agendar.
+  if (config.pausado) {
+    functions.logger.info('Espacios libres: la agenda esta pausada, se borraron y no se publica', {
+      borrados: viejos.length,
+    });
+    return { borrados: viejos.length, creados: 0, pausado: true };
+  }
+
+  const bloques = (await calcularEspaciosLibres(config)).slice(0, MAX_EVENTOS_LIBRES);
+  let creados = 0;
+  for (const b of bloques) {
+    try {
+      await cal.events.insert({
+        calendarId: calendarioDeTurnos(),
+        requestBody: {
+          summary: tituloDeEspacioLibre(b),
+          description: 'Lo pone el sitio una vez por dia. Es lo que se ofrece en '
+            + 'https://sebabru.com/consultas/agenda/ ; si alguien reserva, este bloque se '
+            + 'actualiza en el proximo barrido.',
+          start: { dateTime: isoLocal(b.inicio), timeZone: AGENDA_ZONA },
+          end: { dateTime: isoLocal(b.fin), timeZone: AGENDA_ZONA },
+          colorId: COLOR_LIBRE,
+          // "Disponible", no "Ocupado". Sin esto el motor lee estos eventos
+          // como ocupacion y cierra la agenda entera.
+          transparency: 'transparent',
+          // Para reconocerlos despues sin mirar el titulo.
+          extendedProperties: { private: { origen: MARCA_LIBRE } },
+          reminders: { useDefault: false, overrides: [] },
+        },
+        sendUpdates: 'none',
+      });
+      creados++;
+    } catch (err) {
+      functions.logger.warn('No se pudo publicar un espacio libre', {
+        inicio: isoLocal(b.inicio), error: err.message,
+      });
+    }
+  }
+
+  functions.logger.info('Espacios libres publicados', { borrados: viejos.length, creados });
+  return { borrados: viejos.length, creados };
+}
+
+// -------------------------------------------------------
+// espaciosLibres: el trabajo diario que los dibuja en el calendario.
+//
+// Corre despues de extenderSeries (6:20) a proposito: los encuentros
+// quincenales que entran hoy en la ventana ocupan su horario, y publicar
+// antes anunciaria como libre algo que el barrido esta por tomar.
+// -------------------------------------------------------
+exports.espaciosLibres = onSchedule({
+  schedule: '40 6 * * *',
+  timeZone: 'America/Argentina/Cordoba',
+  memory: '512MiB',
+  timeoutSeconds: 540,
+}, async () => {
+  ensureInit();
+  try {
+    await publicarEspaciosLibres();
+  } catch (e) {
+    functions.logger.error('No se pudieron publicar los espacios libres', e.message);
+  }
+});
+
+// -------------------------------------------------------
 // extenderSeries: el trabajo diario que estira las quincenales.
 //
 // Una vez por dia alcanza: lo que cambia de un dia al otro es que entra una
@@ -10398,6 +10556,15 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
           creados: r.creados.length, conflictos: r.conflictos.length,
         });
         return res.status(200).json({ ok: true, corte, ...r });
+      }
+
+      // Rearmar los espacios libres del calendario sin esperar al barrido de
+      // las 6:40. Hace falta justamente despues de cambiar las franjas, que
+      // es cuando lo publicado deja de ser cierto.
+      case 'espaciosLibres': {
+        const r = await publicarEspaciosLibres();
+        functions.logger.info('Espacios libres rearmados a mano', { por: sesion.email, ...r });
+        return res.status(200).json({ ok: true, ...r });
       }
 
       case 'extenderSerie': {

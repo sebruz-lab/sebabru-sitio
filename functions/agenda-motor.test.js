@@ -982,7 +982,77 @@ test('una serie sin tipo dura una hora, no dos', () => {
   assert.equal(tramos[0].fin - tramos[0].inicio, 60 * 60000);
 });
 
-test('los horarios salen ordenados y sin repetir', () => {
+// -------------------------------------------------------
+// Los huecos en bloques, para publicarlos en el calendario
+// -------------------------------------------------------
+
+test('horarios pegados dan un solo bloque', () => {
+  const b = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T15:00:00-03:00'], 60, 0,
+  );
+  assert.equal(b.length, 1);
+  assert.equal(b[0].cuantos, 2);
+  assert.equal(b[0].fin - b[0].inicio, 120 * 60000);
+});
+
+test('el aire entre encuentros no parte el bloque', () => {
+  // Cadencia 75 con sesiones de 60: quince minutos en el medio que son el
+  // respiro, no un hueco.
+  const b = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T15:15:00-03:00'], 60, 15,
+  );
+  assert.equal(b.length, 1);
+  assert.equal(b[0].cuantos, 2);
+});
+
+test('sin tolerancia, ese mismo aire son dos bloques', () => {
+  const b = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T15:15:00-03:00'], 60, 0,
+  );
+  assert.equal(b.length, 2);
+});
+
+test('un hueco de verdad parte el bloque', () => {
+  // Entre las 15:00 y las 17:00 hay un encuentro tomado: son dos bloques y no
+  // uno que prometa cuatro horas seguidas.
+  const b = m.bloquesLibres(
+    ['2026-12-03T14:00:00-03:00', '2026-12-03T17:00:00-03:00'], 60, 15,
+  );
+  assert.equal(b.length, 2);
+  assert.equal(b[0].cuantos, 1);
+  assert.equal(b[1].cuantos, 1);
+});
+
+test('los bloques salen en hora aunque los horarios lleguen desordenados', () => {
+  const b = m.bloquesLibres(
+    ['2026-12-03T17:00:00-03:00', '2026-12-03T14:00:00-03:00', '2026-12-03T14:00:00-03:00'], 60, 15,
+  );
+  assert.equal(b.length, 2);
+  assert.ok(b[0].inicio < b[1].inicio);
+  // El repetido no cuenta dos veces.
+  assert.equal(b[0].cuantos, 1);
+});
+
+test('sin horarios no hay bloques', () => {
+  assert.deepEqual(m.bloquesLibres([], 60, 15), []);
+  assert.deepEqual(m.bloquesLibres(null, 60, 15), []);
+});
+
+test('los horarios ofrecidos de un dia se vuelven un bloque', () => {
+  // El martes de CONFIG: 10 a 18, sesiones de 60 con 15 de aire -> 10:00,
+  // 11:15, 12:30, 13:45, 15:00 y 16:15 (17:30 no entra, terminaria 18:30).
+  // Con el aire contado como parte del bloque es UNO solo, de 10:00 a 17:15,
+  // con seis espacios: es lo que hay que ver en el calendario en lugar de
+  // seis eventos cortos.
+  const r = horarios({ tipo: 'una-hora' });
+  const b = m.bloquesLibres(r.slots, 60, 15);
+  assert.equal(b.length, 1);
+  assert.equal(b[0].cuantos, 6);
+  assert.equal(m.isoLocal(b[0].inicio).slice(11, 16), '10:00');
+  assert.equal(m.isoLocal(b[0].fin).slice(11, 16), '17:15');
+});
+
+test('los horarios ofrecidos salen ordenados y sin repetir', () => {
   // El habitual de las 10:00 del martes cae adentro de la franja de 10 a 18.
   const serieMartes = { ...SERIE_MOISES, id: 'martes', diaSemana: 2, ancla: '2026-12-08' };
   const r = horarios({ tipo: 'una-hora', series: [serieMartes] });
