@@ -7741,15 +7741,27 @@ exports.iniciarAgenda = functions.https.onRequest(async (req, res) => {
   if (!['Presencial', 'Online'].includes(modalidad)) return res.status(400).json({ error: 'modalidad_invalida' });
 
   try {
+    // Que clase de encuentro viene a agendar, y de ahi en adelante lo decide
+    // el pedido: `disponibilidad` y `reservarParaPedido` leen `pedido.tipo`,
+    // asi que con esto puesto la persona ve los horarios de las sesiones y
+    // reserva una sesion.
+    //
+    // Sin tipo sigue siendo la consulta de dos horas, que es lo que
+    // significaba un pedido sin tipo y lo que ofrece /consultas/.
+    const tipo = motor.TIPOS_POR_DEFECTO[sanitizeTexto(req.body?.tipo, 20)]
+      ? sanitizeTexto(req.body?.tipo, 20)
+      : null;
+
     const ref = await _db.collection('agenda_pedidos').add({
       origen: 'directo',
       nombre, email, telefono, modalidad,
+      tipo,
       formId: null,
       filaPlanilla: null,
       turnoId: null,
       creado: new Date().toISOString(),
     });
-    functions.logger.info('Pedido de agenda directo', { pedidoId: ref.id });
+    functions.logger.info('Pedido de agenda directo', { pedidoId: ref.id, tipo });
     return res.status(200).json({ ok: true, p: ref.id, t: tokenDeAgenda(ref.id), nombre });
   } catch (error) {
     functions.logger.error('Error en iniciarAgenda:', error.message);

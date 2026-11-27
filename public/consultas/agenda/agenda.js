@@ -769,7 +769,7 @@ async function identificarse(evento) {
     const resp = await fetch(`${API}/iniciarAgenda`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, email, telefono, modalidad, captchaToken }),
+      body: JSON.stringify({ nombre, email, telefono, modalidad, captchaToken, tipo: estado.tipo }),
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) {
@@ -829,6 +829,12 @@ function iniciar() {
   const q = new URLSearchParams(location.search);
   estado.p = q.get('p');
   estado.t = q.get('t');
+  // Que clase de encuentro viene a agendar, si el enlace lo dice. Es lo que
+  // distingue el enlace que se le manda a alguien que arranca las sesiones
+  // (?tipo=una-hora) del enlace de /consultas/, que es la consulta de dos
+  // horas. El servidor lo valida y lo guarda en el pedido; de ahi en adelante
+  // manda el pedido, asi que recargar la pagina no lo pierde.
+  estado.tipo = q.get('tipo');
 
   // Se sabe por el id del pedido, antes de que conteste el servidor: el
   // turno_inicio se mide al entrar, no despues.
