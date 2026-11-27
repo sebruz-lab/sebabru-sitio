@@ -597,21 +597,56 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   crear una serie **semanal** se cortaba a la mitad: materializa ocho o nueve
   encuentros en fila, cada uno con un `freebusy` y un `events.insert`, y en
   fila es a proposito (todos juntos contra la API de Google es un 429).
-- **El espacio de un habitual tambien se ofrece cuando queda libre.** El dia
-  y la hora en que Seba ve a alguien desde hace anios son horario de trabajo
-  suyo, caiga o no esa persona esa semana, y antes no estaban en ninguna
-  franja: el dia que alguien movia su encuentro o se daba de baja un habitual,
-  el hueco no se le ofrecia a nadie. `bloquesDeSeries` arma un horario de
-  arranque por encuentro de ese dia de la semana -- la hora de esa persona, no
-  una grilla nueva -- y lo fusiona con los que estan pegados, asi que **dos
-  espacios de una hora seguidos y libres son una consulta de dos**. Solo se
-  fusiona lo que se toca: con un hueco de diez minutos en el medio son dos
-  bloques, porque ofrecer dos horas encima de un hueco es ofrecer algo que no
-  entra. **No mira frecuencia ni ancla** a proposito: la quincena dice cuando
-  viene esa persona, no cuando Seba trabaja. Y **una serie pausada cuenta
-  igual**: pausar es que esa persona no viene por un tiempo, que es justo
-  cuando mas sirve ofrecer el espacio. Para cerrar el horario de verdad estan
-  los bloqueos.
+- **El espacio de un habitual es suyo, y se ofrece SOLO si se libero**
+  (decision de Seba del 27/11/2026). El horario de quien viene desde hace
+  anios queda reservado para esa persona y no se le ofrece a nadie. Se abre en
+  tres casos y nada mas, y los tres los resuelve `bloquesDeSeries`: la serie
+  esta **pausada**, su encuentro de ese dia se **cancelo**, o se **movio** a
+  otro horario. Los dos ultimos llegan en `liberadas`, un Set de
+  `<serieId>|<ocurrencia>` que `ocupacionEntre` arma de paso con los turnos que
+  existen y ya no estan `reservado` -- la reprogramacion incluida, que es la
+  que mas se olvida porque no se llama cancelar.
+  - **Y SI mira frecuencia y ancla**, al contrario de lo que hacia hasta el
+    27/11/2026: solo los dias que son ocurrencia de esa serie. La semana que no
+    le tocaba no era de nadie, asi que no hay nada que liberar.
+  - Entre el 27/11 a la manana y esa misma tarde se ofrecio **siempre**, con el
+    argumento de que el dia y la hora son horario de trabajo de Seba caiga o no
+    esa persona. Eso publicaba el espacio de cada habitual todas las semanas
+    (el martes 11:45 de Gabi se le ofrecia a cualquiera) y hacia aparecer
+    horarios que no salian de ninguna franja ni de ningun extraordinario -- el
+    viernes 08:00 --, **asi que no habia nada que editar en el panel**. Para
+    abrir un hueco suelto estan los extraordinarios, que se ven y se editan;
+    para abrir el horario de verdad, las franjas.
+  - La fusion de bloques se mantiene: **dos espacios de una hora seguidos y
+    los dos liberados son una consulta de dos**. Solo se fusiona lo que se
+    toca, y **no se fusiona con el espacio de al lado si ese sigue siendo de
+    alguien**: lo que se ofrece es el hueco que quedo, no el de la persona que
+    viene igual.
+  - **`leerSeriesVigentes` trae activas Y pausadas**, y por eso no filtra por
+    estado. Una pausada tiene que llegar al motor porque su espacio es
+    justamente el que se vuelve a ofrecer. Es la **misma lista** en los cuatro
+    lugares que la piden -- lo que se ofrece, lo que se revalida al reservar,
+    el ensayo de una adopcion y el calendario del panel -- a proposito: con
+    listas distintas, confirmar un horario contestaria `slot_ocupado` contra un
+    calendario que se veia libre. El barrido que materializa tiene su propia
+    consulta por `'activa'`: una serie pausada no debe crear encuentros.
+  - **`tramosDeSeries` tambien saltea lo liberado**, no solo lo materializado.
+    En la practica toda ocurrencia liberada esta materializada (las dos listas
+    salen de los mismos documentos), asi que alcanzaria con una; pero entonces
+    el motor dependeria de una invariante que vive en otro archivo, y el dia
+    que dejara de valer protegeria justo el hueco que se acaba de abrir.
+- **Cada habitual tiene UN Meet, el mismo en todos sus encuentros** (desde el
+  27/11/2026). La reunion se guarda en `agenda_series/{id}.conferencia` cuando
+  se estrena y se copia a cada evento nuevo. Lo que **no** sirve para eso es el
+  `requestId`: solo hace idempotente el reintento del mismo evento, asi que con
+  uno por turno cada encuentro estrenaba link **y mover uno de horario le
+  estrenaba otro** -- `reservarHorario` borra el evento y crea uno nuevo --, de
+  modo que el enlace que la persona tenia guardado dejaba de servir. Una
+  consulta suelta sigue estrenando reunion, que es lo que corresponde: no hay
+  un vinculo que la reuse. `extenderSerie` materializa en fila, asi que el
+  primero graba y los que siguen la encuentran: no hay carrera. Si copiarla
+  falla (Seba borro el evento que la tenia), se pide una nueva y se regraba: un
+  Meet viejo no puede impedir que el encuentro exista.
 - **La regla protege lo que todavia NO se materializo, y nada mas.** Una
   ocurrencia que ya tiene turno sale de `tramosDeSeries` (`materializadas`, un
   Set de `<serieId>|<ocurrencia>` que arma `ocupacionEntre` de paso). Dentro
@@ -670,6 +705,23 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   auditarlo esta `_auditar-series.js` en `C:\dev\herramientas-sebabru`, que
   compara serie por serie lo que dice el sistema con lo que hay en el
   calendario.
+- **Editar una serie ya no le borra el tipo de encuentro.** El formulario del
+  panel no manda `tipo` ni `notificaciones`, asi que `serieSaneada` los reponia
+  en sus defaults: una serie de 75 o 120 minutos **se rebajaba a 60** al
+  pausarla o al guardarla, y eso es lo que decide cuanto espacio se protege;
+  las notificaciones que la persona habia apagado desde su enlace se volvian a
+  prender. Ahora `serieSaneada(cruda, previa)` recibe lo guardado y conserva lo
+  que el formulario no manda, y ademas el panel manda el tipo en un
+  desplegable. Vale la regla: un formulario que manda un subconjunto de los
+  campos pide sanear **contra** lo que ya esta guardado, nunca contra los
+  defaults.
+- **Los bloqueos se editan** (`guardarBloqueo`, desde el 27/11/2026), con el
+  mismo molde que `guardarExcepcional`: `previo` para que descartar el borrador
+  los devuelva. Antes solo se podian crear y borrar, asi que corregir una hora
+  pedia quitarlo y volver a cargarlo -- y entre las dos cosas el horario
+  quedaba abierto. `bloqueoSaneado` es la validacion, una sola para el alta y
+  la edicion, y **emite todas las claves en las dos ramas** por el `set merge`,
+  igual que `excepcionalSaneado`.
 - **La salida a Clari se ve siempre.** En `/consultas/agenda/`, el bloque
   "¿No encontrás un horario que te sirva?" **ya no se esconde** cuando no hay
   extraordinarios: se esconde solo la lista de adentro. Abajo va el WhatsApp

@@ -7054,9 +7054,26 @@ async function leerExcepcionales(modo = MODO_PUBLICADO) {
 // La igualdad es sobre un solo campo, el mismo que usa el trabajo diario que
 // las materializa: asi lo que se protege y lo que se crea son exactamente el
 // mismo conjunto.
-async function leerSeriesActivas() {
-  const snap = await _db.collection('agenda_series').where('estado', '==', 'activa').get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+// Activas Y pausadas, y por eso no se filtra por estado.
+//
+// Las pausadas tienen que llegar al motor porque su espacio es justamente el
+// que se vuelve a ofrecer: pausar significa que esa persona no viene por un
+// tiempo. Si no llegaran, el hueco de una pausa no se le ofreceria a nadie.
+// `tramosDeSeries` las ignora para proteger, asi que traerlas no cierra nada
+// que antes estuviera abierto.
+//
+// Es la MISMA lista en los cuatro lugares que la piden -- lo que se ofrece, lo
+// que se revalida al reservar, el ensayo de una adopcion y el calendario del
+// panel -- a proposito: con listas distintas, confirmar un horario contestaria
+// `slot_ocupado` contra un calendario que se veia libre.
+//
+// El barrido que materializa tiene su propia consulta por 'activa' y no usa
+// esta: una serie pausada no debe crear encuentros.
+async function leerSeriesVigentes() {
+  const snap = await _db.collection('agenda_series').get();
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(s => !s.estado || s.estado === 'activa' || s.estado === 'pausada');
 }
 
 // De todo lo ocupado, los turnos que dio el sitio: son los unicos que traen
@@ -7108,9 +7125,22 @@ async function ocupacionEntre(desdeMs, hastaMs, salida = null) {
 
   if (salida) {
     salida.materializadas = new Set();
+    // Las ocurrencias cuyo turno existe pero ya no esta reservado: cancelado
+    // por la persona, por el admin, o `canceladoPor: 'reprogramacion'`, que es
+    // el encuentro movido a otro horario. Es lo que el motor necesita para
+    // volver a ofrecer ese espacio, y lo que lo distingue de un espacio que
+    // sigue siendo de alguien.
+    //
+    // Sale de la misma pasada sobre los mismos documentos: no cuesta una
+    // consulta mas. Y es subconjunto de `materializadas`, asi que
+    // `tramosDeSeries` ya deja de proteger todo lo que esta aca.
+    salida.liberadas = new Set();
     for (const doc of turnos.docs) {
       const t = doc.data();
-      if (t.serieId && t.ocurrencia) salida.materializadas.add(`${t.serieId}|${t.ocurrencia}`);
+      if (!t.serieId || !t.ocurrencia) continue;
+      const clave = `${t.serieId}|${t.ocurrencia}`;
+      salida.materializadas.add(clave);
+      if (t.estado !== 'reservado') salida.liberadas.add(clave);
     }
   }
 
@@ -7523,9 +7553,20 @@ async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, tipoId) {
   if (comoSeba && sujeto.email) {
     cuerpo.attendees = [{ email: sujeto.email, displayName: sujeto.nombre || undefined }];
   }
-  // Y cada sesion online tiene su propio Meet en vez del Zoom compartido.
+  // Y cada sesion online tiene su Meet en vez del Zoom compartido.
+  //
+  // Si la persona tiene un encuentro habitual, la reunion es SIEMPRE la misma:
+  // `sujeto.conferencia` es la que quedo guardada en su serie y se copia a
+  // este evento. Lo que no sirve para eso es el `requestId`, que solo hace
+  // idempotente el reintento del mismo evento: con uno por turno, cada
+  // encuentro estrenaba link y mover uno de horario le estrenaba otro, asi que
+  // el enlace que la persona tenia guardado dejaba de servir.
+  //
+  // Una consulta suelta sigue estrenando reunion, que es lo que corresponde:
+  // no hay un vinculo que la reuse.
+  const reusa = conferenciaCopiable(sujeto.conferencia);
   if (comoSeba && online) {
-    cuerpo.conferenceData = {
+    cuerpo.conferenceData = reusa || {
       createRequest: {
         // Con el id del turno, un reintento no crea dos reuniones.
         requestId: `turno-${turnoId}`,
@@ -7536,7 +7577,7 @@ async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, tipoId) {
     cuerpo.location = datosDelEncuentro(sujeto.modalidad).lugar;
   }
 
-  const r = await cal.events.insert({
+  const insertar = () => cal.events.insert({
     calendarId: calendarioDeTurnos(),
     requestBody: cuerpo,
     // Sin esto Google ignora el pedido de conferencia, sin avisar.
@@ -7544,7 +7585,42 @@ async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, tipoId) {
     sendUpdates: cuerpo.attendees ? 'all' : 'none',
   });
 
-  return { eventId: r.data.id, meet: r.data.hangoutLink || null };
+  let r;
+  try {
+    r = await insertar();
+  } catch (e) {
+    // La reunion guardada puede estar muerta (Seba borro el evento que la
+    // tenia). Un Meet viejo no puede impedir que el encuentro exista: se pide
+    // una nueva y el llamador la guarda en la serie.
+    if (!reusa) throw e;
+    functions.logger.warn('No se pudo reusar el Meet de la serie, se pide otro', {
+      turnoId, error: e.message,
+    });
+    cuerpo.conferenceData = {
+      createRequest: {
+        requestId: `turno-${turnoId}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    };
+    r = await insertar();
+  }
+
+  return {
+    eventId: r.data.id,
+    meet: r.data.hangoutLink || null,
+    conferencia: conferenciaCopiable(r.data.conferenceData),
+  };
+}
+
+// Lo que hace falta para volver a usar la misma reunion en otro evento, y nada
+// mas. El `createRequest` que viene en la respuesta de Google queda afuera a
+// proposito: reenviarlo seria pedir otra reunion en lugar de copiar esta.
+function conferenciaCopiable(c) {
+  if (!c || !c.conferenceId) return null;
+  const copia = { conferenceId: c.conferenceId };
+  if (c.conferenceSolution) copia.conferenceSolution = c.conferenceSolution;
+  if (c.entryPoints) copia.entryPoints = c.entryPoints;
+  return copia;
 }
 
 async function borrarEventoDeTurno(eventId) {
@@ -7710,11 +7786,12 @@ async function slotsVisibles(config, desdePedido, hastaPedido, tipo, modo = MODO
     ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59'), deTurnos),
     leerBloqueos(modo),
     leerExcepcionales(modo),
-    leerSeriesActivas(),
+    leerSeriesVigentes(),
   ]);
   const horarios = motor.horariosDe({
     config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
     series, reservas: soloReservas(ocupados), materializadas: deTurnos.materializadas,
+    liberadas: deTurnos.liberadas,
   });
   // Las listas viajan juntas: los regulares libres, los excepcionales (que la
   // pagina muestra aparte y solo si hacen falta) y los tramos que este tipo no
@@ -7960,7 +8037,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   const promesaConfig = leerConfigAgenda();
   const promesaBloqueos = leerBloqueos();
   const promesaExcepcionales = leerExcepcionales();
-  const promesaSeries = leerSeriesActivas();
+  const promesaSeries = leerSeriesVigentes();
   const deTurnos = {};
   const promesaOcupacion = ocupacionEntre(msDeHoraLocal(dia, '00:00'), msDeHoraLocal(dia, '23:59'), deTurnos);
 
@@ -8047,6 +8124,10 @@ async function reservarHorario(sujeto, inicioMs, quien) {
       bloqueos, excepcionales, ocupados,
       series, excluirSerie, reservas: soloReservas(ocupados),
       materializadas: deTurnos.materializadas,
+      // Lo que se revalida tiene que ser exactamente lo que se ofrecio: sin
+      // esto, el espacio liberado que la pagina muestra se rechazaria al
+      // confirmar.
+      liberadas: deTurnos.liberadas,
     });
     const legales = [...horarios.slots, ...horarios.excepcionales];
     if (!legales.includes(isoLocal(inicioMs))) return { error: 'slot_ocupado', status: 409 };
@@ -8057,7 +8138,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     // alguien que lo tiene desde anios.
     const conSeries = [
       ...ocupados,
-      ...motor.tramosDeSeries(dia, series, config, excluirSerie, deTurnos.materializadas)
+      ...motor.tramosDeSeries(dia, series, config, excluirSerie, deTurnos.materializadas, deTurnos.liberadas)
         .map(s => [s.inicio, s.fin]),
     ];
     if (!superponer && chocaCon(inicioMs, inicioMs + duracionMin * 60000, conSeries, bufferDe(t, quien))) {
@@ -8202,6 +8283,22 @@ async function reservarHorario(sujeto, inicioMs, quien) {
 
   let eventId = null;
   let meet = null;
+  let conferencia = null;
+  // La reunion de su serie, si este encuentro es de una. Es una lectura mas
+  // solo en los encuentros habituales, y es lo que hace que todos tengan el
+  // mismo link -- tambien el que se acaba de mover de horario, que para
+  // Calendar es un evento nuevo.
+  if (sujeto.serieId && !sujeto.eventId && !sujeto.conferencia) {
+    try {
+      const doc = await _db.collection('agenda_series').doc(sujeto.serieId).get();
+      if (doc.exists) sujeto = { ...sujeto, conferencia: doc.data().conferencia || null };
+    } catch (e) {
+      // Sin la reunion guardada se crea una nueva: es peor no tener encuentro.
+      functions.logger.warn('No se pudo leer la conferencia de la serie', {
+        serieId: sujeto.serieId, error: e.message,
+      });
+    }
+  }
   // Un evento que YA esta en el calendario se adopta en lugar de crear otro.
   // Es lo que usa la importacion de los encuentros que Seba venia anotando a
   // mano: sin esto, traerlos al sistema le duplicaria cada encuentro en el
@@ -8210,7 +8307,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   if (sujeto.eventId) {
     eventId = sujeto.eventId;
   } else try {
-    ({ eventId, meet } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, t.id));
+    ({ eventId, meet, conferencia } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, t.id));
   } catch (e) {
     // El turno vale igual (la persona ya tiene su confirmacion) pero Seba
     // no lo ve en su calendario: hay que avisarle fuerte.
@@ -8225,6 +8322,15 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     } catch (_) { /* encolarMail no tira, pero por las dudas */ }
   }
 
+  // Si la reunion de la serie es nueva (se estreno aca, o Google tuvo que dar
+  // otra porque la guardada estaba muerta), se guarda para que la reusen todos
+  // sus encuentros. Se compara el id y no el objeto: si es la misma que ya
+  // tenia, no hay nada que escribir.
+  const conferenciaVieja = sujeto.conferencia ? sujeto.conferencia.conferenceId : null;
+  const hayQueGuardarla = Boolean(
+    sujeto.serieId && conferencia && conferencia.conferenceId !== conferenciaVieja,
+  );
+
   // Documentos distintos: no hay razon para esperar uno y despues el otro.
   // El pedido se actualiza solo si hay pedido: un encuentro de una serie no
   // apunta a ninguno (es el turno el que lleva el serieId).
@@ -8232,6 +8338,11 @@ async function reservarHorario(sujeto, inicioMs, quien) {
     _db.collection('agenda_turnos').doc(turnoId).set({ eventId, meet }, { merge: true }),
     ...(sujeto.pedidoId
       ? [_db.collection('agenda_pedidos').doc(sujeto.pedidoId).set({ turnoId }, { merge: true })]
+      : []),
+    // `extenderSerie` materializa en fila, asi que el primer encuentro graba la
+    // reunion y los que siguen ya la encuentran: no hay carrera.
+    ...(hayQueGuardarla
+      ? [_db.collection('agenda_series').doc(sujeto.serieId).set({ conferencia, meet }, { merge: true })]
       : []),
   ]);
 
@@ -8718,7 +8829,7 @@ async function ensayarSerie(serie, ignorarRecurrencia = null) {
 
   const deTurnos = {};
   const [series, todoOcupado, propias] = await Promise.all([
-    leerSeriesActivas(),
+    leerSeriesVigentes(),
     ocupacionEntre(desdeMs, hastaMs, deTurnos),
     instanciasDeRecurrencia(ignorarRecurrencia, desdeMs, hastaMs),
   ]);
@@ -8736,7 +8847,7 @@ async function ensayarSerie(serie, ignorarRecurrencia = null) {
     const dia = diaLocal(inicioMs);
     const propios = motor.tramosDeSeries(dia, series, conf, {
       serieId: serie.id, ocurrencia: dia,
-    }, deTurnos.materializadas).map(s => [s.inicio, s.fin]);
+    }, deTurnos.materializadas, deTurnos.liberadas).map(s => [s.inicio, s.fin]);
 
     // El motivo dice contra que choca. "Ocupado" a secas mandaba a Seba a
     // mirar un calendario donde no hay nada: el espacio de otra persona es
@@ -9198,7 +9309,13 @@ function fechaValida(f) {
 }
 
 // Una serie del panel, campo por campo. Devuelve { serie } o { error }.
-function serieSaneada(cruda) {
+// `previa` es la serie tal como esta guardada, y solo se usa para los campos
+// que el formulario del panel no manda. Sin ella, editar o pausar a alguien le
+// reponia el `tipo` en 'una-hora' y le volvia a prender las notificaciones:
+// una serie de 75 o 120 minutos se rebajaba a 60 sin que nada lo dijera, y eso
+// es lo que decide cuanto espacio se protege. Un alta no tiene previa y usa
+// los defaults, que es lo correcto.
+function serieSaneada(cruda, previa = null) {
   const nombre = sanitizeTexto(cruda?.nombre, 200);
   const email = sanitizeTexto(cruda?.email, 200).toLowerCase();
   const diaSemana = Math.round(Number(cruda?.diaSemana));
@@ -9240,13 +9357,16 @@ function serieSaneada(cruda) {
   // minutos segun la persona, asi que la duracion no puede salir de un tipo
   // fijo. Sin duracion escrita, la del tipo.
   const frecuencia = cruda?.frecuencia === 'semanal' ? 'semanal' : 'quincenal';
-  const tipo = motor.TIPOS_POR_DEFECTO[cruda?.tipo] ? cruda.tipo : 'una-hora';
+  const tipoPrevio = previa && motor.TIPOS_POR_DEFECTO[previa.tipo] ? previa.tipo : 'una-hora';
+  const tipo = motor.TIPOS_POR_DEFECTO[cruda?.tipo] ? cruda.tipo : tipoPrevio;
   const duracionCruda = Math.round(Number(cruda?.duracionMin));
   const duracionMin = Number.isFinite(duracionCruda) && duracionCruda >= 15 && duracionCruda <= MAX_TURNO_MIN
     ? duracionCruda
     : null;
 
-  const notis = cruda?.notificaciones || {};
+  // Las notificaciones las maneja la persona desde su enlace, no el panel: si
+  // el formulario no las manda, manda lo que ella eligio.
+  const notis = cruda?.notificaciones || (previa && previa.notificaciones) || {};
   return {
     serie: {
       nombre, email, hora, diaSemana, ancla, hasta,
@@ -9264,6 +9384,40 @@ function serieSaneada(cruda) {
 
 // Un horario excepcional del panel. Dos formas: con fecha, o recurrente por
 // dia de la semana.
+// Un bloqueo, validado en un solo lugar: lo usan el alta y la edicion.
+//
+// El tramo horario y los tipos son opcionales, y su ausencia es lo que
+// significaban los bloqueos de antes: el dia entero, para todo. Por eso van
+// como null y [] y no se inventan valores. Emite TODAS las claves en las dos
+// ramas porque se guarda con `set merge`: si la rama sin horas no escribiera
+// los null, un bloqueo creado con horario y editado a dia entero seguiria
+// cerrando solo ese tramo mientras la pantalla dice el dia completo.
+function bloqueoSaneado(cruda) {
+  const desde = cruda?.desde, hasta = cruda?.hasta;
+  if (!fechaValida(desde) || !fechaValida(hasta) || hasta < desde) {
+    return { error: 'fechas_invalidas' };
+  }
+
+  const desdeHora = sanitizeTexto(cruda?.desdeHora, 5);
+  const hastaHora = sanitizeTexto(cruda?.hastaHora, 5);
+  const conHoras = minutosDeHora(desdeHora) !== null && minutosDeHora(hastaHora) !== null;
+  if (conHoras && minutosDeHora(hastaHora) <= minutosDeHora(desdeHora)) {
+    return { error: 'horas_invalidas' };
+  }
+
+  return {
+    bloqueo: {
+      desde, hasta,
+      desdeHora: conHoras ? desdeHora : null,
+      hastaHora: conHoras ? hastaHora : null,
+      tipos: Array.isArray(cruda?.tipos)
+        ? cruda.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
+        : [],
+      motivo: sanitizeTexto(cruda?.motivo, 200),
+    },
+  };
+}
+
 function excepcionalSaneado(cruda) {
   const desde = sanitizeTexto(cruda?.desde, 5);
   const hasta = sanitizeTexto(cruda?.hasta, 5);
@@ -9642,39 +9796,48 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
       }
 
       case 'bloquear': {
-        const desde = req.body?.desde, hasta = req.body?.hasta;
-        if (!fechaValida(desde) || !fechaValida(hasta) || hasta < desde) {
-          return res.status(400).json({ error: 'fechas_invalidas' });
-        }
-
-        // El tramo horario y los tipos son opcionales, y su ausencia es lo
-        // que significaban los bloqueos de antes: el dia entero, para todo.
-        // Por eso van como null y [] y no se inventan valores.
-        const desdeHora = sanitizeTexto(req.body?.desdeHora, 5);
-        const hastaHora = sanitizeTexto(req.body?.hastaHora, 5);
-        const conHoras = minutosDeHora(desdeHora) !== null && minutosDeHora(hastaHora) !== null;
-        if (conHoras && minutosDeHora(hastaHora) <= minutosDeHora(desdeHora)) {
-          return res.status(400).json({ error: 'horas_invalidas' });
-        }
-
-        const tipos = Array.isArray(req.body?.tipos)
-          ? req.body.tipos.filter(t => motor.TIPOS_POR_DEFECTO[t])
-          : [];
+        const b = bloqueoSaneado(req.body);
+        if (b.error) return res.status(400).json({ error: b.error });
 
         const ref = await _db.collection('agenda_bloqueos').add({
-          desde, hasta,
-          desdeHora: conHoras ? desdeHora : null,
-          hastaHora: conHoras ? hastaHora : null,
-          tipos,
-          motivo: sanitizeTexto(req.body?.motivo, 200),
+          ...b.bloqueo,
           // Nace en el borrador: no le saca horarios a nadie hasta publicar.
           borrador: true,
           creado: new Date().toISOString(),
         });
         functions.logger.info('Bloqueo creado en el borrador', {
-          desde, hasta, conHoras, tipos, por: sesion.email,
+          desde: b.bloqueo.desde, hasta: b.bloqueo.hasta, por: sesion.email,
         });
         return res.status(200).json({ ok: true, id: ref.id });
+      }
+
+      // Editar un bloqueo, con el mismo molde que `guardarExcepcional`.
+      //
+      // Antes solo se podia crear y borrar, asi que corregir una hora pedia
+      // quitarlo y volver a cargarlo entero -- y entre las dos cosas el
+      // horario quedaba abierto.
+      case 'guardarBloqueo': {
+        const id = sanitizeTexto(req.body?.id, 64);
+        if (!id) return res.status(400).json({ error: 'falta_id' });
+        const b = bloqueoSaneado(req.body);
+        if (b.error) return res.status(400).json({ error: b.error });
+
+        const ref = _db.collection('agenda_bloqueos').doc(id);
+        const snap = await ref.get();
+        if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
+        const antes = snap.data();
+
+        // Un bloqueo ya publicado vuelve a estar en preparacion, y se guarda
+        // como estaba para que descartar el borrador pueda devolverlo.
+        const guardar = { ...b.bloqueo, borrador: true };
+        if (antes.publicado && !antes.previo) {
+          const { previo: _ignorado, borrador: _b, ...comoEstaba } = antes;
+          guardar.previo = comoEstaba;
+        }
+
+        await ref.set(guardar, { merge: true });
+        functions.logger.info('Bloqueo editado', { id, por: sesion.email });
+        return res.status(200).json({ ok: true });
       }
 
       case 'desbloquear': {
@@ -9828,11 +9991,11 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         if (hasta < desde) hasta = desde;
 
         const deTurnos = {};
-        const [config, bloqueos, excepcionales, seriesActivas, ocupados, turnosSnap] = await Promise.all([
+        const [config, bloqueos, excepcionales, seriesVigentes, ocupados, turnosSnap] = await Promise.all([
           leerConfigAgenda(MODO_BORRADOR),
           leerBloqueos(MODO_BORRADOR),
           leerExcepcionales(MODO_BORRADOR),
-          leerSeriesActivas(),
+          leerSeriesVigentes(),
           ocupacionEntre(msDeHoraLocal(desde, '00:00'), msDeHoraLocal(hasta, '23:59'), deTurnos),
           _db.collection('agenda_turnos')
             .where('inicio', '>=', new Date(msDeHoraLocal(desde, '00:00')))
@@ -9846,8 +10009,9 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         // Seba tiene que ver.
         const paraTipo = tipo => motor.horariosDe({
           config, tipo, desde, hasta, bloqueos, excepcionales, ocupados,
-          series: seriesActivas, reservas: soloReservas(ocupados),
+          series: seriesVigentes, reservas: soloReservas(ocupados),
           materializadas: deTurnos.materializadas,
+          liberadas: deTurnos.liberadas,
           sinAnticipacion: true, topeDias: 400,
         });
         const sesiones = paraTipo('una-hora');
@@ -9979,7 +10143,11 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
             ancla: s.ancla, estado: s.estado || 'activa',
             hasta: s.hasta || null,
             frecuencia: s.frecuencia || 'quincenal',
+            tipo: s.tipo || 'una-hora',
             duracionMin: s.duracionMin || null,
+            // La reunion de Meet de esa persona, que es la misma en todos sus
+            // encuentros. El panel la muestra al lado del enlace personal.
+            meet: s.meet || null,
             recurrenciaExterna: s.recurrenciaExterna || null,
             notificaciones: s.notificaciones || { cambios: true, recordatorio: true },
             conflictos: s.conflictos || [],
@@ -10045,13 +10213,16 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
       case 'guardarSerie': {
         const id = sanitizeTexto(req.body?.id, 64);
         if (!id) return res.status(400).json({ error: 'falta_id' });
-        const s = serieSaneada(req.body?.serie);
-        if (s.error) return res.status(400).json({ error: s.error });
 
         const ref = _db.collection('agenda_series').doc(id);
         const antes = await ref.get();
         if (!antes.exists) return res.status(404).json({ error: 'no_existe' });
         const viejo = antes.data();
+
+        // Se sanea CONTRA lo guardado: lo que el formulario no manda se
+        // conserva en lugar de volver al default.
+        const s = serieSaneada(req.body?.serie, viejo);
+        if (s.error) return res.status(400).json({ error: s.error });
 
         // Que cambio de lo que define CUANDO y CUANTO dura un encuentro. Los
         // datos de contacto no cuentan: cambiar un mail no tiene por que

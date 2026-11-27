@@ -207,6 +207,7 @@
     .mi-hora.extra:hover { border-color: #e3aa60; color: #fff; }
     .mi-hora.extra.elegida { background: #e3aa60; color: #16131d; border-color: #e3aa60; }
     .mi-extra-marca { color: #e3aa60; }
+    .mi-lila-marca { color: var(--mi-accent); }
     .mi-aviso-extra {
         margin: 12px 0 16px; padding: 12px 14px; border-radius: 10px;
         background: rgba(227,170,96,0.09); border: 1px solid rgba(227,170,96,0.3);
@@ -403,7 +404,7 @@
                         <h4 id="mi-horarios-titulo"></h4>
                         <!-- Sale solo los dias que tienen alguno. Un cartel
                              que esta siempre deja de leerse. -->
-                        <p class="mi-aviso-extra" id="mi-aviso-extra" hidden>Los horarios en <span class="mi-extra-marca">naranja</span> son espacios extraordinarios: los abro de vez en cuando, fuera de mis horarios habituales. Sirven para mover un encuentro <strong>por esta vez</strong> y no pasan a ser tu horario de siempre. Si querés cambiar tu horario fijo, escribime.</p>
+                        <p class="mi-aviso-extra" id="mi-aviso-extra" hidden>Los horarios en <span class="mi-extra-marca">naranja</span> no admiten cambios permanentes, sólo sirven para recuperar una sesión que no podés tomar en tu horario habitual. Los <span class="mi-lila-marca">lila</span> pueden ser tu nuevo horario fijo o cubrir un cambio puntual: si querés que uno quede fijo, escribime y lo dejamos así.</p>
                         <div class="mi-horas" id="mi-lista-horas"></div>
                     </div>
 
@@ -440,6 +441,6 @@
 
     </div>
 
-    <script type="module" src="mi-agenda.js?v=3"></script>
+    <script type="module" src="mi-agenda.js?v=4"></script>
 </body>
 </html>

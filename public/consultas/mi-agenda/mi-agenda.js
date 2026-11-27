@@ -422,6 +422,7 @@ async function confirmar() {
   if (!estado.elegida || !estado.moviendo) return;
   const boton = $('mi-btn-confirmar');
   const original = boton.textContent;
+  const seMovia = estado.moviendo;
   boton.disabled = true;
   boton.textContent = 'Moviendo...';
   limpiar('mi-error-confirmar');
@@ -448,7 +449,11 @@ async function confirmar() {
     if (e.data && e.data.error === 'slot_ocupado') {
       estado.elegida = null;
       $('mi-resumen').hidden = true;
-      await abrirCambio();
+      // El mismo encuentro que se estaba moviendo, no el proximo: si lo que se
+      // movia era el del mes que viene, volver al proximo seria cambiarle el
+      // turno por debajo sin avisar. Se guarda antes porque abrirCambio pisa
+      // estado.moviendo.
+      await abrirCambio(seMovia);
     }
   } finally {
     clearTimeout(reloj);
@@ -545,7 +550,12 @@ async function guardarNotificaciones() {
 // -------------------------------------------------------
 // Arranque
 // -------------------------------------------------------
-$('mi-btn-cambiar').addEventListener('click', abrirCambio);
+// El turno va envuelto a proposito: `abrirCambio` recibe cual se mueve como
+// primer parametro, y un handler directo le pasaria el PointerEvent del click.
+// Es truthy, asi que el fallback de adentro no corre: el click no hacia nada y
+// dejaba un RangeError sobre `turno.inicio` undefined. Ningun addEventListener
+// puede apuntar derecho a una funcion que espera datos.
+$('mi-btn-cambiar').addEventListener('click', () => abrirCambio(estado.turnos[0]));
 $('mi-btn-volver').addEventListener('click', volverAlEspacio);
 $('mi-btn-confirmar').addEventListener('click', confirmar);
 $('mi-btn-google').addEventListener('click', entrarConGoogleAca);

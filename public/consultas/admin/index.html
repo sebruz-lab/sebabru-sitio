@@ -599,6 +599,7 @@
                                 </div>
                                 <div><label for="pa-bl-motivo">Motivo</label><input type="text" id="pa-bl-motivo" maxlength="200" placeholder="Vacaciones"></div>
                                 <button type="button" class="pa-boton" id="pa-btn-bloquear">Bloquear</button>
+                                <button type="button" class="pa-mini" id="pa-btn-bl-cancelar" hidden>Dejar de editar</button>
                             </div>
                             <div id="pa-lista-bloqueos"></div>
 
@@ -660,6 +661,12 @@
                                         <select id="pa-se-frecuencia">
                                             <option value="quincenal">Cada 15 días</option>
                                             <option value="semanal">Cada semana</option>
+                                        </select>
+                                    </div>
+                                    <div><label for="pa-se-tipo">Qué es</label>
+                                        <select id="pa-se-tipo">
+                                            <option value="una-hora">Sesión</option>
+                                            <option value="dos-horas">Consulta</option>
                                         </select>
                                     </div>
                                     <div><label for="pa-se-duracion">Cuánto dura (min)</label><input type="number" id="pa-se-duracion" min="15" max="480" step="5" placeholder="60"></div>

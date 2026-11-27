@@ -424,6 +424,10 @@ function horariosDe({
   config, tipo, desde, hasta,
   bloqueos = [], excepcionales = [], ocupados = [],
   series = [], excluirSerie = null, reservas = [], materializadas = null,
+  // Las ocurrencias de una serie cuyo turno existe y ya no esta reservado:
+  // cancelado, o movido a otro horario. Son las unicas, junto con las series
+  // pausadas, cuyo espacio se vuelve a ofrecer.
+  liberadas = null,
   ahora = Date.now(), topeDias = null, sinAnticipacion = false,
 }) {
   const t = tipoDe(config, tipo);
@@ -487,7 +491,7 @@ function horariosDe({
     // lista tambien para pintar "esto esta en tu Google Calendar", y un
     // encuentro que todavia no se materializo no esta ahi. Decirlo seria
     // mentir en la unica pantalla donde Seba comprueba lo que configuro.
-    const tramosSerie = tramosDeSeries(dia, series, config, excluirSerie, materializadas);
+    const tramosSerie = tramosDeSeries(dia, series, config, excluirSerie, materializadas, liberadas);
     const ocupadosDelDia = tramosSerie.length
       ? [...ocupados, ...tramosSerie.map(t => [t.inicio, t.fin])]
       : ocupados;
@@ -502,12 +506,13 @@ function horariosDe({
       });
     }
 
-    // Los espacios habituales que quedaron libres. Van con la lista normal y
-    // no con los extraordinarios: no son un hueco que Seba abrio a mano, son
-    // su horario de siempre. El arranque es la hora de esa persona y no un
-    // punto de la grilla, asi que se prueba uno por uno en vez de pasar por
-    // el bucle de las franjas.
-    for (const b of bloquesDeSeries(dia, series, config)) {
+    // Los espacios habituales que quedaron libres -- cancelados, movidos, o de
+    // una serie pausada. Van con la lista normal y no con los extraordinarios:
+    // no son un hueco que Seba abrio a mano, son el horario de siempre de
+    // alguien que esta vez no lo usa. El arranque es la hora de esa persona y
+    // no un punto de la grilla, asi que se prueba uno por uno en vez de pasar
+    // por el bucle de las franjas.
+    for (const b of bloquesDeSeries(dia, series, config, liberadas)) {
       if (b.inicio + duracionMs > b.hasta) continue;
       if (b.inicio < minimoMs || b.inicio > topeMs) continue;
       if (bloqueadoPara(b.inicio, b.inicio + duracionMs, tipoId, bloqueos)) continue;
@@ -629,7 +634,7 @@ function duracionDeSerie(serie, config) {
   return tipoDe(config, (serie && serie.tipo) || TIPO_DE_SERIE).duracionMin;
 }
 
-function tramosDeSeries(diaISO, series, config, excluir, materializadas) {
+function tramosDeSeries(diaISO, series, config, excluir, materializadas, liberadas = null) {
   const dow = diaDeSemana(diaISO);
   const salida = [];
   for (const s of (series || [])) {
@@ -651,6 +656,14 @@ function tramosDeSeries(diaISO, series, config, excluir, materializadas) {
     // horario, cuando queda libre, es justamente el que hay que volver a
     // ofrecer.
     if (materializadas && s.id && materializadas.has(`${s.id}|${diaISO}`)) continue;
+    // Y lo que se libero no se protege, aunque no llegue en `materializadas`.
+    //
+    // En la practica toda ocurrencia liberada esta materializada -- las dos
+    // listas salen de los mismos documentos -- asi que la linea de arriba ya
+    // alcanzaria. Pero entonces el motor dependeria de una invariante que
+    // vive en otro archivo, y el dia que dejara de valer protegeria justo el
+    // hueco que se acaba de abrir, sin que nada lo dijera.
+    if (liberadas && s.id && liberadas.has(`${s.id}|${diaISO}`)) continue;
     const duracion = duracionDeSerie(s, config);
     const inicio = msDeHoraLocal(diaISO, s.hora);
     salida.push({
@@ -665,37 +678,55 @@ function tramosDeSeries(diaISO, series, config, excluir, materializadas) {
 }
 
 // -------------------------------------------------------
-// El espacio de un habitual tambien es un horario que se puede ofrecer
+// El espacio de un habitual se ofrece SOLO cuando se libero
 //
-// El dia y la hora en que Seba ve a alguien desde hace anios son horario de
-// trabajo suyo, caiga o no esa persona esa semana. Antes esos horarios no
-// estaban en ninguna franja -- la configuracion de la semana cubria otra
-// cosa -- asi que el dia que alguien movia su encuentro, o que Seba daba de
-// baja a un habitual, el hueco no se le ofrecia a nadie: quedaba vacio.
+// El horario de quien viene desde hace anios es suyo: queda reservado para esa
+// persona y no se le ofrece a nadie. Se ofrece unicamente cuando de verdad
+// quedo libre, que son tres casos y nada mas:
 //
-// Lo que devuelve es un horario de arranque por encuentro habitual de ese dia
-// de la semana (la hora de esa persona, no una grilla nueva), con el fin del
-// bloque corrido al que llegan los encuentros pegados. Por eso dos espacios
-// de una hora seguidos alcanzan para una consulta de dos: el arranque es el
-// del primero y el bloque llega hasta el fin del segundo.
+//   - la serie esta pausada (esa persona no viene por un tiempo),
+//   - su encuentro de ese dia se cancelo,
+//   - su encuentro de ese dia se movio a otro horario (`liberadas` trae las
+//     dos ultimas, que son un turno que existe y ya no esta reservado).
 //
-// Se fusiona solo lo que se toca o se superpone. Si entre dos encuentros hay
-// un hueco, aunque sea de diez minutos, son dos bloques: ofrecer dos horas
-// encima de un hueco seria ofrecer algo que no entra.
+// Antes se ofrecia siempre, con el argumento de que el dia y la hora son
+// horario de trabajo de Seba caiga o no esa persona. Eso publicaba el espacio
+// de cada habitual todas las semanas: el martes 11:45 de Gabi se le ofrecia a
+// cualquiera, y aparecian horarios -- el viernes 08:00 -- que no salian de
+// ninguna franja ni de ningun extraordinario, asi que no habia nada que
+// editar en el panel. Para abrir un hueco suelto estan los extraordinarios,
+// que se ven y se editan; para abrir el horario de verdad, las franjas.
 //
-// No mira frecuencia ni ancla a proposito: la quincena dice cuando viene esa
-// persona, no cuando Seba trabaja.
+// Y SI mira frecuencia y ancla, al contrario de lo que hacia antes: solo los
+// dias que son ocurrencia de la serie. Un espacio quincenal no se libera la
+// semana en la que esa persona no venia -- esa semana no era de nadie.
+//
+// Lo que devuelve es un horario de arranque por encuentro liberado de ese dia
+// (la hora de esa persona, no una grilla nueva), con el fin del bloque corrido
+// al que llegan los encuentros liberados pegados. Por eso dos espacios de una
+// hora seguidos y los dos libres alcanzan para una consulta de dos. Se fusiona
+// solo lo que se toca: con un hueco de diez minutos en el medio son dos
+// bloques, porque ofrecer dos horas encima de un hueco es ofrecer algo que no
+// entra. Y no se fusiona con el espacio de al lado si ese sigue siendo de
+// alguien: lo que se ofrece es el hueco que quedo, no el de la persona que
+// viene igual.
 // -------------------------------------------------------
-function bloquesDeSeries(diaISO, series, config) {
+function bloquesDeSeries(diaISO, series, config, liberadas = null) {
   const dow = diaDeSemana(diaISO);
   const ventanas = [];
   for (const s of (series || [])) {
     if (!s || !s.hora || minutosDeHora(s.hora) === null) continue;
-    // Una serie pausada cuenta igual, y es a proposito: pausar significa que
-    // esa persona no viene por un tiempo, no que Seba dejo de trabajar a esa
-    // hora. Justamente ahi es donde mas sirve que el espacio se ofrezca.
-    // Para cerrar el horario de verdad estan los bloqueos, o borrar la serie.
     if (Number(s.diaSemana) !== dow) continue;
+    // Solo los dias que le tocan a esa serie. Sin ancla no hay serie: no se
+    // puede saber que quincena es suya, y por lo tanto tampoco cual se libero.
+    if (!s.ancla) continue;
+    if (!caeEnLaFecha({ frecuencia: s.frecuencia, ancla: s.ancla, hastaFecha: s.hasta || null }, diaISO, 'quincenal')) continue;
+    // Pausada: el espacio esta libre todo lo que dure la pausa, y es justo
+    // cuando mas sirve ofrecerlo. Activa: solo si ese encuentro se cancelo o
+    // se movio.
+    const pausada = Boolean(s.estado) && s.estado !== 'activa';
+    const suelta = Boolean(liberadas && s.id && liberadas.has(`${s.id}|${diaISO}`));
+    if (!pausada && !suelta) continue;
     const inicio = msDeHoraLocal(diaISO, s.hora);
     ventanas.push([inicio, inicio + duracionDeSerie(s, config) * 60000]);
   }

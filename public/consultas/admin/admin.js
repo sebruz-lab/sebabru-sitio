@@ -809,6 +809,15 @@ function pintarBloqueos() {
     motivo.textContent = [para, b.motivo].filter(Boolean).join(' · ');
     fila.appendChild(motivo);
 
+    // Editar, para no tener que quitarlo y volver a cargarlo entero: entre
+    // esas dos cosas el horario quedaba abierto.
+    const editar = document.createElement('button');
+    editar.type = 'button';
+    editar.className = 'pa-mini';
+    editar.textContent = 'Editar';
+    editar.addEventListener('click', () => editarBloqueo(b));
+    fila.appendChild(editar);
+
     const quitar = document.createElement('button');
     quitar.type = 'button';
     quitar.className = 'pa-mini';
@@ -816,6 +825,7 @@ function pintarBloqueos() {
     quitar.addEventListener('click', async () => {
       try {
         await llamar({ accion: 'desbloquear', id: b.id });
+        if (editandoBloqueo === b.id) salirDeBloqueo();
         await recargar();
       } catch (e) {
         avisar(`No se pudo quitar: ${e.message}`, 'error');
@@ -824,6 +834,33 @@ function pintarBloqueos() {
     fila.appendChild(quitar);
     caja.appendChild(fila);
   }
+}
+
+// El mismo formulario de arriba, precargado. Mientras hay uno en edicion el
+// boton cambia de texto: si no, se parece demasiado a estar creando otro.
+let editandoBloqueo = null;
+
+const CAMPOS_BLOQUEO = ['pa-bl-desde', 'pa-bl-hasta', 'pa-bl-desde-hora', 'pa-bl-hasta-hora', 'pa-bl-motivo'];
+
+function editarBloqueo(b) {
+  editandoBloqueo = b.id;
+  $('pa-bl-desde').value = b.desde || '';
+  $('pa-bl-hasta').value = b.hasta || '';
+  $('pa-bl-desde-hora').value = b.desdeHora || '';
+  $('pa-bl-hasta-hora').value = b.hastaHora || '';
+  $('pa-bl-motivo').value = b.motivo || '';
+  $('pa-bl-tipos').value = (b.tipos || [])[0] || '';
+  $('pa-btn-bloquear').textContent = 'Guardar los cambios';
+  $('pa-btn-bl-cancelar').hidden = false;
+  $('pa-bl-desde').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function salirDeBloqueo() {
+  editandoBloqueo = null;
+  for (const id of CAMPOS_BLOQUEO) $(id).value = '';
+  $('pa-bl-tipos').value = '';
+  $('pa-btn-bloquear').textContent = 'Bloquear';
+  $('pa-btn-bl-cancelar').hidden = true;
 }
 
 async function bloquear() {
@@ -844,17 +881,19 @@ async function bloquear() {
 
   try {
     await llamar({
-      accion: 'bloquear', desde, hasta,
+      accion: editandoBloqueo ? 'guardarBloqueo' : 'bloquear',
+      id: editandoBloqueo || undefined,
+      desde, hasta,
       desdeHora: desdeHora || null,
       hastaHora: hastaHora || null,
       tipos: tipo ? [tipo] : [],
       motivo: $('pa-bl-motivo').value.trim(),
     });
-    for (const id of ['pa-bl-desde', 'pa-bl-hasta', 'pa-bl-desde-hora', 'pa-bl-hasta-hora', 'pa-bl-motivo']) {
-      $(id).value = '';
-    }
-    $('pa-bl-tipos').value = '';
-    avisar(tipo === 'una-hora' ? 'Listo: ese tramo queda guardado para consultas.' : 'Bloqueado.', 'ok');
+    const editaba = Boolean(editandoBloqueo);
+    salirDeBloqueo();
+    avisar(editaba
+      ? 'Guardado.'
+      : (tipo === 'una-hora' ? 'Listo: ese tramo queda guardado para consultas.' : 'Bloqueado.'), 'ok');
     await recargar();
   } catch (e) {
     avisar(`No se pudo bloquear: ${e.message}`, 'error');
@@ -1138,6 +1177,20 @@ function pintarSeries() {
       ficha.appendChild(falta);
     }
 
+    // El Meet de esa persona, que es el mismo en todos sus encuentros. Vale
+    // tenerlo a mano: es lo que se le pasa si perdió el enlace.
+    if (s.meet) {
+      const reunion = document.createElement('div');
+      reunion.className = 'pa-serie-datos';
+      const a = document.createElement('a');
+      a.href = s.meet;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'Su Meet (el mismo en todos sus encuentros)';
+      reunion.appendChild(a);
+      ficha.appendChild(reunion);
+    }
+
     if (s.conflictos && s.conflictos.length) {
       const aviso = document.createElement('div');
       aviso.className = 'pa-serie-conflicto';
@@ -1220,6 +1273,9 @@ function serieDeLaPantalla() {
     // Vacío es indefinido, que es el caso normal.
     hasta: $('pa-se-hasta').value || null,
     frecuencia: $('pa-se-frecuencia').value,
+    // Va siempre: es lo que decide cuánto espacio se protege cuando no hay
+    // una duración escrita a mano.
+    tipo: $('pa-se-tipo').value,
     duracionMin: Number.isFinite(duracion) && duracion >= 15 ? duracion : null,
     modalidad: $('pa-se-modalidad').value,
   };
@@ -1236,6 +1292,7 @@ function editarSerie(s) {
   $('pa-se-hasta').value = s.hasta || '';
   $('pa-se-duracion').value = s.duracionMin || '';
   $('pa-se-frecuencia').value = s.frecuencia === 'semanal' ? 'semanal' : 'quincenal';
+  $('pa-se-tipo').value = s.tipo === 'dos-horas' ? 'dos-horas' : 'una-hora';
   $('pa-se-modalidad').value = s.modalidad || 'Online';
   $('pa-btn-crear-serie').textContent = 'Guardar los cambios';
   $('pa-se-aviso').hidden = false;
@@ -1682,6 +1739,7 @@ $('pa-btn-entrar').addEventListener('click', entrar);
 $('pa-btn-salir').addEventListener('click', () => signOut(auth));
 $('pa-btn-guardar').addEventListener('click', guardarConfig);
 $('pa-btn-bloquear').addEventListener('click', bloquear);
+$('pa-btn-bl-cancelar').addEventListener('click', salirDeBloqueo);
 $('pa-btn-previa').addEventListener('click', cargarPrevia);
 
 $('pa-btn-crear-serie').addEventListener('click', crearSerie);
