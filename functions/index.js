@@ -9827,6 +9827,20 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         // repeticion vieja" de "lo maneja el sistema".
         const recurrenciaExterna = sanitizeTexto(req.body?.recurrenciaExterna, 200) || null;
 
+        // Importar dos veces no duplica a nadie. Sin esto, apretar Importar de
+        // nuevo creaba una segunda serie por persona, cada una reservando el
+        // mismo horario: el panel mostraria a todos dos veces y el calendario
+        // se llenaria de encuentros repetidos al adoptarlas.
+        if (recurrenciaExterna) {
+          const ya = await _db.collection('agenda_series')
+            .where('recurrenciaExterna', '==', recurrenciaExterna)
+            .limit(1)
+            .get();
+          if (!ya.empty) {
+            return res.status(200).json({ ok: true, id: ya.docs[0].id, yaEstaba: true, creados: [], conflictos: [] });
+          }
+        }
+
         const ref = await _db.collection('agenda_series').add({
           ...s.serie,
           recurrenciaExterna,

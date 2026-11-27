@@ -253,6 +253,18 @@
         cursor: pointer; color: var(--pa-accent); font-size: 0.85rem;
         min-height: 44px; display: flex; align-items: center;
     }
+    /* La caja donde se pega la lista del calendario. Monoespaciada porque lo
+       que va ahi no es prosa, y alta para que se vea si entro completa. */
+    #pa-importar-datos {
+        width: 100%; box-sizing: border-box; margin: 10px 0;
+        font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.78rem;
+        line-height: 1.5; padding: 10px 12px; border-radius: 8px;
+        background: rgba(0,0,0,0.25); color: #e8e6e1;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+    #pa-importar-resultado {
+        margin-top: 10px; color: #f3c6d4; font-size: 0.8rem; line-height: 1.7;
+    }
     .pa-serie-campos {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 12px; margin: 14px 0 4px;
@@ -593,6 +605,26 @@
                                 próximo encuentro sin contraseña.
                             </p>
 
+                            <details class="pa-nueva-serie" id="pa-importar">
+                                <summary>Importar los encuentros que ya están en el calendario</summary>
+                                <p class="pa-serie-nota">
+                                    Para traer acá a la gente que ves siempre el mismo día y hora, y que
+                                    hasta ahora vivía solo como un evento repetido en tu calendario.
+                                    Pegá la lista completa, con los corchetes, y apretá Importar.
+                                </p>
+                                <p class="pa-serie-nota">
+                                    Cada persona entra con su horario <strong>reservado hacia adelante,
+                                    sin fecha de fin</strong>, y <strong>sin que yo toque tu
+                                    calendario</strong>: los encuentros que ya tenés ahí siguen tal como
+                                    están. Después, con "Pasar al sistema" y de a una, corto la repetición
+                                    vieja y empiezo a crear un encuentro por vez, con su enlace y su
+                                    invitación. Importar dos veces no duplica a nadie.
+                                </p>
+                                <textarea id="pa-importar-datos" rows="6" placeholder="[ ... ]"></textarea>
+                                <button type="button" class="pa-boton" id="pa-btn-importar">Importar</button>
+                                <div id="pa-importar-resultado"></div>
+                            </details>
+
                             <details class="pa-nueva-serie" id="pa-nueva-serie">
                                 <summary>Sumar a alguien</summary>
                                 <p class="pa-serie-nota" id="pa-se-aviso" hidden>
@@ -634,19 +666,6 @@
                                 </div>
                                 <label class="pa-pausa"><input type="checkbox" id="pa-se-mandar" checked> Mandarle el enlace por mail</label>
                                 <button type="button" class="pa-boton" id="pa-btn-crear-serie">Sumar y tomar sus encuentros</button>
-                                <details id="pa-importar">
-                                    <summary>Importar los encuentros que ya están en el calendario</summary>
-                                    <p class="pa-serie-nota">
-                                        Pegá acá la lista que te preparé. Cada persona entra con su horario
-                                        reservado hacia adelante, <strong>sin tocar tu calendario</strong>:
-                                        los encuentros que ya tenés ahí siguen tal como están. Después, con
-                                        "Pasar al sistema", corto la repetición vieja y empiezo a crear un
-                                        encuentro por vez, con su enlace y su invitación.
-                                    </p>
-                                    <textarea id="pa-importar-datos" rows="6" placeholder="[ ... ]"></textarea>
-                                    <button type="button" class="pa-boton" id="pa-btn-importar">Importar</button>
-                                    <div id="pa-importar-resultado"></div>
-                                </details>
                                 <p class="pa-serie-nota">
                                     Si dejás vacío el primer encuentro, se toma el próximo día de la semana que
                                     elegiste. Sin fecha de fin, el espacio queda reservado indefinidamente hacia

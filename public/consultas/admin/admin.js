@@ -1285,21 +1285,24 @@ async function importarSeries() {
   boton.disabled = true;
   caja.textContent = '';
   let bien = 0;
+  let repetidas = 0;
   const mal = [];
   for (const cruda of lista) {
     const { recurrenciaExterna, ...serie } = cruda;
     try {
-      await llamar({ accion: 'crearSerie', serie, recurrenciaExterna: recurrenciaExterna || null });
-      bien++;
+      const r = await llamar({ accion: 'crearSerie', serie, recurrenciaExterna: recurrenciaExterna || null });
+      if (r.yaEstaba) repetidas++;
+      else bien++;
     } catch (e) {
       mal.push(`${serie.nombre || 'sin nombre'}: ${e.message}`);
     }
   }
   boton.disabled = false;
 
+  const yaHabia = repetidas ? ` ${repetidas} ya estaba${repetidas === 1 ? '' : 'n'} y no se duplicó.` : '';
   avisar(mal.length
-    ? `Entraron ${bien} de ${lista.length}. Mirá el detalle abajo.`
-    : `Listo: entraron las ${bien}. Sus horarios ya están reservados y tu calendario quedó intacto.`,
+    ? `Entraron ${bien} de ${lista.length}.${yaHabia} Mirá el detalle abajo.`
+    : `Listo: entraron ${bien}.${yaHabia} Sus horarios ya están reservados y tu calendario quedó intacto.`,
   mal.length ? 'error' : 'ok');
   if (mal.length) caja.textContent = `No entraron: ${mal.join(' · ')}`;
   $('pa-importar-datos').value = '';
