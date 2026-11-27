@@ -7470,17 +7470,28 @@ async function avisarTurnoCancelado(pedido, pedidoId, inicioMs, porQuien) {
 // -------------------------------------------------------
 // Crear y borrar el evento en el calendario de Seba.
 // -------------------------------------------------------
-async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId) {
+// El color dice que clase de encuentro es. Son los dos que Seba ya venia
+// usando a mano en su calendario, asi que lo que crea el sitio se ve igual
+// que lo que creo el: Banana para las sesiones y Tangerine para las
+// consultas. Los numeros son los de la paleta de eventos de Google Calendar.
+const COLOR_DE_TIPO = {
+  'una-hora': '5',  // amarillo
+  'dos-horas': '6', // naranja
+};
+
+async function crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, tipoId) {
   const cal = getCalendarClient();
   const comoSeba = agendaActuaComoSeba();
   const online = sujeto.modalidad !== 'Presencial';
-  // El titulo dice que clase de encuentro es: en el calendario de Seba, una
-  // sesion quincenal y una consulta de dos horas no se distinguen solo por
-  // durar distinto.
-  const etiqueta = sujeto.serieId ? 'Sesión' : 'Consulta';
 
   const cuerpo = {
-    summary: `${etiqueta} — ${sujeto.nombre || sujeto.email || 'sin nombre'}`,
+    // Solo el nombre. Que clase de encuentro es lo dice el color, no el
+    // titulo: en la semana de Seba el calendario se lee de un vistazo, y
+    // "Sesion — " repetido catorce veces solo tapa el unico dato que cambia.
+    summary: sujeto.nombre || sujeto.email || 'sin nombre',
+    // El color va igual si falta el tipo: sin el, el evento sale del color de
+    // la agenda y se confunde con cualquier otra cosa.
+    colorId: COLOR_DE_TIPO[tipoId] || COLOR_DE_TIPO['dos-horas'],
     description: [
       `${sujeto.nombre || ''} · ${sujeto.email || ''} · ${sujeto.telefono || ''}`,
       `Modalidad: ${sujeto.modalidad || '—'}`,
@@ -7875,13 +7886,27 @@ exports.cancelarTurno = functions.runWith({ memory: '512MB' }).https.onRequest(a
   }
 });
 
-// El aire que se le exige a una reserva segun quien la hace. Solo el admin
-// reserva sin aire: si Seba decide meter algo pegado a otra cosa, es porque
-// quiere. Todo lo demas, incluido lo que se agenda solo, respeta el aire del
-// tipo. Esta aparte porque lo usan dos comprobaciones que tienen que estar
-// de acuerdo: la de antes de la transaccion y la de adentro.
+// El aire que se le exige a una reserva segun quien la hace.
+//
+// El publico respeta el aire del tipo. El admin no: si Seba decide meter algo
+// pegado a otra cosa, es porque quiere.
+//
+// Y un encuentro habitual tampoco, que es lo que al principio estaba mal. El
+// razonamiento era que un turno automatico no deberia comerse el aire en
+// silencio, y suena bien hasta que se mira la agenda de verdad: Moises los
+// jueves de 10 a 11 y Andrea de 11 a 12:15, pegados, desde anios. Con 15
+// minutos de aire exigidos, materializar a Andrea chocaba contra el espacio
+// de Moises y sus cuatro encuentros quedaban sin tomar -- despues de haber
+// cortado su repeticion en el calendario, asi que se quedaba sin nada.
+//
+// El aire sigue valiendo donde importa, que es al OFRECER: horariosDe no le
+// muestra a nadie un horario a menos de 15 minutos de un encuentro. Lo que no
+// puede hacer es discutirle a Seba un horario que el ya fijo.
+//
+// Esta aparte porque lo usan dos comprobaciones que tienen que estar de
+// acuerdo: la de antes de la transaccion y la de adentro.
 function bufferDe(tipo, quien) {
-  if (quien === 'admin') return 0;
+  if (quien === 'admin' || quien === 'serie') return 0;
   return (tipo.bufferMin || 0) * 60000;
 }
 
@@ -8165,7 +8190,7 @@ async function reservarHorario(sujeto, inicioMs, quien) {
   if (sujeto.eventId) {
     eventId = sujeto.eventId;
   } else try {
-    ({ eventId, meet } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId));
+    ({ eventId, meet } = await crearEventoDeTurno(sujeto, inicioMs, finMs, turnoId, t.id));
   } catch (e) {
     // El turno vale igual (la persona ya tiene su confirmacion) pero Seba
     // no lo ve en su calendario: hay que avisarle fuerte.
@@ -8576,6 +8601,55 @@ async function cortarRecurrencia(eventId) {
 
   await cal.events.patch({ calendarId, eventId, requestBody: { recurrence: nuevas } });
   return { cortada: true, reglas: nuevas };
+}
+
+// -------------------------------------------------------
+// Ensayar una serie: que pasaria si se materializara, sin escribir nada
+//
+// Existe para que adoptar una serie no sea un salto al vacio. Cortar la
+// repeticion vieja del calendario es destructivo, asi que antes hay que saber
+// si los encuentros se van a poder tomar: si no se puede, no se corta nada.
+//
+// Mira lo mismo que mira reservarHorario para una serie -- la ocupacion del
+// calendario, los turnos del sitio y los espacios de las OTRAS series -- y
+// con el mismo aire, que para un encuentro habitual es ninguno.
+// -------------------------------------------------------
+async function ensayarSerie(serie) {
+  const conf = await leerConfigAgenda();
+  const hoy = diaLocal(Date.now());
+  const hasta = diaLocal(Date.now() + (conf.ventanaSeriesDias || 60) * 86400000);
+  const fechas = motor.fechasDeSerie(serie, hoy, hasta).filter(ms => ms >= Date.now());
+  if (!fechas.length) return { fechas: [], conflictos: [] };
+
+  const t = tipoDe(conf, serie.tipo);
+  const duracionMin = Number.isFinite(serie.duracionMin) ? serie.duracionMin : t.duracionMin;
+
+  const [series, ocupados] = await Promise.all([
+    leerSeriesActivas(),
+    ocupacionEntre(
+      msDeHoraLocal(diaLocal(fechas[0]), '00:00'),
+      msDeHoraLocal(diaLocal(fechas[fechas.length - 1]), '23:59')
+    ),
+  ]);
+
+  const conflictos = [];
+  for (const inicioMs of fechas) {
+    const finMs = inicioMs + duracionMin * 60000;
+    const dia = diaLocal(inicioMs);
+    const propios = motor.tramosDeSeries(dia, series, conf, {
+      serieId: serie.id, ocurrencia: dia,
+    }).map(s => [s.inicio, s.fin]);
+
+    // El motivo dice contra que choca. "Ocupado" a secas mandaba a Seba a
+    // mirar un calendario donde no hay nada: el espacio de otra persona es
+    // una regla, no un evento, y hasta que no se dice no se puede adivinar.
+    if (chocaCon(inicioMs, finMs, propios, 0)) {
+      conflictos.push({ ocurrencia: dia, inicio: isoLocal(inicioMs), motivo: 'espacio_de_otra_persona' });
+    } else if (chocaCon(inicioMs, finMs, ocupados, 0)) {
+      conflictos.push({ ocurrencia: dia, inicio: isoLocal(inicioMs), motivo: 'ocupado_en_el_calendario' });
+    }
+  }
+  return { fechas, conflictos };
 }
 
 // Un aviso por tanda, no uno por conflicto: si una semana se cruzan cinco
@@ -9937,6 +10011,25 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         const snap = await _db.collection('agenda_series').doc(id).get();
         if (!snap.exists) return res.status(404).json({ error: 'no_existe' });
         const serie = { id: snap.id, ...snap.data() };
+
+        // Primero se comprueba que los encuentros se puedan tomar, y solo
+        // despues se corta la repeticion.
+        //
+        // Al reves -- cortar y despues materializar -- un conflicto dejaba a
+        // la persona SIN NADA: su repeticion vieja cortada y sus encuentros
+        // nuevos sin crear. Paso con Andrea, que quedo con cuatro jueves
+        // vacios en el calendario. Un paso que puede fallar no puede ir
+        // despues del paso que destruye.
+        const prueba = await ensayarSerie({ ...serie, recurrenciaExterna: null });
+        if (prueba.conflictos.length && req.body?.igual !== true) {
+          return res.status(409).json({
+            error: 'horarios_ocupados',
+            conflictos: prueba.conflictos,
+            // Nada se toco: la repeticion sigue viva y la persona conserva
+            // sus encuentros.
+            intacto: true,
+          });
+        }
 
         let corte = { cortada: false, motivo: 'sin_recurrencia_externa' };
         if (serie.recurrenciaExterna) {

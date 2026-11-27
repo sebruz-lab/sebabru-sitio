@@ -1309,19 +1309,39 @@ async function importarSeries() {
   await cargarSeries();
 }
 
-async function adoptarSerie(s) {
-  const ok = window.confirm(
-    `Voy a cortar la repetición de ${s.nombre || s.email} en tu calendario (lo que ya pasó queda) `
-    + 'y a crear de acá en adelante un encuentro por vez, con su invitación.\n\n¿Sigo?');
-  if (!ok) return;
+const MOTIVO_DE_CONFLICTO = {
+  espacio_de_otra_persona: 'se pisa con el espacio de otra persona',
+  ocupado_en_el_calendario: 'hay otra cosa en tu calendario',
+  slot_ocupado: 'el horario está ocupado',
+};
+
+async function adoptarSerie(s, igual) {
+  if (!igual) {
+    const ok = window.confirm(
+      `Voy a cortar la repetición de ${s.nombre || s.email} en tu calendario (lo que ya pasó queda) `
+      + 'y a crear de acá en adelante un encuentro por vez, con su invitación.\n\n¿Sigo?');
+    if (!ok) return;
+  }
   try {
-    const r = await llamar({ accion: 'adoptarSerie', id: s.id });
+    const r = await llamar({ accion: 'adoptarSerie', id: s.id, igual: igual === true });
     avisar(r.conflictos.length
       ? `Pasó al sistema con ${r.creados.length} encuentro(s), pero ${r.conflictos.length} no entró porque el horario estaba ocupado.`
       : `Pasó al sistema: ${r.creados.length} encuentro(s) creado(s).`,
     r.conflictos.length ? 'error' : 'ok');
     await cargarSeries();
   } catch (e) {
+    // No se toco nada: la repeticion sigue viva y la persona conserva sus
+    // encuentros. Se puede decidir y volver.
+    if (e.message === 'horarios_ocupados') {
+      const lista = (e.data?.conflictos || []).map(c =>
+        `${fechaLarga(c.inicio)} (${MOTIVO_DE_CONFLICTO[c.motivo] || c.motivo})`).join('\n');
+      const ok = window.confirm(
+        `No pude tomar ${e.data?.conflictos?.length || ''} de sus encuentros:\n\n${lista}\n\n`
+        + 'No toqué nada todavía: sigue con su repetición de siempre.\n\n'
+        + '¿Lo hago igual? Esos encuentros van a quedar sin agendar y los vas a tener que acomodar a mano.');
+      if (ok) return adoptarSerie(s, true);
+      return;
+    }
     avisar(e.message === 'no_se_pudo_cortar'
       ? 'No pude cortar la repetición en el calendario, así que no creé nada: si lo hiciera, cada encuentro quedaría dos veces.'
       : `No se pudo pasar al sistema: ${e.message}`, 'error');
