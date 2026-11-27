@@ -183,6 +183,11 @@
     }
     .ag-sueltos > summary:hover { color: #fff; }
     .ag-sueltos-nota { color: #8f8d88; font-size: 0.8rem; line-height: 1.8; margin: 14px 0 4px; }
+    /* `hidden` le gana a cualquier `display` de aca. El atributo es un
+       display:none del navegador y una regla propia lo anula sin avisar:
+       el cartel del borrador del panel quedo a la vista durante semanas. */
+    [hidden] { display: none !important; }
+
     /* Y si tampoco sirve ninguno de los extraordinarios, queda escribirle a
        Clari. Va abajo de todo y se ve siempre, tambien cuando no hay ningun
        horario extraordinario abierto: justo entonces es cuando hace falta. */

@@ -42,6 +42,9 @@ const estado = {
   moviendo: null,
   elegida: null,
   disponibilidad: null,
+  // Los horarios extraordinarios de la tanda que se esta mirando, como Set,
+  // para pintarlos de otro color adentro del mismo dia.
+  extras: new Set(),
   // Para no cargar el espacio dos veces cuando Firebase avisa de la sesion
   // despues de que ya entramos con el enlace.
   abierto: false,
@@ -67,6 +70,16 @@ function mostrarError(donde, texto) {
 
 function limpiar(donde) {
   $(donde).classList.remove('visible');
+}
+
+// Cuando falta menos de lo que pide el tipo de encuentro, el boton no sirve.
+// El telefono es el de Seba y no el de Clari a proposito: mover un encuentro
+// a ultimo momento lo decide el, no la administracion.
+const WA_SEBA = 'https://wa.me/5493544584122';
+
+function notaDeAnticipacion(turno) {
+  return `Los cambios se pueden hacer hasta ${turno.anticipacionCambioHoras} horas antes, y ya falta menos que eso. `
+    + `Si necesitás moverlo igual, escribime a <a href="${WA_SEBA}">+54 9 3544 584122</a>.`;
 }
 
 const MENSAJES = {
@@ -194,7 +207,7 @@ function pintarEspacio() {
     $('mi-btn-cambiar').disabled = !proximo.puedeCambiar;
     if (!proximo.puedeCambiar) {
       $('mi-nota-cambiar').hidden = false;
-      $('mi-nota-cambiar').innerHTML = `Los cambios se pueden hacer hasta ${proximo.anticipacionCambioHoras} horas antes, y ya falta menos que eso. Si necesitás moverlo igual, escribime a <a href="mailto:info@sebabru.com">info@sebabru.com</a>.`;
+      $('mi-nota-cambiar').innerHTML = notaDeAnticipacion(proximo);
     }
   }
 
@@ -206,13 +219,35 @@ function pintarEspacio() {
   for (const t of siguientes) {
     const fila = document.createElement('div');
     fila.className = 'mi-fila';
+
+    const datos = document.createElement('div');
+    datos.className = 'mi-fila-datos';
     const fecha = document.createElement('div');
     fecha.className = 'mi-fecha';
     fecha.textContent = `${textoDiaLargo(t.inicio)}, ${textoHora(t.inicio)}`;
     const dura = document.createElement('div');
     dura.className = 'mi-dura';
     dura.textContent = `${t.duracionMin} min`;
-    fila.append(fecha, dura);
+    datos.append(fecha, dura);
+    fila.appendChild(datos);
+
+    // Cualquier encuentro futuro se mueve desde su propia fila. Antes solo se
+    // podia mover el proximo, asi que para correr el del mes que viene habia
+    // que esperar cuatro semanas.
+    if (t.puedeCambiar) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'mi-fila-mover';
+      boton.textContent = 'Cambiar';
+      boton.addEventListener('click', () => abrirCambio(t));
+      fila.appendChild(boton);
+    } else {
+      const nota = document.createElement('p');
+      nota.className = 'mi-fila-nota';
+      nota.innerHTML = notaDeAnticipacion(t);
+      fila.appendChild(nota);
+    }
+
     lista.appendChild(fila);
   }
 
@@ -253,16 +288,15 @@ function pintarDonde(caja, turno) {
 // -------------------------------------------------------
 // Elegir otro horario
 // -------------------------------------------------------
-async function abrirCambio() {
-  const turno = estado.turnos[0];
+async function abrirCambio(cual) {
+  const turno = cual || estado.turnos[0];
   if (!turno) return;
   estado.moviendo = turno;
   estado.elegida = null;
   limpiar('mi-error-elegir');
   limpiar('mi-error-confirmar');
   $('mi-resumen').hidden = true;
-  $('mi-dias-sueltos').innerHTML = '';
-  $('mi-sueltos').hidden = true;
+  estado.extras = new Set();
   $('mi-nada').hidden = true;
   $('mi-horarios').hidden = true;
   $('mi-elegir-zona').textContent = `Vas a mover el encuentro del ${textoDiaLargo(turno.inicio)} a las ${textoHora(turno.inicio)}. Los horarios están en hora de ${nombreDeZona()}.`;
@@ -302,14 +336,20 @@ function armarCalendario() {
   return calendario;
 }
 
+// Los extraordinarios van adentro del mismo calendario, con el dia marcado
+// como cualquier otro y la hora de otro color.
+//
+// Antes eran una lista aparte, abajo y plegada. Para quien viene siempre eso
+// es el camino equivocado: lo que esta buscando es correr SU encuentro una
+// semana, y el hueco que se lo permite estaba escondido detras de un
+// desplegable que decia "no encontras un horario que te sirva".
 function pintarHorarios(data) {
+  const extras = data.excepcionales || [];
+  estado.extras = new Set(extras);
   const cal = armarCalendario();
-  cal.mostrar(data.slots || []);
+  cal.mostrar([...(data.slots || []), ...extras].sort());
   pintarHorasDelDia();
-
-  const sueltos = pintarDiasSueltos($('mi-dias-sueltos'), data.excepcionales || []);
-  $('mi-sueltos').hidden = !sueltos;
-  $('mi-nada').hidden = (data.slots || []).length > 0 || sueltos;
+  $('mi-nada').hidden = (data.slots || []).length > 0 || extras.length > 0;
 }
 
 // Las horas del dia elegido en el calendario, con los tramos guardados para
@@ -329,14 +369,21 @@ function pintarHorasDelDia() {
   caja.hidden = false;
   $('mi-horarios-titulo').textContent = textoDiaLargo(horas[0]);
 
+  // El aviso sale solo si ese dia tiene alguno: un cartel que esta siempre
+  // deja de leerse, y la mayoria de los dias no tienen ninguno.
+  $('mi-aviso-extra').hidden = !horas.some(iso => estado.extras.has(iso));
+
   for (const iso of horas) {
+    const esExtra = estado.extras.has(iso);
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'mi-hora'
+      + (esExtra ? ' extra' : '')
       + (iso === estado.elegida ? ' elegida' : '')
       + (iso === data.actual ? ' actual' : '');
     b.textContent = textoHora(iso);
     if (iso === data.actual) b.title = 'El horario que tenés ahora';
+    if (esExtra) b.title = 'Espacio extraordinario: vale para esta vez, no pasa a ser tu horario de siempre';
     b.addEventListener('click', () => {
       estado.elegida = iso;
       pintarHorasDelDia();
@@ -357,46 +404,6 @@ function pintarHorasDelDia() {
     gris.title = b.motivo || 'Guardado para consultas de dos horas';
     lista.appendChild(gris);
   }
-}
-
-// Los extraordinarios siguen siendo una lista: son pocos y sueltos, y
-// meterlos en un calendario propio seria un mes casi vacio.
-function pintarDiasSueltos(caja, slots) {
-  caja.innerHTML = '';
-  const porDia = new Map();
-  for (const iso of slots) {
-    const dia = claveDia(iso);
-    if (!porDia.has(dia)) porDia.set(dia, []);
-    porDia.get(dia).push(iso);
-  }
-
-  for (const [, horas] of [...porDia.entries()].sort()) {
-    const bloque = document.createElement('div');
-    bloque.className = 'mi-dia';
-
-    const titulo = document.createElement('h4');
-    titulo.textContent = textoDiaLargo(horas[0]);
-    bloque.appendChild(titulo);
-
-    const fila = document.createElement('div');
-    fila.className = 'mi-horas';
-    for (const iso of horas) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'mi-hora' + (iso === estado.elegida ? ' elegida' : '');
-      b.textContent = textoHora(iso);
-      b.addEventListener('click', () => {
-        estado.elegida = iso;
-        pintarDiasSueltos(caja, slots);
-        pintarResumen(estado.disponibilidad);
-      });
-      fila.appendChild(b);
-    }
-    bloque.appendChild(fila);
-    caja.appendChild(bloque);
-  }
-
-  return porDia.size > 0;
 }
 
 function pintarResumen(data) {

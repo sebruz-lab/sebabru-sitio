@@ -70,6 +70,19 @@
     }
     .mi-fila .mi-fecha { color: #e8e6e1; font-size: 0.9rem; text-transform: capitalize; }
     .mi-fila .mi-dura { color: #8f8d88; font-size: 0.78rem; }
+    .mi-fila-datos { flex: 1 1 auto; }
+    /* Cada encuentro futuro se puede mover desde su propia fila. Antes habia
+       un solo boton, el del proximo, y para correr el de dentro de un mes
+       habia que esperar a que fuera el proximo. */
+    .mi-fila-mover {
+        flex: 0 0 auto; padding: 9px 16px; border-radius: 30px; cursor: pointer;
+        background: transparent; color: var(--mi-accent);
+        border: 1px solid rgba(191,174,224,0.45);
+        font-family: 'Outfit', sans-serif; font-size: 0.78rem; min-height: 40px;
+    }
+    .mi-fila-mover:hover { border-color: var(--mi-accent); color: #fff; }
+    .mi-fila-nota { flex: 1 1 100%; color: #8f8d88; font-size: 0.78rem; line-height: 1.7; }
+    .mi-fila-nota a { color: #e8e6e1; }
 
     .mi-boton {
         width: 100%; padding: 14px 20px; border-radius: 30px; cursor: pointer;
@@ -184,12 +197,20 @@
     }
     .mi-hora.reservado:hover { border-color: rgba(255,255,255,0.12); color: #55534f; }
 
-    .mi-sueltos {
-        margin-top: 26px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.1);
+    /* Los extraordinarios van de otro color a proposito: no son lo mismo que
+       un horario de la semana. Se pueden tomar por esta vez y no se pueden
+       volver el horario de siempre de nadie, y eso tiene que verse antes de
+       elegir, no despues. */
+    .mi-hora.extra {
+        border-color: rgba(227,170,96,0.55); color: #e3aa60;
     }
-    .mi-sueltos summary {
-        cursor: pointer; color: var(--mi-accent); font-size: 0.85rem;
-        padding: 11px 0; min-height: 44px; display: flex; align-items: center;
+    .mi-hora.extra:hover { border-color: #e3aa60; color: #fff; }
+    .mi-hora.extra.elegida { background: #e3aa60; color: #16131d; border-color: #e3aa60; }
+    .mi-extra-marca { color: #e3aa60; }
+    .mi-aviso-extra {
+        margin: 12px 0 16px; padding: 12px 14px; border-radius: 10px;
+        background: rgba(227,170,96,0.09); border: 1px solid rgba(227,170,96,0.3);
+        color: #e8d4b6; font-size: 0.8rem; line-height: 1.7;
     }
 
     .mi-resumen {
@@ -344,7 +365,7 @@
                     <div class="mi-siguientes" id="mi-siguientes" hidden>
                         <h3>Los que vienen después</h3>
                         <div id="mi-lista-siguientes"></div>
-                        <p class="mi-chico">Estos horarios ya están guardados para vos. Si querés mover alguno, entrá cuando sea el próximo.</p>
+                        <p class="mi-chico">Estos horarios ya están guardados para vos. Podés mover cualquiera desde su propia fila.</p>
                     </div>
 
                     <div class="mi-notis" id="mi-notis" hidden>
@@ -380,14 +401,11 @@
 
                     <div class="mi-horarios" id="mi-horarios" hidden>
                         <h4 id="mi-horarios-titulo"></h4>
+                        <!-- Sale solo los dias que tienen alguno. Un cartel
+                             que esta siempre deja de leerse. -->
+                        <p class="mi-aviso-extra" id="mi-aviso-extra" hidden>Los horarios en <span class="mi-extra-marca">naranja</span> son espacios extraordinarios: los abro de vez en cuando, fuera de mis horarios habituales. Sirven para mover un encuentro <strong>por esta vez</strong> y no pasan a ser tu horario de siempre. Si querés cambiar tu horario fijo, escribime.</p>
                         <div class="mi-horas" id="mi-lista-horas"></div>
                     </div>
-
-                    <details class="mi-sueltos" id="mi-sueltos" hidden>
-                        <summary>¿No encontrás un horario que te sirva?</summary>
-                        <p class="mi-chico" style="margin:12px 0 16px;">Estos son espacios que abro de vez en cuando, fuera de mis horarios habituales.</p>
-                        <div id="mi-dias-sueltos"></div>
-                    </details>
 
                     <p class="mi-chico" id="mi-nada" style="text-align:center; margin-top:24px;" hidden>
                         No hay horarios libres en los próximos días. Escribime a
@@ -422,6 +440,6 @@
 
     </div>
 
-    <script type="module" src="mi-agenda.js?v=2"></script>
+    <script type="module" src="mi-agenda.js?v=3"></script>
 </body>
 </html>

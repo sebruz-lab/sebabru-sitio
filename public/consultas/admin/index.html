@@ -106,6 +106,13 @@
     .pa-nuevo-bloqueo select option { background: #12141d; color: #fff; }
     .pa-vacio { color: #8f8d88; line-height: 1.7; }
 
+    /* `hidden` tiene que ganarle a cualquier `display` escrito aca.
+       El atributo no es mas que un display:none del navegador, asi que una
+       regla propia que diga `display: flex` lo anula y el elemento no se
+       apaga NUNCA. Le paso al cartel del borrador, que estuvo siempre a la
+       vista dijera lo que dijera el servidor. */
+    [hidden] { display: none !important; }
+
     /* El cartel del borrador */
     .pa-borrador {
         display: flex; flex-wrap: wrap; gap: 14px; align-items: center;

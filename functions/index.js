@@ -8454,14 +8454,20 @@ async function seriesDePersona(persona) {
 // no por pedido: alguien que tuvo una consulta y ademas esta en el
 // sesiones quincenales tiene que ver las dos cosas en un solo lugar.
 async function turnosDePersona(persona, series) {
-  const desdeMs = Date.now() - 2 * 3600000; // el de hace un rato sigue en pantalla
+  // Un encuentro se va de la pantalla cuando TERMINA, no cuando empieza:
+  // mientras esta pasando, el enlace es donde esta el Meet. Apenas termina,
+  // el lugar lo toma el siguiente, que es lo que esa persona viene a ver.
+  //
+  // Antes el corte eran dos horas despues del comienzo, asi que el encuentro
+  // de la manana seguia ocupando el lugar del proximo media tarde.
+  const ahoraMs = Date.now();
   const porId = new Map();
 
   const guardar = snap => {
     for (const d of snap.docs) {
       const t = d.data();
       if (t.estado !== 'reservado') continue;
-      if (t.inicio.toMillis() < desdeMs) continue;
+      if (t.fin.toMillis() < ahoraMs) continue;
       porId.set(d.id, { id: d.id, ...t });
     }
   };
@@ -8656,8 +8662,35 @@ async function cortarRecurrencia(eventId) {
     return `${limpia};UNTIL=${ayer}`;
   });
 
-  await cal.events.patch({ calendarId, eventId, requestBody: { recurrence: nuevas } });
-  return { cortada: true, reglas: nuevas };
+  // sendUpdates: 'none' en los dos lados. Esto es higiene nuestra -- la
+  // persona sigue teniendo su encuentro, solo que ahora lo crea el sistema --
+  // y un mail de "evento cancelado" diria exactamente lo contrario.
+  await cal.events.patch({ calendarId, eventId, requestBody: { recurrence: nuevas }, sendUpdates: 'none' });
+
+  // El UNTIL no se lleva las ocurrencias que Seba edito a mano: una vez que
+  // una instancia tiene cambios propios, Google la guarda aparte y sobrevive
+  // al corte. Si quedan, el encuentro aparece dos veces: el que crea el
+  // sistema y el resto de la repeticion vieja. Paso con Francisca y con Vir.
+  let sueltas = 0;
+  try {
+    const inst = await cal.events.instances({
+      calendarId, eventId,
+      timeMin: new Date().toISOString(),
+      timeMax: new Date(Date.now() + 400 * 86400000).toISOString(),
+      maxResults: 250,
+    });
+    for (const i of (inst.data.items || [])) {
+      if (i.status === 'cancelled') continue;
+      await cal.events.delete({ calendarId, eventId: i.id, sendUpdates: 'none' });
+      sueltas++;
+    }
+  } catch (e) {
+    // Que queden es un encuentro duplicado en el calendario, molesto y
+    // visible. No es motivo para deshacer el corte.
+    functions.logger.warn('Quedaron ocurrencias sueltas de la repeticion vieja', { eventId, error: e.message });
+  }
+
+  return { cortada: true, reglas: nuevas, sueltas };
 }
 
 // -------------------------------------------------------

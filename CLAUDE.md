@@ -632,6 +632,44 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   `recurrenciaExterna` (`instanciasDeRecurrencia`), comparando por el instante
   de arranque y no por superposicion, para no tapar un evento de verdad que
   caiga ahi al lado.
+- **El enlace personal mueve cualquier encuentro futuro, no solo el
+  proximo.** Cada fila de "Los que vienen despues" trae su propio boton y
+  `abrirCambio(turno)` recibe cual. Antes habia un solo boton y para correr el
+  encuentro del mes que viene habia que esperar a que fuera el proximo.
+  `miDisponibilidad` ya aceptaba cualquier `?turno=`, no hubo que tocarlo.
+- **Un encuentro se va del enlace cuando TERMINA**, no dos horas despues de
+  empezar, que es lo que hacia `turnosDePersona`. Mientras esta pasando, el
+  enlace es donde vive el Meet; apenas termina, el lugar lo toma el siguiente.
+- **Los extraordinarios se ven adentro del calendario, en naranja**, con un
+  aviso que sale solo los dias que tienen alguno: valen por esta vez y **no
+  pasan a ser el horario de siempre de nadie**. Antes eran una lista plegada
+  abajo, detras de un "no encontras un horario que te sirva" -- el camino
+  equivocado para quien viene siempre y lo que busca es correr SU encuentro
+  una semana.
+- **El telefono de "ya falta menos de 12 horas" es el de Seba**
+  (+54 9 3544 584122), no el de Clari ni el mail: mover un encuentro a ultimo
+  momento lo decide el. Las 12 horas salen de `anticipacionCambioHoras` del
+  tipo `una-hora` (la consulta de dos horas pide 48).
+- **`hidden` necesita `[hidden] { display: none !important; }`** en cualquier
+  pantalla que lo use para prender y apagar. El atributo no es mas que un
+  display:none del navegador y cualquier regla propia con `display` lo anula.
+  El cartel "Tenes cambios sin publicar" del panel estuvo **siempre** a la
+  vista por `.pa-borrador { display: flex }`, dijera lo que dijera el
+  servidor: no era que hubiera cambios pendientes.
+- **Cortar una repeticion vieja no alcanza con el UNTIL.** Las ocurrencias que
+  Seba edito a mano quedan guardadas aparte en Google y **sobreviven al
+  corte**, asi que el encuentro aparece dos veces: el que crea el sistema y el
+  resto de la repeticion. `cortarRecurrencia` las borra una por una despues de
+  patchear, y todo va con `sendUpdates: 'none'` -- la persona sigue teniendo
+  su encuentro y un mail de "evento cancelado" diria lo contrario.
+- **Ojo con editar el mismo encuentro en Google Calendar.** Mover una
+  repeticion con "este y los siguientes" crea una **serie nueva con otro id**,
+  asi que el `recurrenciaExterna` que tiene anotado el sistema queda
+  apuntando a una repeticion muerta mientras la viva es otra. Paso con
+  Francisca (09:30 vs 12:00) y con Vir Cerione (10:30 vs 10:45). Para
+  auditarlo esta `_auditar-series.js` en `C:\dev\herramientas-sebabru`, que
+  compara serie por serie lo que dice el sistema con lo que hay en el
+  calendario.
 - **La salida a Clari se ve siempre.** En `/consultas/agenda/`, el bloque
   "¿No encontrás un horario que te sirva?" **ya no se esconde** cuando no hay
   extraordinarios: se esconde solo la lista de adentro. Abajo va el WhatsApp
