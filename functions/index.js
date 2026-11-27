@@ -9947,12 +9947,54 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         if (!id) return res.status(400).json({ error: 'falta_id' });
         const s = serieSaneada(req.body?.serie);
         if (s.error) return res.status(400).json({ error: s.error });
-        await _db.collection('agenda_series').doc(id).set(s.serie, { merge: true });
-        functions.logger.info('Serie guardada', { serieId: id, por: sesion.email });
-        // Cambiar el dia o la hora aca NO reacomoda los encuentros ya
-        // tomados: eso es el cambio de horario habitual, que tiene su propio
-        // camino con su evaluacion. Esto solo arregla los datos de la serie.
-        return res.status(200).json({ ok: true });
+
+        const ref = _db.collection('agenda_series').doc(id);
+        const antes = await ref.get();
+        if (!antes.exists) return res.status(404).json({ error: 'no_existe' });
+        const viejo = antes.data();
+
+        // Que cambio de lo que define CUANDO y CUANTO dura un encuentro. Los
+        // datos de contacto no cuentan: cambiar un mail no tiene por que
+        // mover nada.
+        const mudanza = ['diaSemana', 'hora', 'duracionMin', 'frecuencia', 'ancla', 'tipo']
+          .filter(c => String(viejo[c] ?? '') !== String(s.serie[c] ?? ''));
+
+        await ref.set(s.serie, { merge: true });
+        functions.logger.info('Serie guardada', { serieId: id, por: sesion.email, mudanza });
+
+        // Los encuentros ya tomados no se mueven solos. Un encuentro
+        // agendado es algo que la persona ya tiene anotado, asi que
+        // reacomodarlo es una decision y no un efecto secundario de corregir
+        // un dato. Se avisa que quedaron en el horario viejo y el panel
+        // ofrece rehacerlos.
+        if (!mudanza.length || req.body?.rehacer !== true) {
+          return res.status(200).json({ ok: true, mudanza, enElHorarioViejo: mudanza.length > 0 });
+        }
+
+        // Rehacer: se cancelan los encuentros futuros (con su evento) y se
+        // vuelven a tomar con los datos nuevos. Los pasados no se tocan: son
+        // historia.
+        const turnos = await _db.collection('agenda_turnos').where('serieId', '==', id).get();
+        const ahora = Date.now();
+        let deshechos = 0;
+        for (const d of turnos.docs) {
+          const t = d.data();
+          if (t.estado !== 'reservado' || t.inicio.toMillis() < ahora) continue;
+          await borrarEventoDeTurno(t.eventId);
+          await d.ref.set({
+            estado: 'cancelado',
+            cancelado: new Date().toISOString(),
+            canceladoPor: 'serie-rehecha',
+          }, { merge: true });
+          deshechos++;
+        }
+
+        const r = await extenderSerie({ id, ...s.serie });
+        functions.logger.info('Encuentros rehechos', {
+          serieId: id, por: sesion.email, deshechos,
+          creados: r.creados.length, conflictos: r.conflictos.length,
+        });
+        return res.status(200).json({ ok: true, mudanza, deshechos, ...r });
       }
 
       // Borrar a alguien no es borrar su documento: es sacarle los encuentros

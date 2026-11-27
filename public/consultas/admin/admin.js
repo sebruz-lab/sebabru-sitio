@@ -1380,16 +1380,45 @@ async function crearSerie() {
   }
 }
 
-async function guardarSerieEditada() {
+const COMO_SE_LLAMA = {
+  diaSemana: 'el día', hora: 'la hora', duracionMin: 'cuánto dura',
+  frecuencia: 'cada cuánto', ancla: 'el primer encuentro', tipo: 'qué es',
+};
+
+async function guardarSerieEditada(rehacer) {
   const boton = $('pa-btn-crear-serie');
+  const quien = editando;
   boton.disabled = true;
   try {
-    await llamar({
+    const r = await llamar({
       accion: 'guardarSerie',
-      id: editando,
+      id: quien,
       serie: serieDeLaPantalla(),
+      rehacer: rehacer === true,
     });
-    avisar('Guardado. Los encuentros que ya estaban tomados siguen donde estaban.', 'ok');
+
+    // Cambiar el dia, la hora o la duracion no mueve los encuentros que ya
+    // estan agendados: la persona los tiene anotados. Se pregunta.
+    if (r.enElHorarioViejo) {
+      const cambio = r.mudanza.map(c => COMO_SE_LLAMA[c] || c).join(' y ');
+      const ok = window.confirm(
+        `Guardé el cambio de ${cambio}.\n\nPero los encuentros que ya estaban agendados siguen `
+        + 'en el horario de antes.\n\n¿Los rehago? Borro los que vienen y los vuelvo a crear con '
+        + 'los datos nuevos. Los que ya pasaron no se tocan.');
+      if (ok) {
+        editando = quien;
+        boton.disabled = false;
+        return guardarSerieEditada(true);
+      }
+      avisar('Guardado. Los encuentros que ya estaban agendados siguen en el horario de antes.', 'ok');
+    } else if (r.deshechos) {
+      avisar(r.conflictos?.length
+        ? `Listo: rehíce ${r.creados.length} encuentro(s), y ${r.conflictos.length} no entró.`
+        : `Listo: rehíce ${r.creados.length} encuentro(s) con los datos nuevos.`,
+      r.conflictos?.length ? 'error' : 'ok');
+    } else {
+      avisar('Guardado.', 'ok');
+    }
     salirDeEdicion();
     await cargarSeries();
   } catch (e) {
