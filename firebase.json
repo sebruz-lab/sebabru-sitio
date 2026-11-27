@@ -108,6 +108,11 @@
         "type": 301
       },
       {
+        "source": "/sol/:signo",
+        "destination": "/carta-natal/sol/:signo/",
+        "type": 301
+      },
+      {
         "source": "/sol/:resto*",
         "destination": "/carta-natal/sol/:resto*",
         "type": 301
@@ -118,6 +123,11 @@
         "type": 301
       },
       {
+        "source": "/lunas/:signo",
+        "destination": "/carta-natal/lunas/:signo/",
+        "type": 301
+      },
+      {
         "source": "/lunas/:resto*",
         "destination": "/carta-natal/lunas/:resto*",
         "type": 301
@@ -125,6 +135,11 @@
       {
         "source": "/ascendente",
         "destination": "/carta-natal/ascendente/",
+        "type": 301
+      },
+      {
+        "source": "/ascendente/:signo",
+        "destination": "/carta-natal/ascendente/:signo/",
         "type": 301
       },
       {

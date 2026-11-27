@@ -77,18 +77,40 @@ con `curl`, no deducido.
 tambien falla, asi que es la cuota y no la URL). Hace falta una clave de API
 gratuita del proyecto `sebabru-e5563`.
 
-Tampoco hay linea de base de indexacion: no sabemos cuantas de las 196
-paginas de `/carta-natal/` entraron a Google. Sale de Search Console, en el
-informe de Cobertura.
+~~Tampoco hay linea de base de indexacion~~ **Ya la hay, del 26/11/2026:
+249 paginas indexadas y 71 sin indexar.** Las 196 de `/carta-natal/` entraron
+el 16/11 (el contador salto de 34 a 249 ese dia) y las impresiones pasaron de
+unas 5 por dia a 91-114. Ver la seccion 16 de `PLAN-SEO.md`.
 
 ---
 
 ## Detalles menores, anotados y no arreglados
 
-- Las redirecciones viejas dan **dos saltos** en vez de uno:
-  `/sol/acuario/` -> `/carta-natal/sol/acuario` -> `/carta-natal/sol/acuario/`.
-  Google sigue hasta 10, asi que no urge, pero se arregla poniendo la barra
-  final en el `destination` de `firebase.json`.
+- ~~Las redirecciones viejas dan **dos saltos** en vez de uno~~
+  **ARREGLADO el 27/11/2026.** Era
+  `/sol/acuario/` -> `/carta-natal/sol/acuario` -> `/carta-natal/sol/acuario/`,
+  en las tres reglas que repetian la captura en el destino (`/sol/:resto*`,
+  `/lunas/:resto*`, `/ascendente/:resto*`). Las demas reglas van a un destino
+  fijo que ya trae la barra y nunca tuvieron el problema.
+
+  **No se arreglo como dice el parrafo de arriba.** Ponerle la barra al
+  `destination` del `:resto*` (`"/carta-natal/sol/:resto*/"`) deja abierto que
+  pasa con la captura vacia, que daria `//`. Lo que se hizo es agregar una
+  regla de **un solo segmento** arriba de cada `:resto*`:
+
+  ```json
+  { "source": "/sol/:signo", "destination": "/carta-natal/sol/:signo/", "type": 301 }
+  ```
+
+  El orden importa: Firebase Hosting aplica la primera regla que matchea, y la
+  `:resto*` queda abajo como red para dos o mas segmentos. Funciona con barra y
+  sin barra porque Firebase **si** normaliza la barra final al matchear el
+  `source`; lo que no normaliza es el `destination`, y de ahi salia el segundo
+  salto.
+
+  Probado en un canal de vista previa antes de ir a `main`: **36 de 36** URLs
+  viejas de signo (`/{sol,lunas,ascendente}/{12 signos}/`) en un salto y 200.
+  Esto no se puede verificar leyendo el JSON.
 - `public/sol/acuario/` existe en el disco local y da `Permission denied`
   (cosa de Google Drive). **No esta en git**, asi que no se deploya y las
   redirecciones en vivo funcionan bien. No hay que borrarlo a las apuradas.

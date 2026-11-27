@@ -891,3 +891,110 @@ no es un hallazgo; hay que abrir la pagina y ver el texto.
 Esto no frena a una persona que copia y pega a mano, y `robots.txt` no es
 vinculante. Tampoco se puso `nosnippet` ni `noindex` en ningun lado: limitan lo
 que se muestra pero cuestan clics.
+
+## 16. La primera linea de base de indexacion (26-27/11/2026)
+
+Seba bajo el informe de indexacion de Search Console porque "hay problemillas
+con la indexacion". **No habia problemillas.** Es la primera foto real de
+indexacion que tiene el sitio, y lo que muestra es lo contrario:
+
+| | |
+|---|---|
+| Indexadas | **249** (eran 7 u 8 de septiembre al 5/11) |
+| Sin indexar | 71 |
+| El salto | **16/11**: de 34 a 249 en un dia, cuando entraron las 196 de `/carta-natal/` |
+| Impresiones | de ~5 por dia a **91-114** desde el 19/11 |
+
+El punto del 19/11 que decia que las 196 de `/carta-natal/` no tenian **ni una**
+impresion **ya no vale**: son las que estan cargando el sitio.
+
+### Cinco de los siete motivos son ruido esperable
+
+| Motivo | 26/11 | 19/11 | Que es |
+|---|---|---|---|
+| Pagina con redireccion | 22 | 7 | Los 301 de `firebase.json`. Google clasifica **todo** 301 como "no indexada", por diseno. Subio porque termino de rastrear las viejas |
+| Excluida por `noindex` | 9 | 4 | Las aulas, el panel, `/baja/`, `/canjear/`. Subio porque descubrio mas, no porque se rompio nada |
+| No se ha encontrado (404) | 17 | 17 | Los de la seccion 3. Validacion "Iniciada": **el contador no baja hasta que Google re-rastrea** |
+| Descubierta: sin indexar | 14 | 37 | Cola de rastreo. Drenando sola |
+| Rastreada: sin indexar | 1 | 11 | Casi resuelto |
+
+### Las 14 "Descubierta: sin indexar" no son un bug de configuracion
+
+Las 14 traen **ultimo rastreo `1969-12-31`**, que es epoch 0: *nunca
+rastreada*. Son `/escuela/`, las cinco aulas de `/escuela/abierta/`,
+`/lilith/`, `/lunallena/`, `/lunanueva/`, tres de `/signos/` y dos de
+`/carta-natal/`.
+
+Se verificaron las dos causas posibles y **ninguna aplica**: las 14 estan en el
+sitemap, y los enlaces internos no son el problema (`/escuela/` tiene **44**,
+`/carta-natal/sol/aries/` **28**, `/escuela/abierta/identidad/` **25**). Google
+las conoce, tiene como llegar y no fue todavia. Es lo esperable en un sitio que
+paso de 34 a 249 paginas en tres dias.
+
+Lo unico que vale hacer es manual y son cinco, no catorce: pedir indexacion por
+Inspeccion de URLs para las que venden y encima tienen pocos enlaces —
+`/escuela/`, `/lilith/`, `/escuela/abierta/casas/` (1 enlace),
+`/escuela/abierta/tarot/` (1), `/escuela/abierta/linaje/` (2). Cuota ~10 por
+dia.
+
+### Las 7 "Duplicada: Google eligio otra canonica" son transitorias
+
+Las 7 son `/carta-natal/{ascendente,sol,lunas}/` (las tres madres) y
+`/carta-natal/ascendente/{acuario,aries,cancer,virgo}/`, rastreadas el 19/11.
+
+Comprobado en vivo: las siete declaran su **propia** canonica, con `<title>`
+distinto cada una. El `www` redirige bien y la barra final tambien. No queda
+**ningun** enlace interno a las URLs viejas ni ninguna en el sitemap.
+
+La causa es que Google todavia tiene en su indice la URL vieja de WordPress
+para esas siete — son justo las que tenian historia e impresiones
+(`/ascendente/acuario/` estaba en posicion 62, ver la seccion 8) — y mientras
+reprocesa el 301 reporta la nueva como duplicada. **Se resuelve con tiempo, no
+con codigo.**
+
+### El unico defecto real que aparecio: un salto de redireccion de mas
+
+Buscando la causa de las 7 salio **el item de los dos saltos de
+`AUDITORIA-SEO.md`**, que estaba anotado sin consecuencia conocida. Tres reglas
+pegaban la captura sin la barra final, asi que las 36 URLs viejas de signo
+costaban dos 301 en vez de uno. **Arreglado el 27/11**, con una regla de un
+solo segmento arriba de cada `:resto*`; el detalle y por que **no** se hizo
+como proponia la auditoria estan ahi.
+
+**Honestidad sobre el alcance: esto no baja el contador de 7.** Las tres madres
+ya eran de un salto y aun asi figuran. Se arreglo porque estaba mal, no porque
+mueva ese numero.
+
+### Dos falsos positivos que van a volver a aparecer
+
+- **`r.em.sebabru.com` "bloqueada por robots.txt" no es nuestra.** Es el host
+  de seguimiento de clics de Brevo, y el `Disallow: /` es de Brevo (con permiso
+  a Twitterbot y facebookexternalhit, para el preview de un enlace
+  compartido). Esta bien asi: un enlace de tracking no debe indexarse nunca.
+  Aparece porque la propiedad de Search Console es **de dominio** y cubre todos
+  los subdominios, `em.` y `r.em.` incluidos. **No hay nada que tocar, y va a
+  seguir apareciendo.**
+- **El aviso de "1 token de propiedad no utilizado": no borrarlo.** Es
+  `google-site-verification=WSD7Npv...`. El DNS tiene **dos** TXT de esa forma
+  y el SPF incluye `_spf.google.com`: Workspace esta activo y verifica el
+  dominio con un TXT igual. Borrarlo puede desverificar el dominio y llevarse
+  la delegacion que usa el agendador. Un TXT de mas no afecta el SEO en nada.
+
+### Una trampa del export, que ya costo dos vueltas
+
+El CSV de "Problemas criticos" trae **solo el total** de cada motivo. La lista
+de URLs se exporta **desde la pantalla de cada motivo**, una por una. Es el
+mismo tope que freno el diagnostico de los 17 404 el 19/11 (seccion 3).
+
+Y hay **dos** filas que empiezan con "Duplicada" y es facil abrir la que no es:
+
+- "Duplicada: **el usuario no ha indicado** ninguna version canonica" — fuente
+  *Sitio web*. Tiene **0 paginas** (venia de 21 en septiembre y llego a 0 el
+  13/11). Si se exporta esta, la tabla viene vacia.
+- "Duplicada: **Google ha elegido** una version canonica diferente a la del
+  usuario" — fuente *Sistemas de Google*. **Esta es la que importa.**
+
+### El 16/12
+
+Junto con lo ya agendado de CrUX: comparar contra esta foto y ver si los 17 404
+bajaron, si las 14 entraron y si las 7 se consolidaron.
