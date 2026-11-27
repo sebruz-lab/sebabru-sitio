@@ -8582,6 +8582,43 @@ async function extenderSerie(serie, config) {
 // donde esta. Borrarla se llevaria anios de encuentros del calendario, y eso
 // no se puede deshacer.
 // -------------------------------------------------------
+// Los horarios que ocupa HOY una repeticion vieja, para poder descontarlos.
+//
+// Cuando el sistema se hace cargo de una persona, lo primero que hace es
+// ensayar si sus encuentros se pueden tomar. Pero su repeticion vieja todavia
+// esta viva, asi que freebusy la ve y el ensayo encuentra ocupado
+// exactamente el horario de siempre: la serie choca contra si misma y nunca
+// se puede adoptar. Para Seba el calendario se ve vacio en esa franja, porque
+// lo unico que hay ahi es el encuentro de esa misma persona.
+//
+// Devuelve [inicio, fin] de cada ocurrencia del evento repetido en la
+// ventana, y el ensayo descuenta de la ocupacion lo que arranque en esos
+// instantes. Se compara por el instante de arranque y no por superposicion:
+// descontar todo lo que se toque taparia un evento de verdad que empiece
+// media hora despues.
+async function instanciasDeRecurrencia(eventId, desdeMs, hastaMs) {
+  if (!eventId) return [];
+  try {
+    const cal = getCalendarClient();
+    const r = await cal.events.instances({
+      calendarId: calendarioDeTurnos(),
+      eventId,
+      timeMin: new Date(desdeMs).toISOString(),
+      timeMax: new Date(hastaMs).toISOString(),
+      maxResults: 250,
+      showDeleted: false,
+    });
+    return (r.data.items || [])
+      .filter(ev => ev.status !== 'cancelled' && ev.start && ev.start.dateTime)
+      .map(ev => [Date.parse(ev.start.dateTime), Date.parse(ev.end && ev.end.dateTime)]);
+  } catch (e) {
+    // Si no se pueden leer, el ensayo sigue con la ocupacion entera: va a
+    // reportar conflicto y no se va a cortar nada. Falla del lado seguro.
+    functions.logger.warn('No se pudieron leer las ocurrencias de la repeticion vieja', { eventId, error: e.message });
+    return [];
+  }
+}
+
 async function cortarRecurrencia(eventId) {
   const cal = getCalendarClient();
   const calendarId = calendarioDeTurnos();
@@ -8614,7 +8651,7 @@ async function cortarRecurrencia(eventId) {
 // calendario, los turnos del sitio y los espacios de las OTRAS series -- y
 // con el mismo aire, que para un encuentro habitual es ninguno.
 // -------------------------------------------------------
-async function ensayarSerie(serie) {
+async function ensayarSerie(serie, ignorarRecurrencia = null) {
   const conf = await leerConfigAgenda();
   const hoy = diaLocal(Date.now());
   const hasta = diaLocal(Date.now() + (conf.ventanaSeriesDias || 60) * 86400000);
@@ -8624,13 +8661,21 @@ async function ensayarSerie(serie) {
   const t = tipoDe(conf, serie.tipo);
   const duracionMin = Number.isFinite(serie.duracionMin) ? serie.duracionMin : t.duracionMin;
 
-  const [series, ocupados] = await Promise.all([
+  const desdeMs = msDeHoraLocal(diaLocal(fechas[0]), '00:00');
+  const hastaMs = msDeHoraLocal(diaLocal(fechas[fechas.length - 1]), '23:59');
+
+  const [series, todoOcupado, propias] = await Promise.all([
     leerSeriesActivas(),
-    ocupacionEntre(
-      msDeHoraLocal(diaLocal(fechas[0]), '00:00'),
-      msDeHoraLocal(diaLocal(fechas[fechas.length - 1]), '23:59')
-    ),
+    ocupacionEntre(desdeMs, hastaMs),
+    instanciasDeRecurrencia(ignorarRecurrencia, desdeMs, hastaMs),
   ]);
+
+  // Los encuentros de su propia repeticion vieja no son un conflicto: son
+  // justamente lo que se esta por reemplazar.
+  const arranques = new Set(propias.map(([a]) => a));
+  const ocupados = arranques.size
+    ? todoOcupado.filter(o => !(arranques.has(o[0]) && !o[2]))
+    : todoOcupado;
 
   const conflictos = [];
   for (const inicioMs of fechas) {
@@ -10062,7 +10107,7 @@ exports.adminAgenda = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }
         // nuevos sin crear. Paso con Andrea, que quedo con cuatro jueves
         // vacios en el calendario. Un paso que puede fallar no puede ir
         // despues del paso que destruye.
-        const prueba = await ensayarSerie({ ...serie, recurrenciaExterna: null });
+        const prueba = await ensayarSerie({ ...serie, recurrenciaExterna: null }, serie.recurrenciaExterna || null);
         if (prueba.conflictos.length && req.body?.igual !== true) {
           return res.status(409).json({
             error: 'horarios_ocupados',
