@@ -667,6 +667,28 @@ ajusta al texto y aun asi no se centra, era la trampa 1.
   `recurrenciaExterna` (`instanciasDeRecurrencia`), comparando por el instante
   de arranque y no por superposicion, para no tapar un evento de verdad que
   caiga ahi al lado.
+- **El mail NO alcanza para decir que un turno es de alguien**, y ahi estuvo
+  el agujero mas grave del agendador (27/11/2026). `esTurnoDe()` es el unico
+  predicado y lo usan los dos lugares que miran turnos ajenos: la lista del
+  enlace (`turnosDePersona`) y el turno que se quiere mover
+  (`turnoDePersona`). Tienen que dar la MISMA respuesta: si la lista muestra
+  algo que el cambio no acepta, el boton da error; si el cambio acepta algo que
+  la lista no muestra, se puede mover un encuentro ajeno a ciegas.
+  - La regla: un turno con `serieId` es suyo **solo si esa serie es suya**; uno
+    sin serie es suyo por mail o por pedido. Antes bastaba el mail, asi que con
+    dos personas anotadas con la misma direccion -- lo que pasa con las series
+    cargadas a mano para probar, varias con el mail de Seba -- el enlace de Mel
+    mostraba "tu proximo encuentro" con **el horario de Ignacio**, y `miCambio`
+    la dejaba moverselo.
+  - La consulta por mail se hace igual y trae de todo: el filtro es el que
+    decide, no la consulta. Y un turno **sin** serie sigue siendo suyo por
+    mail, que es lo que hace que quien viene cada quince dias y ademas saco una
+    consulta vea las dos cosas en un solo lugar.
+  - Con la cuenta de la escuela `seriesDePersona` trae todas las series de ese
+    mail, asi que el filtro no quita nada: son todas suyas.
+- **Ojo con poner el mismo mail en dos series.** Mas alla del aislamiento, los
+  avisos y las invitaciones de las dos van a esa direccion. Hoy Belen, Ignacio
+  y Mel tienen el de Seba, que fue como se probo el sistema.
 - **El enlace personal mueve cualquier encuentro futuro, no solo el
   proximo.** Cada fila de "Los que vienen despues" trae su propio boton y
   `abrirCambio(turno)` recibe cual. Antes habia un solo boton y para correr el

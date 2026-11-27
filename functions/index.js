@@ -8561,6 +8561,25 @@ async function seriesDePersona(persona) {
 // deployado antes que el codigo que lo usa.
 // -------------------------------------------------------
 
+// Si un turno es de esta persona. Se pregunta en los dos lugares que miran
+// turnos ajenos -- la lista del enlace y el turno que se quiere mover -- y
+// tiene que ser la MISMA respuesta en los dos: si la lista muestra algo que el
+// cambio no acepta, el boton da error; si el cambio acepta algo que la lista
+// no muestra, se puede mover un encuentro ajeno a ciegas.
+//
+// El mail solo no alcanza, y ahi estaba el agujero. Un turno que pertenece a
+// OTRA serie no es suyo aunque comparta la direccion: con dos personas
+// anotadas con el mismo mail -- que es lo que pasa con las series cargadas a
+// mano para probar -- el enlace de una mostraba "tu proximo encuentro" con el
+// horario de la otra, y `miCambio` la dejaba moverlo. Un turno SIN serie
+// (una consulta suelta que compro) si es suyo por mail: es como alguien que
+// viene cada quince dias y ademas saco una consulta ve las dos cosas juntas.
+function esTurnoDe(t, persona, idsDeSusSeries) {
+  if (t.serieId) return idsDeSusSeries.has(t.serieId);
+  if (persona.pedidoId && t.pedidoId === persona.pedidoId) return true;
+  return Boolean(persona.email) && (t.email || '').toLowerCase().trim() === persona.email;
+}
+
 // Los turnos vigentes de una persona, de aca en adelante. Se mira por mail y
 // no por pedido: alguien que tuvo una consulta y ademas esta en el
 // sesiones quincenales tiene que ver las dos cosas en un solo lugar.
@@ -8573,12 +8592,16 @@ async function turnosDePersona(persona, series) {
   // de la manana seguia ocupando el lugar del proximo media tarde.
   const ahoraMs = Date.now();
   const porId = new Map();
+  const idsDeSusSeries = new Set(series.map(s => s.id));
 
   const guardar = snap => {
     for (const d of snap.docs) {
       const t = d.data();
       if (t.estado !== 'reservado') continue;
       if (t.fin.toMillis() < ahoraMs) continue;
+      // La consulta por mail trae los turnos de cualquier serie que tenga esa
+      // direccion escrita, tambien las que no son de esta persona.
+      if (!esTurnoDe(t, persona, idsDeSusSeries)) continue;
       porId.set(d.id, { id: d.id, ...t });
     }
   };
@@ -9138,10 +9161,7 @@ async function turnoDePersona(turnoId, persona, series) {
   if (!snap.exists) return null;
   const t = snap.data();
   if (t.estado !== 'reservado') return null;
-  const mismoMail = persona.email && (t.email || '').toLowerCase().trim() === persona.email;
-  const miSerie = t.serieId && series.some(s => s.id === t.serieId);
-  const miPedido = persona.pedidoId && t.pedidoId === persona.pedidoId;
-  if (!mismoMail && !miSerie && !miPedido) return null;
+  if (!esTurnoDe(t, persona, new Set(series.map(x => x.id)))) return null;
   return { id: snap.id, ...t };
 }
 
