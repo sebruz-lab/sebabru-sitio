@@ -2,6 +2,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------------------------------------------------------------
+    // QUIEN ADMINISTRA. Un solo lugar, y con el mail verificado.
+    //
+    // Dos cosas cambiaron el 28/11/2026, y conviene entender las dos.
+    //
+    // 1) Antes esta lista estaba escrita DIECIOCHO veces en este archivo.
+    //    Sacar a alguien era acertar dieciocho veces. Ahora es una.
+    //
+    // 2) Antes no se miraba email_verified, en ningun lado del proyecto.
+    //    Eso importa porque el sitio crea cuentas con createUserWith-
+    //    EmailAndPassword y nunca mandaba el mail de verificacion: o sea
+    //    que cualquiera podia registrarse con una direccion que no es suya
+    //    y el token que salia de ahi traia ese mail igual. Si alguna de las
+    //    tres direcciones de aca no tuviera cuenta, registrarla seria
+    //    quedar admin de todo: el padron con los datos de nacimiento y la
+    //    plata, Finanzas, la agenda de consultantes y los titulos con DNI.
+    //
+    //    Hoy las tres tienen cuenta, asi que con "una cuenta por direccion"
+    //    activado en la consola (el valor de fabrica) no era explotable. Eso
+    //    es una casualidad afortunada, no un control: un cambio en una
+    //    pantalla de la consola alcanzaba para abrirlo. Ahora la condicion
+    //    esta escrita.
+    //
+    // Quien entra con Google ya trae email_verified en true, asi que esto no
+    // le pide nada. A quien entra con mail y contrasena le pide verificar,
+    // que es exactamente lo que tiene que pasar.
+    //
+    // OJO: esto NO se usa para la rama de cada persona sobre su propio
+    // documento. Ahi seguir pidiendo verificacion romperia el registro y la
+    // entrada a las aulas de todo el mundo (al crear la cuenta el mail
+    // todavia no esta verificado). Lo que cubre ese caso es que la rama
+    // propia no puede darse cursos, y que los canjes -- donde esta la plata
+    // -- piden la verificacion del lado del servidor, en las callables.
+    function esAdmin() {
+      return request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email in [
+          'sebruz@gmail.com',
+          'espaciointeriorastrologia@gmail.com',
+          'info@sebabru.com'
+        ];
+    }
+
     match /invitaciones/{token} {
       // Consultar una invitación puntual (token ya conocido) sigue siendo
       // pública: lo necesita la página de canje sin que la persona esté
@@ -9,7 +52,7 @@ service cloud.firestore {
       // todos los tokens/emails invitados) queda restringido a admins.
       allow get: if true;
       allow list: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
       // Solo admins escriben desde un cliente. Quien canjea una invitación no
       // escribe nada acá: lo hace la Cloud Function activarInvitacion con el
       // Admin SDK, que no pasa por estas reglas.
@@ -22,29 +65,50 @@ service cloud.firestore {
       // siempre. Con eso se podía reescribir emailDestino y cursoId de una
       // invitación ajena y después canjearla. Se quitó el 2026-11-13.
       allow create, update, delete: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /usuarios/{email} {
       allow read: if request.auth != null && (
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'] ||
+        esAdmin() ||
         request.auth.token.email == email
       );
 
       // Un usuario puede crear su propio documento al registrarse, pero sin
       // poder otorgarse cursos y con un nombre validado (string, <=100 chars).
+      //
+      // El hasOnly y el tope de cohorte son del 28/11/2026, y lo que cierran
+      // es una inconsistencia: el update de la rama propia ya estaba acotado
+      // a ['nombre','novedades'], pero el create no tenia ninguna lista, asi
+      // que al registrarse se podia escribir cualquier campo con cualquier
+      // valor -- un 'cohorte' de un megabyte, o campos inventados que nadie
+      // vuelve a mirar. No habia escalada (cursos == [] siempre estuvo), era
+      // un documento de forma libre y consumo gratis.
+      //
+      // La lista es la que escriben los tres lugares que dan de alta:
+      // escuela.js (con Google y con contrasena) y canjear/index.html.
       allow create: if request.auth != null && (
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'] ||
+        esAdmin() ||
         (
           request.auth.token.email == email &&
+          request.resource.data.keys().hasOnly(
+            ['cursos', 'nombre', 'cohorte', 'novedades', 'fechaRegistro']) &&
           request.resource.data.cursos == [] &&
           request.resource.data.cohorte is string &&
-          (!('nombre' in request.resource.data) || (
+          request.resource.data.cohorte.size() <= 20 &&
+          // El null es a proposito: escuela.js escribe
+          // nombre: user.displayName, y una cuenta de Google sin nombre para
+          // mostrar manda null. Con la condicion vieja esa persona no podia
+          // crear su documento y el registro le fallaba sin explicacion.
+          (!('nombre' in request.resource.data) ||
+            request.resource.data.nombre == null || (
             request.resource.data.nombre is string &&
             request.resource.data.nombre.size() <= 100
           )) &&
           (!('novedades' in request.resource.data) ||
-            request.resource.data.novedades is bool)
+            request.resource.data.novedades is bool) &&
+          (!('fechaRegistro' in request.resource.data) ||
+            request.resource.data.fechaRegistro is timestamp)
         )
       );
 
@@ -54,7 +118,7 @@ service cloud.firestore {
       // correo, que esta en el modal de ingreso), nunca cursos/cohorte ni
       // el documento de otra persona.
       allow update: if request.auth != null && (
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'] ||
+        esAdmin() ||
         (
           request.auth.token.email == email &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'novedades']) &&
@@ -68,7 +132,7 @@ service cloud.firestore {
       );
 
       allow delete: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /pagos_procesados/{id} {
@@ -160,9 +224,9 @@ service cloud.firestore {
       // restringido a admins.
       allow get: if true;
       allow list: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
       allow write: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /cursos/{id} {
@@ -170,11 +234,11 @@ service cloud.firestore {
       // de videos. La clase gratis (primer video) se sirve aparte via la
       // Cloud Function obtenerMuestra, que no requiere login.
       allow read: if request.auth != null && (
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'] ||
+        esAdmin() ||
         (id in get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.cursos)
       );
       allow write: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /enlaces/{token} {
@@ -182,7 +246,7 @@ service cloud.firestore {
       // La Cloud Function activarEnlace (Admin SDK) los lee e incrementa usos
       // sin pasar por estas reglas.
       allow read, write: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /regalos/{codigo} {
@@ -197,7 +261,7 @@ service cloud.firestore {
       // las Cloud Functions (Admin SDK); lo leen lxs admins en /escuela/admin.
       allow write: if false;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /facturas/{id} {
@@ -206,7 +270,7 @@ service cloud.firestore {
       // Un comprobante emitido no se borra: se anula con nota de credito.
       allow write: if false;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /facturacion_estado/{id} {
@@ -221,12 +285,12 @@ service cloud.firestore {
     match /tucarta_textos/{id} {
       allow read: if true;
       allow write: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
     match /tucarta_config/{id} {
       allow read: if true;
       allow write: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     // Perfil de cada cuenta en la calculadora: aceptacion del aviso de
@@ -235,7 +299,7 @@ service cloud.firestore {
     match /tucarta_usuarios/{uid} {
       allow read: if request.auth != null && (
         request.auth.uid == uid ||
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com']
+        esAdmin()
       );
       allow create, update: if request.auth != null && request.auth.uid == uid &&
         request.resource.data.keys().hasOnly(['email', 'novedades', 'aceptado']) &&
@@ -280,7 +344,7 @@ service cloud.firestore {
       // no pasa por estas reglas). Ningun cliente deberia escribir directo.
       allow write: if false;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     match /brevo_contactos/{id} {
@@ -360,7 +424,7 @@ service cloud.firestore {
       // el panel si hay que mostrar de donde salio una direccion.
       allow write: if false;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
+        esAdmin();
     }
 
     // La agenda de las consultas. Las cuatro colecciones estan cerradas al

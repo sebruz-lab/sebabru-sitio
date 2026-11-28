@@ -555,8 +555,25 @@ function pintarFicha() {
     a.href = t.meet;
     a.textContent = 'entrar a la reunión';
     donde.appendChild(a);
+  } else if (t.zoom && t.zoom.url) {
+    // El Zoom lo manda el servidor junto con el turno reservado. Antes el
+    // enlace con el passcode estaba escrito aca, y este archivo lo sirve
+    // Hosting a cualquiera sin sesion (auditoría del 28/11/2026).
+    donde.textContent = 'El encuentro es por Zoom: ';
+    const a = document.createElement('a');
+    a.href = t.zoom.url;
+    a.textContent = 'entrar a la reunión';
+    donde.appendChild(a);
+    const resto = document.createElement('span');
+    resto.textContent = ` (ID ${t.zoom.id}, passcode ${t.zoom.pass}).`;
+    donde.appendChild(resto);
   } else {
-    donde.innerHTML = 'El encuentro es por Zoom: <a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">entrar a la reunión</a> (ID 802 086 1967, passcode paso).';
+    // Sin dato del servidor no se inventa un enlace.
+    donde.textContent = 'Te escribimos con el enlace del encuentro. Si no te llega, avisale a Clari: ';
+    const a = document.createElement('a');
+    a.href = 'https://wa.me/5493544559877';
+    a.textContent = '+54 9 3544 559877';
+    donde.appendChild(a);
   }
   mostrarPaso('ag-confirmado');
 }

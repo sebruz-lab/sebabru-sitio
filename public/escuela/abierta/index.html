@@ -1077,6 +1077,7 @@
         import { app, auth, db } from '../firebase.js';
         import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { entrarConGoogle } from '/escuela/google.js?v=2';
+        import { pedirVerificacion, mensajeDeErrorDeRegistro } from '/escuela/verificar.js?v=1';
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -1173,8 +1174,14 @@
         });
         document.getElementById('registro-form').addEventListener('submit', async e => {
             e.preventDefault();
-            try { await createUserWithEmailAndPassword(auth, document.getElementById('email-registro').value, document.getElementById('pass-registro').value); cerrarModal(); }
-            catch (err) { mostrarError('No se pudo crear la cuenta. ' + err.message); }
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, document.getElementById('email-registro').value, document.getElementById('pass-registro').value);
+                await pedirVerificacion(cred.user);
+                cerrarModal();
+            }
+            // Generico a proposito: el texto crudo de Firebase confirma si
+            // una direccion ajena ya tiene cuenta (auditoria del 28/11/2026).
+            catch (err) { mostrarError(mensajeDeErrorDeRegistro(err?.code)); }
         });
         document.getElementById('btn-google').addEventListener('click', async () => {
             try { await entrarConGoogle(auth); cerrarModal(); }

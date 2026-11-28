@@ -282,7 +282,27 @@ function pintarDonde(caja, turno) {
     caja.appendChild(a);
     return;
   }
-  caja.innerHTML = 'El encuentro es por Zoom: <a href="https://us02web.zoom.us/j/8020861967?pwd=Gl9uLBofVZd0XmzTPhAHnQDc8RtnsE.1">entrar a la reunión</a> (ID 802 086 1967, passcode paso).';
+  // El Zoom lo manda el servidor en la respuesta de miAgenda, que pide el
+  // token del enlace o un ID token. Antes el enlace con el passcode estaba
+  // escrito aca, y este archivo lo sirve Hosting a cualquiera: el ID de la
+  // sala y su clave se bajaban con un curl (auditoria del 28/11/2026).
+  if (turno.zoom && turno.zoom.url) {
+    caja.textContent = 'El encuentro es por Zoom: ';
+    const a = document.createElement('a');
+    a.href = turno.zoom.url;
+    a.textContent = 'entrar a la reunión';
+    caja.appendChild(a);
+    const resto = document.createElement('span');
+    resto.textContent = ` (ID ${turno.zoom.id}, passcode ${turno.zoom.pass}).`;
+    caja.appendChild(resto);
+    return;
+  }
+  // Sin dato del servidor no se inventa un enlace: se manda a preguntar.
+  caja.textContent = 'Te escribimos con el enlace del encuentro. Si no te llegó, avisale a Clari: ';
+  const a = document.createElement('a');
+  a.href = 'https://wa.me/5493544559877';
+  a.textContent = '+54 9 3544 559877';
+  caja.appendChild(a);
 }
 
 // -------------------------------------------------------

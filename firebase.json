@@ -19,7 +19,9 @@
       "preview-bloques.html",
       "prueba-contenido.html",
       "escuela/abierta/test-descripcion.html",
-      "lilith/prototipo-3d.html"
+      "lilith/prototipo-3d.html",
+      "**/*.log",
+      "img/*.epub"
     ],
     "headers": [
       {
@@ -35,7 +37,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "frame-ancestors 'self';"
+            "value": "object-src 'none'; base-uri 'self'; form-action 'self' https://docs.google.com; frame-ancestors 'self';"
           },
           {
             "key": "Referrer-Policy",
@@ -78,7 +80,16 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "public, max-age=2592000"
+            "value": "public, max-age=3600, s-maxage=2592000, stale-while-revalidate=86400"
+          }
+        ]
+      },
+      {
+        "source": "/cartas/assets/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=2592000, immutable"
           }
         ]
       },

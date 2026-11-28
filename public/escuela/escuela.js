@@ -9,6 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { entrarConGoogle } from './google.js?v=2';
+import { pedirVerificacion } from './verificar.js?v=1';
 
 // ======================================================
 // EL CATALOGO DEL MENU DE LA ESCUELA
@@ -621,14 +622,19 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerText = "CREANDO CUENTA...";
 
             try {
-                await createUserWithEmailAndPassword(auth, email, pass);
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
                 await setDoc(doc(db, "usuarios", email), {
                     cursos: [],
                     cohorte: "2026",
                     novedades: quiereNovedades(),
                 });
-                mostrarAviso("¡Cuenta creada! Verificá si tenés acceso al curso, sino pedile a Seba o a Clari.");
-                setTimeout(() => window.location.reload(), 1800);
+                // El mail de confirmacion de la direccion. No hace falta para
+                // entrar a un curso que ya se tiene: hace falta para canjear
+                // un codigo, que es donde alguien podria registrarse con una
+                // direccion ajena (auditoria del 28/11/2026).
+                await pedirVerificacion(cred.user);
+                mostrarAviso("¡Cuenta creada! Te mandamos un mail para confirmar tu dirección. Verificá si tenés acceso al curso, sino pedile a Seba o a Clari.");
+                setTimeout(() => window.location.reload(), 2600);
             } catch (error) {
                 btn.innerText = "CREAR CUENTA";
                 if(errorMsg) {

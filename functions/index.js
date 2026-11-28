@@ -83,6 +83,43 @@ const PRECIOS = {
   consulta:  { ars: 135000, arsTransferencia: 120000, usd: 90 },
 };
 
+// Como se llama cada cosa, del lado del servidor.
+//
+// Agregada el 28/11/2026. Hasta ese dia el nombre lo mandaba el NAVEGADOR en
+// cursoNombre, y con eso viajaba al titulo del item en el checkout de Mercado
+// Pago, a la descripcion de PayPal, al documento de ordenes_paypal y al
+// registro de la compra que se ve en el panel de Finanzas. Estaba acotado a
+// 200 caracteres y sin saltos de linea, asi que no era inyeccion -- pero
+// quien compraba elegia el texto, y podia dejar escrito en el panel algo como
+// "Formacion completa - PAGADO $500.000".
+//
+// El precio ya salia del servidor desde siempre. Esto es lo mismo para el
+// nombre: el cliente manda el cursoId, que es un enum validado contra
+// PRECIOS, y el nombre sale de aca.
+const CURSO_NOMBRES = {
+  luna:      'La Luna en la carta natal',
+  identidad: 'Tu identidad en el cielo',
+  tarot:     'Tarot — Mazo Rider-Waite',
+  signos:    'Signos',
+  casas:     'Casas y ascendentes',
+  pluton26:  'Plutón y los Nodos Lunares',
+  lilith:    'Luna Negra · Lilith en la carta natal',
+  linaje:    'Linaje, clan y genealogía a través de las casas',
+  lunas26:   'Las lunaciones de 2026',
+  quiron:    'Quirón',
+  'tu-identidad-en-el-cielo': 'Tu identidad en el cielo',
+  consulta:  'Consulta astrológica',
+};
+
+// El nombre del servidor si existe; si no, lo que mando el navegador, ya
+// saneado. El respaldo esta para que agregar un curso nuevo no rompa su
+// checkout por olvidarse una linea -- pero deja dicho en el log que falta.
+function nombreDeCurso(cursoId, nombreDelCliente) {
+  if (CURSO_NOMBRES[cursoId]) return CURSO_NOMBRES[cursoId];
+  functions.logger.warn('Falta el nombre de este curso en CURSO_NOMBRES', { cursoId });
+  return nombreDelCliente;
+}
+
 // Lo que se paga por aca y no es un curso (una consulta): no hay acceso que
 // dar ni codigo que generar, solo avisar que el pago llego. mpWebhook y
 // exitoPaypal cortan temprano con estos, y el checkout vuelve a su pagina.
@@ -300,9 +337,76 @@ function setCors(req, res, methods) {
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
+// De donde sale la IP, y es el punto donde se cae todo el rate limiting si
+// se elige mal (auditoria del 28/11/2026).
+//
+// Hasta esa fecha esto tomaba x-forwarded-for[0], o sea el PRIMER elemento.
+// El problema: el balanceador de Google no reemplaza ese header, le AGREGA
+// la IP real al final. Si el pedido llega sin nada, el header queda
+// "<ip real>, <balanceador>" y el primero sirve. Pero si quien pega manda su
+// propio x-forwarded-for, queda "<lo que invento>, <ip real>, <balanceador>"
+// y el primero es texto elegido por esa persona. Con un valor distinto en
+// cada pedido, cada uno estrenaba contador y los ~25 topes del sitio no
+// frenaban nada: ni los 300 mails/dia de Brevo ni la cuota de Gmail.
+//
+// Lo que no se puede falsificar es la posicion contando DESDE EL FINAL: el
+// ultimo elemento lo pone el balanceador y el penultimo es la IP que
+// realmente abrio la conexion. Se prefiere req.ip cuando existe, que es lo
+// que Express ya resolvio con trust proxy, y el penultimo del header es el
+// respaldo.
+function ipDelPedido(req) {
+  const cadena = req.headers['x-forwarded-for'];
+  if (typeof cadena === 'string' && cadena.includes(',')) {
+    const partes = cadena.split(',').map(p => p.trim()).filter(Boolean);
+    if (partes.length >= 2) return partes[partes.length - 2];
+  }
+  // Un solo valor: o lo puso el balanceador (y es la IP real) o no hay
+  // balanceador. En los dos casos req.ip es igual de bueno o mejor.
+  return req.ip || (typeof cadena === 'string' ? cadena.trim() : '') || 'unknown';
+}
+
 function claveRateLimit(nombreFuncion, req) {
-  const ipCruda = (req.headers['x-forwarded-for'] || req.ip || 'unknown').split(',')[0].trim();
+  const ipCruda = ipDelPedido(req);
   return `${nombreFuncion}_${ipCruda}`.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 200);
+}
+
+// Como se nombra un secreto en un log sin ponerlo en el log.
+//
+// Un token de invitacion, un codigo de regalo o el token de un enlace son
+// credenciales: quien los tiene, entra. Hasta la auditoria del 28/11/2026
+// cuatro lineas los escribian enteros en Cloud Logging, donde los lee
+// cualquiera con acceso al proyecto y donde quedan por la retencion que
+// tenga configurada el log, no por la vida del token. Lo que hace falta de
+// un log es poder seguir un caso y cruzar dos lineas; para eso alcanza una
+// huella estable.
+function huella(valor) {
+  if (!valor) return '';
+  return crypto.createHash('sha256').update(String(valor)).digest('hex').slice(0, 10);
+}
+
+// El mail verificado, para los canjes. Agregado el 28/11/2026.
+//
+// El agujero era este: activarInvitacion, canjearRegalo, reclamarPago y
+// activarEnlace identifican a quien canjea por context.auth.token.email, y
+// la invitacion guarda a quien va dirigida en emailDestino. Como el sitio
+// crea cuentas con contrasena y nunca mandaba el mail de verificacion,
+// cualquiera podia registrarse con la direccion a la que se mando una
+// invitacion -- antes que su dueña -- y quedarse con el curso que pago otra
+// persona. En el padron habia 17 invitaciones sin canjear el dia de la
+// auditoria.
+//
+// No se aplica a registrarInteres: ahi no hay nada de valor para robar, y
+// rechazar a alguien que deja su interes es perder un dato por nada (ver el
+// criterio de "nunca perder un dato que alguien dejo").
+function exigirMailVerificado(context) {
+  if (context.auth?.token?.email_verified !== true) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Antes de usar este código tenés que confirmar tu dirección de correo. '
+      + 'Te mandamos un mail con un enlace: abrilo y volvé a intentar. '
+      + 'Si entrás con Google, no hace falta nada de esto.'
+    );
+  }
 }
 
 // Limite simple por IP en una ventana fija, guardado en Firestore.
@@ -373,19 +477,17 @@ async function checkRateLimit(nombreFuncion, req, maxRequests, opciones = {}) {
 // todavia, no bloquea nada (se loguea un aviso) -- el estado del pago se
 // reconfirma igual contra la API de MP mas abajo en mpWebhook, asi que esto
 // es una capa extra, no el unico control.
+// Cuanto puede tardar en llegar un webhook de MP antes de darlo por viejo.
+// Cinco minutos es holgado para un reintento legitimo de MP y corto para que
+// una firma capturada no sirva para siempre.
+const MP_FIRMA_VENTANA_MS = 5 * 60 * 1000;
+
 function verificarFirmaMP(req, dataId) {
+  // Sin secreto no se verifica nada, y eso lo decide mpWebhook antes de
+  // llamar aca (para poder esperar la custodia antes de contestar). Si
+  // alguien llama a esta funcion sin secreto cargado, la respuesta es no.
   const secreto = process.env.MP_WEBHOOK_SECRET;
-  if (!secreto) {
-    // A proposito NO se bloquea: si este webhook rechazara todo, ninguna
-    // compra activaria el acceso. Pero se loguea como error, no como aviso,
-    // para que aparezca en las alertas: mientras el secreto no este cargado
-    // el unico control real es la reconsulta del pago contra la API de MP,
-    // mas abajo en mpWebhook. Cargar el secreto desde el panel de MP
-    // (Developers -> Tu integracion -> Webhooks) alcanza para que esta
-    // verificacion empiece a aplicarse sola.
-    functions.logger.error('MP_WEBHOOK_SECRET no configurado: el webhook de Mercado Pago esta aceptando pedidos sin verificar la firma.');
-    return true;
-  }
+  if (!secreto) return false;
 
   const firmaHeader = req.headers['x-signature'] || '';
   const requestId = req.headers['x-request-id'] || '';
@@ -394,6 +496,17 @@ function verificarFirmaMP(req, dataId) {
   );
   const { ts, v1 } = partes;
   if (!ts || !v1) return false;
+
+  // Anti-replay. El ts entra en el manifest, asi que esta firmado y no se
+  // puede mover sin romper la firma -- pero hasta la auditoria del
+  // 28/11/2026 nadie lo comparaba con el reloj, y una firma valida
+  // capturada servia para siempre. Lo que acota el dano es la idempotencia
+  // de pagos_procesados; esto cierra la puerta antes.
+  const tsMs = Number(ts) > 1e12 ? Number(ts) : Number(ts) * 1000;
+  if (!Number.isFinite(tsMs) || Math.abs(Date.now() - tsMs) > MP_FIRMA_VENTANA_MS) {
+    functions.logger.warn('mpWebhook: firma fuera de la ventana de tiempo', { ip: ipHasheada(req) });
+    return false;
+  }
 
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
   const esperado = crypto.createHmac('sha256', secreto).update(manifest).digest('hex');
@@ -683,6 +796,25 @@ async function anotarEnBitacora({ endpoint, motivo, gravedad, nombre, email, dat
     return false;
   }
 
+  // El respaldo existe para que la bitacora funcione el primer dia, no para
+  // vivir en el. La auditoria del 28/11/2026 encontro que
+  // SHEETS_SPREADSHEET_BITACORA nunca se habia cargado, asi que todas las
+  // custodias desde el 25/11 fueron a parar a la planilla GENERAL, que es la
+  // que tiene mas gente adentro -- y con el payload completo, o sea DNI,
+  // direcciones y datos de nacimiento, para siempre, porque una planilla no
+  // vence. Es justo lo contrario de lo que dice el punto 1 de arriba.
+  //
+  // Ahora lo avisa en cada escritura en vez de quedarse callado. Si molesta
+  // en los logs, la forma de que se calle es cargar la variable, que es
+  // exactamente lo que tiene que pasar.
+  if (!process.env.SHEETS_SPREADSHEET_BITACORA) {
+    functions.logger.error(
+      'SHEETS_SPREADSHEET_BITACORA no esta cargada: la bitacora, con el payload '
+      + 'completo (DNI, direcciones, datos de nacimiento), se esta escribiendo en '
+      + 'la planilla general y no vence nunca. Cargar la variable en functions/.env.'
+    );
+  }
+
   const sheets = getSheetsClient();
   const columnas = await asegurarHojaInscripcion(
     sheets, spreadsheetId, BITACORA_HOJA, BITACORA_COLUMNAS, true,
@@ -919,6 +1051,13 @@ exports.obtenerMuestra = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  // Era el unico endpoint publico sin tope (auditoria del 28/11/2026), y
+  // cada llamada es una lectura de Firestore. 60 cada 10 minutos es holgado
+  // para alguien mirando la clase gratis y corto para un bucle.
+  if (!(await checkRateLimit('obtenerMuestra', req, 60))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión. Probá de nuevo en unos minutos.' });
+  }
+
   const cursoId = String(req.query.curso || '').trim();
   if (!cursoId || !CURSO_URLS[cursoId]) {
     return res.status(400).json({ error: 'Curso inválido.' });
@@ -1061,6 +1200,7 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
   }
   ensureInit();
+  exigirMailVerificado(context);
 
   const { token } = data;
   if (!token || typeof token !== 'string') {
@@ -1117,7 +1257,7 @@ exports.activarInvitacion = functions.https.onCall(async (data, context) => {
     { merge: true }
   );
 
-  functions.logger.info('Invitación canjeada', { userEmail, cursoId, token });
+  functions.logger.info('Invitación canjeada', { userEmail, cursoId, token: huella(token) });
   return { cursoId, cursoUrl: inv.cursoUrl || CURSO_URLS[cursoId] || '/escuela/abierta/' };
 });
 
@@ -1129,6 +1269,7 @@ exports.canjearRegalo = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
   }
   ensureInit();
+  exigirMailVerificado(context);
 
   const userEmail = (context.auth.token.email || '').toLowerCase().trim();
   if (!userEmail) {
@@ -1173,7 +1314,7 @@ exports.canjearRegalo = functions.https.onCall(async (data, context) => {
     await userRef.update({ cursos: admin.firestore.FieldValue.arrayUnion(cursoId) });
   }
 
-  functions.logger.info('Regalo canjeado', { userEmail, cursoId, codigo });
+  functions.logger.info('Regalo canjeado', { userEmail, cursoId, codigo: huella(codigo) });
   return {
     cursoId,
     cursoNombre: regaloData.cursoNombre,
@@ -1192,6 +1333,7 @@ exports.reclamarPago = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
   }
   ensureInit();
+  exigirMailVerificado(context);
 
   const callerEmail = (context.auth.token.email || '').toLowerCase().trim();
   if (!callerEmail) {
@@ -1301,7 +1443,10 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
   }
 
   const { cursoId, codigoDescuento } = req.body.data || {};
-  const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
+  // El nombre lo decide el servidor a partir del cursoId, igual que el
+  // precio. Lo que manda el navegador queda solo como respaldo para un
+  // curso que todavia no este en CURSO_NOMBRES (ver ahi arriba).
+  const cursoNombre = nombreDeCurso(cursoId, sanitizeTexto(req.body.data?.cursoNombre, 200));
   const regalo = req.body.data?.regalo === true;
   const origen = sanitizeOrigen(req.body.data?.origen);
 
@@ -1344,6 +1489,12 @@ exports.crearPago = functions.https.onRequest(async (req, res) => {
           user_email: userEmail || null,
           codigo_descuento: codigoData ? codigoDescuento.toUpperCase() : null,
           regalo: regalo ? 'true' : 'false',
+          // Cuanto se esperaba cobrar, para que el webhook pueda comparar
+          // (auditoria del 28/11/2026). Antes nadie comparaba el
+          // transaction_amount con nada, asi que si el supuesto de que el
+          // monto lo fija el servidor dejara de valer, no habria forma de
+          // enterarse.
+          precio_esperado: String(precio),
           ...origenAMetadata(origen),
         }
       }
@@ -1370,19 +1521,50 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
   ensureInit();
 
   if (!(await checkRateLimit('mpWebhook', req, 60))) {
-    functions.logger.warn('mpWebhook: rate limit alcanzado', { ip: req.headers['x-forwarded-for'] || req.ip });
+    // Hasheada, igual que en el resto: el header crudo lo elige quien pega,
+    // asi que ademas de ser un dato personal era texto ajeno en el log.
+    functions.logger.warn('mpWebhook: rate limit alcanzado', { ip: ipHasheada(req) });
     return res.status(429).send('Too Many Requests');
   }
 
   const { type, data } = req.body;
-  functions.logger.info('Webhook recibido', { type, data });
 
   if (type !== 'payment' || !data?.id) return res.status(200).send('OK');
+
+  // FALLA CERRADA desde la auditoria del 28/11/2026. Antes, sin el secreto
+  // cargado, verificarFirmaMP devolvia true y el webhook aceptaba cualquier
+  // pedido. El argumento era que rechazar todo dejaria sin acceso a quien
+  // compra, y no se sostiene por dos razones: ese ya no es el unico camino
+  // (quien vuelve al sitio activa por verificarPagoMP, y lo que no se active
+  // queda custodiado y avisado por mail), y el aviso era un logger.error, que
+  // en este proyecto no le avisa a nadie porque no hay ninguna alerta
+  // configurada sobre los logs. O sea que el modo degradado podia durar meses
+  // sin que nadie se enterara: fue exactamente lo que paso con el webhook
+  // hasta el 13/11/2026.
+  if (!process.env.MP_WEBHOOK_SECRET) {
+    await custodiar({
+      endpoint: 'mpWebhook',
+      motivo: 'mp_webhook_sin_secreto',
+      gravedad: 'grave',
+      avisarSiempre: true,
+      datos: { pagoId: String(data.id) },
+      req,
+    });
+    // 503 y no 401: el pedido puede ser legitimo y el problema es nuestro.
+    // Con un 5xx Mercado Pago reintenta, asi que el aviso no se pierde si el
+    // secreto se carga en las proximas horas.
+    return res.status(503).send('Webhook sin secreto de firma configurado');
+  }
 
   if (!verificarFirmaMP(req, data.id)) {
     functions.logger.error('mpWebhook: firma invalida', { id: data.id });
     return res.status(401).send('Firma invalida');
   }
+
+  // El body se loguea DESPUES de validar la firma. Antes era la primera
+  // linea del endpoint, asi que cualquiera podia escribir lo que quisiera en
+  // Cloud Logging con un POST sin firmar.
+  functions.logger.info('Webhook recibido', { type, data });
 
   try {
     const paymentClient = pagoMP();
@@ -1394,8 +1576,29 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       return res.status(200).send('OK');
     }
 
-    const { curso_id, curso_nombre, user_email, codigo_descuento, regalo } = payment.metadata || {};
+    const { curso_id, curso_nombre, user_email, codigo_descuento, regalo, precio_esperado } = payment.metadata || {};
     const esRegalo = regalo === 'true';
+
+    // Reconciliar el importe. Se avisa y se sigue: el acceso se entrega
+    // igual, porque cortarlo seria dejar sin curso a alguien que pago.
+    // Las preferencias creadas antes del 28/11/2026 no traen
+    // precio_esperado, asi que esas no se comparan.
+    if (precio_esperado && payment.transaction_amount != null
+        && Math.abs(Number(payment.transaction_amount) - Number(precio_esperado)) > 1) {
+      await custodiar({
+        endpoint: 'mpWebhook',
+        motivo: 'importe_distinto_al_esperado',
+        gravedad: 'grave',
+        avisarSiempre: true,
+        datos: {
+          pagoId: String(data.id),
+          cursoId: curso_id || null,
+          esperado: String(precio_esperado),
+          cobrado: `${payment.transaction_amount} ${payment.currency_id || 'ARS'}`,
+        },
+        req,
+      });
+    }
     const payerEmail = payment.payer?.email || null;
     // Compra anonima: no hay cuenta atada al pago -> se entrega por codigo.
     const esAnonima = !user_email;
@@ -1432,7 +1635,9 @@ exports.mpWebhook = functions.https.onRequest(async (req, res) => {
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
 
-    const nombreCurso = curso_nombre || curso_id;
+    // El nombre del servidor gana. La metadata de una preferencia creada
+    // antes del 28/11/2026 todavia trae el nombre que mando el navegador.
+    const nombreCurso = nombreDeCurso(curso_id, curso_nombre || curso_id);
 
     if (PRODUCTOS_SIN_ACCESO.has(curso_id)) {
       await avisarPagoSinAcceso(transporter, {
@@ -1745,7 +1950,10 @@ exports.crearPagoPaypal = functions.https.onRequest(async (req, res) => {
   }
 
   const { cursoId, codigoDescuento } = req.body.data || {};
-  const cursoNombre = sanitizeTexto(req.body.data?.cursoNombre, 200);
+  // El nombre lo decide el servidor a partir del cursoId, igual que el
+  // precio. Lo que manda el navegador queda solo como respaldo para un
+  // curso que todavia no este en CURSO_NOMBRES (ver ahi arriba).
+  const cursoNombre = nombreDeCurso(cursoId, sanitizeTexto(req.body.data?.cursoNombre, 200));
   const regalo = req.body.data?.regalo === true;
 
   const preciosBase = PRECIOS[cursoId];
@@ -2040,8 +2248,22 @@ exports.registrarTransferencia = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
-  if (!(await checkRateLimit('registrarTransferencia', req, 10))) {
+  // Baja de 10 a 5 por la auditoria del 28/11/2026. Es escritura publica sin
+  // captcha ni honeypot, y no se le pueden poner: no hay formulario, es un
+  // boton que avisa "ya transferi". Lo que acota el dano es que la fila nace
+  // con estado "transferencia avisada (a confirmar)" y que Finanzas cuenta lo
+  // no confirmado aparte, asi que inflar esto no inventa un ingreso: ensucia
+  // el panel. Cinco por conexion cada diez minutos es mas que suficiente para
+  // alguien comprando, y con la clave de IP arreglada el tope ahora sirve.
+  if (!(await checkRateLimit('registrarTransferencia', req, 5))) {
     return res.status(429).json({ error: 'Demasiados intentos.' });
+  }
+
+  // Un bot que completa todo manda el campo trampa. Una persona no lo ve.
+  if (sanitizeTexto(req.body?.hp, 100)) {
+    // Se contesta ok para no decirle que lo descubrimos, y no se custodia:
+    // un bot no es un dato que alguien dejo.
+    return res.status(200).json({ ok: true });
   }
 
   const cursoId = sanitizeTexto(req.body?.cursoId, 50);
@@ -2060,7 +2282,9 @@ exports.registrarTransferencia = functions.https.onRequest(async (req, res) => {
   await registrarCompra(`transferencia_${uuidv4()}`, {
     tipo: 'curso',
     producto: cursoId,
-    nombre: sanitizeTexto(req.body?.cursoNombre, 200) || cursoId,
+    // El nombre lo decide el servidor: antes el panel de Finanzas mostraba
+    // el texto que mandaba el navegador.
+    nombre: nombreDeCurso(cursoId, sanitizeTexto(req.body?.cursoNombre, 200) || cursoId),
     metodo: 'transferencia',
     monto,
     moneda: 'ARS',
@@ -2149,6 +2373,32 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
     const porCodigo = regalo || esAnonima;
 
     const cobrado = capture.purchase_units?.[0]?.payments?.captures?.[0]?.amount;
+
+    // Reconciliar el importe, agregado el 28/11/2026. No es que haya un
+    // camino conocido para pagar menos: el monto lo fija el servidor al crear
+    // la orden y PayPal no deja cambiarlo. Pero nadie estaba comparando lo
+    // cobrado con lo esperado, asi que si alguna vez ese supuesto deja de
+    // valer -- un bug nuestro, un cambio en la API, una orden manipulada --
+    // no habria forma de enterarse. El acceso se entrega igual: cortarlo
+    // seria dejar sin curso a alguien que pago, y ante la duda el dato se
+    // custodia y se avisa, que es el criterio del resto del sitio.
+    const esperadoUsd = ordenSnap.data().precioUsd;
+    if (cobrado && esperadoUsd && Math.abs(Number(cobrado.value) - Number(esperadoUsd)) > 0.01) {
+      await custodiar({
+        endpoint: 'exitoPaypal',
+        motivo: 'importe_distinto_al_esperado',
+        gravedad: 'grave',
+        avisarSiempre: true,
+        datos: {
+          orderId,
+          cursoId: cursoId || null,
+          esperado: String(esperadoUsd),
+          cobrado: `${cobrado.value} ${cobrado.currency_code || 'USD'}`,
+        },
+        req,
+      });
+    }
+
     await registrarCompra(`paypal_${orderId}`, {
       tipo: 'curso',
       producto: cursoId || null,
@@ -2243,7 +2493,7 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
       text: emailAccesoTexto(cursoNombre, inviteUrl, userEmail)
     });
 
-    functions.logger.info('Email PayPal enviado', { userEmail, cursoId, invToken });
+    functions.logger.info('Email PayPal enviado', { userEmail, cursoId, invToken: huella(invToken) });
     res.redirect(`${process.env.SITE_URL}/escuela/abierta/gracias.html`);
 
   } catch (error) {
@@ -2294,6 +2544,19 @@ exports.exitoPaypal = functions.https.onRequest(async (req, res) => {
 // -------------------------------------------------------
 const ADMINS_PANEL = ['sebruz@gmail.com', 'espaciointeriorastrologia@gmail.com', 'info@sebabru.com'];
 
+// Se pide el mail verificado desde el 28/11/2026, igual que en
+// firestore.rules. El motivo esta explicado ahi arriba y es el mismo: el
+// sitio crea cuentas con contrasena y nunca mandaba verificacion, asi que un
+// token podia traer una direccion que no es de quien la usa.
+//
+// Quien entra con Google no nota nada: Google siempre devuelve
+// email_verified en true. A quien entre con mail y contrasena le va a decir
+// que verifique, y el mensaje lo dice con esas palabras para que no sea un
+// "acceso denegado" misterioso.
+function mailVerificado(context) {
+  return context.auth?.token?.email_verified === true;
+}
+
 function exigirAdmin(context) {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesión.');
@@ -2301,6 +2564,12 @@ function exigirAdmin(context) {
   const email = (context.auth.token.email || '').toLowerCase();
   if (!ADMINS_PANEL.includes(email)) {
     throw new functions.https.HttpsError('permission-denied', 'Solo admins.');
+  }
+  if (!mailVerificado(context)) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Entrá con Google, o verificá tu dirección de correo antes de abrir el panel.'
+    );
   }
   return email;
 }
@@ -3658,7 +3927,7 @@ exports.crearEnlace = functions.https.onCall(async (data, context) => {
     creadoEn: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  functions.logger.info('Enlace creado', { email, cursoId, token, maxUsos, dias });
+  functions.logger.info('Enlace creado', { email, cursoId, token: huella(token), maxUsos, dias });
   return { token };
 });
 
@@ -3671,6 +3940,7 @@ exports.activarEnlace = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Debés iniciar sesion.');
   }
   ensureInit();
+  exigirMailVerificado(context);
 
   const userEmail = (context.auth.token.email || '').toLowerCase().trim();
   if (!userEmail) {
@@ -4838,6 +5108,12 @@ exports.fijarClaimsAdmin = functions.https.onRequest(async (req, res) => {
 
   ensureInit();
 
+  // Era el unico endpoint de escritura sin tope, y cada llamada verifica un
+  // ID token y puede escribir un custom claim.
+  if (!(await checkRateLimit('fijarClaimsAdmin', req, 30))) {
+    return res.status(429).json({ error: 'Demasiados pedidos desde esta conexión.' });
+  }
+
   const authHeader = req.headers.authorization || '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!idToken) return res.status(401).json({ error: 'Falta el token de sesión.' });
@@ -4849,7 +5125,13 @@ exports.fijarClaimsAdmin = functions.https.onRequest(async (req, res) => {
     return res.status(401).json({ error: 'Token inválido.' });
   }
 
-  const esAdminTucarta = ADMINS_TUCARTA.includes((decoded.email || '').toLowerCase());
+  // El email_verified es del 28/11/2026. El comentario de arriba decia
+  // "si el email verificado esta en ADMINS_TUCARTA" desde siempre, pero el
+  // codigo nunca lo miraba: y esta es la funcion que OTORGA el claim
+  // {admin:true}, o sea la que le abre adminAgenda a una cuenta. Era el
+  // lugar donde menos podia faltar.
+  const esAdminTucarta = ADMINS_TUCARTA.includes((decoded.email || '').toLowerCase())
+    && decoded.email_verified === true;
   if (esAdminTucarta && decoded.admin !== true) {
     await admin.auth().setCustomUserClaims(decoded.uid, { admin: true });
   }
@@ -5112,7 +5394,7 @@ function claveDireccion(email) {
 // unico que hace falta: contar conexiones distintas y ver una misma pegandole
 // a muchas direcciones.
 function ipHasheada(req) {
-  const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  const ip = ipDelPedido(req);
   if (!ip) return '';
   const sal = process.env.BAJA_SECRET || process.env.TITULO_SECRET || 'sin-sal';
   return crypto.createHmac('sha256', sal).update(ip).digest('hex').slice(0, 10);
@@ -5455,7 +5737,7 @@ exports.suscribir = functions.runWith({ memory: '512MB' }).https.onRequest(async
   // Brevo: con fecha, origen e IP. Es lo que prueba de donde salio cada
   // direccion si alguna vez alguien pregunta, y sobrevive a un cambio de
   // proveedor de mailing.
-  const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  const ip = ipDelPedido(req);
   const anotarPedido = async estado => {
     try {
       await _db.collection('suscripciones').doc(email).set({
@@ -8369,6 +8651,11 @@ async function reservarHorario(sujeto, inicioMs, quien) {
       id: turnoId, inicio: isoLocal(inicioMs), fin: isoLocal(finMs),
       tipo: t.id, duracionMin,
       modalidad: sujeto.modalidad || '', meet,
+      // Igual que en turnoParaPersona: el Zoom con su passcode lo dice el
+      // servidor, y solo a quien acaba de reservar con un token valido.
+      zoom: (sujeto.modalidad === 'Presencial' || meet)
+        ? null
+        : { url: AGENDA_ZOOM, id: AGENDA_ZOOM_ID, pass: AGENDA_ZOOM_PASS },
     },
   };
 }
@@ -8649,6 +8936,15 @@ function turnoParaPersona(turno, config) {
     duracionMin: turno.duracionMin || t.duracionMin,
     modalidad: turno.modalidad || '',
     meet: turno.meet || null,
+    // Donde es el encuentro lo dice el servidor, no la pagina. El Zoom fijo
+    // lleva passcode, y hasta la auditoria del 28/11/2026 estaba escrito
+    // dentro de mi-agenda.js, que lo sirve Hosting a cualquiera sin sesion:
+    // el ID de la sala y su clave se bajaban con un curl. Ahora viaja aca,
+    // adentro de la respuesta de miAgenda, que pide token del enlace o ID
+    // token, y solo cuando este turno de verdad es por Zoom.
+    zoom: (turno.modalidad === 'Presencial' || turno.meet)
+      ? null
+      : { url: AGENDA_ZOOM, id: AGENDA_ZOOM_ID, pass: AGENDA_ZOOM_PASS },
     deSerie: Boolean(turno.serieId),
     // Si se puede mover solo, y hasta cuando. El servidor lo vuelve a
     // comprobar al recibir el cambio: esto es para no ofrecer un boton que
@@ -11109,13 +11405,43 @@ function idDeTitulo(email, curso) {
 // numeros son correlativos y cualquiera podria barrer el padron de
 // egresadxs probando SB-2026-0001, 0002, 0003. Mismo criterio que
 // tokenDeAgenda y tokenDeBaja.
-function codigoDeTitulo(numero) {
+// El largo es de la auditoria del 28/11/2026, y el detalle importa.
+//
+// Hasta ese dia el codigo se truncaba a 8 hex, o sea 32 bits, sobre un numero
+// correlativo y adivinable. Con el tope de pedidos evadible -- lo era, porque
+// la clave salia de un x-forwarded-for que elige quien pega -- eso se podia
+// barrer, y lo que se filtraba era nombre, curso y ano de cada egresadx.
+//
+// Ahora se emiten de 16 hex (64 bits). Pero los de 8 TIENEN que seguir
+// valiendo: estan impresos en el QR de los PDF ya entregados, y un diploma
+// cuyo codigo deja de verificar es un diploma roto. Por eso hay dos largos y
+// verificarTitulo prueba el que le llega. El dia que no quede ningun PDF
+// viejo circulando se puede borrar el de 8.
+const TITULO_CODIGO_LARGO = 16;
+const TITULO_CODIGO_LARGO_VIEJO = 8;
+
+function codigoDeTitulo(numero, largo = TITULO_CODIGO_LARGO) {
   const secreto = process.env.TITULO_SECRET;
   if (!secreto) {
     functions.logger.error('TITULO_SECRET no configurado: los titulos se emiten sin codigo de verificacion.');
     return null;
   }
-  return crypto.createHmac('sha256', secreto).update(`titulo:${numero}`).digest('hex').slice(0, 8);
+  return crypto.createHmac('sha256', secreto).update(`titulo:${numero}`).digest('hex').slice(0, largo);
+}
+
+// Compara contra los dos largos, siempre en tiempo constante.
+function codigoDeTituloVale(numero, codigo) {
+  const largos = [TITULO_CODIGO_LARGO, TITULO_CODIGO_LARGO_VIEJO];
+  let vale = false;
+  for (const largo of largos) {
+    if (codigo.length !== largo) continue;
+    const esperado = codigoDeTitulo(numero, largo);
+    if (!esperado) return null; // sin secreto: no se puede verificar
+    try {
+      if (crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(codigo))) vale = true;
+    } catch (_) { /* largos distintos: no vale */ }
+  }
+  return vale;
 }
 
 function urlDeVerificacion(numero, codigo) {
@@ -11631,19 +11957,15 @@ exports.verificarTitulo = functions.https.onRequest(async (req, res) => {
   const codigo = sanitizeTexto(req.query?.c, 32);
   // 4-1122-2601. El correlativo puede pasar de dos digitos si alguna vez se
   // emiten mas de 99 en un ano, asi que se aceptan de 4 en adelante.
-  if (!/^\d-\d{4}-\d{4,6}$/.test(numero) || !/^[0-9a-f]{8}$/.test(codigo)) {
+  // 8 son los codigos viejos, ya impresos en los PDF entregados; 16 los
+  // nuevos. Ver codigoDeTitulo.
+  if (!/^\d-\d{4}-\d{4,6}$/.test(numero) || !/^(?:[0-9a-f]{8}|[0-9a-f]{16})$/.test(codigo)) {
     return res.status(404).json(NO_VALE);
   }
 
-  const esperado = codigoDeTitulo(numero);
-  if (!esperado) return res.status(500).json({ ok: false, error: 'No podemos verificar títulos en este momento.' });
-  try {
-    if (!crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(codigo))) {
-      return res.status(404).json(NO_VALE);
-    }
-  } catch (_) {
-    return res.status(404).json(NO_VALE);
-  }
+  const vale = codigoDeTituloVale(numero, codigo);
+  if (vale === null) return res.status(500).json({ ok: false, error: 'No podemos verificar títulos en este momento.' });
+  if (!vale) return res.status(404).json(NO_VALE);
 
   try {
     const snap = await _db.collection('titulos').where('numero', '==', numero).limit(1).get();

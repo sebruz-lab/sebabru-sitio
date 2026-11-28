@@ -237,6 +237,7 @@
         signInWithEmailAndPassword, createUserWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { entrarConGoogle } from '/escuela/google.js?v=2';
+    import { pedirVerificacion, mensajeDeErrorDeRegistro } from '/escuela/verificar.js?v=1';
     import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { db } from '../escuela/firebase.js';
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
@@ -398,8 +399,16 @@
                 cohorte: '2026',
                 fechaRegistro: new Date(),
             });
+            // Canjear pide el mail verificado del lado del servidor, asi que
+            // acá hay que mandarlo: si no, quien se registra con contraseña
+            // se queda sin poder usar su código y sin saber por qué.
+            const aviso = await pedirVerificacion(cred.user);
+            if (aviso.mensaje) mostrarErrorLogin(aviso.mensaje);
         } catch (e2) {
-            mostrarErrorLogin('No se pudo crear la cuenta. ' + (e2.message || ''));
+            // Mensaje genérico a propósito: el texto crudo de Firebase
+            // ("auth/email-already-in-use") le confirma a cualquiera que una
+            // dirección ajena ya tiene cuenta con sólo probar a registrarse.
+            mostrarErrorLogin(mensajeDeErrorDeRegistro(e2?.code));
         }
     });
 </script>
