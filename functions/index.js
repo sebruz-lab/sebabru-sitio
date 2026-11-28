@@ -398,10 +398,14 @@ function huella(valor) {
 // No se aplica a registrarInteres: ahi no hay nada de valor para robar, y
 // rechazar a alguien que deja su interes es perder un dato por nada (ver el
 // criterio de "nunca perder un dato que alguien dejo").
+// El codigo es 'failed-precondition' a proposito, y no 'permission-denied':
+// la pantalla de canje ya usa permission-denied para "este enlace expiro", y
+// con el mismo codigo le diria a alguien que pida un enlace nuevo cuando lo
+// unico que le falta es abrir un mail.
 function exigirMailVerificado(context) {
   if (context.auth?.token?.email_verified !== true) {
     throw new functions.https.HttpsError(
-      'permission-denied',
+      'failed-precondition',
       'Antes de usar este código tenés que confirmar tu dirección de correo. '
       + 'Te mandamos un mail con un enlace: abrilo y volvé a intentar. '
       + 'Si entrás con Google, no hace falta nada de esto.'

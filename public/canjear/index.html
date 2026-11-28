@@ -237,7 +237,7 @@
         signInWithEmailAndPassword, createUserWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { entrarConGoogle } from '/escuela/google.js?v=2';
-    import { pedirVerificacion, mensajeDeErrorDeRegistro } from '/escuela/verificar.js?v=1';
+    import { pedirVerificacion, mensajeDeErrorDeRegistro, reenviarVerificacion } from '/escuela/verificar.js?v=2';
     import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { db } from '../escuela/firebase.js';
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
@@ -265,6 +265,30 @@
         mostrar('screen-error');
     }
 
+    // Cuando lo unico que falta es confirmar la direccion de correo, el error
+    // trae un boton que vuelve a mandar el mail. Sin esto seria una puerta
+    // cerrada sin llave: quien ya tenia cuenta antes del 28/11/2026 nunca
+    // recibio ese mail, porque el sitio no lo mandaba, y el unico lugar donde
+    // se manda es el registro -- que esa persona ya hizo.
+    function mostrarFaltaVerificar(texto) {
+        document.getElementById('error-titulo').textContent = 'Confirmá tu correo';
+        const caja = document.getElementById('error-texto');
+        caja.textContent = texto;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.textContent = 'Mandámelo de nuevo';
+        boton.style.cssText = 'display:block;margin:18px auto 0;padding:10px 18px;'
+            + 'font:inherit;cursor:pointer;background:none;border:1px solid currentColor;border-radius:4px;';
+        boton.addEventListener('click', async () => {
+            boton.disabled = true;
+            boton.textContent = 'Mandando...';
+            const r = await reenviarVerificacion(auth.currentUser);
+            boton.replaceWith(document.createTextNode(r.mensaje));
+        });
+        caja.appendChild(boton);
+        mostrar('screen-error');
+    }
+
     async function canjear(cod) {
         if (canjeando) return;
         canjeando = true;
@@ -280,6 +304,10 @@
             if (window.gtag) gtag('event', 'canje_regalo', { curso: cursoId });
         } catch (e) {
             const code = (e.code || '').replace('functions/', '');
+            if (code === 'failed-precondition') {
+                mostrarFaltaVerificar(e.message || 'Tenés que confirmar tu dirección de correo.');
+                return;
+            }
             const msgs = {
                 'not-found':      ['Codigo invalido', 'Ese codigo no existe. Revisa que este bien escrito.'],
                 'already-exists': ['Codigo ya usado', 'Ese codigo ya fue canjeado antes.'],
@@ -307,6 +335,10 @@
             if (window.gtag) gtag('event', 'activar_enlace', { curso: cursoId });
         } catch (e) {
             const code = (e.code || '').replace('functions/', '');
+            if (code === 'failed-precondition') {
+                mostrarFaltaVerificar(e.message || 'Tenés que confirmar tu dirección de correo.');
+                return;
+            }
             const msgs = {
                 'not-found':        ['Enlace invalido', 'Ese enlace no existe o fue escrito incorrectamente.'],
                 'permission-denied':['Enlace expirado', 'Este enlace ya no esta activo. Pedile uno nuevo a quien te lo compartio.'],

@@ -39,6 +39,26 @@ export async function pedirVerificacion(usuario) {
     }
 }
 
+// Volver a mandarlo, para quien ya tenía cuenta antes del 28/11/2026 y nunca
+// recibió el mail porque el sitio no lo mandaba. Sin esto, un canje que pide
+// la verificación sería una puerta cerrada sin llave: el único lugar donde se
+// mandaba el mail era el registro, y esa persona ya se registró.
+export async function reenviarVerificacion(usuario) {
+    if (!usuario) return { ok: false, mensaje: 'Entrá a tu cuenta primero.' };
+    if (usuario.emailVerified) {
+        return { ok: true, mensaje: 'Tu dirección ya está confirmada. Volvé a intentar.' };
+    }
+    try {
+        await sendEmailVerification(usuario);
+        return { ok: true, mensaje: 'Listo, te lo mandamos de nuevo. Revisá tu casilla y volvé a intentar.' };
+    } catch (e) {
+        if (e?.code === 'auth/too-many-requests') {
+            return { ok: false, mensaje: 'Ya te mandamos varios. Esperá unos minutos y revisá también el spam.' };
+        }
+        return { ok: false, mensaje: 'No pudimos mandarlo. Escribinos a info@sebabru.com y lo resolvemos.' };
+    }
+}
+
 // Los mensajes de error del registro, sin filtrar el código crudo de
 // Firebase. El texto de auth/email-already-in-use le confirma a cualquiera
 // que una dirección ajena ya tiene cuenta en el sitio con sólo probar a

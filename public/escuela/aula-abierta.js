@@ -12,7 +12,7 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { entrarConGoogle } from './google.js?v=2';
-import { pedirVerificacion, mensajeDeErrorDeRegistro } from './verificar.js?v=1';
+import { pedirVerificacion, mensajeDeErrorDeRegistro } from './verificar.js?v=2';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 import { app, auth, db } from './firebase.js';

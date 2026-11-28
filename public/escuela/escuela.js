@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshotsInSync } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { entrarConGoogle } from './google.js?v=2';
-import { pedirVerificacion } from './verificar.js?v=1';
+import { pedirVerificacion } from './verificar.js?v=2';
 
 // ======================================================
 // EL CATALOGO DEL MENU DE LA ESCUELA
