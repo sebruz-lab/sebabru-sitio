@@ -1047,7 +1047,62 @@ la callable `pendientes` (la colección está cerrada en las reglas: adentro hay
 DNI, direcciones y datos de nacimiento). Se borra sola a los 90 días por la
 política de TTL sobre el campo `expira` — **ese paso es manual** y no va en el
 deploy:
-`gcloud firestore fields ttls update expira --collection-group=datos_sin_procesar --enable-ttl`.
+`gcloud firestore fields ttls update expira --collection-group=datos_sin_procesar --enable-ttl --database=cursos`.
+**El `--database=cursos` no es opcional**: sin él apunta a la base default, que
+es otra. Es el mismo tipo de error silencioso que `--only firestore:rules`.
+
+## Seguridad
+
+La auditoría vigente es la del **28/11/2026** y el detalle está en
+`AUDITORIA-SEGURIDAD.md`. Lo que conviene tener a mano porque es fácil de
+volver a romper:
+
+- **Nunca leer `x-forwarded-for[0]`.** De esa clave cuelgan los topes de ~25
+  endpoints, y en Cloud Run el balanceador de Google **agrega** la IP real al
+  final en vez de reemplazar el header: el primer elemento lo elige quien pega.
+  La IP sale de `ipDelPedido()`, que toma el penúltimo. Mandando un valor
+  distinto en cada pedido, antes cada uno estrenaba contador y no frenaba nada
+  — ni los 300 mails/día de Brevo ni la cuota de Gmail.
+- **Toda autoridad pide el mail verificado.** `esAdmin()` en las reglas,
+  `exigirAdmin`, `fijarClaimsAdmin` y los cuatro canjes exigen
+  `email_verified`. El motivo: el sitio crea cuentas con contraseña y hasta esa
+  fecha no mandaba nunca la verificación, así que cualquiera podía registrarse
+  con una dirección ajena — y quien supiera a qué dirección se mandó una
+  invitación se quedaba con el curso que pagó otra persona. Quien entra con
+  Google no nota nada, porque Google devuelve `email_verified: true`.
+  **La verificación NO se pide para entrar a un aula**, a propósito: la pediría
+  a cuentas viejas sin verificar que ya pagaron su curso. El mail de
+  verificación lo manda `public/escuela/verificar.js`, en los 5 registros.
+- **La lista de admins está en `esAdmin()`, una sola vez.** Antes estaba 18
+  veces en `firestore.rules`. Las otras dos copias siguen aparte a propósito:
+  `ADMINS_PANEL` en functions es la fuente, y `ADMIN_EMAILS` en el HTML del
+  panel es **cosmética** (decide si se ve, no si se puede hacer algo).
+- **Las reglas se prueban, no se leen.** Hay 63 tests contra el emulador (hace
+  falta Java, ya instalado):
+  `firebase emulators:exec --only firestore --project demo-sebabru "node --test"`,
+  con el `firestore.rules` copiado al lado. Corridos contra las reglas de antes
+  del arreglo fallan 5, que es lo que prueba que sirven. **Correrlos antes de
+  cada deploy de reglas.**
+- **Un secreto no va en un archivo de `public/`.** El passcode del Zoom de las
+  consultas estuvo escrito en `mi-agenda.js` y en `agenda/agenda.js`, dos
+  archivos que Hosting sirve a cualquiera sin sesión: se bajaban con un `curl`.
+  Ahora lo manda el servidor, en la respuesta de `miAgenda` y de
+  `reservarTurno`, y sólo cuando ese turno es por Zoom. El único lugar donde
+  vive es `AGENDA_ZOOM*` en `functions/index.js`.
+- **Un token no va en un log.** En Cloud Logging va `huella(token)`, que es un
+  sha256 de 10 caracteres: alcanza para cruzar dos líneas y no sirve para
+  entrar. Un log vive por su retención, no por la del token.
+- **Nada falla abierto, y menos con un `logger.error` como único aviso.** La
+  firma de Mercado Pago devolvía `true` cuando faltaba el secreto. Un modo
+  degradado tiene que **custodiar** (`grave` + `avisarSiempre`), porque un
+  `logger.error` no le avisa a nadie: no hay ninguna alerta sobre los logs.
+- **El nombre de lo que se vende lo decide el servidor**, igual que el precio:
+  sale de `CURSO_NOMBRES` a partir del `cursoId`, que es un enum validado. Antes
+  lo mandaba el navegador y llegaba al checkout y al panel de Finanzas.
+- **Los JS escritos a mano se cachean 1 hora, no 30 días**, porque no llevan
+  hash en el nombre: con 30 días, una corrección del lado del cliente tardaba
+  un mes en llegar. Al cambiar uno, **subir su `?v=`**. Los de
+  `/cartas/assets/**` sí llevan hash y se quedan en 30 días `immutable`.
 
 ## OG Tags
 
